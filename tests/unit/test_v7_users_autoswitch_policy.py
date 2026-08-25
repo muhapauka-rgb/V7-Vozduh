@@ -7331,6 +7331,9 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "current_allowed_user_budget": 1,
                 },
             )
+            (root / "state" / "service-preferences.json").write_text(
+                "{}", encoding="utf-8"
+            )
             args = self.args_for(
                 root,
                 [
@@ -7356,6 +7359,121 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             {row["egress"] for row in decision["candidates"]},
             {"1", "vless"},
         )
+
+    def test_fresh_prepared_handoff_uses_bounded_target_validation_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_services={
+                    "telegram": {"ok": False, "status": "DOWN", "score": 0}
+                },
+            )
+            (root / "state" / "service-preferences.json").write_text(
+                "{}", encoding="utf-8"
+            )
+            args = self.args_for(
+                root,
+                [
+                    "--mode", "guarded",
+                    "--governed-candidate-only",
+                    "--emergency-failover-autonomy",
+                    "--user", "10.0.0.2",
+                    "--source-egress", "1",
+                    "--target-egress", "vless",
+                    "--max-selected-moves", "1",
+                    "--prepared-decision-handoff-file",
+                    str(root / "state" / "service-matrix-refresh-summary.json"),
+                ],
+            )
+            projection = {
+                "schema_version": "v7.prepared-class-decision-projection.v1",
+                "status": "PREPARED_CLASS_DECISION_AVAILABLE",
+                "produced_at": self.tool.now_iso(),
+                "selection_invalidator_keys": list(
+                    self.tool.PREPARED_SELECTION_INVALIDATOR_KEYS
+                ),
+                "invalidators": self.tool.current_prepared_selection_invalidators(args),
+                "classes": [{
+                    "source_channel": "1",
+                    "hot_targets": [{"target_id": "vless"}],
+                }],
+                "hot_target_set": {"contracts": [{
+                    "target_id": "vless",
+                    "target_safe_additional_capacity": 1,
+                }]},
+            }
+            (root / "state" / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        decision = plan["decisions"][0]
+        self.assertEqual(
+            plan["prepared_decision_handoff"]["status"],
+            "READY_FOR_BOUNDED_HOT_VALIDATION",
+            plan["prepared_decision_handoff"],
+        )
+        self.assertEqual(
+            decision["decision_construction"],
+            "PREPARED_TARGET_MUTABLE_VALIDATION_ONLY",
+        )
+        self.assertEqual(decision["action"], "switch")
+        self.assertEqual(decision["move_type"], "failover")
+        self.assertEqual(decision["recommended_egress"], "vless")
+        self.assertEqual(
+            planner.performance_timeline()["prepared_decision_diagnostic"]["execution"]["status"],
+            "READY_FOR_BOUNDED_PREPARED_EXECUTION",
+        )
+
+    def test_prepared_execution_private_handoff_drift_falls_back_to_full_planner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_services={
+                    "telegram": {"ok": False, "status": "DOWN", "score": 0}
+                },
+            )
+            args = self.args_for(
+                root,
+                [
+                    "--mode", "guarded", "--governed-candidate-only",
+                    "--emergency-failover-autonomy", "--user", "10.0.0.2",
+                    "--source-egress", "1", "--target-egress", "vless",
+                    "--max-selected-moves", "1",
+                    "--prepared-decision-handoff-file",
+                    str(root / "state" / "service-matrix-refresh-summary.json"),
+                ],
+            )
+            projection = {
+                "schema_version": "v7.prepared-class-decision-projection.v1",
+                "status": "PREPARED_CLASS_DECISION_AVAILABLE",
+                "produced_at": self.tool.now_iso(),
+                "selection_invalidator_keys": list(self.tool.PREPARED_SELECTION_INVALIDATOR_KEYS),
+                "invalidators": self.tool.current_prepared_selection_invalidators(args),
+                "classes": [{"source_channel": "1", "hot_targets": [{"target_id": "vless"}]}],
+                "hot_target_set": {"contracts": [{"target_id": "vless", "target_safe_additional_capacity": 1}]},
+            }
+            (root / "state" / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}), encoding="utf-8"
+            )
+            args._prepared_decision_handoff = {
+                "source": "1", "selected_target": "vless",
+                "projection_fingerprint": "stale-fingerprint",
+            }
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        self.assertEqual(
+            planner.performance_timeline()["prepared_decision_diagnostic"]["execution"]["status"],
+            "EXISTING_FULL_PLANNER_FALLBACK",
+        )
+        self.assertNotIn("decision_construction", plan["decisions"][0])
 
     def test_committed_apply_revalidation_blocks_live_assignment_drift(self):
         with tempfile.TemporaryDirectory() as tmp:

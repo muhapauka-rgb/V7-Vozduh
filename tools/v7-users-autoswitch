@@ -13083,8 +13083,21 @@ class AutoswitchPlanner:
             critical_path=True,
             details={"active_scope_count": len(active)},
         )
+        prepared_execution = self._prepared_incident_execution_context(
+            prepared_handoff,
+        )
+        self._prepared_decision_diagnostic["execution"] = copy.deepcopy(
+            prepared_execution
+        )
         candidate_started_ns = time.monotonic_ns()
-        decisions = [self._decision_for_user(user) for user in active]
+        decisions = [
+            (
+                self._prepared_incident_decision_for_user(user, prepared_execution)
+                if prepared_execution.get("ok")
+                else self._decision_for_user(user)
+            )
+            for user in active
+        ]
         self._record_performance_span(
             "candidate_eligibility_and_target_freshness",
             candidate_started_ns,
@@ -13092,10 +13105,10 @@ class AutoswitchPlanner:
             critical_path=True,
             details={
                 "decision_count": len(decisions),
-                "prepared_decision_reused": bool(prepared_handoff.get("ok")),
+                "prepared_decision_reused": bool(prepared_execution.get("ok")),
                 "classification": (
-                    "BOUNDED_PREPARED_TARGET_VALIDATION"
-                    if prepared_handoff.get("ok")
+                    "BOUNDED_PREPARED_TARGET_EXECUTION_VALIDATION"
+                    if prepared_execution.get("ok")
                     else "CURRENT_FULL_DECISION_CONSTRUCTION"
                 ),
             },
@@ -15136,6 +15149,140 @@ class AutoswitchPlanner:
             row["current_egress"][user.current] = row["current_egress"].get(user.current, 0) + 1
         return {"groups": groups, "egress_group_usage": {k: sorted(v) for k, v in self.group_usage.items()}}
 
+    def _prepared_incident_execution_context(
+        self, handoff: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Admit one Matrix-prepared target only for the exact governed lane.
+
+        This is deliberately not a second Planner or an authorization path.
+        It consumes the existing Matrix projection after T0 and leaves all
+        mutable Candidate, Packet, Lease, Barrier and Apply checks in their
+        current owners.  Every mismatch returns the ordinary Planner path.
+        """
+        handoff = handoff if isinstance(handoff, dict) else {}
+        source = str(getattr(self.args, "source_egress", "") or "").strip()
+        target = str(getattr(self.args, "target_egress", "") or "").strip()
+        user = str(getattr(self.args, "user", "") or "").strip()
+        blockers: list[str] = []
+        if not bool_value(getattr(self.args, "governed_candidate_only", False)):
+            blockers.append("prepared_execution_requires_governed_candidate_only")
+        if not bool_value(getattr(self.args, "emergency_failover_autonomy", False)):
+            blockers.append("prepared_execution_requires_emergency_failover_autonomy")
+        if not user or not source or not target:
+            blockers.append("prepared_execution_exact_identity_missing")
+        if to_int(getattr(self.args, "max_selected_moves", 0), 0) != 1:
+            blockers.append("prepared_execution_requires_one_user_budget")
+        if not handoff.get("ok"):
+            blockers.append("prepared_execution_handoff_not_fresh")
+        if str(handoff.get("source") or "") != source:
+            blockers.append("prepared_execution_source_mismatch")
+        if str(handoff.get("selected_target") or "") != target:
+            blockers.append("prepared_execution_target_mismatch")
+        contract = handoff.get("target_contract")
+        contract = contract if isinstance(contract, dict) else {}
+        if to_int(contract.get("target_safe_additional_capacity"), 0) < 1:
+            blockers.append("prepared_execution_target_capacity_not_prepared")
+        supplied = getattr(self.args, "_prepared_decision_handoff", {})
+        supplied = supplied if isinstance(supplied, dict) else {}
+        # The governed caller may carry the pre-T0 handoff in-process.  It is
+        # evidence only, never a substitute for the freshly reread Matrix
+        # projection above; a changed fingerprint fails back to the full path.
+        if supplied:
+            for key in ("source", "selected_target", "projection_fingerprint"):
+                if str(supplied.get(key) or "") != str(handoff.get(key) or ""):
+                    blockers.append(f"prepared_execution_handoff_{key}_drift")
+        return {
+            "ok": not blockers,
+            "status": (
+                "READY_FOR_BOUNDED_PREPARED_EXECUTION"
+                if not blockers else "EXISTING_FULL_PLANNER_FALLBACK"
+            ),
+            "source": source,
+            "target": target,
+            "user": user,
+            "projection_fingerprint": str(handoff.get("projection_fingerprint") or ""),
+            "blockers": sorted(set(blockers)),
+            "fallback": "EXISTING_FULL_PLANNER",
+            "selection_owner": "existing Matrix prepared_class_decisions",
+            "mutable_validation_owner": "tools/v7-users-autoswitch Candidate/Packet/Lease/Barrier/Apply",
+            "ordinary_user_eligible": False,
+        }
+
+    def _prepared_incident_decision_for_user(
+        self, user: User, context: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Validate one already-selected target without reranking the world."""
+        source = str(context.get("source") or "")
+        target = str(context.get("target") or "")
+        important = self._important_services(user)
+        profile_required = self._profile_required_services(user)
+        route_class = self.args.route_class or self._route_class_for_services(important)
+        # Do not score or consult advisory ranking feeds here: Matrix selected
+        # the bounded target, and fresh hard gates below decide only whether it
+        # remains executable.  This preserves the full Planner as fallback.
+        current = (
+            self._candidate(
+                user, self.egress[source], important, route_class,
+                purpose="current", include_scoring=False,
+            )
+            if source == user.current and source in self.egress else None
+        )
+        candidate = (
+            self._candidate(
+                user, self.egress[target], important, route_class,
+                purpose="failover", include_scoring=False,
+            )
+            if target in self.egress and target != source else None
+        )
+        action = "keep"
+        move_type = "none"
+        reason = ["prepared_decision_target_revalidated"]
+        if not current:
+            reason.append("prepared_source_assignment_not_current")
+        elif current.eligible:
+            reason.append("prepared_source_not_currently_ineligible")
+        elif not candidate or not candidate.eligible:
+            reason.append("prepared_target_failed_mutable_validation")
+        else:
+            cooldown_ok, cooldown_reason = self._cooldown_ok(user)
+            cooldown_override = self._l3_failed_source_cooldown_override_context(
+                user.ip, source,
+            )
+            if cooldown_ok or bool_value(cooldown_override.get("allowed")):
+                action = "switch"
+                move_type = "failover"
+                reason.append("current_egress_not_eligible")
+                reason.append("prepared_target_passed_mutable_validation")
+                if not cooldown_ok:
+                    reason.append("l3_failed_source_cooldown_override")
+            else:
+                reason.append(cooldown_reason or "prepared_failover_cooldown_blocked")
+        candidates = [row for row in (current, candidate) if row is not None]
+        return {
+            "user_ip": user.ip,
+            "group": user.group,
+            "route_class": route_class,
+            "important_services": important,
+            "profile_required_services": profile_required,
+            "candidate_scope": "EXACT_PREPARED_INCIDENT_SOURCE_AND_TARGET",
+            "decision_construction": "PREPARED_TARGET_MUTABLE_VALIDATION_ONLY",
+            "prepared_projection_fingerprint": str(
+                context.get("projection_fingerprint") or ""
+            ),
+            "current_egress": user.current,
+            "recommended_egress": target if action == "switch" else user.current,
+            "action": action,
+            "move_type": move_type,
+            "reason": reason,
+            "current_score": None,
+            "recommended_score": None,
+            "candidates": [self._candidate_json(row) for row in candidates],
+            "explanation": self._explanation(
+                user, target if action == "switch" else user.current, action,
+                move_type, current, candidates, reason,
+            ),
+        }
+
     def _decision_for_user(self, user: User) -> dict[str, Any]:
         important = self._important_services(user)
         profile_required = self._profile_required_services(user)
@@ -15470,12 +15617,22 @@ class AutoswitchPlanner:
             return "TRUSTED_RU_SENSITIVE"
         return "GLOBAL_FAST"
 
-    def _candidate(self, user: User, egress: Egress, services: list[str], route_class: str, purpose: str = "planned") -> Candidate:
+    def _candidate(
+        self,
+        user: User,
+        egress: Egress,
+        services: list[str],
+        route_class: str,
+        purpose: str = "planned",
+        *,
+        include_scoring: bool = True,
+    ) -> Candidate:
         c = Candidate(egress=egress, eligible=True)
         c.severity_classification = self._severity_classification(egress)
         c.service_suitability = self._service_suitability(egress, services, route_class)
-        c.routing_intelligence = self._routing_intelligence_candidate_advice(user, egress, services, route_class)
-        c.ctr_advisory = self._ctr_advisory_for_egress(egress.id)
+        if include_scoring:
+            c.routing_intelligence = self._routing_intelligence_candidate_advice(user, egress, services, route_class)
+            c.ctr_advisory = self._ctr_advisory_for_egress(egress.id)
         self._gate_basic(c, purpose)
         self._gate_reservation(user, c, purpose)
         self._gate_org(user, c)
@@ -15484,7 +15641,7 @@ class AutoswitchPlanner:
         self._gate_load(c, purpose)
         self._gate_safety(user, c, purpose)
         c.capacity_decision = self._capacity_decision(egress)
-        if not c.eligible:
+        if not c.eligible or not include_scoring:
             return c
         c.score_parts = self._score_parts(user, egress, services, route_class, c.routing_intelligence)
         c.score = sum(c.score_parts.values())

@@ -6309,7 +6309,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         """A source-bounded request must not score unrelated active users."""
         source = AUTOSWITCH_TOOL.read_text(encoding="utf-8")
         plan_start = source.index("    def plan(self) -> dict[str, Any]:")
-        decision_build = source.index("decisions = [self._decision_for_user(user) for user in active]", plan_start)
+        decision_build = source.index("prepared_execution = self._prepared_incident_execution_context(", plan_start)
         source_filter = source.index("if source_egress:", plan_start)
         bounded_filter = source.index(
             "if source_egress and requested_max_selected_moves > 0:",
@@ -6317,6 +6317,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertLess(source_filter, decision_build)
         self.assertLess(bounded_filter, decision_build)
+        self.assertIn(
+            "self._prepared_incident_decision_for_user(user, prepared_execution)",
+            source[decision_build:],
+        )
 
 
 if __name__ == "__main__":

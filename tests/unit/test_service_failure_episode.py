@@ -807,6 +807,16 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertTrue(ready["ok"], ready)
         self.assertEqual(ready["selection"]["selected_target_id"], "awg3")
         self.assertFalse(ready["world_model_rebuilt"])
+        timing = ready.get("performance_timeline") or {}
+        self.assertEqual(
+            timing.get("schema_version"),
+            "v7.prepared-controlled-target-diagnostic-timing.v1",
+        )
+        self.assertEqual(
+            timing.get("owner_invocation"),
+            "SAME_INVOCATION_OWNER_VALIDATION_REUSED",
+        )
+        self.assertTrue(timing.get("diagnostic_only"))
 
     def test_rejected_prepared_target_refresh_does_not_widen_missing_scope(self):
         diagnostic = {

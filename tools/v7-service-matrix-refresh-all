@@ -465,6 +465,46 @@ def read_prepared_controlled_target_selection_diagnostic(
     ranks a new target; any stale/missing fact returns an empty diagnostic so
     the established full diagnostic remains the fail-closed backstop.
     """
+    diagnostic_started_ns = time.monotonic_ns()
+    summary_read_completed_ns = diagnostic_started_ns
+    owner_validation_started_ns = diagnostic_started_ns
+    owner_validation_completed_ns = diagnostic_started_ns
+    owner_invocation = "NOT_STARTED"
+
+    def timed(result: dict[str, Any]) -> dict[str, Any]:
+        """Attach diagnostic-only timings to the existing selection result.
+
+        The Matrix remains the writer and the Planner remains the prepared
+        projection owner.  These fields only split the formerly combined
+        incident-time validation interval so a later optimisation can prove
+        which owner call, file read or target intersection it removes.
+        """
+        completed_ns = time.monotonic_ns()
+        result["performance_timeline"] = {
+            "schema_version": "v7.prepared-controlled-target-diagnostic-timing.v1",
+            "clock_source": "time.monotonic_ns",
+            "summary_read_ms": round(
+                (summary_read_completed_ns - diagnostic_started_ns) / 1_000_000.0,
+                3,
+            ),
+            "owner_validation_ms": round(
+                (owner_validation_completed_ns - owner_validation_started_ns) / 1_000_000.0,
+                3,
+            ),
+            "target_intersection_ms": round(
+                (completed_ns - owner_validation_completed_ns) / 1_000_000.0,
+                3,
+            ),
+            "total_ms": round(
+                (completed_ns - diagnostic_started_ns) / 1_000_000.0,
+                3,
+            ),
+            "owner_invocation": owner_invocation,
+            "diagnostic_only": True,
+            "runtime_behavior_changed": False,
+        }
+        return result
+
     # Freshness is evaluated at incident-validation entry.  Loading and
     # validating the existing owner can itself cross the three-second PATH
     # boundary; measuring at the end made fresh pre-T0 evidence invalidate
@@ -474,14 +514,15 @@ def read_prepared_controlled_target_selection_diagnostic(
     summary = read_json(
         state_dir / "service-matrix-refresh-summary.json", {},
     )
+    summary_read_completed_ns = time.monotonic_ns()
     if not isinstance(summary, dict) or not isinstance(
         summary.get("prepared_class_decisions"), dict,
     ):
-        return {
+        return timed({
             "ok": False,
             "status": "PREPARED_TARGET_PROJECTION_MISSING",
             "blockers": ["prepared_projection_missing"],
-        }
+        })
     payload: dict[str, Any] = {}
     returncode = 2
     validated_context = (
@@ -519,9 +560,11 @@ def read_prepared_controlled_target_selection_diagnostic(
                 "runtime_mutation_performed": False,
             },
         }
+        owner_invocation = "SAME_INVOCATION_OWNER_VALIDATION_REUSED"
         returncode = 0
     else:
         try:
+            owner_invocation = "IN_PROCESS_EXISTING_PLANNER_OWNER"
             module = in_process_autoswitch_module(planner)
             owner_args = in_process_autoswitch_args(
                 module,
@@ -548,6 +591,7 @@ def read_prepared_controlled_target_selection_diagnostic(
             # an invocation mechanism, never a bypass of its validation result.
             payload = {}
     if not payload:
+        owner_invocation = "EXISTING_PLANNER_SUBPROCESS_FALLBACK"
         command = [
             planner,
             "--prepared-class-projection-only",
@@ -568,11 +612,13 @@ def read_prepared_controlled_target_selection_diagnostic(
             payload = json.loads(proc.stdout or "{}")
             returncode = proc.returncode
         except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
-            return {
+            owner_validation_completed_ns = time.monotonic_ns()
+            return timed({
                 "ok": False,
                 "status": "PREPARED_TARGET_PROJECTION_UNAVAILABLE",
                 "blockers": [f"prepared_projection_owner_failed:{type(exc).__name__}"],
-            }
+            })
+    owner_validation_completed_ns = time.monotonic_ns()
     projection = (
         payload.get("prepared_class_decisions")
         if isinstance(payload, dict)
@@ -591,7 +637,7 @@ def read_prepared_controlled_target_selection_diagnostic(
         or str(freshness.get("status") or "")
         != "PREPARED_CLASS_DECISION_FRESH"
     ):
-        return {
+        return timed({
             "ok": False,
             "status": "PREPARED_TARGET_PROJECTION_STALE",
             "blockers": list(
@@ -600,7 +646,7 @@ def read_prepared_controlled_target_selection_diagnostic(
                 )
                 or ["prepared_projection_not_fresh"]
             ),
-        }
+        })
 
     current_scope = (
         current_source_scope
@@ -847,7 +893,7 @@ def read_prepared_controlled_target_selection_diagnostic(
         "prepared_class_decisions": projection,
         "prepared_class_decision_freshness": freshness,
     }
-    return result
+    return timed(result)
 
 
 def refresh_rejected_prepared_target_paths(

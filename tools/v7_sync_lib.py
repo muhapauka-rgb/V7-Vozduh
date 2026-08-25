@@ -27305,8 +27305,22 @@ def safe_deploy_plan(
     if any(not item["exists"] for item in deploy_file_records()):
         blockers.append("approved_deploy_file_missing")
     changed_admin = any(item["name"] == "v7-admin-api" and not item["matches"] for item in delta)
+    # The health service keeps the Matrix consumer and its imported owner
+    # modules in memory.  Any member of this exact existing in-process path
+    # requires a service restart before copied files can be credited as live.
+    health_runtime_dependencies = {
+        "v7-health-loop",
+        "v7-service-matrix-refresh-all",
+        "v7-service-matrix-test",
+        "v7-users-autoswitch",
+        "v7-governed-canary-dry-run-cycle",
+        "v7_sync_lib.py",
+        "operator_execution.py",
+        "operator_execution_pipeline.py",
+        "intelligence_workers.py",
+    }
     changed_health = any(
-        item["name"] == "v7-health-loop" and not item["matches"]
+        item["name"] in health_runtime_dependencies and not item["matches"]
         for item in delta
     )
     changed_systemd = any(

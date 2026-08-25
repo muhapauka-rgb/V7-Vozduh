@@ -1971,6 +1971,14 @@ def ct_m0f_runtime_implementation_fingerprint(
         ),
         "autoswitch": sha256_file(Path(autoswitch)),
         "health_runtime": sha256_file(Path(health_runtime)),
+        # The Matrix consumer is loaded into the long-running existing health
+        # owner.  A copied file alone is not proof that this in-memory owner
+        # has consumed that file.  systemd already supplies INVOCATION_ID to
+        # the service; include it when present so evidence cannot mix an old
+        # process image with a newly copied runtime file.
+        "health_runtime_invocation_id": str(
+            os.environ.get("INVOCATION_ID") or ""
+        ),
         "routing_runtime": sha256_file(routing_runtime),
         "route_writer_runtime": sha256_file(
             routing_runtime.with_name("v7-user-switch")

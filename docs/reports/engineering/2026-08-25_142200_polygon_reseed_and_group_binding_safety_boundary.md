@@ -250,3 +250,18 @@ One final caller defect was also removed: without an explicitly supplied
 prepared projection, the CLI passed an empty placeholder and thereby
 suppressed its own existing target diagnostic.  It now passes no projection in
 that case, so the selector obtains a fresh owner-backed diagnostic itself.
+
+## Warm controlled evidence after target-preparation repair
+
+The repaired selector automatically admitted `awg3` for the sole synthetic
+identity.  A single shared fresh diagnostic was supplied to preparation, so
+the source/target decision did not drift between selection and failure
+creation.  The controlled failure, Matrix consumption, governed recovery and
+baseline reset all completed with zero ordinary-user delta.
+
+The warm sample is functionally valid and remains a performance failure:
+`control_plane_and_kernel_path_cutover_latency_ms = 6064.355`; the dominant
+interval is `failure_to_decision_latency_ms = 5096.479`.  In contrast,
+decision-to-apply was 72.831 ms, assignment commit 442.656 ms, kernel
+visibility 19.270 ms, and target payload 433.119 ms.  It is therefore retained
+in the frozen distribution and no micro-patch is inferred from it.

@@ -349,3 +349,40 @@ during this series.  Pass requires nearest-rank P95 `<= 3000 ms` and no valid
 sample above `5000 ms`; otherwise the mission emits
 `HARD_PATH_3S_FEASIBILITY_EXHAUSTED` with the full distribution and smallest
 remaining architectural choice.
+
+## Frozen HARD-path series — `HARD_PATH_3S_FEASIBILITY_EXHAUSTED`
+
+The implementation fingerprint was frozen at
+`3f14666c1e9eea61697ea9a1c3bb564445bd9879cceb2fc392f9a8d3bf783c53`.
+Five functionally valid owner-governed samples completed through Matrix →
+Candidate → Packet → Lease → Barrier → Apply → exact kernel/route and
+required-service verification.  They cover distinct Matrix generations; one
+is cold and four are warm.  No ordinary client moved.
+
+| sample | kind | onset → decision | onset → S11 |
+|---|---|---:|---:|
+| `ctm0fsample_b766…ca65` | cold | 3170.554 ms | 4769.805 ms |
+| `ctm0fsample_37e6…9bb6` | warm | 2251.465 ms | 3692.056 ms |
+| `ctm0fsample_4aaa…080f` | warm | 2723.311 ms | 4080.560 ms |
+| `ctm0fsample_1f6c…31d4` | warm | 1571.525 ms | 2393.310 ms |
+| `ctm0fsample_1b88…3edb` | warm | 1664.273 ms | 2465.968 ms |
+
+Nearest-rank P95 is the slowest of five: **4769.805 ms**.  All valid samples
+are below the 5-second safety ceiling, but P95 does not meet the 3-second
+SLO.  The result is therefore an evidence-based terminal, not a code or test
+terminal:
+
+`HARD_PATH_3S_FEASIBILITY_EXHAUSTED`
+
+The eliminated avoidable synchronous work was the duplicate Matrix lineage
+read/copy and its false contract-hash fallback: it fell from roughly
+`750–920 ms` to `0.027 ms` while retaining exact current-contract equality.
+After this removal no deterministic duplicate full Planner/Matrix rebuild
+remains.  The residual is variable process scheduling plus the mandatory
+existing prepared-target owner validation, fresh mutable gates and governed
+route writer on the current two-vCPU substrate.  The smallest remaining
+architectural choice is not another micro-patch: either (a) preserve an
+existing Planner validation process across health-loop roles, which is a
+Runtime-boundary decision requiring a separate architecture admission, or
+(b) use a larger CPU substrate and rerun the same frozen proof.  Neither is
+silently applied by this Mission.

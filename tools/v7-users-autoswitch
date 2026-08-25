@@ -4059,7 +4059,14 @@ class AutoswitchPlanner:
         self._standing_policy_audit_records_cache: Optional[
             list[dict[str, Any]]
         ] = (
-            copy.deepcopy(reused_records)
+            # Matrix has just read this append-only lineage in the same
+            # governed process and no consumer mutates those record bodies.
+            # A deep copy of the complete rotated history was therefore pure
+            # post-T0 reconstruction cost (and, at scale, the dominant one).
+            # Keep only a new list container: the existing owner remains the
+            # source of every record, while policy/hash mismatch still falls
+            # back to a fresh owner read below.
+            list(reused_records)
             if isinstance(reused_records, list)
             and str(standing_reuse.get("contract_hash") or "")
             == sha256_json(current_standing_contract)
@@ -5551,11 +5558,6 @@ class AutoswitchPlanner:
         requested_state = AUTHORITY_CERTIFIED_STATE_ALIASES.get(requested_state, requested_state)
         standing_policy_contract = (self.policy or {}).get("delegated_autonomy_policy")
         standing_policy_contract = standing_policy_contract if isinstance(standing_policy_contract, dict) else {}
-        authority_audit_store = Path(getattr(
-            self.args,
-            "action_class_audit_store",
-            str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
-        ))
         lineage_read_started_ns = time.monotonic_ns()
         authority_audit_records = self._standing_policy_audit_records()
         self._record_performance_span(

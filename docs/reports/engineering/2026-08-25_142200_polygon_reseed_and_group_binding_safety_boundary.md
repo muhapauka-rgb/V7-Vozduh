@@ -144,3 +144,20 @@ one-user certification identity, and fail closed/clean up on every failure.
 It must not be a new route writer, timer, Planner, Matrix owner or direct shell
 bypass.  After that transition is implemented and deployed, the exact next
 action is one fresh cold governed HARD-path sample.
+
+## Consumed bounded repair
+
+The required transition is now implemented inside the existing governed
+certification lifecycle as `INITIAL_CERTIFICATION_SOURCE_BINDING`.  It invokes
+only the existing `v7-user-switch` route writer with an operation-scoped
+execution-control window created by `admin_core/operator_execution.py`.
+Before the writer runs it proves the exact one-user certification class,
+group, isolated enabled source, zero ordinary occupants and both current
+registry-row fingerprints; it re-reads the two rows immediately before apply.
+The writer's normal post-apply route verifier remains mandatory, and the
+operation window is always finalized back to its safe terminal state.
+
+Focused tests cover the success path and prove that the only writer command is
+`v7-user-switch <exact synthetic IP> <exact source>`.  The next live step is
+safe deployment, runtime-alignment verification, one exact client preparation,
+then one cold governed HARD-path transaction.

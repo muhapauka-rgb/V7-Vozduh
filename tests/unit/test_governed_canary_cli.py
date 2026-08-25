@@ -23,6 +23,45 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_initial_certification_source_binding_uses_only_existing_route_writer(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "users.registry").write_text(
+                "ip=10.7.0.124 current=source table=1122 enabled=1 certification_user=1 certification_group=group\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=source interface=v7execwg0 enabled=1 controlled_certification_source=1\n",
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(execution_control_file=str(state / "control.json"))
+            writer = subprocess.CompletedProcess(
+                ["v7-user-switch", "10.7.0.124", "source"], 0, stdout="ok\n"
+            )
+            with mock.patch.object(module, "scoped_user_route_check", side_effect=[
+                {"passed": False, "reason": "missing"},
+                {"passed": True, "reason": "verified"},
+            ]), mock.patch.object(
+                module.operator_execution, "build_autonomous_execution_control_state",
+                return_value={"generation": "aec_unit"},
+            ), mock.patch.object(
+                module.operator_execution, "write_json_atomic",
+            ), mock.patch.object(
+                module.operator_execution, "autonomous_execution_control_decision",
+                return_value={"allowed_forward_mutation": True},
+            ), mock.patch.object(
+                module.operator_execution, "finalize_autonomous_execution_control_window",
+            ), mock.patch.object(module.subprocess, "run", return_value=writer) as run:
+                result = module.bind_initial_certification_source_route(
+                    args, state_dir=state, user="10.7.0.124", source="source",
+                    certification_group="group",
+                )
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["status"], "INITIAL_CERTIFICATION_SOURCE_BINDING_CONSUMED")
+        self.assertEqual(run.call_args.args[0], ["v7-user-switch", "10.7.0.124", "source"])
+        self.assertEqual(result["users_moved"], 0)
+
     def test_governed_execution_timing_reuses_existing_owner_and_is_bounded(self):
         module = load_cli_module()
         timing = module.governed_execution_timing_projection(

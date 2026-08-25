@@ -5586,6 +5586,7 @@ class AutoswitchPlanner:
                 "action_contract_valid": bool(action_contract.get("valid")),
             },
         )
+        effective_budget_started_ns = time.monotonic_ns()
         frozen = bool_value(policy.get("frozen") or policy.get("authority_frozen"))
         revoked = bool_value(policy.get("revoked") or policy.get("authority_revoked"))
         if revoked:
@@ -5660,6 +5661,15 @@ class AutoswitchPlanner:
             "new_truth_sources_created": False,
             "duplicate_systems_created": False,
         }
+        self._record_performance_span(
+            "policy_authority_effective_budget_projection",
+            effective_budget_started_ns,
+            owner="existing Authority budget projection",
+            details={
+                "runtime_authority_class": runtime_class,
+                "current_allowed_user_budget": current_budget,
+            },
+        )
         return policy
 
     def _emergency_failover_policy(self) -> dict[str, Any]:

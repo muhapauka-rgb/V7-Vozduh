@@ -9,6 +9,9 @@ and waits for every child it starts before proceeding to the next phase.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import importlib.machinery
+import importlib.util
 import json
 import os
 import signal
@@ -17,7 +20,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 
 DEFAULT_FAST = (
@@ -173,10 +176,10 @@ DEFAULT_MATRIX_STATE_FILE = Path("/opt/v7/egress/state/service-matrix.json")
 DEFAULT_USERS_REGISTRY_FILE = Path("/opt/v7/egress/state/users.registry")
 
 
-def canonical_definitive_hard_failure_active(
+def canonical_definitive_hard_failure_t0_ns(
     matrix_state_file: Path,
     users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
-) -> bool:
+) -> int:
     """Read the current Matrix failure and unresolved assignment surface.
 
     Process duration alone is not incident evidence: on a busy two-core host a
@@ -193,11 +196,11 @@ def canonical_definitive_hard_failure_active(
     try:
         payload = json.loads(matrix_state_file.read_text(encoding="utf-8"))
     except (OSError, ValueError, TypeError):
-        return False
+        return 0
     items = payload.get("items") if isinstance(payload, dict) else {}
     if not isinstance(items, dict):
-        return False
-    failed_sources: set[str] = set()
+        return 0
+    failed_sources: dict[str, int] = {}
     for source_id, source in items.items():
         if not isinstance(source, dict):
             continue
@@ -216,14 +219,22 @@ def canonical_definitive_hard_failure_active(
             and str(liveness.get("source_incident_id") or "")
             and str(liveness.get("failure_event_id") or "")
         ):
-            failed_sources.add(str(source_id))
+            try:
+                t0_ns = int(str(liveness.get("confirmed_hard_failure_monotonic_ns") or "0"))
+            except (TypeError, ValueError):
+                t0_ns = 0
+            # Older canonical rows can still admit recovery priority, but are
+            # deliberately not eligible for the persistent handoff: a fresh
+            # Matrix-owned monotonic T0 is required for this exact transaction.
+            if t0_ns > 0:
+                failed_sources[str(source_id)] = t0_ns
     if not failed_sources:
-        return False
+        return 0
 
     try:
         rows = users_registry_file.read_text(encoding="utf-8").splitlines()
     except OSError:
-        return True
+        return max(failed_sources.values())
     for line in rows:
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
@@ -234,6 +245,61 @@ def canonical_definitive_hard_failure_active(
             if separator:
                 row[key] = value
         if str(row.get("enabled", "1")).lower() in {
+            "0", "false", "no", "off", "disabled",
+        }:
+            continue
+        source_id = str(row.get("current") or "")
+        if source_id in failed_sources:
+            return failed_sources[source_id]
+    return 0
+
+
+def canonical_definitive_hard_failure_active(
+    matrix_state_file: Path,
+    users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
+) -> bool:
+    """Preserve the original Matrix admission predicate for priority only.
+
+    The persistent handoff additionally needs a fresh monotonic T0, but an
+    older valid Matrix incident must retain its historical safety priority.
+    """
+    try:
+        payload = json.loads(matrix_state_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return False
+    items = payload.get("items") if isinstance(payload, dict) else {}
+    if not isinstance(items, dict):
+        return False
+    failed_sources: set[str] = set()
+    for source_id, source in items.items():
+        if not isinstance(source, dict):
+            continue
+        services = source.get("services")
+        services = services if isinstance(services, dict) else {}
+        liveness = services.get("__channel_liveness__")
+        if (
+            isinstance(liveness, dict)
+            and liveness.get("ok") is False
+            and str(liveness.get("evidence_class") or "")
+            == "DEFINITIVE_LOCAL_HARD_FAILURE"
+            and str(liveness.get("failure_state") or "").startswith("OBSERVED_")
+            and str(liveness.get("source_incident_id") or "")
+            and str(liveness.get("failure_event_id") or "")
+        ):
+            failed_sources.add(str(source_id))
+    if not failed_sources:
+        return False
+    try:
+        rows = users_registry_file.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return True
+    for line in rows:
+        row = {
+            key: value for token in line.strip().split()
+            for key, separator, value in [token.partition("=")]
+            if separator
+        }
+        if not row or str(row.get("enabled", "1")).lower() in {
             "0", "false", "no", "off", "disabled",
         }:
             continue
@@ -381,6 +447,102 @@ class RoleHealthLoop:
     matrix_state_file: Path = DEFAULT_MATRIX_STATE_FILE
     users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE
     hard_recovery_latched: bool = False
+    persistent_matrix_module: Any = None
+    persistent_matrix_ready: bool = False
+    persistent_matrix_load_error: str = ""
+
+    def _default_hard_runtime(self) -> bool:
+        hard = next((role for role in self.roles if role.name == "hard"), None)
+        return bool(
+            hard
+            and hard.command
+            and Path(hard.command[0]).name == "v7-egress-diagnose"
+        )
+
+    def _load_persistent_matrix_runtime(self) -> None:
+        """Load code once inside the existing health owner, never state.
+
+        Matrix remains the source of truth and its normal ``main`` re-reads
+        current state, authority, policy and ownership on every event.  A
+        failure to load is intentionally harmless: the HARD child continues
+        to invoke the existing external Matrix consumer as before.
+        """
+        if not self._default_hard_runtime():
+            return
+        candidates = (
+            Path(__file__).with_name("v7-service-matrix-refresh-all"),
+            Path(__file__).resolve().parents[1] / "v7-service-matrix-refresh-all",
+        )
+        matrix_path = next((path for path in candidates if path.is_file()), None)
+        if matrix_path is None:
+            self.persistent_matrix_load_error = "MATRIX_SCRIPT_MISSING"
+            return
+        try:
+            loader = importlib.machinery.SourceFileLoader(
+                "v7_health_persistent_matrix", str(matrix_path)
+            )
+            spec = importlib.util.spec_from_loader(loader.name, loader)
+            if spec is None or spec.loader is None:
+                raise RuntimeError("MATRIX_MODULE_SPEC_UNAVAILABLE")
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[loader.name] = module
+            spec.loader.exec_module(module)
+            if not callable(getattr(module, "main", None)):
+                raise RuntimeError("MATRIX_MAIN_UNAVAILABLE")
+            self.persistent_matrix_module = module
+            self.persistent_matrix_ready = True
+        except Exception as exc:  # exact external governed path remains live
+            self.persistent_matrix_module = None
+            self.persistent_matrix_ready = False
+            self.persistent_matrix_load_error = type(exc).__name__
+
+    def _run_persistent_matrix_consumer(self, t0_ns: int) -> int:
+        if not self.persistent_matrix_ready or self.persistent_matrix_module is None:
+            return 3
+        previous_argv = list(sys.argv)
+        previous_t0 = os.environ.get("V7_HARD_T0_MONOTONIC_NS")
+        previous_owner = os.environ.get("V7_HARD_PERSISTENT_MATRIX_OWNER")
+        try:
+            sys.argv = [
+                "v7-service-matrix-refresh-all",
+                "--consume-existing-service-failure-events-only",
+                "--runtime-hot-path-only",
+            ]
+            os.environ["V7_HARD_T0_MONOTONIC_NS"] = str(t0_ns)
+            os.environ["V7_HARD_PERSISTENT_MATRIX_OWNER"] = "1"
+            with open(os.devnull, "w", encoding="utf-8") as sink:
+                with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
+                    return int(self.persistent_matrix_module.main())
+        except BaseException as exc:
+            self.persistent_matrix_load_error = type(exc).__name__
+            return 3
+        finally:
+            sys.argv = previous_argv
+            if previous_t0 is None:
+                os.environ.pop("V7_HARD_T0_MONOTONIC_NS", None)
+            else:
+                os.environ["V7_HARD_T0_MONOTONIC_NS"] = previous_t0
+            if previous_owner is None:
+                os.environ.pop("V7_HARD_PERSISTENT_MATRIX_OWNER", None)
+            else:
+                os.environ["V7_HARD_PERSISTENT_MATRIX_OWNER"] = previous_owner
+
+    def _fallback_matrix_consumer(self, t0_ns: int) -> None:
+        """Use the exact historical child path only after an in-process fault."""
+        environment = os.environ.copy()
+        environment["V7_HARD_T0_MONOTONIC_NS"] = str(t0_ns)
+        environment.pop("V7_HARD_PERSISTENT_MATRIX_OWNER", None)
+        subprocess.run(
+            [
+                "/usr/local/bin/v7-service-matrix-refresh-all",
+                "--consume-existing-service-failure-events-only",
+                "--runtime-hot-path-only",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            env=environment,
+        )
 
     def _hard_recovery_active(self, now_ns: int) -> bool:
         hard = next((role for role in self.roles if role.name == "hard"), None)
@@ -482,11 +644,16 @@ class RoleHealthLoop:
             nice = DEFAULT_ROLE_NICE.get(role.name)
             if nice is not None:
                 command = ["/usr/bin/nice", "-n", str(nice), *command]
+            environment = None
+            if role.name == "hard" and self.persistent_matrix_ready:
+                environment = os.environ.copy()
+                environment["V7_HEALTH_PERSISTENT_MATRIX_CONSUMER"] = "1"
             role.process = subprocess.Popen(
                 command,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
+                env=environment,
             )
             role.started_ns = now_ns
             role.starts += 1
@@ -503,6 +670,16 @@ class RoleHealthLoop:
             rc = role.process.poll()
             if rc is None:
                 continue
+            if role.name == "hard" and self.persistent_matrix_ready:
+                t0_ns = canonical_definitive_hard_failure_t0_ns(
+                    self.matrix_state_file, self.users_registry_file
+                )
+                if t0_ns > 0:
+                    self._hard_recovery_takeover(now_ns)
+                    persistent_rc = self._run_persistent_matrix_consumer(t0_ns)
+                    if persistent_rc == 3:
+                        self._fallback_matrix_consumer(t0_ns)
+                    now_ns = monotonic_ns()
             duration = elapsed_ms(role.started_ns, now_ns)
             role.completions += 1
             print(
@@ -523,6 +700,7 @@ class RoleHealthLoop:
         self.hard_recovery_latched = False
 
     def run(self) -> int:
+        self._load_persistent_matrix_runtime()
         started = monotonic_ns()
         for role in self.roles:
             role.next_due_ns = started + role.initial_offset_ns

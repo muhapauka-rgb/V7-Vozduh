@@ -506,6 +506,25 @@ class V53N7CausalPolygonTournamentTest(unittest.TestCase):
             [],
         )
 
+    def test_matrix_entry_timing_marks_existing_owner_persistent_handoff(self):
+        self.assertEqual(
+            REFRESH.matrix_runtime_entry_timing(
+                environment={
+                    "V7_HARD_T0_MONOTONIC_NS": "100",
+                    "V7_HARD_PERSISTENT_MATRIX_OWNER": "1",
+                },
+                module_ready_ns=1,
+                entry_ns=250_000_100,
+            ),
+            [{
+                "stage": "hard_t0_to_persistent_matrix_consumer_entry",
+                "duration_ms": 250.0,
+                "clock_source": "time.monotonic_ns",
+                "owner": "existing v7-health owner -> loaded Matrix consumer",
+                "diagnostic_only": True,
+            }],
+        )
+
 
 if __name__ == "__main__":
     if "--evidence-json" in sys.argv:

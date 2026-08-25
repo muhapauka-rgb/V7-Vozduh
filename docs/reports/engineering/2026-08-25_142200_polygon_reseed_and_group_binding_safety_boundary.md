@@ -446,3 +446,100 @@ no valid sample > 5000 ms; otherwise emit
 `HARD_PATH_3S_SUBSTRATE_SCALE_INSUFFICIENT` and return the remaining
 persistent-existing-owner validation-process versus product-SLO decision to
 the owner.  No code optimization is legal in either outcome.
+
+## 2026-08-25 — 2-vCPU persistent existing-owner feasibility gate
+
+### Owner constraint
+
+The owner rejected the VDSina resize and all recurring-cost expansion.  The
+two-vCPU Runtime and the three-second HARD-path SLO remain fixed.  The admitted
+question is therefore narrow: whether the already existing health/control
+owner can retain executable code while every decision still rereads the
+current Matrix, policy, Authority, assignment, target, service, capacity,
+operation and Packet/Lease/Barrier facts.
+
+### Exact residual measurement
+
+The frozen valid samples were re-read from the append-only evidence rather
+than inferred from load average.  For each one, `T0 -> decision` was compared
+with all recorded Matrix pre-execution and Planner-to-decision spans:
+
+| sample kind | T0 -> decision | measured owner work | unaccounted process/scheduling boundary |
+|---|---:|---:|---:|
+| cold | 3170.554 ms | 1366.665 ms | 1803.889 ms |
+| warm | 2723.311 ms | 1296.003 ms | 1427.308 ms |
+| warm | 2251.465 ms | 541.345 ms | 1710.120 ms |
+| warm | 1664.273 ms | 367.617 ms | 1296.656 ms |
+| warm | 1571.525 ms | 394.793 ms | 1176.732 ms |
+
+No Matrix writer-lock wait was present in the latest valid sample.  Its fresh
+Matrix preparation was 96.440 ms; Planner work through decision was
+271.177 ms.  Current required mutable checks remain necessary and are not
+classified as removable.
+
+Five read-only cold process measurements on the live two-vCPU host found a
+new Matrix process plus current-scope read at 288.036–362.368 ms wall time;
+the Matrix module itself took 153.249–202.519 ms and the scope read 7.592–
+13.217 ms.  Loading the exact Matrix, Planner and governed modules together
+in one process took 226.252–276.551 ms internally and 352.905–469.335 ms
+wall time, with 15.845–115.992 ms non-CPU wait.  A deliberately broad
+standalone Planner diagnostic was rejected from the feasibility calculation:
+its projection was stale and rebuilt the world model, so its 2.888–3.321 s
+cost is not the current prepared HOT path.
+
+### Gate result
+
+`PERSISTENT_EXISTING_OWNER_PREPARED_VALIDATION_RUNTIME_JUSTIFIED`
+
+The unmeasured post-T0 boundary is consistently 1.177–1.804 s.  Removing that
+repeated child-process boundary while retaining the same current-data gates
+can credibly remove the 1.770 ms needed to turn the slowest frozen 4.770 s
+sample into a credible sub-three-second result.  This is not a claim of
+success: it is a measured admission to implement one bounded existing-owner
+variant.  A new diagnostic timestamp handoff was deployed at commit
+`e880fef2`; it carries only the Matrix-owned monotonic T0 into the existing
+consumer receipt and cannot affect a decision, route or safety result.
+
+## 2026-08-25 — existing-owner persistent Matrix-consumer implementation
+
+### Change
+
+`PERSISTENT_EXISTING_OWNER_PREPARED_VALIDATION_RUNTIME` is implemented as one
+bounded execution change inside the existing `v7-health.service` process.  At
+service start it loads the existing Matrix program code once; it stores no
+Matrix, Planner, target, policy, Authority, reservation, operation or route
+state.  On each actual HARD incident, the existing diagnostic child still
+writes canonical Matrix T0.  Only after that child returns does the same
+existing health owner call the same Matrix entry point with the same current
+hot-path arguments.  The Matrix entry point rereads all current state and
+continues to use the unchanged Candidate → Packet → Lease → Barrier → Apply
+chain.
+
+The optimisation is guarded by both a fresh Matrix-owned monotonic T0 and an
+enabled current assignment on the exact failed source.  Missing/stale T0,
+changed assignment or absent owner context cannot enter it.  If loading or
+calling the in-process code faults, the exact prior external Matrix invocation
+is used with the same T0 handoff.  Thus a process fault fails closed to the
+previous safe path rather than bypassing Matrix or creating a second owner.
+
+### Verification before publication
+
+* Syntax and whitespace validation passed.
+* 41 focused HARD/Matrix/Polygon checks passed: direct T0, owner priority,
+  stale/wrong-generation rejection, exact assignment binding, process restart
+  behavior, in-process environment restoration and external fallback.
+* 456 pre-existing governed-certification, autoswitch-policy and canary checks
+  passed; together with the focused suite this is 497 passing checks.
+* The change creates no timer, queue, watcher, Matrix writer, Planner, route
+  writer, registry, truth source or Authority.  It does not alter cadence,
+  target choice, verifier semantics, S11 or ordinary-client scope.
+
+### Measurement claim and next evidence
+
+The historical repeated child boundary measured 1.177–1.804 seconds; that is
+the only performance span this change is intended to remove.  No performance
+claim is made before a deployed controlled Polygon sample.  After safe deploy
+and a health-owner restart, the next action is one exact synthetic cold
+HARD-path sample, followed—only if it is functionally valid—by the immutable
+five-sample cold/warm, two-Matrix-generation series.  The acceptance remains
+P95 `<= 3000 ms` and no valid sample above `5000 ms`.

@@ -340,6 +340,42 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
             "--consume-existing-service-failure-events-only --runtime-hot-path-only",
         )
 
+    def test_persistent_health_handoff_skips_child_only_after_matrix_t0_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.write_state(root)
+            wake_trace = root / "wake.trace"
+            wake = root / "v7-service-matrix-refresh-all"
+            wake.write_text(
+                f"#!/bin/sh\nprintf wake > '{wake_trace}'\n", encoding="utf-8"
+            )
+            wake.chmod(0o755)
+            command = [
+                str(DIAGNOSE_TOOL), "--state-dir", str(state),
+                "--output", str(state / "egress-diagnose.state"),
+                "--hard-signal-only",
+                "--definitive-matrix-command", str(MATRIX_TOOL),
+                "--consumer-wake-command", str(wake),
+            ]
+            env = os.environ.copy()
+            env["V7_EVENT_DIR"] = str(root / "events")
+            env["V7_HEALTH_PERSISTENT_MATRIX_CONSUMER"] = "1"
+            result = subprocess.run(
+                command, text=True, capture_output=True, check=False,
+                timeout=10, env=env,
+            )
+            values = dict(
+                line.split("=", 1)
+                for line in (state / "egress-diagnose.state").read_text(
+                    encoding="utf-8"
+                ).splitlines()
+                if "=" in line
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(values["source-a_hard_signal_status"], "EMITTED")
+        self.assertFalse(wake_trace.exists())
+
     def test_existing_diagnose_owner_closes_direct_episode_when_interface_recovers(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

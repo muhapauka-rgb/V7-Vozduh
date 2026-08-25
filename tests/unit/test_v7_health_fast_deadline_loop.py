@@ -10,11 +10,29 @@ import tempfile
 import textwrap
 import time
 import unittest
+import importlib.machinery
+import importlib.util
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
 LOOP = ROOT / "tools/runtime-support/v7-health-loop"
+
+
+def load_health_loop_module():
+    loader = importlib.machinery.SourceFileLoader(
+        "v7_test_health_fast_deadline_loop", str(LOOP)
+    )
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    __import__("sys").modules[loader.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+HEALTH_LOOP_MODULE = load_health_loop_module()
 
 
 def phase_rows(output: str) -> list[dict[str, int]]:
@@ -448,6 +466,95 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             "V7_HEALTH_ROLE_COMPLETE role=planner_projection completion=1",
             completed.stdout,
         )
+
+    def test_persistent_matrix_consumer_uses_current_call_contract_and_restores_parent(self):
+        observed = {}
+
+        class MatrixConsumer:
+            def main(self):
+                observed["argv"] = list(__import__("sys").argv)
+                observed["t0"] = __import__("os").environ.get(
+                    "V7_HARD_T0_MONOTONIC_NS"
+                )
+                observed["owner"] = __import__("os").environ.get(
+                    "V7_HARD_PERSISTENT_MATRIX_OWNER"
+                )
+                return 0
+
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
+        loop.persistent_matrix_ready = True
+        loop.persistent_matrix_module = MatrixConsumer()
+        previous_argv = list(__import__("sys").argv)
+        self.assertEqual(loop._run_persistent_matrix_consumer(123_456), 0)
+        self.assertEqual(
+            observed["argv"],
+            [
+                "v7-service-matrix-refresh-all",
+                "--consume-existing-service-failure-events-only",
+                "--runtime-hot-path-only",
+            ],
+        )
+        self.assertEqual(observed["t0"], "123456")
+        self.assertEqual(observed["owner"], "1")
+        self.assertEqual(__import__("sys").argv, previous_argv)
+        self.assertIsNone(
+            __import__("os").environ.get("V7_HARD_PERSISTENT_MATRIX_OWNER")
+        )
+
+    def test_persistent_fault_uses_exact_existing_external_matrix_consumer(self):
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
+        with mock.patch.object(HEALTH_LOOP_MODULE.subprocess, "run") as run:
+            loop._fallback_matrix_consumer(789)
+        command = run.call_args.args[0]
+        environment = run.call_args.kwargs["env"]
+        self.assertEqual(
+            command,
+            [
+                "/usr/local/bin/v7-service-matrix-refresh-all",
+                "--consume-existing-service-failure-events-only",
+                "--runtime-hot-path-only",
+            ],
+        )
+        self.assertEqual(environment["V7_HARD_T0_MONOTONIC_NS"], "789")
+        self.assertNotIn("V7_HARD_PERSISTENT_MATRIX_OWNER", environment)
+
+    def test_persistent_handoff_requires_current_matrix_t0_and_exact_assignment(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            matrix.write_text(json.dumps({
+                "items": {"source-a": {"services": {
+                    "__channel_liveness__": {
+                        "ok": False,
+                        "evidence_class": "DEFINITIVE_LOCAL_HARD_FAILURE",
+                        "failure_state": "OBSERVED_NEW",
+                        "source_incident_id": "sfinc_test",
+                        "failure_event_id": "sfe_test",
+                        "confirmed_hard_failure_monotonic_ns": 456_789,
+                    },
+                }}},
+            }), encoding="utf-8")
+            users.write_text(
+                "ip=10.7.0.124 enabled=1 current=source-a certification_user=1\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                HEALTH_LOOP_MODULE.canonical_definitive_hard_failure_t0_ns(
+                    matrix, users
+                ),
+                456_789,
+            )
+            users.write_text(
+                "ip=10.7.0.124 enabled=1 current=target-a certification_user=1\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                HEALTH_LOOP_MODULE.canonical_definitive_hard_failure_t0_ns(
+                    matrix, users
+                ),
+                0,
+            )
 
 
 if __name__ == "__main__":

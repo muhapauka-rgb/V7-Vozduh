@@ -101,6 +101,47 @@ headings containing `active`, `current executable`, `retained executable` or
 lineage. They do not create another current V5.3 target and cannot dispatch
 V5.3 work merely because the wording remains in this Program.
 
+#### Current 2-vCPU HARD-path feasibility branch
+
+This is a durable Program constraint, not a CPS live-status projection.  The
+owner accepted `HARD_PATH_3S_FEASIBILITY_EXHAUSTED` for the current frozen
+two-vCPU Runtime evidence: the five-sample nearest-rank P95 was `4769.805 ms`,
+all functionally valid samples stayed within `5000 ms`, and the best valid
+samples were `2393.310 ms` and `2465.968 ms`.  The product SLO remains
+unchanged.
+
+The next and only admitted feasibility investigation is
+`PERSISTENT_EXISTING_OWNER_PREPARED_VALIDATION_RUNTIME`:
+
+```text
+measure exact T0 -> decision residual
+-> prove or reject a material repeated process/import/scheduling boundary
+-> if justified, keep the already-existing validation responsibility loaded
+   inside the existing health/control owner
+-> retain every current mutable owner-backed gate
+-> focused falsification, Polygon, safe deploy and frozen five-sample proof
+```
+
+This branch is expressly forbidden from resizing VDSina, buying CPU/RAM,
+adding a server or paid external service, changing cadence, priority, Planner,
+Matrix, Authority, verifier, route writer, S11 semantics or the product SLO.
+It also may not create a second Planner, Matrix, truth source, queue, timer,
+watcher, routing owner, policy owner or a persistent independent control
+plane.  A loaded process is only an execution optimization: Matrix generation,
+source/identity scope, current assignment, target/service freshness,
+capacity/reservation, policy/Authority/topology generation, anti-flap,
+operation conflict and Packet/Lease/Barrier identity remain freshly validated
+for every decision.  Any mismatch fails closed through the existing fallback.
+
+The feasibility gate is binding.  If measured removable startup/import/
+scheduling time cannot credibly make the current three-second HARD-path SLO,
+emit `PERSISTENT_VALIDATION_NOT_JUSTIFIED_BY_MEASUREMENT` and return to the
+owner without implementation.  If the bounded existing-owner implementation
+is correctly deployed and its frozen series still fails, emit
+`HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED`; no further micro-optimization is
+legal.  Only then may an owner choose increased compute, an SLO change or a
+materially different control-plane architecture.
+
 | Retained Program family | Valid current/narrow meaning | Cannot do for V5.3 N0–N11 |
 | --- | --- | --- |
 | prior V5.3 L1–L12 / Phase A–H | evidence, measurements, candidate rationale and reusable acceptance sub-gates | choose architecture, restore Full-before-action, set cadence or claim T11 from server evidence |

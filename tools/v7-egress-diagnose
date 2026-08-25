@@ -346,6 +346,16 @@ PY
 
 wake_existing_failure_consumer() {
   [ -n "$CONSUMER_WAKE_COMMAND" ] || return 0
+  if [ "${V7_HEALTH_PERSISTENT_MATRIX_CONSUMER:-0}" = "1" ] \
+    && [ -n "$HARD_SIGNAL_CONSUMER_T0_MONOTONIC_NS" ]; then
+    # The one existing v7-health owner has already loaded the exact Matrix
+    # consumer code.  This HARD child still writes canonical T0; its parent
+    # consumes that same event immediately after the child returns.  No state
+    # is held here and no decision is skipped.  If the parent is not ready it
+    # never sets this flag, so the historical governed Matrix invocation below
+    # remains the fail-closed fallback.
+    return 0
+  fi
   if [ "$(basename "$CONSUMER_WAKE_COMMAND")" = "systemctl" ]; then
     # Keep the triggering FAST role alive until the already-existing consumer
     # reaches its bounded terminal.  The health owner can then preserve HARD

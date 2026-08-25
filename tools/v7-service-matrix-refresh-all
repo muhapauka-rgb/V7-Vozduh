@@ -206,8 +206,20 @@ def matrix_runtime_entry_timing(
         t0_ns = int(str(source.get("V7_HARD_T0_MONOTONIC_NS") or "0"))
     except (TypeError, ValueError):
         return []
-    ready_ns = int(module_ready_ns or MATRIX_RUNTIME_MODULE_READY_NS)
     current_ns = int(entry_ns or time.monotonic_ns())
+    if str(source.get("V7_HARD_PERSISTENT_MATRIX_OWNER") or "") == "1":
+        if t0_ns <= 0 or current_ns < t0_ns:
+            return []
+        return [
+            {
+                "stage": "hard_t0_to_persistent_matrix_consumer_entry",
+                "duration_ms": round((current_ns - t0_ns) / 1_000_000.0, 3),
+                "clock_source": "time.monotonic_ns",
+                "owner": "existing v7-health owner -> loaded Matrix consumer",
+                "diagnostic_only": True,
+            },
+        ]
+    ready_ns = int(module_ready_ns or MATRIX_RUNTIME_MODULE_READY_NS)
     if t0_ns <= 0 or ready_ns < t0_ns or current_ns < ready_ns:
         return []
     return [

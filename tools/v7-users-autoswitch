@@ -4076,6 +4076,17 @@ class AutoswitchPlanner:
             str(standing_reuse.get("contract_hash") or "")
             == current_standing_contract_hash
         )
+        self._standing_policy_lineage_reuse_diagnostic = {
+            "handoff_present": bool(standing_reuse),
+            "records_present": isinstance(reused_records, list),
+            "compact_contract_present": isinstance(reused_contract, dict),
+            "matrix_contract_reuse_matches": matrix_contract_reuse_matches,
+            "legacy_contract_reuse_matches": legacy_contract_reuse_matches,
+            "handoff_contract_hash": str(
+                standing_reuse.get("contract_hash") or ""
+            ),
+            "current_contract_hash": current_standing_contract_hash,
+        }
         self._standing_policy_audit_records_cache: Optional[
             list[dict[str, Any]]
         ] = (
@@ -5599,6 +5610,9 @@ class AutoswitchPlanner:
                     lineage_reused_at_entry
                 ),
                 "record_count": len(authority_audit_records),
+                "handoff": copy.deepcopy(
+                    self._standing_policy_lineage_reuse_diagnostic
+                ),
             },
         )
         action_contract_started_ns = time.monotonic_ns()
@@ -19926,7 +19940,7 @@ class AutoswitchPlanner:
                         key: row.get(key)
                         for key in (
                             "stage", "duration_ms", "owner", "parent",
-                            "critical_path", "status",
+                            "critical_path", "status", "details",
                         )
                         if key in row
                     }

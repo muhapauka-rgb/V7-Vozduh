@@ -113,9 +113,50 @@ fingerprint remains stable; `116` service-failure tests and `200` autoswitch
 policy tests pass (`316` total).  No ordinary user, route, timer, Authority or
 S11 rule changed.
 
-## Next measurement
+## First controlled measurements after the repair
 
-Publish the bounded preparation repair through the safe deploy gate, prove
-local, GitHub and Runtime alignment, then obtain one controlled valid sample.
-Its full timeline decides whether any recurring, safe cause over 100 ms exists;
-there is no performance patch before that causal comparison.
+The preparation repair was published as
+`4e4d4a987ee8152f4c261a0b73d2da2338a4f037` and independently confirmed on
+Runtime: the autoswitch SHA-256 is
+`4b72f309570bfc9fc0a50313b376ee2023a5d2543d2e199dbd4921ec02c5dd01`, the
+existing health service is active, and the old standalone Matrix and Telegram
+timers remain inactive.
+
+Two automatic, certification-only transactions completed end to end through
+the existing health -> Matrix -> Planner -> Candidate/Packet/Lease -> governed
+route writer -> exact kernel/required-service S11 chain.  The system, not the
+operator, selected `awg0`; the only identity was `10.7.0.124`; both records
+show `ordinary_user_delta = 0`.
+
+| Sample | Result | T0 -> decision | decision -> apply | apply -> assignment | onset -> S11 |
+|---|---:|---:|---:|---:|---:|
+| cold | functionally valid | 2405.922 ms | 222.711 ms | 424.888 ms | 3783.960 ms |
+| warm | functionally valid | 1282.353 ms | 190.210 ms | 399.889 ms | 2222.483 ms |
+
+The second sample demonstrates that the current safe path can meet the
+three-second objective.  The cold sample does not: its target-preparation
+owner validation was `646.463 ms` versus `10.883 ms` warm, while both samples
+also recorded roughly `0.70 s` of scheduler run-queue wait under a load average
+near five on the two-vCPU Runtime.  This is evidence of variability, not yet a
+proven recurring code defect.
+
+## Second diagnostic increment awaiting publication
+
+The measured timeline had one remaining blind interval before the first Matrix
+stage: a fresh read of the policy and the exact implementation fingerprint
+(which hashes the current governed executable set).  The current local change
+adds only two diagnostic records, `matrix_policy_snapshot_read` and
+`runtime_implementation_fingerprint`; it does not reuse, cache, relax or alter
+either validation.  Compilation and 126 focused service-failure/causal-Polygon
+tests pass.  It is the next safe-deploy candidate.
+
+## Exact next step
+
+Safely publish this diagnostic-only increment, confirm Runtime alignment, then
+run one further controlled cold sample.  That sample will decide whether the
+unattributed pre-Stage interval contains a recurring, safely removable span
+over 100 ms.  The current one-user Authority contract explicitly permits only
+one concurrent controlled transaction; higher-cohort Runtime movement is
+therefore not lawful in this phase.  Any 2/5/10/20 result can only be reported
+as isolated Polygon model evidence unless a later existing Authority decision
+admits a different certification profile.

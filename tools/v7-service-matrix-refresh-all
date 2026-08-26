@@ -2040,7 +2040,13 @@ def run_ct_m0f_standing_validation_campaign(
             "owner": "existing Matrix/Authority/selection owners",
         })
 
+    # Keep the already-existing policy and executable-fingerprint reads
+    # separately observable. Both precede all Matrix/Planner work, and a slow
+    # filesystem or scheduler slice here otherwise appears as unexplained time
+    # between T0 and the first governed stage. These are timing records only.
+    span_started_ns = time.monotonic_ns()
     policy_root = read_json(policy_file, {})
+    preparation_span("matrix_policy_snapshot_read", span_started_ns)
     contract = (
         policy_root.get(
             operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY, {}
@@ -2066,6 +2072,7 @@ def run_ct_m0f_standing_validation_campaign(
         )
         else {}
     )
+    span_started_ns = time.monotonic_ns()
     implementation_fingerprint = (
         operator_execution.ct_m0f_runtime_implementation_fingerprint(
             governed_cycle=executor,
@@ -2075,6 +2082,7 @@ def run_ct_m0f_standing_validation_campaign(
             routing_runtime=routing_runtime_executable(),
         )
     )
+    preparation_span("runtime_implementation_fingerprint", span_started_ns)
     required_decision_ids = tuple(filter(None, [
         str(standing_decision.get("decision_id") or ""),
         str(availability_decision.get("decision_id") or ""),

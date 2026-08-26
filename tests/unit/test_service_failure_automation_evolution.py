@@ -2765,6 +2765,73 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(second["status"], "ALREADY_CONSUMED_EXACT")
         self.assertEqual(run.call_count, 1)
 
+    def test_approved_topology_rebind_reserves_existing_empty_source_exact_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text("", encoding="utf-8")
+            state_dir.joinpath("egress.registry").write_text(
+                "id=execution-source protocol=amneziawg type=interface "
+                "interface=wg1 enabled=1 role=EXECUTION_ONLY\n",
+                encoding="utf-8",
+            )
+            audit_path = root / "authority-audit.jsonl"
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+                "--action-class-audit-store", str(audit_path),
+            ])
+            future = "2099-01-01T00:00:00+00:00"
+            diagnostic = {
+                "status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",
+                "authority_lifecycle": {
+                    "status": "APPROVED",
+                    "matching_current_preflight": True,
+                    "decision": "APPROVE_REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+                    "request_id": "cstopauth_rebind",
+                    "request_hash": "a" * 64,
+                    "decision_id": "cstopdec_rebind",
+                    "expires_at": future,
+                },
+                "authority_package": {
+                    "exact_action": "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+                    "authority_basis": {"expires_at": future},
+                },
+                "production_preflight": {"manifest": {
+                    "validation_profile": "CT_M0F_ONE_USER_CONTROLLED_CONDITION",
+                    "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+                    "trial_identity_count": 1,
+                    "expected_ordinary_assignment_delta": "NONE",
+                    "expected_ordinary_route_delta": "NONE",
+                    "selected_source_or_draft": "execution-source",
+                    "manifest_hash": "b" * 64,
+                    "reservation_owner": "v7-egress-set-state",
+                    "certification_group": "telegram-test",
+                }},
+            }
+            proc = SimpleNamespace(
+                returncode=0,
+                stdout="ACTION=controlled_source_reserved\nrestore_backup=/tmp/backup\n",
+            )
+            with (
+                mock.patch.object(
+                    self.autoswitch, "controlled_source_topology_diagnostic",
+                    return_value=diagnostic,
+                ),
+                mock.patch.object(self.autoswitch.subprocess, "run", return_value=proc) as run,
+            ):
+                first = self.autoswitch.consume_approved_controlled_source_topology(args)
+                second = self.autoswitch.consume_approved_controlled_source_topology(args)
+
+        self.assertEqual(first["status"], "CONTROLLED_SOURCE_TOPOLOGY_PROVISIONED")
+        self.assertEqual(first["source_id"], "execution-source")
+        self.assertTrue(first["registry_write"])
+        self.assertEqual(first["users_moved"], 0)
+        self.assertEqual(second["status"], "ALREADY_CONSUMED_EXACT")
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(run.call_args.args[0][1], "execution-source")
+
     def test_controlled_source_topology_prepare_reuses_active_semantic_request(self):
         manifest = {
             "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",

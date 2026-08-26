@@ -89,3 +89,36 @@ client as a certification identity.
    the current Program's one-user ordinary-like cohort contract.  The existing
    Planner can then choose the target and the existing governed chain can
    execute and verify it without manual routing.
+
+## Follow-up: operator selected any Pasha device (2026-08-27)
+
+The operator selected an arbitrary Pasha device.  The deterministic active
+record chosen was `10.7.0.5`, currently on
+`wireguard-1779454504-c43409`.  A fresh existing-Planner run recommended
+`awg0` automatically as the best target: Telegram, YouTube and Google were
+healthy there; the current target projection was 35/80 users, with current
+quality 90.88 Mbps average and 0.978 stability.  No target was supplied to the
+planner.
+
+The Planner correctly did **not** turn that recommendation into a selected
+move.  It has a live, unrelated VLESS incident scope for eleven certification
+identities.  Existing lifecycle rules serialise the active incident first and
+exclude unrelated planned/rebalance moves from the executable set.  A
+read-only causal-projection reconciliation was run through the same owner and
+reported `PASS`; it did not create a Candidate, Packet or Lease and did not
+close the active VLESS incident because its current source evidence remains
+present.
+
+The previous restore-barrier lock was also invalid and expired, bound to the
+former certification identity `10.7.0.108`, not Pasha.  It was ignored for
+fresh planning rather than reused.  The standing one-user action contract is
+available only for certification-only controlled failover and cannot be
+repurposed for an ordinary Pasha rebalance.
+
+Therefore this follow-up intentionally performed no route mutation.  It
+proved the desired target but also proved that executing it now would bypass
+the active-incident serialisation and the ordinary-user action contract.  The
+safe successor is: resolve or close the current VLESS incident through its own
+existing lifecycle, then request a fresh one-user ordinary action contract and
+run the same Planner selection again.  The target must be reselected at that
+time, not cached from this observation.

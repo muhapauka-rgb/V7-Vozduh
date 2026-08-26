@@ -1,3 +1,6 @@
+Mission ID: `V7_N10_ORDINARY_LIKE_SINGLE_DEVICE_PRODUCTION_ENTRY`
+Run Nonce: `v53_n10_ordinary_like_20260827`
+
 # N10 ordinary-like single-device entry — pre-deploy reconciliation
 
 **Date:** 2026-08-27  
@@ -215,3 +218,83 @@ Lease through its existing owner; then create one new exact Authority and
 execute one fully fresh, automatic Candidate -> Packet -> Lease -> Barrier ->
 Apply transaction for `10.7.0.5`.  Proceed only if each current owner remains
 admitted.  The other two Pasha devices remain outside the scope.
+
+## N10 ordinary-like production entry consumed (2026-08-27)
+
+### Result
+
+`N10_ORDINARY_LIKE_CONSUMED`.
+
+The existing owners completed one real, bounded ordinary-like production
+transition for exactly Pasha's device `10.7.0.5`.  The fresh Planner, not the
+operator, selected `awg3` from current health, capacity, quality and required
+service evidence.  The operation used the ordinary governed chain:
+
+```text
+fresh Matrix snapshot
+-> Planner Candidate
+-> Packet pkt_88fb9a6541f42b15b2d8a4bc
+-> Lease execlease_ec5f66d5d502e1032078aff5
+-> Barrier
+-> v7-user-switch
+-> exact route/kernel verification
+-> profile-required server-side S11
+```
+
+The one-use Authority was
+`acc_a3c6bbd31bcabd79793debcc`; its scope was one identity, one concurrent
+operation, source `wireguard-1779454504-c43409`, and a Planner-selected target
+only.  It was consumed and its resulting Lease was finalized by the existing
+owners.  No direct routing command, new owner, Matrix, Planner, timer, queue,
+registry or state source was added.
+
+### Current measured evidence
+
+| Check | Result |
+| --- | --- |
+| Selected movement | `10.7.0.5`: `wireguard-1779454504-c43409` -> `awg3` |
+| Other Pasha devices | `10.7.0.10` remained `awg3`; `10.7.0.13` remained `awg0` |
+| Other ordinary identities | `0` changed |
+| Sole route writer | `v7-user-switch`, return code `0` |
+| Kernel/route identity | exact verifier `0`; final policy table `1003` uses `awg3` |
+| Required services | Telegram, YouTube and Google all passed |
+| Route writer total | `419.385 ms` |
+| Kernel route visibility after assignment | `21.464 ms` |
+| Required-service server-side S11 | `4,669.187 ms` |
+| Apply through S11 | `5,307.641 ms` |
+| N10 current ceiling | PASS: below `8,000 ms` |
+| Client T11 | not claimed; no independent client telemetry was used |
+
+The first embedded route observation occurred while the writer was committing
+the assignment and still displayed the pre-handoff registry value.  A fresh
+post-operation owner-backed read showed both registry assignment and actual
+kernel route on `awg3`; this was write ordering, not a divergent final state.
+
+The broad `v7-user-route-check` utility currently reads all identities even
+when a user argument is supplied.  It reported pre-existing unrelated route
+findings while the exact governed verifier for `10.7.0.5` passed.  Its scope
+semantics are retained as an explicit N11 reconciliation item; it was not
+used to negate the exact N10 verification.
+
+### Runtime and deployment reconciliation
+
+The Matrix-envelope contract repair is commit
+`49c3659d30273864cdb360cb424dc43c5723570c`.  A final safe deploy refreshed a
+stale local Runtime snapshot.  Independent GitHub, local and Runtime checks
+now agree on that commit; the deployed autoswitch binary hash is
+`a56507346ddadfc9ea4f5722cb8ac8cd175472cdc910fd52731563dfb39023a5`, and
+`v7-health.service` is active.  The final `v7-truth-check --all --json`
+verdict is `PASS` / `FULLY_ALIGNED`.
+
+### Containment and next legal frontier
+
+The operation-scoped execution-control window ended in the normal global
+fail-closed `OPEN` state.  Outcome, prediction, trust, recommendation and
+closure were each recorded once through the existing Learning lifecycle.
+
+The one-device N10 contract is intentionally exhausted.  The next N10 stage
+is a small cohort of compatible ordinary identities, but it requires a new
+exact product/Authority cohort contract: the consumed contract permits only
+`10.7.0.5` and cannot lawfully be widened in place.  No second ordinary device
+was moved merely to produce evidence.  N11 may continue only as independent
+read-only replacement-closure and broad route-check scope reconciliation.

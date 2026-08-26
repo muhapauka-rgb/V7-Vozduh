@@ -2479,6 +2479,75 @@ def action_class_contract_source_generation(plan: dict[str, Any], selected_move:
     }
 
 
+def n10_ordinary_like_matrix_semantic_generation(
+    state_dir: Path, source_egress: str,
+) -> dict[str, Any]:
+    """Project the meaningful Matrix state for N10's already-bound source.
+
+    The Matrix writer refreshes its envelope timestamp on every short cycle.
+    That timestamp is useful as freshness evidence to the Matrix owner, but it
+    is not a change to the exact source health contract.  Binding a one-use N10
+    Authority contract to the entire file made the contract unconsumable while
+    a healthy Matrix was doing its normal work.  Keep the source's observable
+    health, incident and identity semantics, and deliberately leave target
+    fitness to the fresh Planner plus Packet/Lease/Barrier checks at
+    consumption.
+    """
+    matrix = read_json(state_dir / "service-matrix.json", {})
+    items = matrix.get("items") if isinstance(matrix, dict) else {}
+    source = items.get(source_egress) if isinstance(items, dict) else {}
+    source = source if isinstance(source, dict) else {}
+    services = source.get("services") if isinstance(source.get("services"), dict) else {}
+    service_projection = {
+        str(name): {
+            key: service.get(key)
+            for key in (
+                "ok", "status", "severity", "failure_state",
+                "failure_family", "previous_failure_family",
+                "source_incident_id", "recovery_from_episode_id",
+                "recovery_from_event_id", "recovery_event_id",
+                "episode_terminal", "egress_identity_generation",
+                "egress_config_generation",
+            )
+        }
+        for name, service in sorted(services.items())
+        if isinstance(service, dict)
+    }
+    fitness = source.get("route_class_fitness")
+    fitness = fitness if isinstance(fitness, dict) else {}
+    fitness_projection = {
+        str(route_class): {
+            key: value.get(key)
+            for key in (
+                "status", "ok_count", "tested_count", "missing_count",
+                "total", "services", "missing",
+            )
+        }
+        for route_class, value in sorted(fitness.items())
+        if isinstance(value, dict)
+    }
+    path = source.get("path_evidence")
+    path = path if isinstance(path, dict) else {}
+    path_projection = {
+        key: path.get(key)
+        for key in (
+            "path_fingerprint", "expected_egress_ip_fingerprint",
+            "egress_identity_generation", "egress_config_generation",
+            "service_set_fingerprint", "component_status", "service_ids",
+        )
+    }
+    return {
+        "source_egress": source_egress,
+        "interface": source.get("interface"),
+        "status": source.get("status"),
+        "ok_count": source.get("ok_count"),
+        "total": source.get("total"),
+        "services": service_projection,
+        "route_class_fitness": fitness_projection,
+        "path_evidence": path_projection,
+    }
+
+
 def n10_ordinary_like_source_generation(args: argparse.Namespace, user_ip: str, source_egress: str) -> dict[str, str]:
     """Bind N10 to current owners before, but not to a manually named target.
 
@@ -2496,13 +2565,26 @@ def n10_ordinary_like_source_generation(args: argparse.Namespace, user_ip: str, 
             budget = dict(budget)
             budget.pop("current_action_class_contract", None)
             policy_projection["authority_budget"] = budget
+    users = parse_registry(state_dir / "users.registry")
+    exact_user = next(
+        (row for row in users if str(row.get("ip") or "") == user_ip), {}
+    )
+    egresses = parse_registry(state_dir / "egress.registry")
+    exact_source = next(
+        (row for row in egresses if str(row.get("id") or "") == source_egress), {}
+    )
+    matrix_semantic = n10_ordinary_like_matrix_semantic_generation(
+        state_dir, source_egress,
+    )
     material = {
-        "users_registry": sha256_file(state_dir / "users.registry"),
-        "egress_registry": sha256_file(state_dir / "egress.registry"),
-        "service_matrix": sha256_file(state_dir / "service-matrix.json"),
+        # N10 is an exact one-device transaction.  Other users' normal
+        # assignments and other egresses' operation bookkeeping are not its
+        # source drift.  They remain subject to the fresh Planner and Barrier
+        # at consumption.
+        "exact_user_assignment": sha256_json(exact_user),
+        "exact_source_egress": sha256_json(exact_source),
+        "source_matrix_semantic": sha256_json(matrix_semantic),
         "service_preferences": sha256_file(state_dir / "service-preferences.json"),
-        "quality_summary": sha256_file(Path(args.quality_summary_file)),
-        "load_summary": sha256_file(Path(args.load_summary_file)),
         # Issuance necessarily writes the one-use contract into policy.  Hash
         # the same policy with only that ephemeral contract projected away, so
         # the required issuance transition itself does not make consumption
@@ -2522,7 +2604,7 @@ def n10_ordinary_like_source_generation(args: argparse.Namespace, user_ip: str, 
     })
     snapshot_bundle_hash = sha256_json({
         key: material[key]
-        for key in ("service_matrix", "quality_summary", "load_summary")
+        for key in ("source_matrix_semantic", "service_preferences")
     })
     selected_move_hash = sha256_json({
         "user_ip": user_ip,

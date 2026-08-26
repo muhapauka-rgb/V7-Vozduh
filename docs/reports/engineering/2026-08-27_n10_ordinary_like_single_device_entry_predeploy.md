@@ -176,3 +176,42 @@ must observe that expiry and build a wholly fresh transaction.  The next
 action is therefore: fresh Matrix-backed snapshot -> fresh Planner -> fresh
 Packet/Lease/Barrier -> exactly one governed apply for `10.7.0.5` -> exact
 route/kernel and `telegram,youtube,google` server-side S11 verification.
+
+## Matrix-envelope reconciliation (2026-08-27)
+
+The next Apply was again stopped before `v7-user-switch`, with
+`current_action_class_contract_consumption_generation_mismatch`.  This was a
+correct stop: the issued one-use Authority contract carried the source
+generation `80eb…`, while the fresh governed transaction calculated `fa46…`.
+No route changed and the operation-scoped control window was finalized back to
+the normal fail-closed state.
+
+Two consecutive owner-backed reads proved the cause.  `users.registry`,
+`egress.registry`, service preferences, policy and organization policy were
+unchanged; only `service-matrix.json` changed.  Its outer `updated` envelope is
+rewritten by the normal short Matrix cycle even where the source channel's
+health, incident, interface and identity data are unchanged.  Thus the old
+N10 source-generation hash treated ordinary Matrix housekeeping as a source
+change, making the issued contract impossible to consume.
+
+The bounded correction projects the existing Matrix into the exact source
+health contract: source status, service status/failure/recovery state,
+identity/configuration generation, route-class fitness and path identity.  It
+intentionally excludes only cycle timestamps and probe timing.  The contract
+still invalidates on any meaningful source health or incident change.  Target
+health, capacity and quality remain freshly checked by the existing Planner,
+Packet, Lease and Barrier immediately before Apply.
+
+Verification: 208 autoswitch-policy tests and 106 operator-execution tests
+passed.  The added regression test proves that a Matrix envelope-only refresh
+does not invalidate N10, while a real source service failure does.  This is a
+repair of the existing Authority-to-Apply contract, not a new owner or a
+relaxation of S11, target selection or route-writer control.
+
+### Next action
+
+Publish and safely deploy this correction; close the non-applied, expired
+Lease through its existing owner; then create one new exact Authority and
+execute one fully fresh, automatic Candidate -> Packet -> Lease -> Barrier ->
+Apply transaction for `10.7.0.5`.  Proceed only if each current owner remains
+admitted.  The other two Pasha devices remain outside the scope.

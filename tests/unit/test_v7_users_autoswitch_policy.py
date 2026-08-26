@@ -113,6 +113,67 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             )
             self.assertEqual(result["registration"]["status"], "REGISTERED")
 
+    def test_n10_source_generation_ignores_matrix_envelope_but_not_source_health(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.5 current=wireguard-source table=105\n"
+                "ip=10.7.0.6 current=other-source table=106\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=wireguard-source enabled=1\n"
+                "id=other-source enabled=1\n",
+                encoding="utf-8",
+            )
+            matrix = {
+                "updated": "2026-08-27T00:00:00+00:00",
+                "items": {
+                    "wireguard-source": {
+                        "egress": "wireguard-source", "interface": "wg0",
+                        "updated": "2026-08-27T00:00:00+00:00", "status": "OK",
+                        "ok_count": 1, "total": 1,
+                        "services": {"google": {
+                            "ok": True, "status": "OK", "severity": "OK",
+                            "failure_state": "HEALTHY", "failure_family": "NONE",
+                            "observed_at": "2026-08-27T00:00:00+00:00",
+                            "observation_monotonic_ns": 1,
+                        }},
+                    },
+                    "other-source": {"status": "OK", "services": {}},
+                },
+            }
+            (state / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+            (state / "service-preferences.json").write_text("{}", encoding="utf-8")
+            policy = root / "policy.json"
+            org_policy = root / "org-policy.json"
+            policy.write_text(json.dumps({"authority_budget": {}}), encoding="utf-8")
+            org_policy.write_text("{}", encoding="utf-8")
+            args = SimpleNamespace(
+                state_dir=str(state), policy_file=str(policy), org_policy_file=str(org_policy),
+            )
+            before = self.tool.n10_ordinary_like_source_generation(
+                args, "10.7.0.5", "wireguard-source",
+            )
+            matrix["updated"] = "2026-08-27T00:00:02+00:00"
+            matrix["items"]["wireguard-source"]["updated"] = "2026-08-27T00:00:02+00:00"
+            matrix["items"]["wireguard-source"]["services"]["google"]["observed_at"] = "2026-08-27T00:00:02+00:00"
+            matrix["items"]["wireguard-source"]["services"]["google"]["observation_monotonic_ns"] = 2
+            (state / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+            envelope_only = self.tool.n10_ordinary_like_source_generation(
+                args, "10.7.0.5", "wireguard-source",
+            )
+            self.assertEqual(before, envelope_only)
+            matrix["items"]["wireguard-source"]["services"]["google"]["status"] = "DOWN"
+            matrix["items"]["wireguard-source"]["services"]["google"]["failure_state"] = "CONFIRMED_FAILURE"
+            (state / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+            source_failure = self.tool.n10_ordinary_like_source_generation(
+                args, "10.7.0.5", "wireguard-source",
+            )
+            self.assertNotEqual(before, source_failure)
+
     def test_empty_profile_uses_existing_path_owner_without_service_probes(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

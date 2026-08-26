@@ -5413,6 +5413,30 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertNotIn("--pre-planner-refresh-command", captured["command"])
         self.assertIn("--governed-candidate-only", captured["command"])
 
+    def test_ct_m0f_matrix_bound_target_is_reused_by_existing_planner(self):
+        module = load_cli_module()
+        args = argparse.Namespace(
+            expected_service_failure_binding_kind=(
+                "CERTIFICATION_ONLY_MATRIX_FAILURE"
+            ),
+            ct_m0f_standing_validation_target="awg3",
+            approved_source="execution-only",
+        )
+
+        self.assertEqual(
+            module.ct_m0f_owner_selected_planner_target(args), "awg3"
+        )
+
+    def test_ct_m0f_target_is_not_taken_without_matrix_binding(self):
+        module = load_cli_module()
+        args = argparse.Namespace(
+            expected_service_failure_binding_kind="",
+            ct_m0f_standing_validation_target="awg3",
+            approved_source="execution-only",
+        )
+
+        self.assertEqual(module.ct_m0f_owner_selected_planner_target(args), "")
+
     def test_l3_validation_plan_can_reuse_existing_planner_in_process(self):
         module = load_cli_module()
 

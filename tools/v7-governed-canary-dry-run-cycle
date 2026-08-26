@@ -1106,6 +1106,29 @@ def run_l3_production_validation_plan(
     }
 
 
+def ct_m0f_owner_selected_planner_target(args: argparse.Namespace) -> str:
+    """Return only the Matrix-bound post-T0 target for the narrow CT-M0F lane.
+
+    The controlled condition deliberately reserves the identity before a
+    target exists. Once Matrix has bound the exact certification-only failure
+    obligation, its target is already carried by the existing standing
+    validation input. Passing that value to the existing Planner preserves
+    owner selection and lets the prepared-decision consumer validate the same
+    target; it is not a manual target choice or a new selector.
+    """
+    if str(getattr(args, "expected_service_failure_binding_kind", "") or "") != (
+        "CERTIFICATION_ONLY_MATRIX_FAILURE"
+    ):
+        return ""
+    target = str(
+        getattr(args, "ct_m0f_standing_validation_target", "") or ""
+    ).strip()
+    source = str(getattr(args, "approved_source", "") or "").strip()
+    if not target or target == source:
+        return ""
+    return target
+
+
 def bind_availability_first_controlled_selection(
     plan: dict[str, Any],
     *,
@@ -5933,6 +5956,8 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             or {}
         ).get("controlled_certification_target_id") or ""
     )
+    if not planner_target and ct_m0f_standing_requested:
+        planner_target = ct_m0f_owner_selected_planner_target(args)
     planner_user = (
         str(getattr(args, "ct_m0f_standing_validation_user", "") or "")
         if ct_m0f_standing_requested

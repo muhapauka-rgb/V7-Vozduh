@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-26T14:18:00+03:00
+State captured: 2026-08-26T15:12:16+03:00
 Latest terminal Mission: `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION`
 Latest terminal Mission state: `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md`
@@ -13,7 +13,7 @@ Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-26T14:18:00+03:00`
+Captured: `2026-08-26T15:12:16+03:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -40,22 +40,23 @@ This section is the single live volatile current-state surface. Older production
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
-| `STATE_CAPTURED` | `2026-08-26T14:18:00+03:00` |
+| `STATE_CAPTURED` | `2026-08-26T15:12:16+03:00` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `TELEGRAM_CRITICAL_PROFILE_SCOPE_RECONCILED: do not manufacture a Telegram-required production profile or use an ordinary profile. Re-enter the separate Telegram S11 series only when the existing product/profile owner supplies one certification-only Telegram-required profile; N10 remains separately blocked by its ordinary-like/cohort boundary.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `TELEGRAM_CRITICAL_PREPARED_HANDOFF_RECONCILIATION: one certification-only temporary Telegram contract produced a valid automatic S11 transaction but exceeded the current two-vCPU 8 s maximum. The exact receipt shows a fresh prepared projection with two eligible targets, followed by a safe full-Planner fallback because no exact target was bound before T0. Reconcile that bounded existing-owner target-binding gap before any further sample; the contract, route and temporary test condition were removed. N10 remains separately blocked by its ordinary-like/cohort boundary.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CRITICAL_PROFILE_SCOPE_RECONCILED_20260826` |
-| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CRITICAL_PROFILE_SCOPE_RECONCILIATION_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CRITICAL_CONTROLLED_PROOF_RECONCILED_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CRITICAL_CONTROLLED_PROOF_RECONCILIATION_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
-| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1,NOT_REQUIRED_ALREADY_CONSUMED; N2,PRODUCT_PROFILE_BOUNDARY_POLYGON_SEMANTICS_PASS; N3,NOT_REQUIRED_ALREADY_CONSUMED; N4,NOT_REQUIRED_ALREADY_CONSUMED; N5,NOT_REQUIRED_ALREADY_CONSUMED; N6,NOT_REQUIRED_ALREADY_CONSUMED; N7,PRODUCT_PROFILE_BOUNDARY; N8,NOT_REQUIRED_ALREADY_CONSUMED; N9,NOT_REQUIRED_ALREADY_CONSUMED; N10,BLOCKED_AUTHORITY_NO_ADMITTED_ORDINARY_LIKE_COHORT; N11,READ_ONLY_DISCOVERY_PASS_NO_SAFE_DELETION_ADMITTED` |
+| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1,NOT_REQUIRED_ALREADY_CONSUMED; N2,CONTROLLED_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_RECONCILIATION; N3,NOT_REQUIRED_ALREADY_CONSUMED; N4,NOT_REQUIRED_ALREADY_CONSUMED; N5,NOT_REQUIRED_ALREADY_CONSUMED; N6,NOT_REQUIRED_ALREADY_CONSUMED; N7,TELEGRAM_CLASS_RUNTIME_PERFORMANCE_RESIDUAL; N8,CONTROLLED_AUTOMATIC_TELEGRAM_S11_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_RECONCILIATION; N9,NOT_REQUIRED_ALREADY_CONSUMED; N10,BLOCKED_AUTHORITY_NO_ADMITTED_ORDINARY_LIKE_COHORT; N11,READ_ONLY_DISCOVERY_PASS_NO_SAFE_DELETION_ADMITTED` |
 | `HARD_PATH_RUNTIME_SLO` | `FINAL_FINGERPRINT=993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418; frozen valid distribution 2661.051, 2887.710, 6520.639, 2144.202, 3840.331 ms (P95=6520.639 ms; one sample >5 s). Historical 3 s/5 s objective remains unmet. OWNER_ACCEPTED_CURRENT_2VCPU_ROLLOUT_CONTRACT=P95<=7000 ms,max<=8000 ms; exact S11 and all safety semantics unchanged.` |
-| `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN_AFTER_DEPLOY-z8-14-Updatesystem-a066d6d-20260826T102227; no further HARD-path micro-optimization is admitted.` |
+| `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN_PERFORMANCE_LOGIC; bounded lifecycle-consumer repairs are deployed at 63bc020f7db75b7421b4383bd443e9509c8c0fdb (deploy-z8-14-Updatesystem-63bc020-20260826T145345). No further HARD-path micro-optimization is admitted.` |
 | `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-26_v5_3_shared_healthy_target_contract_and_ct_m0f_cold_sample.md` |
 | `HARD_PATH_RUNTIME_FINGERPRINT` | `993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418` |
 | `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `a066d6d719c90d17df57baf7b13328988f6d0c53; deploy-z8-14-Updatesystem-a066d6d-20260826T102227` |
-| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `PRODUCT_PROFILE_BOUNDARY: shared-target contract is active and its automatic selection was proven, but no certification-only identity currently declares Telegram required. The only two current Telegram-required profiles are ordinary identities and are outside the contract. Existing Polygon semantics pass; no live Telegram S11 series, ordinary movement, profile rewrite or synthetic failure was manufactured.` |
+| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `CONTROLLED_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_RECONCILIATION: under the owner-approved certification-only temporary Telegram profile, the automatic chain selected awg3 (not manually), completed Matrix -> Planner -> Candidate -> Packet -> Lease -> Barrier -> Apply -> route/kernel -> Telegram S11, and then was fully reset. The valid cold sample was 18,594.176 ms from controlled onset to S11, exceeding the current two-vCPU 8,000 ms maximum; it receives no rollout credit. Its receipt proves a fresh prepared target set but records the safe `EXISTING_FULL_PLANNER_FALLBACK` because the post-T0 owner-selected target was not bound into the prepared execution handoff. No certification-only Telegram profile, temporary nft condition, active transaction or ordinary-user effect remains.` |
+| `V5_3_TELEGRAM_CONTROLLED_COLD_SAMPLE` | `FUNCTIONALLY_VALID_PERFORMANCE_FAIL; transaction=ctm0ftx_4cfd6602db3eef37a5f86a84; sample=ctm0fsample_e93cf73d76768c5e41458baa; failure-to-decision=10,150.617 ms; decision-to-Apply-admission=252.605 ms; assignment=550.048 ms; kernel visibility=22.757 ms; route-bound required-service verification=7,618.150 ms; onset-to-S11=18,594.176 ms; source restored; ordinary-user delta=0.` |
 | `V5_3_N10_CURRENT_STATUS` | `BLOCKED_AUTHORITY_NO_ADMITTED_ORDINARY_LIKE_COHORT; the active shared-target contract is exact one-certification-identity only and explicitly forbids ordinary-user movement or reclassification.` |
 | `CT_M0F_SHARED_TARGET_COLD_SAMPLE` | `VALID_FUNCTIONAL_COLD_SAMPLE; contract=sdpc_1cc223801f69992ac18f6e2e; Matrix/Planner selected awg3 (not manually); onset-to-control-plane-and-kernel cutover=4768.462 ms; failure-to-decision=3299.169 ms; decision-to-apply=263.808 ms; assignment=735.131 ms; kernel visibility=15.995 ms; target route-bound payload=454.359 ms; 3 s performance target failed, but the 5 s per-sample ceiling passed. Reset returned 10.7.0.124 to the isolated source; ordinary-user delta=0.` |
 | `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_PASS_NO_SAFE_DELETION_ADMITTED; no superseded-ready-to-delete responsibility was found.` |
@@ -71,7 +72,7 @@ This section is the single live volatile current-state surface. Older production
 | `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_CURRENT_2VCPU_ROLLOUT_CONTRACT_ACCEPTED` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_TYPE` | `NONE; Telegram live credit remains product-profile-scoped and is not manufactured.` |
+| `EXTERNAL_INPUT_TYPE` | `NONE; one bounded existing-owner prepared-target-binding reconciliation is active. Further movements solely to fill a five-sample series remain prohibited.` |
 | `TRANSACTION_TERMINAL_CLASS` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED` |
 | `PROGRAM_TERMINAL_CLASS` | `NONE` |
 | `NEXT_MISSION_FORMED` | `FALSE` |
@@ -737,8 +738,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CRITICAL_PROFILE_SCOPE_RECONCILED_20260826` |
-| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CRITICAL_PROFILE_SCOPE_RECONCILIATION_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CRITICAL_CONTROLLED_PROOF_RECONCILED_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CRITICAL_CONTROLLED_PROOF_RECONCILIATION_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |

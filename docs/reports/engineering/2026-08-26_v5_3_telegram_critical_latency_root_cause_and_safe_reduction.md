@@ -196,3 +196,21 @@ Current safety state:
 **Current terminal:** `TELEGRAM_CERTIFICATION_RUNTIME_MEMORY_CONVERGENCE_REQUIRED`.
 
 **Exact next action:** first reconcile and bound the existing Telegram/Admin Runtime memory growth on Polygon or an isolated controlled run, prove that the health role completes and remains below the substrate limit, then use the existing canonical profile owner to clear the temporary profile and the existing governed cleanup owner to return `10.7.0.108` to its baseline.  Only after that clean baseline is proven may a fresh Telegram condition begin and be credited to the homogeneous Telegram evidence series.  No further source search or target-policy change is required.
+
+## Runtime memory correction (2026-08-26 22:30–22:38 MSK)
+
+The memory boundary was reproduced and reduced without changing Matrix, Planner, health cadence, route writing or Telegram semantics.  The primary cause was the shared Admin JSONL reader: it loaded an entire append-only closure store (`closure-records.jsonl.1`, 184 MB) into decoded text and a complete line list for every bounded-tail request.  Admin summary assembly can call that reader repeatedly through closure metadata, so a small requested history repeatedly materialised the archive.
+
+Commit `de70f0fa797c682f2d97fce8663460bb4d602755` changes only `admin_core.summary_builders.bounded_jsonl_records`: it reads a capped trailing byte window, drops a partial first line, then parses the same requested latest rows.  The record limit and redaction contract are retained.  `272` focused regression tests passed.  GitHub/local/Runtime alignment and the safe-deploy gate passed; `v7-admin-api.service` was then restarted because the changed shared module is loaded by that long-running process.
+
+Measured Runtime effect:
+
+| Component | Before | After restart and bounded reader |
+| --- | ---: | ---: |
+| `v7-admin-api` current memory | about 1.1 GB | 118 MB |
+| `v7-admin-api` peak after real cleanup response | about 1.17 GB | 155 MB |
+| `v7-health` current memory | about 200 MB | remained active |
+
+The canonical temporary Telegram profile for `10.7.0.108` was successfully cleared through `service-preferences-update`; the response-side client timed out, but owner-backed state proved `users[10.7.0.108] = null` and Admin Safe Mode returned to enabled/`OPEN`.  The controlled Telegram block had already been removed.  No ordinary client, route, Matrix rule or target policy changed.
+
+**Next action:** consume the existing governed controlled-certification cleanup owner to return the isolated test identity from the now-expired execution reservation to its owner-recorded baseline, then prove the clean baseline.  Only then start a fresh Telegram failure condition and collect evidence.  The bounded JSONL repair removes the demonstrated administrative-memory obstacle; it does not itself credit a Telegram S11 sample.

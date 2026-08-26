@@ -8170,9 +8170,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
-Resolved contract state: CPS retains `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED` as the bounded causal-reduction evidence and records the owner-accepted current two-vCPU rollout contract: P95 `<=7000 ms`, no valid sample `>8000 ms`, with the historical 3 s/5 s objective explicitly unmet and retained as future work. HARD_PATH tuning is frozen. The existing Authority owner consumed an exact one-certification-identity shared-healthy-target contract; the Matrix/Planner automatically selected `awg3` for one valid cold CT-M0F cutover and the mandatory reset restored the isolated source. The later Telegram preflight established that this certification identity has no Telegram-required profile and the two current Telegram-required identities are ordinary users. Therefore neither profile may be repurposed and no Telegram failure may be manufactured. Existing Polygon semantics pass, but this is not Telegram S11 credit or N10 ordinary-like credit. Re-entry requires an existing product/profile-owner certification-only Telegram-required contract; N10 remains blocked by its distinct cohort/ordinary boundary. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
+Resolved current next action: `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT`
+Resolved contract state: CPS retains `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED` as bounded causal-reduction evidence and freezes HARD-path tuning. The existing one-certification-identity Telegram contract is consumed: Matrix/Planner automatically selected a healthy target, and the complete governed route plus required-service S11 passed functionally. The fresh valid result was `25,354.419 ms`, above the active Telegram `8 s` ceiling; it remains in evidence. The mandatory reset restored the isolated client and deleted its temporary profile. This does not grant N10 ordinary-like credit. Re-entry requires a separate exact product-owner ordinary-like cohort scope, so the current stop is `EXTERNAL_OWNER_REQUIRED`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9158,8 +9158,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
+Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
+Resolved current next action: `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT`
 Current terminal report: `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md`
 Latest consumed report: `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`

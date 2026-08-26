@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-26T16:18:00+03:00
+State captured: 2026-08-26T17:28:00+03:00
 Latest terminal Mission: `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION`
 Latest terminal Mission state: `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md`
@@ -13,7 +13,7 @@ Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-26T15:12:16+03:00`
+Captured: `2026-08-26T17:28:00+03:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -21,7 +21,7 @@ This section is the single live volatile current-state surface. Older production
 | --- | --- |
 | `ACTIVE_PROGRAM` | `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
 | `PRIMARY_ENGINEERING_FRONTIER` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `PRIMARY_ENGINEERING_NEXT_ACTION` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `PRIMARY_ENGINEERING_NEXT_ACTION` | `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT` |
 | `LEGACY_V7_ROUTING_HOT_PATH` | `FROZEN_FOR_CAPABILITY_GROWTH; PROGRAM_LEVEL_ENGINEERING_RULE_ONLY; RUNTIME_UNCHANGED` |
 | `SYSTEM_RESET_PROGRAM_CONTRACT` | `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` |
 | `SYSTEM_RESET_PROGRAM_STATE` | `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE` |
@@ -39,42 +39,43 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `NONE` |
-| `STATE_CAPTURED` | `2026-08-26T17:34:00+03:00` |
+| `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
+| `STATE_CAPTURED` | `2026-08-26T17:28:00+03:00` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `TELEGRAM_CRITICAL_CONTROLLED_APPLY_HANDOFF_RECONCILIATION: e1d04fa is deployed and live healthy Telegram observations no longer acquire the Matrix writer lock. One certification-only attempt selected awg3 through the existing owner but stopped before a route write at approved_plan_lock_snapshot_gate_stop_required; the condition and source route were reset, ordinary-user delta=0. Deploy the diagnostics-only existing-writer/caller extension, then use one fresh admitted certification attempt to record the exact snapshot-gate change before any owner-rule repair. N10 remains separately blocked by its ordinary-like/cohort boundary.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `WAITING_INPUT:N10_PRODUCT_AUTHORITY_COHORT_CONTRACT: the Telegram certification-only handoff diagnostic is deployed and consumed. One fresh automatic Candidate -> Packet -> Lease -> Apply -> route -> required-service S11 proof passed functionally, but took 25,354.419 ms and fails the current Telegram 8 s performance ceiling. The isolated client and temporary profile are reset; ordinary-user delta=0. Do not restart a performance patch loop. N10 requires a separate exact product-owner ordinary-like cohort scope before any ordinary movement; N11 remains read-only with no safe deletion admitted.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CONTROLLED_APPLY_HANDOFF_DIAGNOSTIC_20260826` |
-| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CONTROLLED_APPLY_HANDOFF_DIAGNOSTIC_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CONTROLLED_APPLY_HANDOFF_CONSUMED_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CONTROLLED_APPLY_HANDOFF_CONSUMED_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:N10_PRODUCT_AUTHORITY_COHORT_CONTRACT` |
 | `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1,NOT_REQUIRED_ALREADY_CONSUMED; N2,CONTROLLED_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_CONSUMED; N3,NOT_REQUIRED_ALREADY_CONSUMED; N4,NOT_REQUIRED_ALREADY_CONSUMED; N5,NOT_REQUIRED_ALREADY_CONSUMED; N6,NOT_REQUIRED_ALREADY_CONSUMED; N7,TELEGRAM_CLASS_FAILURE_TO_T0_CAUSAL_RECONCILIATION; N8,CONTROLLED_AUTOMATIC_TELEGRAM_S11_FUNCTIONAL_PROOF_REQUIRED_SCOPE_CONSUMED_PERFORMANCE_FAIL; N9,NOT_REQUIRED_ALREADY_CONSUMED; N10,BLOCKED_AUTHORITY_NO_ADMITTED_ORDINARY_LIKE_COHORT; N11,READ_ONLY_DISCOVERY_PASS_NO_SAFE_DELETION_ADMITTED` |
 | `HARD_PATH_RUNTIME_SLO` | `FINAL_FINGERPRINT=993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418; frozen valid distribution 2661.051, 2887.710, 6520.639, 2144.202, 3840.331 ms (P95=6520.639 ms; one sample >5 s). Historical 3 s/5 s objective remains unmet. OWNER_ACCEPTED_CURRENT_2VCPU_ROLLOUT_CONTRACT=P95<=7000 ms,max<=8000 ms; exact S11 and all safety semantics unchanged.` |
 | `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN_PERFORMANCE_LOGIC; bounded lifecycle-consumer repairs are deployed at 63bc020f7db75b7421b4383bd443e9509c8c0fdb (deploy-z8-14-Updatesystem-63bc020-20260826T145345). No further HARD-path micro-optimization is admitted.` |
 | `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-26_v5_3_shared_healthy_target_contract_and_ct_m0f_cold_sample.md` |
 | `HARD_PATH_RUNTIME_FINGERPRINT` | `993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418` |
 | `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `a066d6d719c90d17df57baf7b13328988f6d0c53; deploy-z8-14-Updatesystem-a066d6d-20260826T102227` |
-| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `REQUIRED_SERVICE_S11_SCOPE_DEPLOYED_AND_CONSUMED; FAST_SIGNAL_WRITER_CONTENTION_CORRECTION_DEPLOYED_AT_e1d04fa: live healthy Telegram observations complete in approximately 0.25--0.50 s and do not acquire the Matrix writer lock. A later certification-only attempt selected awg3 through existing Matrix/Planner owners, then safely stopped before route apply at approved_plan_lock_snapshot_gate_stop_required; it is invalid for performance credit. Exact condition cleanup and original source-route restoration passed; ordinary-user effect remains zero.` |
+| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `FUNCTIONAL_S11_PROVEN_PERFORMANCE_FAIL; FAST_SIGNAL_WRITER_CONTENTION_CORRECTION_DEPLOYED_AT_e1d04fa remains live: healthy Telegram observations complete in approximately 0.25--0.50 s without a Matrix writer lock. Diagnostics-only commit 5ac5dd4 is deployed. Its first exact cause was temporary service_preferences changed after the snapshot; corrected ordering yielded valid sample ctm0fsample_f428b96f42e835ff5f4614e2: full automatic S11 passed at 25,354.419 ms, exceeding the current 8 s ceiling. Source, client route and profile reset passed; ordinary-user delta=0.` |
 | `V5_3_TELEGRAM_CONTROLLED_COLD_SAMPLE` | `FUNCTIONALLY_VALID_PERFORMANCE_FAIL; transaction=ctm0ftx_7b76fcada1c0e0999885c3c8; sample=ctm0fsample_a5b05102cbd5111f139d1144; prepared-decision reused; failure-detection=13,566.293 ms; failure-to-decision=14,755.000 ms; decision-to-Apply-admission=276.174 ms; assignment=836.763 ms; kernel visibility=33.211 ms; route-bound required-service verification=1,183.018 ms; onset-to-S11=17,759.208 ms; source restored; ordinary-user delta=0.` |
+| `V5_3_TELEGRAM_CONTROLLED_FRESH_SAMPLE` | `FUNCTIONALLY_VALID_PERFORMANCE_FAIL; contract=ctm0fsdpc_208482a67dc4103e5f0ef7b6; sample=ctm0fsample_f428b96f42e835ff5f4614e2; existing owners selected the target automatically; failure-to-decision=18,163.325 ms; decision-to-Apply=240.232 ms; assignment=685.845 ms; kernel visibility=17.853 ms; required-service S11 tail=6,247.165 ms; onset-to-S11=25,354.419 ms. It remains in evidence and fails the current 8 s ceiling. Terminal reset restored 10.7.0.124 to awg0 and removed its temporary profile; ordinary-user delta=0.` |
 | `V5_3_N10_CURRENT_STATUS` | `BLOCKED_AUTHORITY_NO_ADMITTED_ORDINARY_LIKE_COHORT; the active shared-target contract is exact one-certification-identity only and explicitly forbids ordinary-user movement or reclassification.` |
 | `CT_M0F_SHARED_TARGET_COLD_SAMPLE` | `VALID_FUNCTIONAL_COLD_SAMPLE; contract=sdpc_1cc223801f69992ac18f6e2e; Matrix/Planner selected awg3 (not manually); onset-to-control-plane-and-kernel cutover=4768.462 ms; failure-to-decision=3299.169 ms; decision-to-apply=263.808 ms; assignment=735.131 ms; kernel visibility=15.995 ms; target route-bound payload=454.359 ms; 3 s performance target failed, but the 5 s per-sample ceiling passed. Reset returned 10.7.0.124 to the isolated source; ordinary-user delta=0.` |
 | `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_PASS_NO_SAFE_DELETION_ADMITTED; no superseded-ready-to-delete responsibility was found.` |
 | `V5_3_RUNTIME_LIVE_HEALTH` | `v7-health.service active; legacy standalone Matrix/Telegram timers disabled; role-based health loop is current producer` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `CURRENT_EXECUTION_FRONTIER` | `NONE` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
+| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_WAITING_INPUT_N10_PRODUCT_AUTHORITY_COHORT_CONTRACT` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_CURRENT_2VCPU_ROLLOUT_CONTRACT_ACCEPTED` |
-| `OMP_CONTINUATION_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_TYPE` | `NONE; e1d04fa fast-signal writer-contention repair is deployed and live-verified. A diagnostics-only existing-owner extension is locally tested and awaits normal safe deploy. Further movements solely to fill a five-sample series remain prohibited.` |
+| `PROGRAM_TERMINAL_STATE` | `EXTERNAL_OWNER_REQUIRED_N10_PRODUCT_AUTHORITY_COHORT_CONTRACT` |
+| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_TYPE` | `PRODUCT_AND_AUTHORITY_SCOPE_REQUIRED_FOR_N10: the active contract is certification-only and forbids ordinary-user reclassification or movement. No further movement may be made solely to improve the Telegram performance distribution.` |
 | `TRANSACTION_TERMINAL_CLASS` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED` |
-| `PROGRAM_TERMINAL_CLASS` | `NONE` |
+| `PROGRAM_TERMINAL_CLASS` | `EXTERNAL_OWNER_REQUIRED` |
 | `NEXT_MISSION_FORMED` | `FALSE` |
 | `NEXT_MISSION_ID` | `NONE_PROGRAM_TRACK_ONLY` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
@@ -182,8 +183,8 @@ This section is the single live volatile current-state surface. Older production
 | `PHASE_7_PRODUCTION_AUTHORITY_STATUS` | `GOVERNED_ONLY_LOCKED_BY_INSUFFICIENT_EVIDENCE` |
 | `PHASE_6_FINAL_REPORT` | `docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md` |
 | `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |
-| `CURRENT_COMPLETION_CONTRACT` | `ANALYSIS_COMPLETION` |
-| `CURRENT_COMPLETION_VERDICT` | `PHASE_G_CONSUMED_T0_T11_TRACK_ACTIVE` |
+| `CURRENT_COMPLETION_CONTRACT` | `AUTOMATION_COMPLETION` |
+| `CURRENT_COMPLETION_VERDICT` | `COMPLETE_CONSUMED` |
 | `FSSE_STATUS` | `FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED` |
 | `FSSE_00_EXTERNAL_REENTRY_STATUS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `FSSE_00_BLOCKS_FSSE_01` | `FALSE` |
@@ -229,7 +230,7 @@ This section is the single live volatile current-state surface. Older production
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE` |
+| `AUTHORITY_REQUIRED_NOW` | `NO_NEW_AUTHORITY_REQUIRED; EXTERNAL_PRODUCT_OWNER_SCOPE_REQUIRED_FOR_N10` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `bounded autonomous controlled certification topology,bounded availability-first controlled failover,channel hard-fail failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -738,10 +739,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CRITICAL_FAILURE_TO_T0_CAUSAL_RECONCILIATION_20260826` |
-| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CRITICAL_FAILURE_TO_T0_CAUSAL_RECONCILIATION_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
-| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CONTROLLED_APPLY_HANDOFF_CONSUMED_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CONTROLLED_APPLY_HANDOFF_CONSUMED_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT` |
+| `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
@@ -759,8 +760,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | The bounded causal-reduction phase remains terminal evidence. Owner accepted the current two-vCPU rollout contract: P95 `<=7000 ms`, no valid sample `>8000 ms`, with historical 3 s/5 s objective retained as unmet future work. HARD_PATH performance is frozen. Telegram target binding and required-service S11 scope are consumed; the current bounded residual is source failure observation/confirmation before T0, including unnecessary healthy fast-signal writer contention. N11 read-only inventory remains active. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `OMP_CONTINUATION_POINTER` | The bounded causal-reduction phase remains terminal evidence. HARD_PATH performance is frozen. Telegram target binding and required-service S11 are functionally consumed: the fresh automatic certification-only sample completed but took `25,354.419 ms`, above the current Telegram `8 s` ceiling. The test identity/profile were restored without ordinary effect. N10 is the only material routing frontier and is held at `OPERATIONAL_AUTHORITY` until a product/Authority ordinary-like cohort contract exists; N11 remains read-only with no safe deletion. |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -769,9 +770,9 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_TELEGRAM_CRITICAL_FAILURE_TO_T0_CAUSAL_RECONCILIATION_20260826` |
-| `current_transition_id` | `V5_3_TELEGRAM_CRITICAL_FAILURE_TO_T0_CAUSAL_RECONCILIATION_V1` |
-| `smallest_existing_next_action_id` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `current_state_generation` | `cpsgen_SFA_V53_TELEGRAM_CONTROLLED_APPLY_HANDOFF_CONSUMED_20260826` |
+| `current_transition_id` | `V5_3_TELEGRAM_CONTROLLED_APPLY_HANDOFF_CONSUMED_V1` |
+| `smallest_existing_next_action_id` | `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |
 | `latest_terminal_mission_id` | `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION` |
@@ -782,13 +783,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `NONE` |
+| `current_primary_stop` | `OPERATIONAL_AUTHORITY` |
 | `responsibility_class` | `LEARNING` |
 | `authority_required_now` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE` |
 | `last_responsible_link` | existing V5.3 Program contract -> BDP/OMP admission -> CPS read-only Mission -> Phase C/D/E evidence consumer |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION |
+| `smallest_existing_next_action` | N10_PRODUCT_AUTHORITY_COHORT_CONTRACT |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -856,7 +857,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_TELEGRAM_CRITICAL_FAILURE_TO_T0_CAUSAL_RECONCILIATION_20260826`; `V5_3_TELEGRAM_CRITICAL_FAILURE_TO_T0_CAUSAL_RECONCILIATION_V1` | owner accepted current two-vCPU rollout P95 `<=7000 ms`, max `<=8000 ms`; HARD_PATH tuning is frozen; shared-target automatic selection, certification-only Telegram proof and CT-M0F reset are recorded. The mandatory Telegram S11 scope is proven; a healthy fast observation currently contends for the shared Matrix writer although it creates no new canonical state. N11 has no safe deletion | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | retain existing role-based health; publish to Matrix only at confirmed Telegram failure or its recovery; then obtain one fresh owner-backed certification proof only if its current campaign law permits it; N10 only from its separate ordinary-like/cohort contract |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_TELEGRAM_CONTROLLED_APPLY_HANDOFF_CONSUMED_20260826`; `V5_3_TELEGRAM_CONTROLLED_APPLY_HANDOFF_CONSUMED_V1` | Telegram fast-signal contention correction and diagnostics are deployed. A fresh one-identity automatic Telegram S11 proof is functionally valid at `25,354.419 ms`, above the active `8 s` ceiling; the client/profile are reset. HARD_PATH tuning is frozen and N11 has no safe deletion. | `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `EXTERNAL_OWNER_REQUIRED` | no ordinary movement or performance retry. Re-enter only when the product owner supplies an exact ordinary-like N10 cohort scope; N11 remains read-only. |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -924,7 +925,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `EXTERNAL_OWNER_REQUIRED`; current stop is `EXTERNAL_OWNER_REQUIRED`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

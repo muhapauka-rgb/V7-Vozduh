@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-26  
 **Program:** `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1`  
-**Status:** deployed and live-verified; the following controlled attempt stopped
-before route application and is invalid for performance credit.
+**Status:** deployed and live-verified; a subsequent automatic
+certification-only route/S11 proof completed and is performance-failed.
 **Scope:** reduce a measured pre-T0 delay without changing Matrix ownership,
 failure criteria, Planner, Authority, routing or ordinary users.
 
@@ -86,10 +86,15 @@ ordinary-user delta is zero. The exact diagnostic and its cleanup are recorded
 separately in
 `docs/reports/engineering/2026-08-26_v5_3_telegram_controlled_apply_handoff_diagnostic.md`.
 
-## Exact next action
+## Completion of the following controlled proof
 
-Deploy a diagnostics-only extension of the existing route writer and its
-governed caller. The next permitted certification attempt will persist the
-exact snapshot-gate reason and changed inputs if it stops again. Only then may
-the existing owner be corrected for that specific, proven state transition;
-the safety gate itself is not relaxed by this report.
+The subsequent diagnostics-only correction was deployed separately at
+`5ac5dd4c5f0b095e1a1333af9f463c1f3a137173`. It showed that an intervening
+invalid attempt had changed the temporary profile after the snapshot. After
+that ordering was corrected, the existing owners automatically completed the
+full Candidate -> Packet -> Lease -> Apply -> route -> required-service S11
+chain for the one certification identity. The functional proof is valid, but
+its 25,354.419 ms onset-to-S11 result exceeds the active Telegram limit of
+8,000 ms. The test identity and temporary profile were restored/removed and
+ordinary-user effect remained zero. The exact receipt and decomposition are in
+`2026-08-26_v5_3_telegram_controlled_apply_handoff_diagnostic.md`.

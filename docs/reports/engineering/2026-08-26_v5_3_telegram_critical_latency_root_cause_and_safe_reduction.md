@@ -137,3 +137,29 @@ Authentication is no longer a boundary: the authenticated UI was used.  The curr
 ## Current conclusion
 
 The code-level causal reduction is live and ready to be measured. The mission has not claimed Telegram SLO success or failure because no post-deploy functionally valid Telegram sample exists.  The existing system now correctly prevents the previously hidden unsafe source reuse.  The remaining block is a real external source/configuration prerequisite; no safety contract needs to be weakened and no new owner is required.
+
+## Fresh all-existing-egress reconciliation (2026-08-26 21:08–21:12 MSK)
+
+The preceding external-source conclusion was re-opened rather than accepted from history.  The existing Matrix owner completed one observation-only refresh for every enabled egress.  It emitted no event, Candidate, Packet, Lease, route mutation or client movement.  The existing topology/reservation owner then evaluated every current egress against the one-user controlled-source contract.
+
+The refresh changed material facts: VLESS Telegram itself is currently reachable, and the dedicated execution channel is actually empty.  A separate owner-state inconsistency was also found: the topology diagnostic used a stale `v7-state.json` assignment count (five) for the execution channel while the canonical current `users.registry` had zero enabled assignments.
+
+Commit `ad9c1a9cd5e1728c774f8ae8cfd95b619e7b6833` (`fix: bind controlled topology to live assignments`) was published and safely deployed.  It makes the existing topology decision calculate present occupancy and free capacity from `users.registry`; the loaded Planner snapshot is retained only as an explicitly labelled diagnostic value.  It also closes a second safety hole found by the same reconciliation: an empty but actively reserved source cannot be rebound to a different certification group merely because it has no current users.  Both focused source/topology tests and Python compilation passed; `tools/v7-safe-deploy` returned `PASS`.
+
+Final live owner-backed result after that deployment:
+
+| Existing egress | Current state | Controlled-source decision |
+| --- | --- | --- |
+| `vless` | zero enabled current users; Telegram `OK`; overall Matrix `WARN` (12/14); quality/stability floor not met; old reservation expired | rejected: source baseline is not healthy and reservation is expired |
+| `awg0` | healthy, but 13 ordinary + 25 certification identities | rejected: whole-source test would affect ordinary users |
+| `awg3` | healthy, but 11 ordinary + 24 certification identities | rejected: whole-source test would affect ordinary users |
+| `1` | empty but Matrix `FAIL`, Telegram `DOWN` | rejected: no healthy baseline |
+| `openvpn-1779388847-d2ad7c` | 2 ordinary + 1 other certification identity; Matrix `FAIL` | rejected: occupied and unhealthy |
+| `wireguard-1779454504-c43409` | healthy, but 46 ordinary + 3 certification identities | rejected: whole-source test would affect ordinary users |
+| `amneziawg-exec-20260528-10-8-1-14` | healthy, empty, free capacity 9 | rejected for this Telegram campaign: it is actively reserved until `2026-08-31T00:00:00Z` for certification group `ctm0f-9765f296cbe9`, while the current Telegram identity belongs to `t48-d27d985e237c` |
+
+The execution channel is therefore not a missed opportunity or a stale classification.  Its health and emptiness are valid, but its current reservation belongs to another controlled scope.  Reusing it would be an ungoverned cross-group takeover.  VLESS is likewise not rejected because of an old report: its current Telegram result is good, but the owner-backed whole-source baseline remains below the required health/stability floor.
+
+Runtime confirmation after deployment: `v7-health.service` is `active`; the old standalone Matrix timer remains absent; the standalone Telegram timer remains `disabled`; the deployed and local `v7-users-autoswitch` hashes match.  There was no ordinary-user or route effect.
+
+**Recomputed terminal:** `EXTERNAL_SOURCE_REQUIRED` is now evidence-backed for the current state of *all* existing egresses.  Re-entry is either (1) a new complete source through the existing Admin lifecycle, or (2) an explicit release/transfer by the current owner of the separately reserved execution channel.  The latter is a distinct cross-group authority decision and must not be inferred from the Telegram mission.

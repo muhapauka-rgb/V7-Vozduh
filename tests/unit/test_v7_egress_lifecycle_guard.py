@@ -20,6 +20,28 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
         date_stub = bin_dir / "date"
         date_stub.write_text("#!/usr/bin/env bash\necho 2026-01-01T00:00:00+00:00\n", encoding="utf-8")
         date_stub.chmod(0o755)
+        nft_stub = bin_dir / "nft"
+        nft_stub.write_text(
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            "state=${V7_NFT_FAKE_STATE:?}\n"
+            "if [ \"${1:-}\" = list ] && [ \"${2:-}\" = table ]; then\n"
+            "  [ -f \"$state\" ] || exit 1\n"
+            "  cat \"$state\"\n"
+            "  exit 0\n"
+            "fi\n"
+            "if [ \"${1:-}\" = -f ] && [ \"${2:-}\" = - ]; then\n"
+            "  cat > \"$state\"\n"
+            "  exit 0\n"
+            "fi\n"
+            "if [ \"${1:-}\" = delete ] && [ \"${2:-}\" = table ]; then\n"
+            "  rm -f \"$state\"\n"
+            "  exit 0\n"
+            "fi\n"
+            "exit 1\n",
+            encoding="utf-8",
+        )
+        nft_stub.chmod(0o755)
         (state / "egress.registry").write_text(egress_line, encoding="utf-8")
         (state / "users.registry").write_text(users, encoding="utf-8")
         return state
@@ -27,6 +49,7 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
     def env_for(self, state: Path) -> dict[str, str]:
         env = os.environ.copy()
         env["V7_STATE_DIR"] = str(state)
+        env["V7_NFT_FAKE_STATE"] = str(state / "nft.table")
         env["PATH"] = f"{state.parent / 'bin'}:{ROOT / 'tools' / 'runtime-support'}:{env['PATH']}"
         return env
 
@@ -333,6 +356,111 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
                 (state / "egress.registry").read_text(encoding="utf-8"),
                 original,
             )
+
+    def test_telegram_failure_and_recovery_are_exact_and_leave_no_rule_residue(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = (
+                "id=wg1 protocol=wireguard type=interface interface=wg1 "
+                "enabled=1 role=EXECUTION_ONLY config=/tmp/wg1.conf "
+                "controlled_certification_source=1 "
+                "reservation_owner=operator_execution_governance "
+                "certification_group=n10 controlled_source_reservation_id=n10-r1 "
+                "controlled_source_reservation_expires_at=2099-01-01T00:00:00+00:00\n"
+            )
+            state = self.write_state(
+                Path(tmp),
+                original,
+                "ip=10.7.0.2 current=wg1 table=100 enabled=1 "
+                "certification_user=1 certification_group=n10\n",
+            )
+            fingerprint = hashlib.sha256(original.rstrip("\n").encode()).hexdigest()
+            inject = self.run_set_state(
+                state,
+                "wg1",
+                "certification-telegram-failure",
+                "--controlled-certification",
+                "--certification-users",
+                "10.7.0.2",
+                "--certification-group",
+                "n10",
+                "--reservation-id",
+                "n10-r1",
+                "--expected-egress-fingerprint",
+                fingerprint,
+                "--apply",
+                "--confirm",
+                "INJECT_CONTROLLED_CERTIFICATION_TELEGRAM_FAILURE",
+            )
+            self.assertEqual(inject.returncode, 0, inject.stdout + inject.stderr)
+            self.assertIn("ACTION=controlled_certification_telegram_failure_injected", inject.stdout)
+            nft_state = (state / "nft.table").read_text(encoding="utf-8")
+            self.assertIn('oifname "wg1"', nft_state)
+            self.assertIn("149.154.167.50", nft_state)
+            self.assertEqual((state / "egress.registry").read_text(encoding="utf-8"), original)
+
+            # The automatic path can move the one certification identity
+            # before cleanup.  That empty source is the only additional
+            # recovery state accepted by the existing state owner.
+            (state / "users.registry").write_text(
+                "ip=10.7.0.2 current=awg3 table=100 enabled=1 "
+                "certification_user=1 certification_group=n10\n",
+                encoding="utf-8",
+            )
+            recover = self.run_set_state(
+                state,
+                "wg1",
+                "certification-telegram-recovery",
+                "--controlled-certification",
+                "--certification-users",
+                "10.7.0.2",
+                "--certification-group",
+                "n10",
+                "--reservation-id",
+                "n10-r1",
+                "--expected-egress-fingerprint",
+                fingerprint,
+                "--apply",
+                "--confirm",
+                "RECOVER_CONTROLLED_CERTIFICATION_TELEGRAM_FAILURE",
+            )
+            self.assertEqual(recover.returncode, 0, recover.stdout + recover.stderr)
+            self.assertIn("ACTION=controlled_certification_telegram_failure_recovered", recover.stdout)
+            self.assertFalse((state / "nft.table").exists())
+
+    def test_telegram_failure_rejects_any_non_certification_source_member(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = (
+                "id=wg1 protocol=wireguard type=interface interface=wg1 "
+                "enabled=1 role=EXECUTION_ONLY config=/tmp/wg1.conf "
+                "controlled_certification_source=1 "
+                "reservation_owner=operator_execution_governance "
+                "certification_group=n10 controlled_source_reservation_id=n10-r1 "
+                "controlled_source_reservation_expires_at=2099-01-01T00:00:00+00:00\n"
+            )
+            state = self.write_state(
+                Path(tmp),
+                original,
+                "ip=10.7.0.2 current=wg1 table=100 enabled=1 certification_user=1 certification_group=n10\n"
+                "ip=10.7.0.3 current=wg1 table=101 enabled=1\n",
+            )
+            fingerprint = hashlib.sha256(original.rstrip("\n").encode()).hexdigest()
+            result = self.run_set_state(
+                state,
+                "wg1",
+                "certification-telegram-failure",
+                "--controlled-certification",
+                "--certification-users",
+                "10.7.0.2",
+                "--certification-group",
+                "n10",
+                "--reservation-id",
+                "n10-r1",
+                "--expected-egress-fingerprint",
+                fingerprint,
+            )
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("reason=non_certification_users_assigned", result.stdout)
+            self.assertFalse((state / "nft.table").exists())
 
     def test_controlled_source_reserve_and_release_are_exact_and_reversible(self):
         with tempfile.TemporaryDirectory() as tmp:

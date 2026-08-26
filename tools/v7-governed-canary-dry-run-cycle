@@ -12659,6 +12659,11 @@ def prepare_ct_m0f_standing_controlled_condition(
     lease_file: Path,
 ) -> dict[str, Any]:
     """Prepare one exact failure generation through existing bounded owners."""
+    condition_class = str(
+        getattr(args, "ct_m0f_controlled_service_class", "hard") or "hard"
+    ).lower()
+    if condition_class not in {"hard", "telegram"}:
+        return transaction_stop("ct_m0f_controlled_service_class_invalid")
     audit_store = audit_dir / "operator-execution-audit.jsonl"
     policy_root = read_json(Path(args.policy_file), {})
     contract = (
@@ -12979,10 +12984,18 @@ def prepare_ct_m0f_standing_controlled_condition(
             "transaction_reservation_id"
         ) or ""
     )
+    condition_state = (
+        "certification-telegram-failure"
+        if condition_class == "telegram" else "certification-failure"
+    )
+    condition_confirm = (
+        "INJECT_CONTROLLED_CERTIFICATION_TELEGRAM_FAILURE"
+        if condition_class == "telegram" else "INJECT_CONTROLLED_CERTIFICATION_FAILURE"
+    )
     condition = subprocess.run(
         [
             str(getattr(args, "egress_state_owner", "v7-egress-set-state")),
-            expected["source"], "certification-failure",
+            expected["source"], condition_state,
             "--controlled-certification",
             "--certification-users", ",".join(exact_certification_users),
             "--certification-group", certification_group,
@@ -12991,7 +13004,7 @@ def prepare_ct_m0f_standing_controlled_condition(
             "--expected-egress-fingerprint",
             hashlib.sha256(source_lines[0].encode()).hexdigest(),
             "--apply",
-            "--confirm", "INJECT_CONTROLLED_CERTIFICATION_FAILURE",
+            "--confirm", condition_confirm,
         ],
         text=True,
         stdout=subprocess.PIPE,
@@ -13050,6 +13063,8 @@ def prepare_ct_m0f_standing_controlled_condition(
             "sample_binding_fingerprint": expected["fingerprint"],
             "transaction_reservation_id": transaction_reservation_id,
             "condition_owner": "v7-egress-set-state",
+            "condition_class": condition_class,
+            "condition_state": condition_state,
             "first_failed_observation_monotonic_ns": (
                 condition_confirmed_monotonic_ns
             ),
@@ -13075,6 +13090,7 @@ def prepare_ct_m0f_standing_controlled_condition(
         "condition_returncode": condition.returncode,
         "condition_output": (condition.stdout or "")[-2000:],
         "condition_record": record,
+        "condition_class": condition_class,
         "transaction_reservation": transaction_reservation,
         "lineage_checkpoint": lineage_checkpoint,
         "implementation_fingerprint": implementation_fingerprint,
@@ -13172,6 +13188,25 @@ def reset_ct_m0f_standing_validation_sample(
         else {}
     )
     reservation = sample["reservation"]
+    # The preparation receipt is the authoritative owner-backed description
+    # of which bounded condition was injected.  Historical HARD samples did
+    # not carry this field and deliberately retain their existing recovery.
+    condition_class = "hard"
+    condition_records = [
+        row for row in operator_execution.read_audit_records(audit_store)
+        if row.get("record_type") == "ct_m0f_standing_controlled_condition_prepared"
+        and str(row.get("user") or "") == str(reservation.get("user") or "")
+        and str(row.get("source") or "") == str(reservation.get("source") or "")
+    ]
+    if condition_records:
+        condition_class = str(
+            condition_records[-1].get("condition_class") or "hard"
+        ).lower()
+    if condition_class not in {"hard", "telegram"}:
+        return transaction_stop(
+            "ct_m0f_standing_reset_condition_class_invalid",
+            condition_class=condition_class,
+        )
     policy_root = read_json(Path(args.policy_file), {})
     contract = (
         policy_root.get(
@@ -13319,8 +13354,36 @@ def reset_ct_m0f_standing_validation_sample(
         and (source_hard_failed or controlled_condition_active)
         and source_is_exact_isolated_execution_owner
     ):
+        if condition_class == "telegram":
+            source_lines = [
+                line for line in (state_dir / "egress.registry").read_text(
+                    encoding="utf-8", errors="replace"
+                ).splitlines()
+                if line.startswith(f"id={source} ")
+            ]
+            if len(source_lines) != 1:
+                return transaction_stop(
+                    "ct_m0f_standing_controlled_source_fingerprint_missing_on_reset",
+                    reservation=reservation,
+                    condition_class=condition_class,
+                )
+            reset_command = [
+                "v7-egress-set-state", source,
+                "certification-telegram-recovery",
+                "--controlled-certification",
+                "--certification-users", str(reservation.get("user") or ""),
+                "--certification-group", str(source_row.get("certification_group") or ""),
+                "--reservation-id", str(source_row.get("controlled_source_reservation_id") or ""),
+                "--expected-egress-fingerprint",
+                hashlib.sha256(source_lines[0].encode()).hexdigest(),
+                "--apply",
+                "--confirm",
+                "RECOVER_CONTROLLED_CERTIFICATION_TELEGRAM_FAILURE",
+            ]
+        else:
+            reset_command = ["v7-egress-set-state", source, "enabled", "--apply"]
         reset_proc = subprocess.run(
-            ["v7-egress-set-state", source, "enabled", "--apply"],
+            reset_command,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -13329,6 +13392,7 @@ def reset_ct_m0f_standing_validation_sample(
         )
         controlled_source_reset = {
             "owner": "v7-egress-set-state",
+            "condition_class": condition_class,
             "returncode": reset_proc.returncode,
             "output": (reset_proc.stdout or "")[-2000:],
             "source": source,
@@ -14043,6 +14107,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-standing-validation-contract-hash", default="")
     parser.add_argument("--ct-m0f-standing-validation-user", default="")
     parser.add_argument("--ct-m0f-standing-validation-target", default="")
+    parser.add_argument(
+        "--ct-m0f-controlled-service-class",
+        choices=("hard", "telegram"),
+        default="hard",
+        help=(
+            "Exact bounded controlled condition. telegram keeps the source "
+            "interface live and uses the existing state owner to block only "
+            "Telegram TCP targets on the isolated certification source."
+        ),
+    )
     parser.add_argument("--ct-m0f-source-incident-generation", default="")
     parser.add_argument(
         "--ct-m0f-standing-sample-binding-fingerprint", default=""

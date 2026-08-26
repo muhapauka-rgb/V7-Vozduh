@@ -1025,6 +1025,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 ct_m0f_standing_validation_user="10.7.0.18",
                 ct_m0f_standing_validation_target="vless",
                 ct_m0f_standing_sample_binding_fingerprint="b" * 64,
+                ct_m0f_controlled_service_class="telegram",
                 approved_source="exec-source",
                 egress_state_owner="v7-egress-set-state",
             )
@@ -1090,7 +1091,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             condition_command = next(
                 call.args[0]
                 for call in run_mock.mock_calls
-                if "certification-failure" in call.args[0]
+                if "certification-telegram-failure" in call.args[0]
             )
 
         self.assertEqual(
@@ -1099,11 +1100,12 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertEqual(records[-1]["record_type"], "ct_m0f_standing_controlled_condition_prepared")
         self.assertEqual(records[-1]["next_required_consumer"], "ordinary fresh Matrix generation")
+        self.assertEqual(records[-1]["condition_class"], "telegram")
         self.assertEqual(result["lineage_checkpoint"]["status"], "CREATED")
         self.assertEqual(result["implementation_fingerprint"], "c" * 64)
         checkpoint_mock.assert_called_once()
         self.assertIn("--expected-egress-fingerprint", condition_command)
-        self.assertIn("INJECT_CONTROLLED_CERTIFICATION_FAILURE", condition_command)
+        self.assertIn("INJECT_CONTROLLED_CERTIFICATION_TELEGRAM_FAILURE", condition_command)
         self.assertGreater(
             int(records[-1]["first_failed_observation_monotonic_ns"]),
             0,

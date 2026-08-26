@@ -8172,7 +8172,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
 Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
-Resolved contract state: CPS records `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED` for the bounded V5.3 causal-reduction phase. The five same-fingerprint valid samples have P95 `6520.639 ms`; two-vCPU scheduler contention and mandatory fresh target validation remain. No further micro-optimization, Telegram, N10 or N11 execution is admitted. Re-entry requires an owner decision to accept the boundary, authorize a substrate change, or admit a materially different architecture. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved contract state: CPS retains `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED` as the bounded causal-reduction evidence and records the owner-accepted current two-vCPU rollout contract: P95 `<=7000 ms`, no valid sample `>8000 ms`, with the historical 3 s/5 s objective explicitly unmet and retained as future work. HARD_PATH tuning is frozen. Telegram and N10 require their own existing-owner admission; current Telegram preflight has no automatically admitted isolated target, while N11 read-only inventory may continue. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 

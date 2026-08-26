@@ -205,10 +205,25 @@ server-side recovery only and never relabels itself as T11.
 
 #### Binding SLO classes and asymmetric recovery policy
 
+#### Current 2-vCPU rollout-contract amendment
+
+The historical `<=3 s` / `<=5 s` controlled target remains the future
+optimization objective.  It was not achieved by the frozen same-fingerprint
+HARD_PATH series recorded in
+`docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md`.
+For the current deployed fingerprint and current two-vCPU substrate only, the
+owner accepts a bounded rollout contract of P95 `<=7 s` and no functionally
+valid sample above `8 s`.  This amendment changes neither Matrix, Planner,
+Authority, Candidate, Packet, Lease, Barrier, Apply nor S11 semantics.  It
+does not authorize a wider cohort, a different substrate, a new architecture,
+or a claim that the historical target was met.  A functional/safety regression,
+Runtime-fingerprint change or explicitly admitted architecture change
+invalidates this rollout-contract reuse.
+
 | Class | Minimum causal path | Measured target | Explicit non-goal |
 | --- | --- | --- | --- |
-| `HARD_PATH` | definitive existing OS/systemd/interface/tunnel/peer/route evidence -> Matrix-owned provenance/freshness/generation validation and, only if the N1/N4 tournament admits it, direct canonical T0 without a redundant source network probe; cheap or ambiguous path liveness -> independent targeted Matrix corroboration -> T0 -> S11 | controlled failure onset -> S11 P95 `<=3 s`, max `<=5 s`; production observation clock retained separately | full deep sweep before an unambiguous failure or treating an ambiguous timeout as definitive evidence |
-| `TELEGRAM_CRITICAL` | Telegram is required by the active product/profile contract; fast Telegram evidence -> independent targeted Matrix corroboration -> T0 -> S11 | controlled Telegram outage onset -> S11 P95 `<=3 s`, max `<=5 s`; production observation clock retained separately | treating Telegram as universal for a profile where it is not required |
+| `HARD_PATH` | definitive existing OS/systemd/interface/tunnel/peer/route evidence -> Matrix-owned provenance/freshness/generation validation and, only if the N1/N4 tournament admits it, direct canonical T0 without a redundant source network probe; cheap or ambiguous path liveness -> independent targeted Matrix corroboration -> T0 -> S11 | historical objective P95 `<=3 s`, max `<=5 s`; current two-vCPU rollout contract P95 `<=7 s`, max `<=8 s`; production observation clock retained separately | full deep sweep before an unambiguous failure or treating an ambiguous timeout as definitive evidence |
+| `TELEGRAM_CRITICAL` | Telegram is required by the active product/profile contract; fast Telegram evidence -> independent targeted Matrix corroboration -> T0 -> S11 | historical objective P95 `<=3 s`, max `<=5 s`; current two-vCPU rollout contract P95 `<=7 s`, max `<=8 s` only after its own exact controlled series; production observation clock retained separately | treating Telegram as universal for a profile where it is not required |
 | `OTHER_REQUIRED_SERVICE` | active source plus distinct active profile-service contract -> lightweight protocol-appropriate sentinel -> targeted Matrix confirmation -> T0 -> S11 | N3-selected physical-failure -> T0 SLO `<=15 s`, with production observation clock and separately measured T0 -> S11 | a 1–3 second promise or a full 14-service probe for every sample |
 | `AMBIGUOUS_QUALITY_OPTIONAL` | quality, partial censorship, jitter, loss, optional service or conflicting evidence -> SUSPECT/DEGRADED -> bounded confirmation or Full fallback | prompt safe classification; no fail-open | evacuation merely because an optional or ambiguous service failed |
 
@@ -228,10 +243,13 @@ FIRST_FAILED_SERVER_OBSERVATION -> S11
 AND LAST_SUCCESSFUL_OBSERVATION -> FIRST_FAILED_SERVER_OBSERVATION
 ```
 
-The controlled clock establishes the actual target: HARD/PATH and applicable
+The controlled clock retains the historical target: HARD/PATH and applicable
 Telegram must prove P95 `<= 3 s`, **no valid sample > 5 s**, and failure
 placement immediately before a probe, immediately after a probe and
-mid-interval.  Production does not invent an unobservable physical-outage
+mid-interval.  The current two-vCPU rollout contract is the explicit bounded
+exception above: it requires its own homogeneous service-class series with P95
+`<=7 s` and no valid sample above `8 s`; it is not cross-credit from HARD_PATH
+to Telegram.  Production does not invent an unobservable physical-outage
 timestamp; it records the observation clock and cadence gap separately, so a
 long unseen failure cannot be presented as a 3-second recovery.  For other
 required services, N3 selects one exact
@@ -454,7 +472,7 @@ tests, report, deploy or Polygon alone never advances a phase.
 | `N4` | Immediate Matrix-owned confirmation/direct-T0 tournament: compare `MODE A` repeat-source confirmation against `MODE B` direct canonical T0 for exact N1 definitive classes. Ambiguous signals always invoke current-source/service confirmation now; the relevant hot target is checked concurrently where safe; no wait for the next periodic Matrix cycle. |
 | `N5` | `PRE_READY_TARGET_AND_PREPARED_DATAPLANE`: pre-failure hot-target readiness for the bounded top-H set plus existing V4 constant-time prepared data-plane proof; include freshness, dedup, coverage, capacity, policy, generation, role and 1/10/100/1000 compatible-cohort readiness. |
 | `N6` | Transform Full Matrix from burst semantics to a measured staggered deep-refresh horizon under the existing Matrix writer; retain fallback for disagreement, stale/conflict and ambiguous cases, with FAST priority, fairness, bounded deep rate/concurrency and no catch-up storm. |
-| `N7` | Causal Polygon tournament from controlled failure/outage onset to S11: interface/tunnel/path/Telegram/DNS/other-required/multi-service/partial, including the required `MODE A` versus `MODE B` comparison, stale/wrong-generation/replay/restart falsification and proof that only admitted definitive classes skip a redundant source probe. HARD/PATH and applicable Telegram require P95 `<=3 s` and max `<=5 s`; test each cadence phase offset and correlated failure. |
+| `N7` | Causal Polygon tournament from controlled failure/outage onset to S11: interface/tunnel/path/Telegram/DNS/other-required/multi-service/partial, including the required `MODE A` versus `MODE B` comparison, stale/wrong-generation/replay/restart falsification and proof that only admitted definitive classes skip a redundant source probe. Historical HARD/PATH and applicable Telegram objective remains P95 `<=3 s`, max `<=5 s`; the current two-vCPU rollout contract is P95 `<=7 s`, max `<=8 s`, with a separate exact Telegram series and no cross-credit. Test each cadence phase offset and correlated failure. |
 | `N8` | Controlled unattended Runtime proof: signal -> confirmation -> T0 -> selection -> governed apply -> S11 with real caller, consumer, idempotency, duplicate suppression, restart safety and no manual CLI seam. |
 | `N9` | Full scale tournament using the mandatory egress/user/profile matrix and all resource/pressure measurements. |
 | `N10` | Bounded ordinary rollout only after N8/N9: controlled -> one ordinary-like case -> small cohort -> bounded production, with rollback and no manufactured ordinary failure. |
@@ -586,8 +604,11 @@ parallel health truth or unbounded work.
 
 `MATRIX_ROLE_BASED_RECOVERY_OPTIMIZATION_TERMINAL_COMPLETE` requires all of:
 
-1. HARD/PATH and applicable Telegram-critical classes meet controlled
-   onset->S11 P95 `<=3 s`, max `<=5 s` and phase-offset evidence; production
+1. HARD/PATH and applicable Telegram-critical classes meet the active accepted
+   controlled contract: historical objective P95 `<=3 s`, max `<=5 s`, or the
+   explicitly bounded current two-vCPU rollout contract P95 `<=7 s`, max
+   `<=8 s`, with separate class-specific evidence and phase-offset evidence;
+   production
    first-failed-observation and last-success->first-failure clocks are stored
    separately.  Other required services have one selected measured detection
    SLO `<=15 s`, including cadence phase, timeout and confirmation.

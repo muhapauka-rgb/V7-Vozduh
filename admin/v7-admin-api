@@ -16009,7 +16009,13 @@ def user_priority_services_from_pref(row):
     )
 
 
-def update_service_preferences(actor, enabled=None, user_ip=None, services=None):
+def update_service_preferences(actor, enabled=None, user_ip=None, services=None, clear_user=False):
+    """Update one profile through the existing admin owner.
+
+    ``clear_user`` is the inverse of a user-scoped update.  It is needed for
+    short-lived certification profiles: restoring an absent profile must remove
+    the exact canonical row rather than leaving an empty historical override.
+    """
     data = read_json(SERVICE_PREFS_FILE, {})
     if not isinstance(data, dict):
         data = {}
@@ -16017,7 +16023,9 @@ def update_service_preferences(actor, enabled=None, user_ip=None, services=None)
     data.setdefault("users", {})
     if enabled is not None:
         data["enabled"] = bool(enabled)
-    if user_ip:
+    if user_ip and clear_user:
+        data["users"].pop(user_ip, None)
+    elif user_ip:
         data["users"][user_ip] = {
             "schema_version": 2,
             "services": normalize_services(services),
@@ -41093,6 +41101,7 @@ class Handler(BaseHTTPRequestHandler):
             enabled = data.get("enabled") if "enabled" in data else None
             ip = safe_user_ip(data.get("ip", "")) if data.get("ip") else ""
             services = data.get("services", [])
+            clear_user = bool(data.get("clear_user", False))
             if data.get("ip") and not ip:
                 self.send_json({"error": "invalid_user_ip"}, status=400)
                 return
@@ -41102,8 +41111,20 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json({"error": "user_not_found_or_disabled", "ip": ip}, status=404)
                     return
             actor = session.get("sub", "admin")
-            prefs = update_service_preferences(actor, enabled=enabled, user_ip=ip or None, services=services)
-            audit_admin(actor, "admin_action_service_preferences_update", f"enabled={prefs.get('enabled')} ip={ip or 'none'} services={','.join(normalize_services(services)) if ip else 'unchanged'}")
+            prefs = update_service_preferences(
+                actor,
+                enabled=enabled,
+                user_ip=ip or None,
+                services=services,
+                clear_user=clear_user,
+            )
+            audit_admin(
+                actor,
+                "admin_action_service_preferences_update",
+                f"enabled={prefs.get('enabled')} ip={ip or 'none'} "
+                f"services={','.join(normalize_services(services)) if ip and not clear_user else 'cleared' if ip else 'unchanged'} "
+                f"clear_user={str(clear_user).lower()}",
+            )
             self.send_json({"action": "service_preferences_update", "preferences": prefs, "overview": overview()})
         else:
             self.send_json({"error": "not_found", "path": html.escape(path)}, status=404)

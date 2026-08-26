@@ -1168,6 +1168,14 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 encoding="utf-8",
             )
             state_dir.joinpath("v7-state.json").write_text(json.dumps({
+                "users": [
+                    {
+                        "ip": f"10.7.1.{index}",
+                        "current": "z-exec-good",
+                        "enabled": "1",
+                    }
+                    for index in range(1, 6)
+                ],
                 "egress": {
                     "source": {
                         "code": "000", "avg_mbps": 0,
@@ -1359,6 +1367,18 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertTrue(
             targets["z-exec-good"]["controlled_rebind_eligible"]
         )
+        self.assertEqual(
+            targets["z-exec-good"]["capacity"]["current_assigned_users"],
+            0,
+        )
+        self.assertEqual(
+            targets["z-exec-good"]["capacity"]["planner_snapshot_users"],
+            5,
+        )
+        self.assertEqual(
+            targets["z-exec-good"]["capacity"]["free_capacity_after_reserve"],
+            59,
+        )
         self.assertFalse(
             targets["ordinary-good"]["controlled_rebind_eligible"]
         )
@@ -1524,6 +1544,71 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertTrue(result["authority_package"]["actionable"])
         self.assertFalse(result["authority_package"]["registered"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
+    def test_controlled_source_topology_rejects_empty_source_reserved_to_other_group(self):
+        """Empty does not make another active certification reservation reusable."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.18 enabled=1 current=source "
+                "certification_user=1 certification_group=t48\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface interface=wg0 "
+                "enabled=1 controlled_certification_source=1 certification_group=t48\n"
+                "id=reserved protocol=amneziawg type=interface interface=wg1 "
+                "enabled=1 role=EXECUTION_ONLY controlled_certification_source=1 "
+                "certification_group=other-group execution_reserved=1 "
+                "canary_reserved=1 reservation_owner=operator_execution_governance "
+                "autoswitch_allowed=false rebalance_allowed=false "
+                "production_assignment_allowed=false "
+                "controlled_source_reservation_id=ctres_other "
+                "controlled_source_reservation_expires_at=2099-01-01T00:00:00+00:00\n",
+                encoding="utf-8",
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+            ])
+            target_projection = {
+                "campaign": {"source_id": "source"},
+                "targets": [{
+                    "target_id": "reserved",
+                    "protocol": "amneziawg",
+                    "interface": "wg1",
+                    "health": {"ok": True},
+                    "quality": {"blockers": []},
+                    "capacity": {
+                        "ordinary_users": 0,
+                        "certification_users": 0,
+                        "current_assigned_users": 0,
+                        "free_capacity_after_reserve": 1,
+                    },
+                    "verification_supported": True,
+                    "rollback_containment_supported": True,
+                    "owner_lineage": {},
+                    "semantic_fingerprint": "b" * 64,
+                }],
+            }
+            with mock.patch.object(
+                self.autoswitch,
+                "controlled_campaign_target_selection_diagnostic",
+                return_value=target_projection,
+            ):
+                result = self.autoswitch.controlled_source_topology_diagnostic(args)
+
+        candidate = result["options"]["option_1_existing_egress_rebind"]["all_candidates"][0]
+        self.assertFalse(candidate["technically_feasible"])
+        self.assertFalse(
+            candidate["existing_controlled_reservation"]["reservation_campaign_group_compatible"]
+        )
+        self.assertIn(
+            "controlled_source_reservation_campaign_group_mismatch",
+            candidate["hard_gate_blockers"],
+        )
 
     def test_controlled_source_topology_reuses_combined_standing_policy_and_suppresses_one_off_request(self):
         with tempfile.TemporaryDirectory() as tmp:

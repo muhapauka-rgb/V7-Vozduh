@@ -21396,6 +21396,12 @@ def controlled_campaign_target_selection_diagnostic(
             row for row in assignment_rows
             if str(row.get("current") or "") == target_id
         ]
+        # ``users.registry`` is the current assignment owner.  The Planner's
+        # loaded egress snapshot may intentionally lag a health cycle, so it
+        # remains useful for its normal quality/load inputs but must not turn
+        # a currently empty certification source into an occupied one (or the
+        # reverse) in the topology/reservation decision below.
+        current_assigned_users = len(target_assignments)
         certification_users = sum(
             1 for row in target_assignments
             if bool_value(row.get("certification_user"))
@@ -21418,7 +21424,7 @@ def controlled_campaign_target_selection_diagnostic(
         hard_limit = max(0, to_int(load.get("hard_limit"), 0))
         free_capacity = max(
             0,
-            hard_limit - int(egress.users) - required_reserve,
+            hard_limit - current_assigned_users - required_reserve,
         )
         controlled_only_contract = bool(
             str(registry.get("role") or "").upper() == "EXECUTION_ONLY"
@@ -21805,7 +21811,8 @@ def controlled_campaign_target_selection_diagnostic(
             "measurement_semantics": measurement_semantics,
             "capacity": {
                 **load,
-                "current_assigned_users": int(egress.users),
+                "current_assigned_users": current_assigned_users,
+                "planner_snapshot_users": int(egress.users),
                 "ordinary_users": ordinary_users,
                 "certification_users": certification_users,
                 "required_reserve": required_reserve,
@@ -23541,6 +23548,19 @@ def controlled_source_topology_diagnostic(
                 )
             )
         )
+        # An empty reserved source still belongs to its current reservation
+        # group.  Treating an empty assignment list as permission to reuse a
+        # different group's live reservation would silently steal another
+        # controlled operation's source.  Only a released/expired reservation
+        # may be rebound across groups through the existing owner.
+        reservation_campaign_group_compatible = bool(
+            not reservation_unexpired
+            or (
+                reserved_group
+                and campaign_group
+                and reserved_group == campaign_group
+            )
+        )
         continuing_campaign_source_repairable = bool(
             reserved_controlled_source
             and ordinary_users == 0
@@ -23553,6 +23573,7 @@ def controlled_source_topology_diagnostic(
             and reservation_unexpired
             and reservation_group_aligned
             and campaign_group_aligned
+            and reservation_campaign_group_compatible
         )
         # CT-M0F is a one-identity controlled condition, not a shortcut for
         # repairing or reusing a wider certification campaign.  A source with
@@ -23607,6 +23628,13 @@ def controlled_source_topology_diagnostic(
         if reserved_controlled_source and not campaign_group_aligned:
             hard_gate_blockers.append(
                 "controlled_source_campaign_group_mismatch"
+            )
+        if (
+            reserved_controlled_source
+            and not reservation_campaign_group_compatible
+        ):
+            hard_gate_blockers.append(
+                "controlled_source_reservation_campaign_group_mismatch"
             )
         if not ct_m0f_exact_source_scope_eligible:
             hard_gate_blockers.append(
@@ -23678,6 +23706,9 @@ def controlled_source_topology_diagnostic(
                 "reservation_group_aligned": reservation_group_aligned,
                 "campaign_group": campaign_group,
                 "campaign_group_aligned": campaign_group_aligned,
+                "reservation_campaign_group_compatible": (
+                    reservation_campaign_group_compatible
+                ),
                 "continuation_valid": continuing_reservation_valid,
             },
             "reservation_owner_ready": (

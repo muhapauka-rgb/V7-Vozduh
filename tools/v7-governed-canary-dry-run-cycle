@@ -13353,6 +13353,70 @@ def reconcile_expired_controlled_source_reservation(
     request_id = str(provision.get("authority_request_id") or "")
     request_hash = str(provision.get("authority_request_hash") or "")
     restore_backup = str(provision.get("restore_backup") or "")
+
+    def release_snapshot_from_exact_owner_backup() -> dict[str, Any]:
+        """Prove release by the exact backup restored by the egress owner.
+
+        ``execution_reserved`` and related execution-only attributes can be
+        permanent properties of the source itself.  They are not necessarily
+        evidence of the per-campaign reservation.  The existing release owner
+        restores an exact registry backup, so equality with that backup is the
+        stronger and non-ambiguous terminal proof: the transient topology
+        overlay is gone without reclassifying the underlying execution source.
+        """
+        current_lines = [
+            line for line in (state_dir / "egress.registry").read_text(
+                encoding="utf-8", errors="replace"
+            ).splitlines()
+            if line.startswith(f"id={source} ")
+        ]
+        backup_path = Path(restore_backup)
+        backup_lines = [
+            line for line in backup_path.read_text(
+                encoding="utf-8", errors="replace"
+            ).splitlines()
+            if line.startswith(f"id={source} ")
+        ] if backup_path.is_file() else []
+        released_rows = [
+            row for row in read_registry(state_dir / "egress.registry")
+            if str(row.get("id") or "") == source
+        ]
+        remaining_users = [
+            row for row in read_registry(state_dir / "users.registry")
+            if bool_value(row.get("enabled", "1"))
+            and str(row.get("current") or "") == source
+        ]
+        released_source = released_rows[0] if len(released_rows) == 1 else {}
+        exact_backup_match = (
+            len(current_lines) == 1
+            and len(backup_lines) == 1
+            and current_lines[0] == backup_lines[0]
+        )
+        snapshot = {
+            "source_id": source,
+            "source_exists": len(released_rows) == 1,
+            "reservation_absent": not any(
+                str(released_source.get(key) or "").strip()
+                for key in (
+                    "execution_reservation_id",
+                    "controlled_source_reservation_id",
+                    "reservation_id",
+                )
+            ),
+            "controlled_source_markers_absent": exact_backup_match,
+            "assigned_user_count": len(remaining_users),
+            "exact_owner_backup_match": exact_backup_match,
+            "current_egress_fingerprint": (
+                operator_execution.sha256_bytes(current_lines[0].encode("utf-8"))
+                if len(current_lines) == 1 else ""
+            ),
+            "backup_egress_fingerprint": (
+                operator_execution.sha256_bytes(backup_lines[0].encode("utf-8"))
+                if len(backup_lines) == 1 else ""
+            ),
+        }
+        snapshot["snapshot_fingerprint"] = operator_execution.sha256_json(snapshot)
+        return snapshot
     try:
         request = operator_execution.controlled_source_topology_request_from_audit(
             request_id,
@@ -13388,7 +13452,17 @@ def reconcile_expired_controlled_source_reservation(
         operator_execution.load_execution_lease(lease_file)
     )
     if lease_state.get("active"):
-        blockers.append("expired_controlled_source_active_execution_lease_exists")
+        # An active owner lease is an absolute predecessor: do not even
+        # inspect a possible terminal re-entry while another transaction may
+        # still own the source or its state files.
+        return transaction_stop(
+            "expired_controlled_source_reservation_cleanup_not_admitted",
+            blockers=["expired_controlled_source_active_execution_lease_exists"],
+            reservation_id=reservation_id,
+            source=source,
+            target=target,
+            lease_state=lease_state,
+        )
 
     users = read_registry(state_dir / "users.registry")
     egress = read_registry(state_dir / "egress.registry")
@@ -13403,6 +13477,52 @@ def reconcile_expired_controlled_source_reservation(
         blockers.append("expired_controlled_source_rollback_target_not_unique")
     user_row = user_rows[0] if len(user_rows) == 1 else {}
     source_row = source_rows[0] if len(source_rows) == 1 else {}
+    # A prior invocation may have completed the governed return and the
+    # existing egress-owner release, then been interrupted before the final
+    # append-only invalidation.  This is an idempotent terminal re-entry, not
+    # permission to repeat a move or release.  The owner backup plus zero
+    # occupants proves that the preceding two effects already occurred.
+    reentry_snapshot = release_snapshot_from_exact_owner_backup()
+    if (
+        str(user_row.get("current") or "") == target
+        and bool_value(user_row.get("certification_user"))
+        and str(user_row.get("certification_group") or "") == group
+        and reentry_snapshot.get("source_exists") is True
+        and reentry_snapshot.get("reservation_absent") is True
+        and reentry_snapshot.get("controlled_source_markers_absent") is True
+        and int(reentry_snapshot.get("assigned_user_count") or 0) == 0
+    ):
+        try:
+            invalidation = (
+                operator_execution.invalidate_released_controlled_source_topology_request(
+                    request_id=request_id,
+                    request_hash=request_hash,
+                    source_id=source,
+                    release_snapshot=reentry_snapshot,
+                    audit_store=audit_store,
+                )
+            )
+        except operator_execution.PacketError as exc:
+            return transaction_stop(
+                "expired_controlled_source_release_invalidation_failed",
+                reservation_id=reservation_id,
+                release_snapshot=reentry_snapshot,
+                error=str(exc),
+            )
+        return {
+            "schema_version": "v7.expired-controlled-source-reservation-reconciliation.v1",
+            "final_verdict": "EXPIRED_CONTROLLED_SOURCE_RESERVATION_RECONCILED",
+            "reservation_id": reservation_id,
+            "source": source,
+            "restored_initial_egress": target,
+            "release_invalidation": invalidation,
+            "release_snapshot": reentry_snapshot,
+            "terminal_reentry": "OWNER_RELEASE_ALREADY_CONSUMED",
+            "ordinary_user_delta": 0,
+            "users_moved": 0,
+            "authority_expanded": False,
+            "production_maturity_change": False,
+        }
     if str(user_row.get("current") or "") != source:
         blockers.append("expired_controlled_source_user_not_on_exact_source")
     if not bool_value(user_row.get("certification_user")):
@@ -13515,44 +13635,7 @@ def reconcile_expired_controlled_source_reservation(
             release_result=release_result,
         )
 
-    released_rows = [
-        row for row in read_registry(state_dir / "egress.registry")
-        if str(row.get("id") or "") == source
-    ]
-    remaining_users = [
-        row for row in read_registry(state_dir / "users.registry")
-        if bool_value(row.get("enabled", "1"))
-        and str(row.get("current") or "") == source
-    ]
-    released_source = released_rows[0] if len(released_rows) == 1 else {}
-    release_snapshot = {
-        "source_id": source,
-        "source_exists": len(released_rows) == 1,
-        "reservation_absent": not any(
-            str(released_source.get(key) or "").strip()
-            for key in (
-                "execution_reservation_id",
-                "controlled_source_reservation_id",
-                "reservation_id",
-            )
-        ),
-        "controlled_source_markers_absent": not any(
-            bool_value(released_source.get(key))
-            if key not in {"reservation_owner", "certification_group"}
-            else str(released_source.get(key) or "").strip()
-            for key in (
-                "controlled_certification_source",
-                "execution_reserved",
-                "canary_reserved",
-                "reservation_owner",
-                "certification_group",
-            )
-        ),
-        "assigned_user_count": len(remaining_users),
-    }
-    release_snapshot["snapshot_fingerprint"] = operator_execution.sha256_json(
-        release_snapshot
-    )
+    release_snapshot = release_snapshot_from_exact_owner_backup()
     try:
         invalidation = operator_execution.invalidate_released_controlled_source_topology_request(
             request_id=request_id,

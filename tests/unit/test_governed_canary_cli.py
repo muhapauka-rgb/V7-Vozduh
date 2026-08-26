@@ -2971,6 +2971,17 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 ["v7-egress-set-state"], 0,
                 stdout="ACTION=controlled_source_released\n",
             )
+            def released_owner(*_args, **_kwargs):
+                (state / "users.registry").write_text(
+                    f"ip={user} current={target} enabled=1 certification_user=1 certification_group=group-a\n",
+                    encoding="utf-8",
+                )
+                (state / "egress.registry").write_text(
+                    backup.read_text(encoding="utf-8") + "id=original-source enabled=1\n",
+                    encoding="utf-8",
+                )
+                return released
+
             with mock.patch.object(module.operator_execution, "read_audit_records", return_value=[provision]), mock.patch.object(
                 module.operator_execution, "controlled_source_topology_request_from_audit", return_value=request,
             ), mock.patch.object(
@@ -2980,7 +2991,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             ), mock.patch.object(
                 module, "execute_governed_transaction_with_guards", return_value=completed,
             ) as governed, mock.patch.object(
-                module.subprocess, "run", return_value=released,
+                module.subprocess, "run", side_effect=released_owner,
             ) as run, mock.patch.object(
                 module.operator_execution,
                 "invalidate_released_controlled_source_topology_request",
@@ -3005,6 +3016,57 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "v7-egress-set-state", source, "certification-release",
         ])
         self.assertIn("--reservation-id", run.call_args.args[0])
+
+    def test_expired_controlled_source_reservation_terminal_reentry_only_invalidates(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            audit = root / "audit"
+            audit.mkdir()
+            reservation_id = "ctres_" + "c" * 24
+            source = "isolated-source"
+            target = "original-source"
+            user = "10.7.0.109"
+            backup = state / "egress.registry.backup.v7-controlled-source-reserve.unit"
+            backup.write_text("id=isolated-source enabled=1 role=EXECUTION_ONLY execution_reserved=1\n", encoding="utf-8")
+            (state / "users.registry").write_text(
+                f"ip={user} current={target} enabled=1 certification_user=1 certification_group=group-a\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                backup.read_text(encoding="utf-8") + "id=original-source enabled=1\n",
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                confirm_expired_controlled_source_reservation_cleanup="RECONCILE_EXPIRED_CONTROLLED_SOURCE_RESERVATION",
+                controlled_source_reservation_id=reservation_id,
+                operator_execution_audit_store=str(audit / "operator-execution-audit.jsonl"),
+            )
+            provision = {
+                "record_type": operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE,
+                "reservation_id": reservation_id, "source_id": source,
+                "authority_request_id": "cstopauth_r1_test", "authority_request_hash": "d" * 64,
+                "reservation_expires_at": "2020-01-01T00:00:00+00:00",
+                "restore_backup": str(backup), "manifest_hash": "manifest-test",
+            }
+            request = {"manifest": {"trial_identity": user, "existing_source": target, "certification_group": "group-a", "selected_source_or_draft": source, "manifest_hash": "manifest-test"}}
+            with mock.patch.object(module.operator_execution, "read_audit_records", return_value=[provision]), mock.patch.object(
+                module.operator_execution, "controlled_source_topology_request_from_audit", return_value=request,
+            ), mock.patch.object(module.operator_execution, "load_execution_lease", return_value={}), mock.patch.object(
+                module.operator_execution, "execution_lease_state", return_value={"active": False},
+            ), mock.patch.object(module, "execute_governed_transaction_with_guards") as governed, mock.patch.object(
+                module.operator_execution, "invalidate_released_controlled_source_topology_request", return_value={"status": "INVALIDATED_RELEASED_PREDECESSOR"},
+            ) as invalidated:
+                result = module.reconcile_expired_controlled_source_reservation(
+                    args, state_dir=state, event_dir=root, snapshot_root=root,
+                    audit_dir=audit, lease_file=state / "operator-execution-lease.json",
+                )
+        self.assertEqual(result["final_verdict"], "EXPIRED_CONTROLLED_SOURCE_RESERVATION_RECONCILED")
+        self.assertEqual(result["terminal_reentry"], "OWNER_RELEASE_ALREADY_CONSUMED")
+        governed.assert_not_called()
+        invalidated.assert_called_once()
 
     def test_expired_controlled_source_reservation_refuses_active_lease(self):
         module = load_cli_module()

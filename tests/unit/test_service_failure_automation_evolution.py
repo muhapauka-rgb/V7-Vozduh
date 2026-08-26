@@ -56,6 +56,53 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             (ROOT / "tools" / "v7-client-speed-api").resolve(),
         )
 
+    def test_controlled_source_draft_excludes_admin_detected_interface_duplicate(self):
+        """Topology preflight must not approve a draft the admin owner rejects."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            drafts = root / "drafts"
+            state.mkdir()
+            drafts.mkdir()
+            existing_config = root / "existing.conf"
+            config = (
+                "[Interface]\nPrivateKey = private-test\n"
+                "[Peer]\nPublicKey = peer-test\nEndpoint = 198.51.100.2:51820\n"
+            )
+            existing_config.write_text(config, encoding="utf-8")
+            state.joinpath("egress.registry").write_text(
+                "id=existing protocol=amneziawg type=interface "
+                f"config={existing_config} enabled=1\n",
+                encoding="utf-8",
+            )
+            draft_dir = drafts / "duplicate"
+            draft_dir.mkdir()
+            draft_dir.joinpath("config.input").write_text(config, encoding="utf-8")
+            digest = hashlib.sha256(
+                config.rstrip("\n").encode("utf-8")
+            ).hexdigest()
+            draft_dir.joinpath("metadata.json").write_text(json.dumps({
+                "id": "duplicate",
+                "protocol": "amneziawg",
+                "runtime_mode": "interface",
+                "config_sha256": digest,
+                "hard_limit": 2,
+                "last_preflight_status": "PASS",
+                "last_runtime_status": "PASS",
+                "last_quarantine_status": "PASS",
+            }), encoding="utf-8")
+
+            candidate = self.autoswitch._controlled_source_draft_candidates(
+                drafts, state
+            )[0]
+
+        self.assertFalse(candidate["ready_for_guarded_disabled_pool_preflight"])
+        self.assertEqual(candidate["duplicate_existing_egress"], "existing")
+        self.assertIn(
+            "draft_duplicates_existing_interface_config:existing",
+            candidate["blockers"],
+        )
+
     def test_exact_ct_reservation_reuses_fresh_decision_lineage(self):
         expected = {
             "contract_id": "contract",

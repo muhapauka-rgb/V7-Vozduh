@@ -22304,11 +22304,83 @@ def _controlled_source_reservation_owner_capability() -> dict[str, Any]:
     }
 
 
-def _controlled_source_draft_candidates(drafts_dir: Path) -> list[dict[str, Any]]:
+def _controlled_source_interface_identity(path: Path) -> dict[str, str]:
+    """Read only the non-secret equality fields used by the draft owner.
+
+    The administrative draft lifecycle refuses to materialize an interface
+    whose private-key/peer/endpoint identity is already present.  The topology
+    preflight must consume that existing safety result before it can request an
+    Authority decision; otherwise it can advertise a source that the actual
+    owner will (correctly) reject.  Values never leave this helper.
+    """
+    section = ""
+    fields: dict[str, str] = {}
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return fields
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith(("#", ";")):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            section = line[1:-1].strip().lower()
+            continue
+        if "=" not in line:
+            continue
+        key, value = (part.strip() for part in line.split("=", 1))
+        key = key.lower()
+        if section == "interface" and key == "privatekey":
+            fields["private_key"] = value
+        elif section == "peer" and key == "publickey":
+            fields["peer_public_key"] = value
+        elif section == "peer" and key == "endpoint":
+            fields["endpoint"] = value.lower()
+    return fields
+
+
+def _controlled_source_draft_duplicate_egress(
+    *,
+    protocol: str,
+    config_path: Path,
+    registry_rows: list[dict[str, str]],
+    own_pool_egress_id: str,
+) -> str:
+    """Return only an existing conflicting egress id, never config data."""
+    identity = _controlled_source_interface_identity(config_path)
+    required = ("private_key", "peer_public_key", "endpoint")
+    if not all(identity.get(key) for key in required):
+        return ""
+    for existing in registry_rows:
+        egress_id = str(existing.get("id") or "").strip()
+        if (
+            not egress_id
+            or egress_id == own_pool_egress_id
+            or str(existing.get("type") or "") != "interface"
+            or str(existing.get("protocol") or "") != protocol
+        ):
+            continue
+        existing_path = Path(
+            str(existing.get("config") or existing.get("config_path") or "")
+        )
+        other = _controlled_source_interface_identity(existing_path)
+        if all(other.get(key) == identity.get(key) for key in required):
+            return egress_id
+    return ""
+
+
+def _controlled_source_draft_candidates(
+    drafts_dir: Path,
+    state_dir: Optional[Path] = None,
+) -> list[dict[str, Any]]:
     """Project redacted existing admin draft lifecycle without reading secrets out."""
     rows: list[dict[str, Any]] = []
     if not drafts_dir.is_dir():
         return rows
+    registry_rows = (
+        parse_registry(state_dir / "egress.registry")
+        if state_dir is not None else []
+    )
     for metadata_path in sorted(drafts_dir.glob("*/metadata.json")):
         metadata = read_json(metadata_path, {})
         if not isinstance(metadata, dict):
@@ -22363,6 +22435,17 @@ def _controlled_source_draft_candidates(drafts_dir: Path) -> list[dict[str, Any]
             blockers.append("draft_config_generation_changed")
         if hard_limit < 1:
             blockers.append("draft_one_identity_capacity_not_owned")
+        pool_egress_id = str(metadata.get("pool_egress_id") or "")
+        duplicate_egress = _controlled_source_draft_duplicate_egress(
+            protocol=protocol,
+            config_path=config_path,
+            registry_rows=registry_rows,
+            own_pool_egress_id=pool_egress_id,
+        ) if supported else ""
+        if duplicate_egress:
+            blockers.append(
+                f"draft_duplicates_existing_interface_config:{duplicate_egress}"
+            )
         row = {
             "draft_id": str(metadata.get("id") or metadata_path.parent.name),
             "proposed_source_id": proposed_id,
@@ -22370,7 +22453,7 @@ def _controlled_source_draft_candidates(drafts_dir: Path) -> list[dict[str, Any]
             # pool entry.  Keep this current owner-owned binding compact so an
             # approved topology request can reserve that exact existing
             # source rather than attempting to create a duplicate channel.
-            "pool_egress_id": str(metadata.get("pool_egress_id") or ""),
+            "pool_egress_id": pool_egress_id,
             "pool_action": str(metadata.get("pool_action") or ""),
             "runtime_profile_status": str(
                 metadata.get("runtime_profile_status") or ""
@@ -22386,6 +22469,7 @@ def _controlled_source_draft_candidates(drafts_dir: Path) -> list[dict[str, Any]
             ),
             "config_generation_bound": config_bound,
             "config_fingerprint": normalized_hash,
+            "duplicate_existing_egress": duplicate_egress,
             "hard_capacity": hard_limit,
             "one_identity_trial_capacity": max(0, hard_limit - 1),
             "ready_for_guarded_disabled_pool_preflight": not blockers,
@@ -22474,9 +22558,12 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
     if manifest.get("expected_ordinary_assignment_delta") != "NONE" or manifest.get("expected_ordinary_route_delta") != "NONE":
         blockers.append("controlled_source_topology_ordinary_delta_changed")
     draft_id = str(manifest.get("selected_source_or_draft") or "")
+    state_dir = Path(args.state_dir)
     candidates = {
         str(row.get("draft_id") or ""): row
-        for row in _controlled_source_draft_candidates(Path(args.egress_drafts_dir))
+        for row in _controlled_source_draft_candidates(
+            Path(args.egress_drafts_dir), state_dir
+        )
     }
     draft = candidates.get(draft_id, {})
     source_id = str(draft.get("pool_egress_id") or "")
@@ -22487,7 +22574,6 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
         or draft.get("runtime_profile_status") != "READY"
     ):
         blockers.append("approved_draft_runtime_lifecycle_not_ready")
-    state_dir = Path(args.state_dir)
     registry_rows = parse_registry(state_dir / "egress.registry")
     source_rows = [row for row in registry_rows if str(row.get("id") or "") == source_id]
     users = [row for row in parse_registry(state_dir / "users.registry") if bool_value(row.get("enabled", "1"))]
@@ -22690,7 +22776,12 @@ def reconcile_released_controlled_source_topology(args: argparse.Namespace) -> d
     lifecycle = diagnostic.get("authority_lifecycle") if isinstance(diagnostic.get("authority_lifecycle"), dict) else {}
     manifest = (diagnostic.get("production_preflight") or {}).get("manifest") or {}
     draft_id = str(manifest.get("selected_source_or_draft") or "")
-    drafts = {str(row.get("draft_id") or ""): row for row in _controlled_source_draft_candidates(Path(args.egress_drafts_dir))}
+    drafts = {
+        str(row.get("draft_id") or ""): row
+        for row in _controlled_source_draft_candidates(
+            Path(args.egress_drafts_dir), Path(args.state_dir)
+        )
+    }
     source_id = str((drafts.get(draft_id) or {}).get("pool_egress_id") or "")
     registry_rows = parse_registry(Path(args.state_dir) / "egress.registry")
     source_rows = [row for row in registry_rows if str(row.get("id") or "") == source_id]
@@ -22729,6 +22820,7 @@ def controlled_source_topology_diagnostic(
     This is a compact derived projection over existing owners.  It does not
     become a registry and deliberately emits no production evidence credit.
     """
+    state_dir = Path(args.state_dir)
     forbidden = [
         name for name in (
             "apply",
@@ -23530,7 +23622,7 @@ def controlled_source_topology_diagnostic(
     selected_rebind = rebind_ranked[0] if rebind_ranked else {}
 
     drafts = _controlled_source_draft_candidates(
-        Path(args.egress_drafts_dir)
+        Path(args.egress_drafts_dir), state_dir
     )
     # A consumed topology reservation is an exact-once predecessor, not a
     # reusable draft candidate.  Retrying it hides other already-owned,

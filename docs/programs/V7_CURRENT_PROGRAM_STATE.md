@@ -2,10 +2,10 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-25T01:09:05+03:00
-Latest terminal Mission: `V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1`
-Latest terminal Mission state: `READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED`
-Latest terminal Mission report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
+State captured: 2026-08-26T10:30:00+03:00
+Latest terminal Mission: `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION`
+Latest terminal Mission state: `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`
+Latest terminal Mission report: `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
 Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G Polygon result: no cross-egress parallelism is admitted. Full Matrix remains the live baseline, subset remains shadow-only, automatic FAST remains held, and the existing V5.3 T0-T11 latency track is next.
 
@@ -13,7 +13,7 @@ Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-25T01:09:05+03:00`
+Captured: `2026-08-26T10:30:00+03:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -41,21 +41,21 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `Within the existing V5.3 T0-T11 latency track, execute the owner-authorized bounded post-fix residual causal reduction: capture full server-local monotonic timing and fast-versus-slow comparison; admit code only for a measured, falsified, safe recurring cause above 100 ms. Do not begin Telegram, N10 or N11.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `OWNER_DECISION_REQUIRED: choose one of accepting the measured 2-vCPU HARD-path boundary, authorizing a substrate change, or admitting a materially different architecture. No further micro-optimization, Telegram, N10 or N11 work is currently lawful.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE_20260826` |
-| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
-| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1-N6,PARTIAL_REPLACEMENT_PENDING; N7,APPROVED_BOUNDED_PREPARED_DECISION_IMPLEMENTED_TESTED_DEPLOYED; N8,N9,PARTIAL; N10,POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE; N11,READ_ONLY_DISCOVERY_CONSUMED` |
-| `HARD_PATH_RUNTIME_SLO` | `BASELINE_FINGERPRINT=ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3; historical frozen distribution 2696.992, 4114.938, 4449.524, 4893.144, 5014.885 ms (P95=5014.885 ms; one sample >5 s). This one bounded owner-authorized causal-reduction Mission may supersede that terminal only through HARD_PATH_RUNTIME_SLO_CONVERGENCE_CONSUMED or HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED.` |
-| `HARD_PATH_IMPLEMENTATION_STATE` | `BASELINE_FROZEN_AFTER_DEPLOY-z8-14-Updatesystem-e4106fd-20260826T023921; code remains unchanged until full timeline evidence proves a recurring avoidable safe cause above 100 ms.` |
-| `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-26_prepared_projection_freshness_arbitration.md` |
-| `HARD_PATH_RUNTIME_FINGERPRINT` | `ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3` |
-| `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `e4106fd647978adf481d78201ed10a183a130fcb; deploy-z8-14-Updatesystem-e4106fd-20260826T023921` |
-| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `BLOCKED_BY_POST_FIX_RESIDUAL_CAUSAL_REDUCTION; exact governed Telegram S11 receives no independent SLO credit before the current shared-path terminal passes.` |
-| `V5_3_N10_CURRENT_STATUS` | `BLOCKED_BY_POST_FIX_RESIDUAL_CAUSAL_REDUCTION; no ordinary or ordinary-like movement is admitted.` |
+| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1-N6,PARTIAL_REPLACEMENT_PENDING; N7,APPROVED_BOUNDED_PREPARED_DECISION_IMPLEMENTED_TESTED_DEPLOYED; N8,N9,PARTIAL; N10,HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED; N11,READ_ONLY_DISCOVERY_CONSUMED` |
+| `HARD_PATH_RUNTIME_SLO` | `FINAL_FINGERPRINT=993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418; frozen valid distribution 2661.051, 2887.710, 6520.639, 2144.202, 3840.331 ms (P95=6520.639 ms; one sample >5 s). HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED.` |
+| `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN_AFTER_DEPLOY-z8-14-Updatesystem-a066d6d-20260826T102227; no further HARD-path micro-optimization is admitted.` |
+| `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md` |
+| `HARD_PATH_RUNTIME_FINGERPRINT` | `993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418` |
+| `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `a066d6d719c90d17df57baf7b13328988f6d0c53; deploy-z8-14-Updatesystem-a066d6d-20260826T102227` |
+| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `BLOCKED_BY_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED; exact governed Telegram S11 receives no independent SLO credit before a new owner decision resolves the shared-path boundary.` |
+| `V5_3_N10_CURRENT_STATUS` | `BLOCKED_BY_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED; no ordinary or ordinary-like movement is admitted.` |
 | `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_CONSUMED_NO_SAFE_DELETION_ADMITTED; all examined items retain a current role, caller, consumer, state dependency, fallback function or HARD_PATH decision dependency` |
 | `V5_3_RUNTIME_LIVE_HEALTH` | `v7-health.service active; legacy standalone Matrix/Telegram timers disabled; role-based health loop is current producer` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
@@ -66,7 +66,7 @@ This section is the single live volatile current-state surface. Older production
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_PREPARED_DECISION_DEPLOYED_AND_FROZEN_EVIDENCE_PENDING` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED_OWNER_DECISION_REQUIRED` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |
@@ -208,11 +208,11 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `MISSION_CONSUMED` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `v53_matrix_health_decision_20260820` |
-| `LATEST_TERMINAL_MISSION_STATE` | `READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-08-20T10:00:00+00:00` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION` |
+| `LATEST_TERMINAL_RUN_NONCE` | `v53_hard_path_post_fix_residual_20260826` |
+| `LATEST_TERMINAL_MISSION_STATE` | `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-08-26T07:22:36+00:00` |
 | `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md` |
 | `CURRENT_MISSION_ROLE` | `ACTIVE_MISSION` |
@@ -735,8 +735,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE_20260826` |
-| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -745,9 +745,9 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION` |
+| `LATEST_TERMINAL_MISSION_STATE` | `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md` |
 | `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
@@ -756,7 +756,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | Owner decision admits a bounded causal-reduction phase inside the existing `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` frontier. The former `HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED` remains historical evidence but cannot dispatch work. OMP must first capture full local causal timing, then repair only a measured and falsified recurring safe cause above 100 ms. No SLO change, resize, new owner, Runtime, Planner, timer, weakened S11 or ordinary-user movement is admitted. The sole terminals are `HARD_PATH_RUNTIME_SLO_CONVERGENCE_CONSUMED` and `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`. |
+| `OMP_CONTINUATION_POINTER` | The bounded causal-reduction phase is consumed as `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`. The final five valid same-fingerprint samples have P95 `6520.639 ms`; the shared HARD path is constrained by two-vCPU scheduling contention and mandatory fresh target validation. No further micro-optimization, Telegram, N10 or N11 work is admitted. Re-entry requires an owner product/architecture decision. |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
@@ -766,13 +766,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE_20260826` |
-| `current_transition_id` | `V5_3_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_V1` |
+| `current_state_generation` | `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED_20260826` |
+| `current_transition_id` | `V5_3_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED_V1` |
 | `smallest_existing_next_action_id` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |
-| `latest_terminal_mission_id` | `V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1` |
-| `latest_terminal_mission_state` | `READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED` |
+| `latest_terminal_mission_id` | `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION` |
+| `latest_terminal_mission_state` | `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED` |
 | `previous_terminal_mission_id` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
@@ -853,7 +853,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE_20260826`; `V5_3_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_V1` | owner authorized one bounded causal-reduction pass against the historical frozen five-sample proof; it must first prove a recurring safe cause above 100 ms and cannot reopen unrelated work | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | full local timing evidence -> only measured/falsified safe reduction -> controlled Polygon proof -> one of the two defined HARD_PATH terminals |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED_20260826`; `V5_3_HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED_V1` | bounded causal reduction consumed as `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`; final five valid samples have P95 `6520.639 ms` and no further micro-optimization is admitted | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | terminal report -> owner product/architecture decision -> only explicitly admitted successor |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

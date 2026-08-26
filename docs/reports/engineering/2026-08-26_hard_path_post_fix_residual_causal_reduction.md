@@ -1,3 +1,6 @@
+Mission ID: `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION`
+Run Nonce: `v53_hard_path_post_fix_residual_20260826`
+
 # HARD path post-fix residual causal reduction
 
 **Date:** 2026-08-26  
@@ -140,23 +143,73 @@ also recorded roughly `0.70 s` of scheduler run-queue wait under a load average
 near five on the two-vCPU Runtime.  This is evidence of variability, not yet a
 proven recurring code defect.
 
-## Second diagnostic increment awaiting publication
+## Second diagnostic increment and Runtime verification
 
 The measured timeline had one remaining blind interval before the first Matrix
 stage: a fresh read of the policy and the exact implementation fingerprint
-(which hashes the current governed executable set).  The current local change
-adds only two diagnostic records, `matrix_policy_snapshot_read` and
+(which hashes the current governed executable set).  The diagnostic increment
+adds only `matrix_policy_snapshot_read` and
 `runtime_implementation_fingerprint`; it does not reuse, cache, relax or alter
 either validation.  Compilation and 126 focused service-failure/causal-Polygon
-tests pass.  It is the next safe-deploy candidate.
+tests passed.  It was published at `a066d6d719c90d17df57baf7b13328988f6d0c53`
+and deployed as `deploy-z8-14-Updatesystem-a066d6d-20260826T102227`.
 
-## Exact next step
+Independent Runtime verification found the deployed Matrix SHA-256
+`012e05ba973e8c74ee30610ba44fcf543ed05b354fc7fa69597ec988227a96c2`, the
+existing health service active, and both retired standalone timers inactive.
+The new measures showed `0.419–0.738 ms` policy reads and `12.319–35.637 ms`
+fingerprint calculation.  They are not a material cause.
 
-Safely publish this diagnostic-only increment, confirm Runtime alignment, then
-run one further controlled cold sample.  That sample will decide whether the
-unattributed pre-Stage interval contains a recurring, safely removable span
-over 100 ms.  The current one-user Authority contract explicitly permits only
-one concurrent controlled transaction; higher-cohort Runtime movement is
-therefore not lawful in this phase.  Any 2/5/10/20 result can only be reported
-as isolated Polygon model evidence unless a later existing Authority decision
-admits a different certification profile.
+## Frozen homogeneous HARD-path series
+
+The following five functionally valid S11 samples all used the same final
+evidence implementation fingerprint
+`993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418`.
+Every sample used the existing automatic governed chain, a system-selected
+target, the one certification-only identity, and a distinct owner-backed
+Matrix generation.  No sample was excluded; `ordinary_user_delta` remained
+zero throughout.
+
+| # | Kind | Matrix generation | onset -> S11 | T0 -> decision | decision -> apply |
+|---:|---|---|---:|---:|---:|
+| 1 | cold | `ctm0fgen_f254…` | 2661.051 ms | 1696.848 ms | 206.338 ms |
+| 2 | warm | `ctm0fgen_fd5d…` | 2887.710 ms | 1549.431 ms | 198.474 ms |
+| 3 | warm | `ctm0fgen_de7d…` | 6520.639 ms | 4692.437 ms | 206.100 ms |
+| 4 | warm | `ctm0fgen_8037…` | 2144.202 ms | 1130.526 ms | 174.172 ms |
+| 5 | warm | `ctm0fgen_01b4…` | 3840.331 ms | 2241.910 ms | 386.302 ms |
+
+Nearest-rank P95 is `6520.639 ms`; the maximum is also `6520.639 ms`.
+Therefore the unchanged acceptance law — P95 <= `3000 ms` and no valid sample
+over `5000 ms` — fails.  This is a functional safety pass and a performance
+fail; S11 was neither weakened nor replaced.
+
+## Causal result and terminal
+
+No safe recurring code span above 100 ms remains that can be removed without
+changing a current safety law.  The remaining material causes are:
+
+- CPU scheduling contention on the fixed two-vCPU substrate: all observed
+  runs carried substantial run-queue wait (about `480–1206 ms`) while system
+  load was around five to six;
+- a conditional fresh target-path revalidation: in the slowest valid sample,
+  the existing owner spent `2917.641 ms` validating a stale/rejected prepared
+  target before it could safely admit a target.  Its exact refresh itself took
+  `105.252 ms`; skipping the surrounding fresh owner validation would permit
+  stale target data and is forbidden;
+- variable governed route-writer/audit work, up to `1023.938 ms`, which is
+  coupled to the existing commit/audit evidence and does not independently
+  explain or safely remove the failed tail.
+
+The current certification Authority admits exactly one concurrent transaction
+and only a one-user profile.  There is no existing multi-user profile for a
+real 2/5/10/20 Runtime test; it was not fabricated, and no ordinary user was
+substituted.  Existing larger Polygon scenarios remain model evidence only,
+not physical proof for this Runtime/SLO.
+
+**Terminal:** `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`.
+
+The next action requires an owner product/architecture decision: either accept
+the measured two-vCPU SLO boundary, provide an authorized substrate change, or
+admit a materially different architecture.  Telegram-critical, N10 and N11
+remain blocked by this shared HARD-path terminal; no further automatic
+micro-optimization is lawful.

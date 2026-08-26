@@ -1083,7 +1083,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         )
         self.assertEqual(
             planner._execution_action_class("planned"),
-            "EMERGENCY_FAILOVER",
+            "USER_SWITCH",
         )
         planner.args = SimpleNamespace(
             emergency_failover_autonomy=False,
@@ -1092,7 +1092,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         )
         self.assertEqual(
             planner._execution_action_class("planned"),
-            "EMERGENCY_FAILOVER",
+            "USER_SWITCH",
         )
 
     def test_availability_first_scope_consumes_exact_standing_semantic_binding(self):

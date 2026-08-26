@@ -5540,19 +5540,19 @@ class AutoswitchPlanner:
         text = str(move_type or "").lower()
         # The controlled setup and terminal cleanup paths run inside the
         # one-operation window emitted by the governed canary owner.  That
-        # window is deliberately classified as ``EMERGENCY_FAILOVER`` so the
-        # existing execution-control owner can fence the exact Packet/Lease
-        # operation.  Keep the writer-side re-read in that same class.  The
-        # narrow setup/cleanup scope checks below still require one registry
-        # marked certification identity and immutable approved bindings;
-        # this is not a general emergency-mode admission.
+        # window is deliberately classified as ``USER_SWITCH``: it permits
+        # one exact engineering identity to be bound or returned, not a new
+        # emergency-failover admission.  Keep the writer-side re-read in that
+        # same class.  The narrow setup/cleanup scope checks below still
+        # require one registry-marked certification identity and immutable
+        # approved bindings; this is not a general user-switch admission.
         if (
             bool_value(getattr(self.args, "controlled_engineering_setup", False))
             or bool_value(
                 getattr(self.args, "controlled_engineering_cleanup", False)
             )
         ):
-            return "EMERGENCY_FAILOVER"
+            return "USER_SWITCH"
         if "recover" in text or "reconnect" in text:
             return "RECOVERY_ADMISSION"
         if "rebalance" in text:

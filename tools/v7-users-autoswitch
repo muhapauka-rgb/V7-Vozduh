@@ -17390,7 +17390,27 @@ class AutoswitchPlanner:
             or (bool_value(autonomy.get("enabled")) and bool_value(autonomy.get("ok")))
         )
         emergency_mode = summary_emergency_mode or (committed_emergency_moves and l3_context_active)
-        l3_eligibility = self._l3_execution_eligibility(plan)
+        # N10 is an ordinary-like product migration, not a declaration that
+        # its current source has failed.  It already has its own exact
+        # Authority -> Candidate -> Packet -> Lease -> Barrier path above.
+        # L3 failure-only eligibility remains mandatory for every emergency
+        # path; applying it to this separate action class would require us to
+        # manufacture a source failure and makes a lawful N10 move impossible.
+        l3_eligibility = (
+            {
+                "schema_version": "v7.l3-execution-eligibility.v1",
+                "active": False,
+                "ok": True,
+                "decision": "N10_ORDINARY_LIKE_OWN_GOVERNED_CONTRACT",
+                "blockers": [],
+                "owner_boundary": (
+                    "N10 exact Packet/Lease/Barrier; L3 remains unchanged"
+                ),
+                "runtime_mutation": False,
+            }
+            if n10_product_contract
+            else self._l3_execution_eligibility(plan)
+        )
         if l3_eligibility.get("active"):
             plan.setdefault("safety", {})["l3_execution_eligibility"] = l3_eligibility
             incident = plan.setdefault("safety", {}).get("l3_incident")

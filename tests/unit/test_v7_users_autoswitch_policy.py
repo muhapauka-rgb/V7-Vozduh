@@ -1531,6 +1531,81 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(result["operation_scoped_binding"], operation_binding)
         switch.assert_not_called()
 
+    def test_n10_apply_uses_its_packet_contract_not_l3_failure_eligibility(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            args = self.args_for(root, [
+                "--apply", "--no-verify", "--max-selected-moves", "1",
+                "--approved-operation-id", "packet-operation-id",
+                "--approved-selected-move-hash", "hash-one",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {
+                    "operation_id": "runtime-operation-id",
+                    "selected_move_hash": "hash-one",
+                },
+                "selected_moves": [{
+                    "user_ip": "10.0.0.2",
+                    "current_egress": "1",
+                    "recommended_egress": "vless",
+                    "move_type": "rebalance",
+                }],
+                "summary": {"selected_moves": 1},
+                "safety": {
+                    "atomic_execution_envelope": {},
+                    "authority_budget_gate": {
+                        "current_action_class_contract": {
+                            "action_class": (
+                                operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+                            ),
+                        }
+                    },
+                    "restore_barrier": {
+                        "allowed_users": ["10.0.0.2"],
+                        "allowed_targets": ["vless"],
+                        "approved_plan_lock_validation": {"ok": True},
+                    },
+                },
+            }
+            allowed = {
+                "allowed": True,
+                "allowed_forward_mutation": True,
+                "generation": "control-generation",
+                "scope": "global",
+            }
+            n10_window = {
+                "ok": True,
+                "control": {"generation": "control-generation"},
+                "source_bundle_hash": "route-projection-source",
+                "snapshot_bundle_hash": "route-projection-snapshot",
+            }
+            with mock.patch.object(
+                self.tool.operator_execution,
+                "ct_m0f_standing_validation_transaction_guard",
+                return_value={"ok": True},
+            ), mock.patch.object(
+                planner, "_open_n10_execution_control_window", return_value=n10_window,
+            ), mock.patch.object(
+                planner, "_execution_control_decision", return_value=allowed,
+            ), mock.patch.object(
+                planner, "_validate_atomic_execution_envelope", return_value={"ok": True},
+            ), mock.patch.object(
+                planner, "_l3_execution_eligibility",
+                return_value={"active": True, "ok": False, "blockers": ["must_not_run"]},
+            ) as l3_eligibility, mock.patch.object(
+                planner, "_run_switch",
+                return_value=subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok", stderr=""),
+            ) as switch:
+                result = planner.apply(plan)
+
+        self.assertTrue(result["applied"])
+        l3_eligibility.assert_not_called()
+        switch.assert_called_once()
+
     def test_operation_scoped_atomic_envelope_uses_semantic_runtime_snapshot_identity(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

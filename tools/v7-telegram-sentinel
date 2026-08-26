@@ -859,6 +859,103 @@ def publish_fast_signal_to_canonical_matrix(
     }
 
 
+def publish_recovery_to_canonical_matrix(
+    *,
+    state_dir: Path,
+    matrix_file: Path,
+    event_dir: Path,
+    items: dict[str, Any],
+    lock_timeout_sec: int,
+) -> dict[str, Any]:
+    """Clear only a previously published fast failure through Matrix's owner.
+
+    A healthy sentinel observation is deliberately not a Matrix write.  The
+    regular Matrix and prepared-target observations already establish healthy
+    readiness; writing the same healthy row every second made the fast source
+    compete for the canonical writer lock with the work it is intended to
+    accelerate.  The one exception is recovery from a failure that this exact
+    sentinel previously published.  That transition must still reach the
+    canonical owner promptly so a stale local Telegram failure cannot block a
+    recovered source.
+    """
+    recovery_items = [
+        item for item in items.values()
+        if isinstance(item, dict) and bool(item.get("canonical_matrix_recovery_required"))
+    ]
+    if not recovery_items:
+        return {
+            "schema_version": "v7.fast-signal-canonical-matrix-recovery.v1",
+            "status": "NO_CANONICAL_RECOVERY_TRANSITION",
+            "ok": True,
+            "published_channels": [],
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    try:
+        owner = service_matrix_owner()
+    except Exception as exc:
+        return {
+            "schema_version": "v7.fast-signal-canonical-matrix-recovery.v1",
+            "status": "STOP_SAFE_EXISTING_MATRIX_OWNER_UNAVAILABLE",
+            "ok": False,
+            "blockers": [f"{type(exc).__name__}:{exc}"],
+            "published_channels": [],
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    published: list[str] = []
+    try:
+        # The caller owns the one Matrix writer lock for the complete
+        # failure/recovery transition transaction.  Reuse the canonical owner
+        # rather than merging a second state representation locally.
+        with inherited_matrix_writer_lock(owner, matrix_file):
+            for item in sorted(recovery_items, key=lambda row: str(row.get("egress") or "")):
+                channel = str(item.get("egress") or "")
+                if not channel:
+                    continue
+                owner.update_matrix(
+                    matrix_file,
+                    channel,
+                    str(item.get("interface") or channel),
+                    {"telegram": fast_signal_result(item)},
+                    max(1, int(lock_timeout_sec)),
+                    event_dir=event_dir,
+                    persistence_samples=1,
+                    persistence_window_seconds=max(1, int(item.get("threshold_seconds") or 1)),
+                    egress_identity=owner.canonical_egress_identity(
+                        owner.egress_row(state_dir, channel),
+                        egress_id=channel,
+                        iface=str(item.get("interface") or channel),
+                    ),
+                    state_dir=state_dir,
+                )
+                published.append(channel)
+    except (OSError, TimeoutError, ValueError) as exc:
+        return {
+            "schema_version": "v7.fast-signal-canonical-matrix-recovery.v1",
+            "status": "STOP_SAFE_CANONICAL_MATRIX_RECOVERY_PUBLISH_FAILED",
+            "ok": False,
+            "blockers": [f"{type(exc).__name__}:{exc}"],
+            "published_channels": published,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    return {
+        "schema_version": "v7.fast-signal-canonical-matrix-recovery.v1",
+        "status": "RECOVERY_PUBLISHED_TO_EXISTING_MATRIX_OWNER",
+        "ok": True,
+        "producer": "tools/v7-telegram-sentinel",
+        "canonical_event_owner": "tools/v7-service-matrix-test.update_matrix",
+        "published_channels": published,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 def update_matrix_items(matrix_file: Path, items: dict[str, Any]) -> dict[str, Any]:
     matrix = read_json(matrix_file, {"items": {}})
     if not isinstance(matrix, dict):
@@ -1269,17 +1366,76 @@ def main() -> int:
             "users_moved": 0,
         }
     )
+    # The sentinel is an observation producer.  A steady healthy observation
+    # does not improve the canonical Matrix, but did previously take its
+    # shared writer lock once per second.  Preserve exactly two lawful Matrix
+    # transitions: a confirmed failure and recovery from a failure this
+    # sentinel itself published.
+    for channel, item in items.items():
+        previous = prior_items.get(channel) if isinstance(prior_items.get(channel), dict) else {}
+        item["canonical_matrix_recovery_required"] = bool(
+            previous.get("canonical_matrix_published")
+            and not bool(item.get("blocked"))
+        )
+        # A failed observation becomes published only after the canonical
+        # owner succeeds below.  Do not manufacture a later recovery write
+        # when the failure publication itself stopped safely.
+        item["canonical_matrix_published"] = bool(previous.get("canonical_matrix_published"))
+    transition_required = bool(
+        any(bool(item.get("blocked")) for item in items.values())
+        or any(bool(item.get("canonical_matrix_recovery_required")) for item in items.values())
+    )
+    lock_info = {
+        "held": False,
+        "inherited": False,
+        "waited_sec": 0.0,
+        "held_sec": 0.0,
+        "released": False,
+        "scope": "no_canonical_matrix_transition",
+    }
     try:
-        with service_matrix_writer_lock(matrix_file, int(args.lock_timeout_sec)) as lock_info:
-            update_matrix_items(matrix_file, items)
-            fast_signal_bridge = publish_fast_signal_to_canonical_matrix(
-                state_dir=state_dir,
-                matrix_file=matrix_file,
-                event_dir=event_dir,
-                items=items,
-                persistence_window_seconds=int(args.threshold_seconds),
-                lock_timeout_sec=int(args.lock_timeout_sec),
-            )
+        if transition_required:
+            with service_matrix_writer_lock(matrix_file, int(args.lock_timeout_sec)) as lock_info:
+                fast_signal_bridge = publish_fast_signal_to_canonical_matrix(
+                    state_dir=state_dir,
+                    matrix_file=matrix_file,
+                    event_dir=event_dir,
+                    items=items,
+                    persistence_window_seconds=int(args.threshold_seconds),
+                    lock_timeout_sec=int(args.lock_timeout_sec),
+                )
+                recovery_bridge = publish_recovery_to_canonical_matrix(
+                    state_dir=state_dir,
+                    matrix_file=matrix_file,
+                    event_dir=event_dir,
+                    items=items,
+                    lock_timeout_sec=int(args.lock_timeout_sec),
+                )
+        else:
+            fast_signal_bridge = {
+                "schema_version": "v7.fast-signal-canonical-matrix-bridge.v1",
+                "status": "NO_CONFIRMED_HARD_FAILURE",
+                "ok": True,
+                "published_channels": [],
+                "events_created": 0,
+                "new_event_ids": [],
+                "new_events": [],
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
+            recovery_bridge = {
+                "schema_version": "v7.fast-signal-canonical-matrix-recovery.v1",
+                "status": "NO_CANONICAL_RECOVERY_TRANSITION",
+                "ok": True,
+                "published_channels": [],
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
     except TimeoutError as exc:
         print(json.dumps({
             "schema_version": 1,
@@ -1305,6 +1461,20 @@ def main() -> int:
             },
         }, ensure_ascii=False, indent=2 if args.pretty else None))
         return 75
+
+    published_failure_channels = {
+        str(row.get("channel") or "")
+        for row in (fast_signal_bridge.get("published_channels") or [])
+        if isinstance(row, dict)
+    }
+    published_recovery_channels = {
+        str(channel or "") for channel in (recovery_bridge.get("published_channels") or [])
+    }
+    for channel, item in items.items():
+        if channel in published_failure_channels:
+            item["canonical_matrix_published"] = True
+        elif channel in published_recovery_channels:
+            item["canonical_matrix_published"] = False
 
     blocked_items = [item for item in items.values() if item.get("blocked")]
     healthy_items = [item for item in items.values() if item.get("sample_ok")]
@@ -1341,6 +1511,7 @@ def main() -> int:
         "autoswitch": autoswitch,
         "correlated_failure_guard": correlated_guard,
         "fast_signal_bridge": fast_signal_bridge,
+        "canonical_matrix_recovery": recovery_bridge,
         "existing_consumer_wake": wake_existing_matrix_consumer(
             list(fast_signal_bridge.get("new_events") or [])
         ) if fast_signal_bridge.get("ok") else {

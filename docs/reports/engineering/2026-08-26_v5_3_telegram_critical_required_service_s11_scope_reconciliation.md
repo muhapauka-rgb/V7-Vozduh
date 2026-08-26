@@ -68,11 +68,41 @@ The local test showed the sandbox cannot bind a loopback port; the unchanged
 isolated Polygon test suite was then rerun in the permitted test environment
 and passed. This is an environment limitation, not a product failure.
 
+## Runtime proof after deployment
+
+The change was published as `2c755001ef2045a9f45ca8489e07aa453fe0af9d` and
+deployed by the existing safe-deploy owner as
+`deploy-z8-14-Updatesystem-2c75500-20260826T153152`. Local, GitHub and Runtime
+hashes matched; `v7-health.service` stayed active and the retired standalone
+Matrix/Telegram timers stayed inactive.
+
+One new cold certification-only transaction was then run through the normal
+owner chain. Matrix selected `awg3`; no target was selected manually. The
+prepared decision was reused, no world model was rebuilt and there was no full
+Planner fallback. The result was functionally valid but does not earn latency
+credit:
+
+| Span | Before scope correction | After scope correction |
+| --- | ---: | ---: |
+| required Telegram service verification | 6,931.644 ms | **1,183.018 ms** |
+| onset -> S11 | 18,782.195 ms | **17,759.208 ms** |
+
+The necessary Telegram proof itself became 5,748.626 ms faster (about 83%).
+The remaining dominant time is now before the decision: first failed
+observation/confirmation was 13,566.293 ms and failure -> decision was
+14,755.000 ms. The downstream prepared decision, Apply, route and mandatory
+service verification are no longer the leading cause.
+
+The test identity, temporary profile and controlled failure condition were
+removed through the existing reset/recovery owners. It returned to its isolated
+source; no ordinary route or user assignment changed.
+
 ## Next action
 
-Publish and safely deploy this already-tested bounded verifier-scope correction.
-Then run **one** certification-only cold Telegram-critical transaction on the
-new immutable fingerprint, verify the exact required Telegram endpoints and
-complete cleanup. The result will decide whether any further latency work is
-actually justified. Do not manufacture a five-sample series or begin N10/N11:
-those require their own owner-backed contracts.
+Do not repeat this same certification sample merely to fill a series. First
+measure and remove, if safe, the proven producer contention before T0: the
+Telegram role is scheduled every second but its healthy observations were
+repeatedly delayed by shared Matrix writes while parallel Matrix work held the
+same writer lock. Preserve the Matrix owner, confirmation and recovery
+semantics; do not relax required service proof or begin N10/N11, which retain
+their separate owner-backed contracts.

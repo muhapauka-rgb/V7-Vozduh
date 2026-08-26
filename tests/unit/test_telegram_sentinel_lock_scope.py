@@ -115,52 +115,34 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
                 rc, payload = self.run_main(root)
 
             self.assertEqual(rc, 0, payload)
-            self.assertTrue(payload["service_matrix_lock"]["held"])
-            self.assertTrue(payload["service_matrix_lock"]["released"])
-            self.assertLess(payload["service_matrix_lock"]["held_sec"], 0.05)
+            self.assertFalse(payload["service_matrix_lock"]["held"])
+            self.assertEqual(
+                payload["service_matrix_lock"]["scope"],
+                "no_canonical_matrix_transition",
+            )
 
-    def test_lock_wraps_only_matrix_merge_write_after_probes(self):
+    def test_healthy_observation_never_attempts_canonical_matrix_lock(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             state_dir = root / "state"
             self.write_registry(state_dir)
             events: list[str] = []
-            original_lock = self.sentinel.service_matrix_writer_lock
-            original_write = self.sentinel.write_json_atomic
 
             def probe(iface: str, timeout: float) -> dict:
                 events.append(f"probe:{iface}")
                 return self.ok_probe(iface, timeout)
 
-            @contextlib.contextmanager
-            def observed_lock(matrix_file: Path, timeout_sec: int):
-                events.append("lock_attempt")
-                with original_lock(matrix_file, timeout_sec) as info:
-                    events.append("lock_acquired")
-                    try:
-                        yield info
-                    finally:
-                        events.append("lock_releasing")
-                events.append("lock_released")
-
-            def observed_write(path: Path, data) -> None:
-                if path.name == "service-matrix.json":
-                    events.append("matrix_write")
-                return original_write(path, data)
-
             with (
                 mock.patch.object(self.sentinel, "check_telegram", side_effect=probe),
-                mock.patch.object(self.sentinel, "service_matrix_writer_lock", side_effect=observed_lock),
-                mock.patch.object(self.sentinel, "write_json_atomic", side_effect=observed_write),
+                mock.patch.object(self.sentinel, "service_matrix_writer_lock") as lock,
             ):
                 rc, payload = self.run_main(root)
 
             self.assertEqual(rc, 0, payload)
-            self.assertLess(max(i for i, event in enumerate(events) if event.startswith("probe:")), events.index("lock_attempt"))
-            self.assertGreater(events.index("matrix_write"), events.index("lock_acquired"))
-            self.assertLess(events.index("matrix_write"), events.index("lock_releasing"))
+            self.assertEqual(len(events), 2)
+            lock.assert_not_called()
 
-    def test_service_matrix_write_is_atomic_and_preserves_existing_services(self):
+    def test_recovery_transition_is_atomic_and_preserves_existing_services(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             state_dir = root / "state"
@@ -178,6 +160,10 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
                 }),
                 encoding="utf-8",
             )
+            (state_dir / "telegram-sentinel.json").write_text(
+                json.dumps({"items": {"vless": {"canonical_matrix_published": True}}}),
+                encoding="utf-8",
+            )
 
             with mock.patch.object(self.sentinel, "check_telegram", side_effect=self.ok_probe):
                 rc, payload = self.run_main(root)
@@ -187,6 +173,10 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
             self.assertTrue(matrix["items"]["vless"]["services"]["youtube"]["ok"])
             self.assertTrue(matrix["items"]["vless"]["services"]["telegram"]["ok"])
             self.assertFalse(list(state_dir.glob(".service-matrix.json.tmp.*")))
+            self.assertEqual(
+                payload["canonical_matrix_recovery"]["status"],
+                "RECOVERY_PUBLISHED_TO_EXISTING_MATRIX_OWNER",
+            )
 
     def test_concurrent_writer_wait_does_not_corrupt_matrix(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -194,6 +184,10 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
             state_dir = root / "state"
             self.write_registry(state_dir)
             lock_path = state_dir / "service-matrix.lock"
+            (state_dir / "telegram-sentinel.json").write_text(
+                json.dumps({"items": {"vless": {"canonical_matrix_published": True}}}),
+                encoding="utf-8",
+            )
             fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             original_sleep = self.sentinel.time.sleep
@@ -246,16 +240,18 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
             root = Path(tmp)
             state_dir = root / "state"
             self.write_registry(state_dir)
-            original_write = self.sentinel.write_json_atomic
-
-            def fail_matrix_write(path: Path, data) -> None:
-                if path.name == "service-matrix.json":
-                    raise OSError("write boom")
-                return original_write(path, data)
+            (state_dir / "telegram-sentinel.json").write_text(
+                json.dumps({"items": {"vless": {"canonical_matrix_published": True}}}),
+                encoding="utf-8",
+            )
 
             with (
                 mock.patch.object(self.sentinel, "check_telegram", side_effect=self.ok_probe),
-                mock.patch.object(self.sentinel, "write_json_atomic", side_effect=fail_matrix_write),
+                mock.patch.object(
+                    self.sentinel,
+                    "publish_recovery_to_canonical_matrix",
+                    side_effect=OSError("write boom"),
+                ),
             ):
                 with self.assertRaises(OSError):
                     self.run_main(root)
@@ -267,7 +263,7 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
             finally:
                 os.close(fd)
 
-    def test_existing_sentinel_behavior_produces_telegram_matrix_row(self):
+    def test_healthy_sentinel_observation_does_not_mutate_canonical_matrix(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             state_dir = root / "state"
@@ -278,11 +274,11 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
 
             self.assertEqual(rc, 0, payload)
             self.assertEqual(payload["checked_egress"], 2)
-            matrix = json.loads((state_dir / "service-matrix.json").read_text(encoding="utf-8"))
-            telegram = matrix["items"]["vless"]["services"]["telegram"]
-            self.assertTrue(telegram["ok"])
-            self.assertEqual(telegram["status"], "OK")
-            self.assertEqual(telegram["kind"], "telegram_tcp_sentinel")
+            self.assertFalse((state_dir / "service-matrix.json").exists())
+            self.assertEqual(
+                payload["service_matrix_lock"]["scope"],
+                "no_canonical_matrix_transition",
+            )
 
     def test_confirmed_fast_failure_uses_canonical_matrix_event_owner(self):
         """A fast signal is a producer bridge, never a second failover owner."""
@@ -366,6 +362,42 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
             self.assertEqual(rc, 0, payload)
             self.assertEqual(payload["fast_signal_bridge"]["status"], "NO_CONFIRMED_HARD_FAILURE")
             owner.assert_not_called()
+
+    def test_failed_failure_publication_is_not_marked_for_later_recovery(self):
+        """A STOP_SAFE publication must not manufacture a recovery transition."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            self.write_registry(state_dir)
+            down = {
+                "sample_ok": False,
+                "status": "NOT_STARTED",
+                "score": 0,
+                "ratio": 0.0,
+                "critical_ok": False,
+                "ok_count": 0,
+                "total": 5,
+                "reason": "unit hard failure",
+                "samples": [],
+                "first_byte_sec": "",
+                "total_sec": 0.001,
+            }
+            with (
+                mock.patch.object(self.sentinel, "check_telegram", return_value=down),
+                mock.patch.object(
+                    self.sentinel,
+                    "publish_fast_signal_to_canonical_matrix",
+                    return_value={
+                        "status": "STOP_SAFE_EXISTING_MATRIX_OWNER_UNAVAILABLE",
+                        "ok": False,
+                        "published_channels": [],
+                    },
+                ),
+            ):
+                rc, payload = self.run_main(root)
+            self.assertEqual(rc, 0, payload)
+            self.assertFalse(payload["items"]["vless"]["canonical_matrix_published"])
+            self.assertFalse(payload["items"]["awg0"]["canonical_matrix_published"])
 
     def test_fast_signal_preserves_threshold_crossing_into_canonical_episode(self):
         item = {

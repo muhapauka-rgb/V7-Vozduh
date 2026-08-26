@@ -2858,6 +2858,83 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertEqual(first["forbidden_effects"]["user_movement"], 0)
 
+    def test_controlled_source_topology_prepare_registers_auto_admitted_exact_request(self):
+        manifest = {
+            "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+            "existing_source": "awg0",
+            "selected_source_or_draft": "execution-source",
+            "trial_identity": "10.7.0.108",
+            "trial_identity_count": 1,
+            "identity_set_fingerprint": "b" * 64,
+            "expected_assignment_delta": "10.7.0.108:awg0->execution-source",
+            "expected_ordinary_assignment_delta": "NONE",
+            "expected_ordinary_route_delta": "NONE",
+            "capacity_reservation": 1,
+            "certification_group": "telegram-test",
+            "max_concurrent_transactions": 1,
+            "reservation_owner": "tools/v7-egress-set-state",
+            "verification": "fresh Matrix baseline + current route",
+            "rollback": "restore exact source binding and release reservation",
+            "failure_mechanism": "existing controlled certification guard",
+            "lease_and_expiry_required": True,
+            "packet_required_before_effect": True,
+            "restore_barrier_required_before_effect": True,
+        }
+        manifest["manifest_hash"] = operator_execution.sha256_json(manifest)
+        package = {
+            "schema_version": (
+                operator_execution.CONTROLLED_SOURCE_TOPOLOGY_REQUEST_SCHEMA
+            ),
+            "status": "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION",
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "mission": "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_SLICE_FEASIBILITY_V1",
+            "decision_set": ["APPROVE_REBIND_CONTROLLED_CERTIFICATION_SOURCE", "DECLINE"],
+            "exact_action": "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+            "manifest": manifest,
+            "current_campaign_request_id": "cpsauth_existing",
+            "current_campaign_request_hash": "a" * 64,
+            "supersedes_source_binding_only": True,
+            "tier48_capability_or_campaign_reapproval": False,
+            "ordinary_customer_involvement": False,
+            "self_expansion_allowed": False,
+            "forbidden_effects": ["ordinary_user_movement"],
+            "reentry_condition": "exact independent decision",
+            "actionable": False,
+            "registered": False,
+            "superseded_by_standing_policy": True,
+        }
+        diagnostic = {
+            "status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",
+            "authority_package": package,
+            "standing_policy_admission": {
+                "status": "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY",
+                "ok": True,
+            },
+            "recommendation": {
+                "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+                "selected_resource": "execution-source",
+            },
+            "forbidden_effects": {"user_movement": 0},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "operator-execution-audit.jsonl"
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--action-class-audit-store", str(audit),
+            ])
+            with mock.patch.object(
+                self.autoswitch,
+                "controlled_source_topology_diagnostic",
+                return_value=diagnostic,
+            ):
+                result = (
+                    self.autoswitch
+                    .controlled_source_topology_authority_request_only(args)
+                )
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["registration"]["status"], "REGISTERED")
+        self.assertEqual(result["request"]["exact_action"], "REBIND_CONTROLLED_CERTIFICATION_SOURCE")
+        self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
     def test_controlled_source_topology_prepare_replaces_expired_matching_request(self):
         manifest = {
             "selected_option": "OPTION_2_PROVISION_EXISTING_VALID_DRAFT",

@@ -25270,10 +25270,24 @@ def controlled_source_topology_authority_request_only(
         if isinstance(diagnostic.get("authority_lifecycle"), dict)
         else {}
     )
+    standing_policy_admission = (
+        diagnostic.get("standing_policy_admission")
+        if isinstance(diagnostic.get("standing_policy_admission"), dict)
+        else {}
+    )
+    standing_policy_auto_admitted = bool(
+        standing_policy_admission.get("ok") is True
+        and standing_policy_admission.get("status")
+        == "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY"
+        and package.get("superseded_by_standing_policy") is True
+    )
     if (
         diagnostic.get("status")
         != "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
-        or package.get("actionable") is not True
+        or (
+            package.get("actionable") is not True
+            and not standing_policy_auto_admitted
+        )
     ):
         if (
             package.get("registered") is True

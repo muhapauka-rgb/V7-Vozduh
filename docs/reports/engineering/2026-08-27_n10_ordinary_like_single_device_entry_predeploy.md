@@ -121,3 +121,58 @@ Publish and deploy this bounded correction.  The exact N10 Authority for
 a target argument, create the normal governed Candidate → Packet → Lease →
 Barrier transaction, and continue only if all fresh owners still agree.  Any
 generation drift, capacity loss or service failure remains `STOP_SAFE`.
+
+## Execution reconciliation and bounded N10 repairs (2026-08-27)
+
+### Deployed revisions and truth
+
+The ordinary-like one-device transaction was continued on the deployed
+`Updatesystem` Runtime.  Every deployment used `tools/v7-safe-deploy` and
+finished with `v7-truth-check` `PASS`, no blockers and an active
+`v7-health.service`.
+
+| Revision | Bounded correction | Verification |
+| --- | --- | --- |
+| `9794da55` | A Planner-derived Packet may create its matching Lease in the same existing Packet owner call. | Focused Packet/Lease test passed. |
+| `4e3081f9` | Fresh exact Matrix recovery closes only genuinely historical L3 VLESS records. | 3 focused tests passed; VLESS historical records closed through the existing owner with zero moves. |
+| `0b0de8fb` | An expired same-device N10 Packet lock cannot permanently suppress a fresh Candidate; it never becomes an Apply exemption. | 206 autoswitch-policy tests passed. |
+| `a9a9ad7c` | A valid N10 Packet/Lease/Barrier opens one operation-scoped existing execution-control window and finalizes it back to global fail-closed state. | 206 autoswitch-policy tests passed. |
+| `ab5e2d3a` | The execution-control window now binds the existing route-projection owner while the Packet/Barrier continues to bind its independent approval bundle. | 206 autoswitch-policy tests passed. |
+
+No new Matrix, Planner, route writer, queue, registry, state source or
+Authority owner was created.  `v7-user-switch` remains the only route writer.
+
+### What the live owner path proved
+
+1. Old VLESS L3 records were historical rather than an active failure of
+   Pasha's source.  The current owner consumed fresh recovery evidence and
+   closed those records; it did not delete or suppress them.  User movement:
+   `0`.
+2. The fresh N10 Planner selected `awg3` automatically for `10.7.0.5` from
+   `wireguard-1779454504-c43409`.  It retained the actual profile services
+   `telegram`, `youtube`, `google`; both source and selected target passed
+   current capacity and service suitability gates.
+3. Two initial live applies stopped before the route writer:
+   first because no Packet-bound execution-control window was made for the
+   N10 action; second because the control window compared the Packet bundle
+   hash with a different, route-projection hash.  Both stops returned the
+   control state to global `OPEN` (fail-closed), changed no user route, and
+   were terminalized through the existing Lease owner.
+4. The old one-use contract and both non-applied Leases were closed through
+   their owners.  The last closed Lease recorded `apply_executed=false` and
+   `users_moved=0`.
+
+### Current safe re-entry
+
+The exact current one-use N10 contract is `acc_898a5c58e6ccbdd1575b5b05` for
+only `10.7.0.5`; it is target-unbound and requires fresh Planner selection.
+The fresh candidate selected `awg3` again.  The most recent Packet/Lease
+attempt was safely terminalized before the route writer because of the
+now-fixed projection-binding defect.  Its old Barrier is left to its own
+expiry; it is not removed or edited directly.
+
+Before another Packet is created, the normal Packet/Lease/Barrier lifecycle
+must observe that expiry and build a wholly fresh transaction.  The next
+action is therefore: fresh Matrix-backed snapshot -> fresh Planner -> fresh
+Packet/Lease/Barrier -> exactly one governed apply for `10.7.0.5` -> exact
+route/kernel and `telegram,youtube,google` server-side S11 verification.

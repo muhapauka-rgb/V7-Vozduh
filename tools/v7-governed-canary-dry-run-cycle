@@ -230,14 +230,14 @@ def bind_initial_certification_source_route(
     source_line = source_lines[0] if len(source_lines) == 1 else ""
     user_fields = dict(item.split("=", 1) for item in user_line.split() if "=" in item)
     source_fields = dict(item.split("=", 1) for item in source_line.split() if "=" in item)
-    if user_fields.get("current") != source:
-        blockers.append("initial_binding_user_source_assignment_changed")
     if user_fields.get("certification_user", "").lower() not in {"1", "true", "yes"}:
         blockers.append("initial_binding_user_not_certification_only")
     if user_fields.get("certification_group") != certification_group or not certification_group:
         blockers.append("initial_binding_certification_group_changed")
     if source_fields.get("controlled_certification_source", "").lower() not in {"1", "true", "yes"}:
         blockers.append("initial_binding_source_not_isolated_certification_source")
+    if not str(source_fields.get("controlled_source_reservation_id") or ""):
+        blockers.append("initial_binding_source_reservation_missing")
     if source_fields.get("enabled", "1").lower() not in {"1", "true", "yes"}:
         blockers.append("initial_binding_source_not_enabled")
     occupants = [line for line in users_path.read_text(encoding="utf-8").splitlines()
@@ -247,12 +247,22 @@ def bind_initial_certification_source_route(
     if blockers:
         return {"status": "STOP_SAFE", "ok": False, "blockers": sorted(set(blockers)), "runtime_mutation": False, "users_moved": 0}
 
-    route_before = scoped_user_route_check(state_dir, user)
+    assigned_source = str(user_fields.get("current") or "")
+    route_before = (
+        scoped_user_route_check(state_dir, user)
+        if assigned_source == source
+        else {
+            "passed": False,
+            "reason": "exact_certification_identity_requires_governed_source_rebind",
+            "assigned_source": assigned_source,
+        }
+    )
     if route_before.get("passed"):
         return {"status": "INITIAL_CERTIFICATION_SOURCE_BINDING_ALREADY_PROVEN", "ok": True, "route_before": route_before, "runtime_mutation": False, "users_moved": 0}
 
     binding = {
         "user": user, "source": source, "group": certification_group,
+        "prior_source": assigned_source,
         "user_registry_fingerprint": hashlib.sha256(user_line.encode()).hexdigest(),
         "source_registry_fingerprint": hashlib.sha256(source_line.encode()).hexdigest(),
     }
@@ -302,7 +312,7 @@ def bind_initial_certification_source_route(
         route_after = scoped_user_route_check(state_dir, user)
         if writer.returncode != 0 or not route_after.get("passed"):
             return {"status": "STOP_SAFE", "ok": False, "blockers": ["initial_binding_route_writer_or_verification_failed"], "binding": binding, "writer_returncode": writer.returncode, "writer_output_tail": (writer.stdout or "")[-1000:], "route_after": route_after, "runtime_mutation": bool(writer.returncode == 0), "users_moved": 0}
-        return {"status": "INITIAL_CERTIFICATION_SOURCE_BINDING_CONSUMED", "ok": True, "binding": binding, "operation_id": operation_id, "route_before": route_before, "route_after": route_after, "runtime_mutation": True, "routing_mutation_performed": True, "users_moved": 0}
+        return {"status": "INITIAL_CERTIFICATION_SOURCE_BINDING_CONSUMED", "ok": True, "binding": binding, "operation_id": operation_id, "route_before": route_before, "route_after": route_after, "runtime_mutation": True, "routing_mutation_performed": True, "users_moved": int(assigned_source != source)}
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {"status": "STOP_SAFE", "ok": False, "blockers": [f"initial_binding_writer_failed:{type(exc).__name__}"], "binding": binding, "runtime_mutation": False, "users_moved": 0}
     finally:
@@ -12748,6 +12758,55 @@ def prepare_ct_m0f_standing_controlled_condition(
         contract.get("contract_hash") or ""
     ):
         blockers.append("ct_m0f_condition_contract_hash_mismatch")
+    expected = {
+        "user": str(args.ct_m0f_standing_validation_user or ""),
+        "source": str(args.approved_source or ""),
+        "target": str(args.ct_m0f_standing_validation_target or ""),
+        # The caller's preparation fingerprint is retained as provenance, not
+        # as a lock.  It contains the Matrix source-observation fingerprint,
+        # which changes on every successful ordinary observation.  Treating
+        # it as an equality token made a healthy, continuously refreshing
+        # Matrix unable to admit its own controlled condition.  This owner
+        # immediately obtains a fresh selection below and still binds the
+        # immutable identity/source/target tuple plus the exact registry row.
+        "requested_fingerprint": str(
+            args.ct_m0f_standing_sample_binding_fingerprint or ""
+        ),
+    }
+    initial_source_row = next(
+        (
+            row
+            for row in read_registry(state_dir / "egress.registry")
+            if str(row.get("id") or "") == expected["source"]
+        ),
+        {},
+    )
+    initial_certification_group = str(
+        initial_source_row.get("certification_group") or ""
+    )
+    if not expected["user"] or not expected["source"] or not initial_certification_group:
+        blockers.append("ct_m0f_condition_initial_source_binding_identity_incomplete")
+    if blockers:
+        return transaction_stop(
+            "ct_m0f_standing_controlled_condition_not_admitted",
+            blockers=sorted(set(blockers)),
+        )
+    # A freshly reserved controlled source can lawfully be empty: the
+    # certification identity is still on its prior isolated baseline until
+    # this exact owner consumes the operation-scoped binding.  Perform that
+    # governed binding before asking the selection owner to require the
+    # identity's current source equality.  The binding itself rechecks the
+    # identity, group, reservation, source marker and ordinary-user absence.
+    initial_source_binding = bind_initial_certification_source_route(
+        args, state_dir=state_dir, user=expected["user"],
+        source=expected["source"],
+        certification_group=initial_certification_group,
+    )
+    if initial_source_binding.get("ok") is not True:
+        return transaction_stop(
+            "ct_m0f_initial_certification_source_binding_failed",
+            initial_source_binding=initial_source_binding,
+        )
     selection_command = [
         str(planner_observe_executable()),
         "--ct-m0f-standing-source-selection",
@@ -12775,21 +12834,6 @@ def prepare_ct_m0f_standing_controlled_condition(
         selection = json.loads(selection_proc.stdout or "{}")
     except json.JSONDecodeError:
         selection = {}
-    expected = {
-        "user": str(args.ct_m0f_standing_validation_user or ""),
-        "source": str(args.approved_source or ""),
-        "target": str(args.ct_m0f_standing_validation_target or ""),
-        # The caller's preparation fingerprint is retained as provenance, not
-        # as a lock.  It contains the Matrix source-observation fingerprint,
-        # which changes on every successful ordinary observation.  Treating
-        # it as an equality token made a healthy, continuously refreshing
-        # Matrix unable to admit its own controlled condition.  This owner
-        # immediately obtains a fresh selection below and still binds the
-        # immutable identity/source/target tuple plus the exact registry row.
-        "requested_fingerprint": str(
-            args.ct_m0f_standing_sample_binding_fingerprint or ""
-        ),
-    }
     if selection_proc.returncode != 0 or selection.get("ok") is not True:
         blockers.append("ct_m0f_condition_fresh_selection_unavailable")
     selection_mode = str(selection.get("selection_mode") or "")
@@ -12920,16 +12964,6 @@ def prepare_ct_m0f_standing_controlled_condition(
             "ct_m0f_standing_pre_t0_lineage_checkpoint_invalid",
             blockers=[str(lineage_checkpoint.get("status") or "")],
             lineage_checkpoint=lineage_checkpoint,
-        )
-
-    initial_source_binding = bind_initial_certification_source_route(
-        args, state_dir=state_dir, user=expected["user"],
-        source=expected["source"], certification_group=certification_group,
-    )
-    if initial_source_binding.get("ok") is not True:
-        return transaction_stop(
-            "ct_m0f_initial_certification_source_binding_failed",
-            initial_source_binding=initial_source_binding,
         )
 
     # A production user is already connected before its server fails.  Warm

@@ -99,6 +99,13 @@ proves both halves: a foreign expired clearance is ignored only for Candidate
 creation, and a route move remains refused until a new Packet-bound Barrier
 exists.
 
+The first live read-only use of this correction exposed one further bounded
+detail: adding the diagnostic explanation before the existing snapshot check
+made that check see its own in-memory explanation as a change.  No route was
+changed.  The explanation is now attached only after the canonical snapshot
+comparison, preserving the same safety decision without a self-created
+staleness signal.  The autoswitch policy suite then passed again (`204 passed`).
+
 ## Exact next action
 
 Publish and deploy this bounded correction.  The exact N10 Authority for

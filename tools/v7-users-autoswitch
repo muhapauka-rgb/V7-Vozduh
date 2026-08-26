@@ -13690,6 +13690,7 @@ class AutoswitchPlanner:
         # the diagnostic surface, but let the existing Planner produce the
         # fresh Candidate needed by the existing Packet owner.
         n10_foreign_expired_clearance = False
+        n10_foreign_expired_clearance_details: dict[str, Any] = {}
         if (
             n10_ordinary_like_context
             and bool_value(restore_barrier.get("expired"))
@@ -13708,14 +13709,16 @@ class AutoswitchPlanner:
             )
             if locked_users and locked_users != {n10_user}:
                 n10_foreign_expired_clearance = True
-                restore_barrier["n10_foreign_expired_clearance_ignored"] = True
-                restore_barrier["n10_foreign_expired_clearance_reason"] = (
-                    "expired_packet_lock_belongs_to_different_identity"
-                )
-                restore_barrier["n10_required_next_owner"] = (
-                    "existing operator-execution Packet/Lease/Barrier owner"
-                )
-                restore_barrier["n10_foreign_lock_users"] = sorted(locked_users)
+                n10_foreign_expired_clearance_details = {
+                    "n10_foreign_expired_clearance_ignored": True,
+                    "n10_foreign_expired_clearance_reason": (
+                        "expired_packet_lock_belongs_to_different_identity"
+                    ),
+                    "n10_required_next_owner": (
+                        "existing operator-execution Packet/Lease/Barrier owner"
+                    ),
+                    "n10_foreign_lock_users": sorted(locked_users),
+                }
                 # The lock remains visible above; it is not a current N10
                 # decision and cannot replace the freshly selected target.
                 approved_plan_lock = {
@@ -13801,6 +13804,12 @@ class AutoswitchPlanner:
             intelligence_snapshot_gate["selected_moves_after_gate"] = 0
         else:
             intelligence_snapshot_gate["selected_moves_after_gate"] = len(selected)
+        # Add N10's explanation only after the snapshot owner has compared the
+        # canonical, on-disk barrier.  This annotation is diagnostic output,
+        # not a new barrier generation and must not create a false snapshot
+        # mismatch in the current transaction.
+        if n10_foreign_expired_clearance_details:
+            restore_barrier.update(n10_foreign_expired_clearance_details)
         if n10_ordinary_like_context:
             emergency_failover_gate = {
                 "enabled": False,

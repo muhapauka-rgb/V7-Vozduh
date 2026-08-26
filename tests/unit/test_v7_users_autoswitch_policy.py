@@ -1024,6 +1024,56 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(scope["authority_expanded"])
         self.assertEqual(planner.users[0].current, "awg3")
 
+    def test_controlled_engineering_cleanup_is_exact_and_allows_shared_baseline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="controlled")
+            state_dir = root / "state"
+            (state_dir / "users.registry").write_text(
+                (
+                    "ip=10.7.0.92 current=controlled table=1092 enabled=1 "
+                    "certification_user=1 certification_group=group-a\n"
+                    "ip=10.7.0.10 current=awg0 table=1010 enabled=1\n"
+                ),
+                encoding="utf-8",
+            )
+            (state_dir / "egress.registry").write_text(
+                (
+                    "id=controlled interface=v7polygon enabled=1 state=enabled "
+                    "role=EXECUTION_ONLY controlled_certification_source=1 "
+                    "execution_reserved=1 canary_reserved=1 "
+                    "reservation_owner=operator_execution_governance\n"
+                    "id=awg0 interface=awg0 enabled=1 state=enabled role=GLOBAL_STABLE\n"
+                ),
+                encoding="utf-8",
+            )
+            args = self.args_for(root, [
+                "--controlled-engineering-cleanup",
+                "--max-selected-moves", "1",
+                "--user", "10.7.0.92",
+                "--source-egress", "controlled",
+                "--target-egress", "awg0",
+                "--approved-packet-id", "packet",
+                "--approved-operation-id", "operation",
+                "--approved-execution-lease-id", "lease",
+                "--approved-selected-move-hash", "move",
+                "--approved-authority-generation", "authority",
+                "--approved-breaker-generation", "breaker",
+                "--approved-source-bundle-hash", "source-bundle",
+                "--approved-snapshot-bundle-hash", "snapshot-bundle",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            move = {
+                "user_ip": "10.7.0.92",
+                "current_egress": "controlled",
+                "recommended_egress": "awg0",
+            }
+            scope = planner._exact_controlled_engineering_cleanup_scope([move])
+
+        self.assertTrue(scope["ok"], scope)
+        self.assertEqual(scope["reasons"], [])
+        self.assertFalse(scope["authority_expanded"])
+
     def test_availability_first_scope_consumes_exact_standing_semantic_binding(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -4173,6 +4173,9 @@ class AutoswitchPlanner:
                 or bool_value(
                     getattr(args, "controlled_engineering_setup", False)
                 )
+                or bool_value(
+                    getattr(args, "controlled_engineering_cleanup", False)
+                )
             )
         )
         # The exact one-user failure transaction is entered after Matrix has
@@ -4878,6 +4881,113 @@ class AutoswitchPlanner:
             reasons.append("controlled_engineering_setup_target_contract_invalid")
         return {
             "schema_version": "v7.controlled-engineering-setup-scope.v1",
+            "ok": not reasons,
+            "reasons": sorted(set(reasons)),
+            "user": requested_user,
+            "source": requested_source,
+            "target": requested_target,
+            "ordinary_user_delta": 0,
+            "authority_expanded": False,
+        }
+
+    def _exact_controlled_engineering_cleanup_scope(
+        self,
+        selected_moves: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Prove an exact one-user return from a controlled source to baseline.
+
+        This is the bounded counterpart of controlled engineering setup.  It
+        is accepted only for the registry-marked certification identity that
+        is currently on the reserved controlled source named by an immutable
+        Packet.  It never admits an ordinary client, reselection, a new
+        destination, or a broad incident bypass; the target remains subject
+        to the regular enabled/route/service verification after Apply.
+        """
+        requested = bool_value(
+            getattr(self.args, "controlled_engineering_cleanup", False)
+        )
+        requested_user = str(getattr(self.args, "user", "") or "").strip()
+        requested_source = str(
+            getattr(self.args, "source_egress", "") or ""
+        ).strip()
+        requested_target = str(
+            getattr(self.args, "target_egress", "") or ""
+        ).strip()
+        reasons: list[str] = []
+        if not requested:
+            return {
+                "schema_version": "v7.controlled-engineering-cleanup-scope.v1",
+                "ok": False,
+                "reasons": ["controlled_engineering_cleanup_not_requested"],
+                "user": requested_user,
+                "source": requested_source,
+                "target": requested_target,
+                "ordinary_user_delta": 0,
+                "authority_expanded": False,
+            }
+        if to_int(getattr(self.args, "max_selected_moves", 0), 0) != 1:
+            reasons.append("controlled_engineering_cleanup_max_users_not_one")
+        if len(selected_moves) != 1:
+            reasons.append("controlled_engineering_cleanup_exact_move_required")
+        move = selected_moves[0] if len(selected_moves) == 1 else {}
+        if requested_user != str(move.get("user_ip") or ""):
+            reasons.append("controlled_engineering_cleanup_user_mismatch")
+        if requested_source != str(move.get("current_egress") or ""):
+            reasons.append("controlled_engineering_cleanup_source_mismatch")
+        if requested_target != str(move.get("recommended_egress") or ""):
+            reasons.append("controlled_engineering_cleanup_target_mismatch")
+        if not requested_source or not requested_target or requested_source == requested_target:
+            reasons.append("controlled_engineering_cleanup_source_target_invalid")
+        for field in (
+            "approved_packet_id", "approved_operation_id",
+            "approved_execution_lease_id", "approved_selected_move_hash",
+            "approved_authority_generation", "approved_breaker_generation",
+            "approved_source_bundle_hash", "approved_snapshot_bundle_hash",
+        ):
+            if not str(getattr(self.args, field, "") or ""):
+                reasons.append(f"controlled_engineering_cleanup_{field}_missing")
+        users = parse_registry(self.state_dir / "users.registry")
+        egress_rows = parse_registry(self.state_dir / "egress.registry")
+        user = next(
+            (row for row in users if str(row.get("ip") or "") == requested_user),
+            {},
+        )
+        source = next(
+            (row for row in egress_rows if str(row.get("id") or "") == requested_source),
+            {},
+        )
+        target = next(
+            (row for row in egress_rows if str(row.get("id") or "") == requested_target),
+            {},
+        )
+        if (
+            not user
+            or not bool_value(user.get("enabled", "1"))
+            or str(user.get("current") or "") != requested_source
+            or not bool_value(user.get("certification_user"))
+        ):
+            reasons.append("controlled_engineering_cleanup_user_not_exact")
+        if (
+            not source
+            or not bool_value(source.get("enabled", "1"))
+            or str(source.get("state") or "enabled").lower()
+            in {"disabled", "maintenance", "down"}
+            or not bool_value(source.get("controlled_certification_source"))
+            or not bool_value(source.get("execution_reserved"))
+            or not bool_value(source.get("canary_reserved"))
+            or str(source.get("reservation_owner") or "")
+            != "operator_execution_governance"
+        ):
+            reasons.append("controlled_engineering_cleanup_source_contract_invalid")
+        if (
+            not target
+            or not bool_value(target.get("enabled", "1"))
+            or str(target.get("state") or "enabled").lower()
+            in {"disabled", "maintenance", "down"}
+        ):
+            reasons.append("controlled_engineering_cleanup_target_not_ready")
+        return {
+            "schema_version": "v7.controlled-engineering-cleanup-scope.v1",
             "ok": not reasons,
             "reasons": sorted(set(reasons)),
             "user": requested_user,
@@ -8301,14 +8411,25 @@ class AutoswitchPlanner:
         engineering_setup_scope = (
             self._exact_controlled_engineering_setup_scope(context_moves)
         )
-        if engineering_setup_scope.get("ok"):
+        engineering_cleanup_scope = (
+            self._exact_controlled_engineering_cleanup_scope(context_moves)
+        )
+        if engineering_setup_scope.get("ok") or engineering_cleanup_scope.get("ok"):
             incident_source_continuity = {
                 "schema_version": "v7.l3-incident-source-continuity.v1",
                 "active": False,
-                "reason": "independent_exact_controlled_engineering_setup",
+                "reason": (
+                    "independent_exact_controlled_engineering_setup"
+                    if engineering_setup_scope.get("ok")
+                    else "independent_exact_controlled_engineering_cleanup"
+                ),
                 "incident_source": "",
                 "ordinary_incident_ignored": True,
-                "setup_scope": engineering_setup_scope,
+                "setup_scope": (
+                    engineering_setup_scope
+                    if engineering_setup_scope.get("ok")
+                    else engineering_cleanup_scope
+                ),
                 "owner": "tools/v7-users-autoswitch",
             }
         requested_source = str(getattr(self.args, "source_egress", "") or "").strip()
@@ -13988,6 +14109,9 @@ class AutoswitchPlanner:
         engineering_setup_scope = (
             self._exact_controlled_engineering_setup_scope(selected)
         )
+        engineering_cleanup_scope = (
+            self._exact_controlled_engineering_cleanup_scope(selected)
+        )
         incident_source_continuity = self._l3_active_incident_source_context()
         incident_source = str(incident_source_continuity.get("incident_source") or "")
         if (
@@ -13997,6 +14121,7 @@ class AutoswitchPlanner:
             and not availability_first_scope.get("ok")
             and not ct_m0f_reset_scope.get("ok")
             and not engineering_setup_scope.get("ok")
+            and not engineering_cleanup_scope.get("ok")
         ):
             reasons.append("approved_plan_lock_incident_source_mismatch")
         committed_identity = self._committed_apply_identity_validation(
@@ -14058,6 +14183,7 @@ class AutoswitchPlanner:
                 ),
                 "ct_m0f_standing_reset_scope": ct_m0f_reset_scope,
                 "controlled_engineering_setup_scope": engineering_setup_scope,
+                "controlled_engineering_cleanup_scope": engineering_cleanup_scope,
             }
         return {
             "present": True,
@@ -14081,6 +14207,7 @@ class AutoswitchPlanner:
                 availability_first_scope
             ),
             "controlled_engineering_setup_scope": engineering_setup_scope,
+            "controlled_engineering_cleanup_scope": engineering_cleanup_scope,
         }
 
     def _committed_selected_moves_from_approved_plan_lock(self, plan: dict[str, Any]) -> list[dict[str, Any]]:
@@ -16770,6 +16897,9 @@ class AutoswitchPlanner:
         controlled_engineering_setup_scope = (
             self._exact_controlled_engineering_setup_scope(selected_moves)
         )
+        controlled_engineering_cleanup_scope = (
+            self._exact_controlled_engineering_cleanup_scope(selected_moves)
+        )
         bounded_checkpoint_enabled = len(selected_moves) > 1
         bounded_checkpoint: dict[str, Any] = {}
         if bounded_checkpoint_enabled:
@@ -16911,6 +17041,7 @@ class AutoswitchPlanner:
                     emergency_mode
                     or strict_contract
                     or controlled_engineering_setup_scope.get("ok") is True
+                    or controlled_engineering_cleanup_scope.get("ok") is True
                 )
                 verify = self._verify_routes_for_apply(
                     ip if scoped_route_verification else "",
@@ -20063,6 +20194,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "Bind one existing governed certification identity to one empty "
             "reserved EXECUTION_ONLY Polygon target; never inferred for "
             "ordinary or emergency actions."
+        ),
+    )
+    parser.add_argument(
+        "--controlled-engineering-cleanup",
+        action="store_true",
+        help=(
+            "Return one existing certification identity from its exact "
+            "reserved controlled source to its Packet-bound baseline; never "
+            "inferred for ordinary or emergency actions."
         ),
     )
     parser.add_argument("--service", default="", help="Score candidates for one important service.")

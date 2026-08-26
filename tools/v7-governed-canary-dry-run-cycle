@@ -3594,6 +3594,7 @@ def run_autoswitch_apply(
     action_class_audit_store: str = "",
     planner_runtime: Any = None,
     controlled_engineering_setup: bool = False,
+    controlled_engineering_cleanup: bool = False,
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
@@ -3664,6 +3665,8 @@ def run_autoswitch_apply(
         command.insert(1, "--controlled-verifier-contention")
     if controlled_engineering_setup:
         command.insert(1, "--controlled-engineering-setup")
+    if controlled_engineering_cleanup:
+        command.insert(1, "--controlled-engineering-cleanup")
     if ct_m0f_kernel_cutover_validation:
         command.extend([
             "--ct-m0f-kernel-cutover-validation",
@@ -8289,6 +8292,7 @@ def _execute_governed_transaction_with_guards_inner(
             getattr(args, "operator_execution_audit_store", "") or ""
         ),
         controlled_engineering_setup=bool(setup_mode),
+        controlled_engineering_cleanup=bool(cleanup_mode),
         **apply_options,
     )
     if topology_mode:

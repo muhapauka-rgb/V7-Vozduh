@@ -1,5 +1,6 @@
 import copy
 import gzip
+import io
 import json
 import tempfile
 import threading
@@ -3505,6 +3506,36 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(lease["immutable_packet_identity"]["user"], "10.7.0.11")
         self.assertEqual(lease["immutable_packet_identity"]["source"], "1")
         self.assertEqual(lease["immutable_packet_identity"]["target"], "vless")
+
+    def test_generate_from_plan_creates_lease_without_regenerating_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_path = root / "plan.json"
+            packet_path = root / "packet.json"
+            lease_path = root / "lease.json"
+            write_json(plan_path, self.movement_plan())
+            with mock.patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                exit_code = operator_execution.main([
+                    "--generate-from-plan", str(plan_path),
+                    "--packet-output", str(packet_path),
+                    "--create-execution-lease",
+                    "--execution-lease-file", str(lease_path),
+                    "--approval-author", "operator-a",
+                    "--approval-reviewer", "operator-b",
+                    "--repo-root", str(root),
+                ])
+            result = json.loads(stdout.getvalue())
+            packet = json.loads(packet_path.read_text(encoding="utf-8"))
+            lease = json.loads(lease_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(result["mode"], "generate_from_plan")
+        self.assertTrue(result["execution_lease"]["ok"])
+        self.assertEqual(lease["packet"]["packet_id"], packet["packet_id"])
+        self.assertEqual(
+            lease["immutable_packet_identity"]["selected_move_hash"],
+            packet["expected"]["selected_move_hash"],
+        )
 
     def test_execution_lease_from_packet_never_regenerates_packet(self):
         preview = self.preview_packet()

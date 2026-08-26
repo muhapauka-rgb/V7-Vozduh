@@ -10602,10 +10602,38 @@ def main(argv=None):
                 write_json_atomic(packet_path, packet)
             else:
                 packet_path = Path(args.generate_from_plan)
+            lease_result = {}
+            if args.create_execution_lease:
+                if not args.execution_lease_file:
+                    raise PacketError("execution_lease_file_required")
+                # A plan-derived Packet already contains the immutable
+                # Candidate identity and current source hashes.  Preserve that
+                # identity verbatim in the existing lease owner; do not
+                # regenerate a target or invent a parallel preview solely to
+                # create the operation-scoped lease.
+                lease = create_execution_lease_from_packet(
+                    packet,
+                    source_preview=plan,
+                )
+                lease_path = resolve_under_repo(args.execution_lease_file, repo_root)
+                lease_result = write_execution_lease(lease_path, lease)
+                if not lease_result.get("ok"):
+                    result = {
+                        "mode": "generate_from_plan",
+                        "packet": redact(packet),
+                        "packet_path": str(packet_path),
+                        "execution_lease": lease_result,
+                        "execution_allowed_now": False,
+                        "real_runtime_action_performed": False,
+                    }
+                    text = json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True)
+                    print(text)
+                    return 2
             result = {
-                "mode": "generate",
+                "mode": "generate_from_plan",
                 "packet": redact(packet),
                 "packet_path": str(packet_path),
+                "execution_lease": lease_result,
                 "execution_allowed_now": False,
                 "real_runtime_action_performed": False,
             }

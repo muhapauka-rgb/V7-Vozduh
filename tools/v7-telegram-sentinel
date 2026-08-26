@@ -207,7 +207,9 @@ def canonical_service_events(event_dir: Path, event_ids: set[str]) -> list[dict[
     return sorted(rows, key=lambda row: (row["event_id"], row["channel"]))
 
 
-def wake_existing_matrix_consumer(events: list[dict[str, Any]]) -> dict[str, Any]:
+def wake_existing_matrix_consumer(
+    events: list[dict[str, Any]], *, persistent_health_consumer: bool = False,
+) -> dict[str, Any]:
     """Wake the deployed planner only for a new actionable canonical event.
 
     ``v7-autoswitch-planner.service`` is the existing periodic consumer.  A
@@ -244,6 +246,22 @@ def wake_existing_matrix_consumer(events: list[dict[str, Any]]) -> dict[str, Any
         if row.get("event_type") == "SERVICE_FAILURE_OBSERVED"
         and has_actionable_scope(row)
     ]
+    if actionable and persistent_health_consumer:
+        # The same existing Matrix consumer is loaded by v7-health.service.
+        # Its child completion re-reads this canonical Matrix event and either
+        # consumes it or falls back to the exact historical external command.
+        # Starting systemd here as well races a duplicate consumer against the
+        # already-owned in-process handoff; no new owner or wake path exists.
+        return {
+            "status": "PERSISTENT_HEALTH_MATRIX_CONSUMER_OWNED",
+            "ok": True,
+            "requested": False,
+            "events": actionable,
+            "consumer": "existing v7-health.service loaded v7-service-matrix-refresh-all",
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
     if not actionable:
         return {
             "status": "NOT_REQUIRED_NO_NEW_ACTIONABLE_SOURCE_SCOPE",
@@ -1513,7 +1531,10 @@ def main() -> int:
         "fast_signal_bridge": fast_signal_bridge,
         "canonical_matrix_recovery": recovery_bridge,
         "existing_consumer_wake": wake_existing_matrix_consumer(
-            list(fast_signal_bridge.get("new_events") or [])
+            list(fast_signal_bridge.get("new_events") or []),
+            persistent_health_consumer=(
+                os.environ.get("V7_HEALTH_PERSISTENT_MATRIX_CONSUMER") == "1"
+            ),
         ) if fast_signal_bridge.get("ok") else {
             "status": "NOT_REQUESTED_CANONICAL_EVENT_PUBLISH_NOT_READY",
             "ok": False,
@@ -1553,6 +1574,15 @@ def main() -> int:
             "blocked_egress": payload["blocked_egress"],
             "healthy_egress": payload["healthy_egress"],
             "autoswitch": autoswitch,
+            "elapsed_sec": payload["elapsed_sec"],
+            "service_matrix_lock": lock_info,
+            "fast_signal_bridge": {
+                "status": str(fast_signal_bridge.get("status") or ""),
+                "published_channels": list(
+                    fast_signal_bridge.get("published_channels") or []
+                ),
+            },
+            "existing_consumer_wake": payload["existing_consumer_wake"],
         })
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
     return 0

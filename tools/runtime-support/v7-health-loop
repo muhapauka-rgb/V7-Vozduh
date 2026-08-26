@@ -177,11 +177,13 @@ DEFAULT_MATRIX_STATE_FILE = Path("/opt/v7/egress/state/service-matrix.json")
 DEFAULT_USERS_REGISTRY_FILE = Path("/opt/v7/egress/state/users.registry")
 
 
-def canonical_definitive_hard_failure_t0_ns(
+def canonical_service_failure_t0_ns(
     matrix_state_file: Path,
     users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
+    service_id: str = "__channel_liveness__",
+    required_evidence_class: str = "",
 ) -> int:
-    """Read the current Matrix failure and unresolved assignment surface.
+    """Read one current Matrix service failure and unresolved assignment.
 
     Process duration alone is not incident evidence: on a busy two-core host a
     healthy HARD observation can cross the scheduling discriminator and used
@@ -207,21 +209,24 @@ def canonical_definitive_hard_failure_t0_ns(
             continue
         services = source.get("services")
         services = services if isinstance(services, dict) else {}
-        liveness = services.get("__channel_liveness__")
-        if not isinstance(liveness, dict):
+        service = services.get(service_id)
+        if not isinstance(service, dict):
             continue
         if (
-            liveness.get("ok") is False
-            and str(liveness.get("evidence_class") or "")
-            == "DEFINITIVE_LOCAL_HARD_FAILURE"
-            and str(liveness.get("failure_state") or "").startswith(
+            service.get("ok") is False
+            and (
+                not required_evidence_class
+                or str(service.get("evidence_class") or "")
+                == required_evidence_class
+            )
+            and str(service.get("failure_state") or "").startswith(
                 "OBSERVED_"
             )
-            and str(liveness.get("source_incident_id") or "")
-            and str(liveness.get("failure_event_id") or "")
+            and str(service.get("source_incident_id") or "")
+            and str(service.get("failure_event_id") or "")
         ):
             try:
-                t0_ns = int(str(liveness.get("confirmed_hard_failure_monotonic_ns") or "0"))
+                t0_ns = int(str(service.get("confirmed_hard_failure_monotonic_ns") or "0"))
             except (TypeError, ValueError):
                 t0_ns = 0
             # Older canonical rows can still admit recovery priority, but are
@@ -263,6 +268,19 @@ def canonical_definitive_hard_failure_t0_ns(
     # only selects the freshest exact Matrix-owned wake for the existing
     # health owner.
     return max(assigned_t0s, default=0)
+
+
+def canonical_definitive_hard_failure_t0_ns(
+    matrix_state_file: Path,
+    users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
+) -> int:
+    """Compatibility wrapper for the Matrix-owned HARD incident predicate."""
+    return canonical_service_failure_t0_ns(
+        matrix_state_file,
+        users_registry_file,
+        "__channel_liveness__",
+        "DEFINITIVE_LOCAL_HARD_FAILURE",
+    )
 
 
 def canonical_definitive_hard_failure_active(
@@ -588,6 +606,9 @@ class RoleHealthLoop:
         previous_t0 = os.environ.get("V7_HARD_T0_MONOTONIC_NS")
         previous_owner = os.environ.get("V7_HARD_PERSISTENT_MATRIX_OWNER")
         previous_context = os.environ.get("V7_HARD_HEALTH_DISPATCH_CONTEXT")
+        previous_service_t0 = os.environ.get("V7_SERVICE_T0_MONOTONIC_NS")
+        previous_service_owner = os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER")
+        previous_service_context = os.environ.get("V7_SERVICE_HEALTH_DISPATCH_CONTEXT")
         try:
             sys.argv = [
                 "v7-service-matrix-refresh-all",
@@ -600,6 +621,19 @@ class RoleHealthLoop:
                 health_dispatch_context if isinstance(health_dispatch_context, dict) else {},
                 sort_keys=True,
             )
+            # HARD keeps its historical call contract. Telegram carries an
+            # explicit service label so its evidence cannot be misreported as
+            # a HARD-path interval.
+            if (
+                isinstance(health_dispatch_context, dict)
+                and str(health_dispatch_context.get("service_role") or "")
+                == "telegram"
+            ):
+                os.environ["V7_SERVICE_T0_MONOTONIC_NS"] = str(t0_ns)
+                os.environ["V7_SERVICE_PERSISTENT_MATRIX_OWNER"] = "1"
+                os.environ["V7_SERVICE_HEALTH_DISPATCH_CONTEXT"] = json.dumps(
+                    health_dispatch_context, sort_keys=True,
+                )
             with open(os.devnull, "w", encoding="utf-8") as sink:
                 with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
                     return int(self.persistent_matrix_module.main())
@@ -620,6 +654,18 @@ class RoleHealthLoop:
                 os.environ.pop("V7_HARD_HEALTH_DISPATCH_CONTEXT", None)
             else:
                 os.environ["V7_HARD_HEALTH_DISPATCH_CONTEXT"] = previous_context
+            if previous_service_t0 is None:
+                os.environ.pop("V7_SERVICE_T0_MONOTONIC_NS", None)
+            else:
+                os.environ["V7_SERVICE_T0_MONOTONIC_NS"] = previous_service_t0
+            if previous_service_owner is None:
+                os.environ.pop("V7_SERVICE_PERSISTENT_MATRIX_OWNER", None)
+            else:
+                os.environ["V7_SERVICE_PERSISTENT_MATRIX_OWNER"] = previous_service_owner
+            if previous_service_context is None:
+                os.environ.pop("V7_SERVICE_HEALTH_DISPATCH_CONTEXT", None)
+            else:
+                os.environ["V7_SERVICE_HEALTH_DISPATCH_CONTEXT"] = previous_service_context
 
     def _fallback_matrix_consumer(
         self, t0_ns: int, health_dispatch_context: dict[str, Any] | None = None,
@@ -632,6 +678,15 @@ class RoleHealthLoop:
             health_dispatch_context if isinstance(health_dispatch_context, dict) else {},
             sort_keys=True,
         )
+        if (
+            isinstance(health_dispatch_context, dict)
+            and str(health_dispatch_context.get("service_role") or "")
+            == "telegram"
+        ):
+            environment["V7_SERVICE_T0_MONOTONIC_NS"] = str(t0_ns)
+            environment["V7_SERVICE_HEALTH_DISPATCH_CONTEXT"] = environment[
+                "V7_HARD_HEALTH_DISPATCH_CONTEXT"
+            ]
         subprocess.run(
             [
                 "/usr/local/bin/v7-service-matrix-refresh-all",
@@ -811,7 +866,7 @@ class RoleHealthLoop:
             if nice is not None:
                 command = ["/usr/bin/nice", "-n", str(nice), *command]
             environment = None
-            if role.name == "hard" and self.persistent_matrix_ready:
+            if role.name in {"hard", "telegram"} and self.persistent_matrix_ready:
                 environment = os.environ.copy()
                 environment["V7_HEALTH_PERSISTENT_MATRIX_CONSUMER"] = "1"
             role.process = subprocess.Popen(
@@ -823,7 +878,8 @@ class RoleHealthLoop:
             )
             role.started_ns = now_ns
             role.runtime_observation_started = (
-                health_runtime_observation() if role.name == "hard" else {}
+                health_runtime_observation()
+                if role.name in {"hard", "telegram"} else {}
             )
             role.starts += 1
             print(
@@ -839,9 +895,12 @@ class RoleHealthLoop:
             rc = role.process.poll()
             if rc is None:
                 continue
-            if role.name == "hard" and self.persistent_matrix_ready:
-                t0_ns = canonical_definitive_hard_failure_t0_ns(
-                    self.matrix_state_file, self.users_registry_file
+            if role.name in {"hard", "telegram"} and self.persistent_matrix_ready:
+                t0_ns = canonical_service_failure_t0_ns(
+                    self.matrix_state_file,
+                    self.users_registry_file,
+                    "__channel_liveness__" if role.name == "hard" else "telegram",
+                    "DEFINITIVE_LOCAL_HARD_FAILURE" if role.name == "hard" else "",
                 )
                 if t0_ns > 0:
                     dispatch_ns = monotonic_ns()
@@ -850,8 +909,9 @@ class RoleHealthLoop:
                         health_runtime_observation(),
                     )
                     context.update({
-                        "hard_role_pid": int(role.process.pid),
-                        "hard_role_started_monotonic_ns": int(role.started_ns),
+                        "service_role": role.name,
+                        "service_role_pid": int(role.process.pid),
+                        "service_role_started_monotonic_ns": int(role.started_ns),
                         "persistent_dispatch_monotonic_ns": int(dispatch_ns),
                         "matrix_t0_monotonic_ns": int(t0_ns),
                     })

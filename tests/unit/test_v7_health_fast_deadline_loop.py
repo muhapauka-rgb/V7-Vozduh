@@ -571,6 +571,43 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 0,
             )
 
+    def test_persistent_handoff_accepts_only_current_assigned_telegram_event(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            matrix.write_text(json.dumps({
+                "items": {"source-a": {"services": {
+                    "telegram": {
+                        "ok": False,
+                        "failure_state": "OBSERVED_NEW",
+                        "source_incident_id": "sfinc_telegram",
+                        "failure_event_id": "sfe_telegram",
+                        "confirmed_hard_failure_monotonic_ns": 567_890,
+                    },
+                }}},
+            }), encoding="utf-8")
+            users.write_text(
+                "ip=10.7.0.124 enabled=1 current=source-a certification_user=1\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                HEALTH_LOOP_MODULE.canonical_service_failure_t0_ns(
+                    matrix, users, "telegram"
+                ),
+                567_890,
+            )
+            users.write_text(
+                "ip=10.7.0.124 enabled=1 current=target-a certification_user=1\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                HEALTH_LOOP_MODULE.canonical_service_failure_t0_ns(
+                    matrix, users, "telegram"
+                ),
+                0,
+            )
+
     def test_due_projection_preempts_disposable_slow_observation(self):
         """A slow probe cannot defer the bounded prepared-decision refresh."""
         probe_process = mock.Mock()

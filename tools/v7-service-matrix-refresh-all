@@ -198,21 +198,34 @@ def matrix_runtime_entry_timing(
     """Attribute the existing T0-to-Matrix process boundary without new state.
 
     The source is the Matrix-owned monotonic T0 forwarded by the existing
-    HARD child only for this invocation.  Invalid or absent values remain
+    health role only for this invocation.  Invalid or absent values remain
     unmeasured rather than being invented as zero.
     """
     source = environment if environment is not None else os.environ
     try:
-        t0_ns = int(str(source.get("V7_HARD_T0_MONOTONIC_NS") or "0"))
+        t0_ns = int(str(
+            source.get("V7_SERVICE_T0_MONOTONIC_NS")
+            or source.get("V7_HARD_T0_MONOTONIC_NS") or "0"
+        ))
     except (TypeError, ValueError):
         return []
     current_ns = int(entry_ns or time.monotonic_ns())
-    if str(source.get("V7_HARD_PERSISTENT_MATRIX_OWNER") or "") == "1":
+    service_labeled = (
+        str(source.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") or "") == "1"
+    )
+    if str(
+        source.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER")
+        or source.get("V7_HARD_PERSISTENT_MATRIX_OWNER") or ""
+    ) == "1":
         if t0_ns <= 0 or current_ns < t0_ns:
             return []
         spans = [
             {
-                "stage": "hard_t0_to_persistent_matrix_consumer_entry",
+                "stage": (
+                    "service_t0_to_persistent_matrix_consumer_entry"
+                    if service_labeled
+                    else "hard_t0_to_persistent_matrix_consumer_entry"
+                ),
                 "duration_ms": round((current_ns - t0_ns) / 1_000_000.0, 3),
                 "clock_source": "time.monotonic_ns",
                 "owner": "existing v7-health owner -> loaded Matrix consumer",
@@ -221,7 +234,10 @@ def matrix_runtime_entry_timing(
         ]
         try:
             health_context = json.loads(
-                str(source.get("V7_HARD_HEALTH_DISPATCH_CONTEXT") or "{}")
+                str(
+                    source.get("V7_SERVICE_HEALTH_DISPATCH_CONTEXT")
+                    or source.get("V7_HARD_HEALTH_DISPATCH_CONTEXT") or "{}"
+                )
             )
         except (TypeError, ValueError):
             health_context = {}
@@ -229,7 +245,11 @@ def matrix_runtime_entry_timing(
         if dispatch_ns >= t0_ns and dispatch_ns <= current_ns:
             spans.extend([
                 {
-                    "stage": "hard_t0_to_health_persistent_dispatch",
+                    "stage": (
+                        "service_t0_to_health_persistent_dispatch"
+                        if service_labeled
+                        else "hard_t0_to_health_persistent_dispatch"
+                    ),
                     "duration_ms": round((dispatch_ns - t0_ns) / 1_000_000.0, 3),
                     "clock_source": "time.monotonic_ns",
                     "owner": "existing v7-health owner",
@@ -2022,6 +2042,7 @@ def run_ct_m0f_standing_validation_campaign(
     controlled_successor_wait_sec: float = 0.0,
     current_source_scope: Optional[dict[str, Any]] = None,
     lineage_checkpoint_only: bool = False,
+    runtime_hot_path_only: bool = False,
 ) -> dict[str, Any]:
     """Consume the bounded CT-M0F standing policy through existing owners.
 
@@ -2622,11 +2643,31 @@ def run_ct_m0f_standing_validation_campaign(
         and bool(prepared_target_diagnostic.get("rejected_targets"))
     ):
         refresh_started_ns = time.monotonic_ns()
-        exact_target_refresh = refresh_rejected_prepared_target_paths(
-            prepared_target_diagnostic,
-            state_dir=state_dir,
-            lock_timeout_sec=5,
-        )
+        if runtime_hot_path_only:
+            # A rejected prepared path is not a target decision.  The existing
+            # full controlled diagnostic immediately below is its fail-closed
+            # owner-backed fallback.  Waiting for a second PATH refresh that
+            # has already become stale adds up to five seconds before taking
+            # that same fallback, without expanding eligibility or changing
+            # the mandatory mutable checks.
+            exact_target_refresh = {
+                "schema_version": "v7.exact-prepared-target-path-refresh.v1",
+                "status": "SKIPPED_STALE_PREPARED_PATH_RUNTIME_FALLBACK",
+                "ok": False,
+                "requested_targets": list(
+                    prepared_target_diagnostic.get("rejected_targets") or []
+                ),
+                "refreshed_targets": [],
+                "target_scope_widened": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
+        else:
+            exact_target_refresh = refresh_rejected_prepared_target_paths(
+                prepared_target_diagnostic,
+                state_dir=state_dir,
+                lock_timeout_sec=5,
+            )
         preparation_span(
             "exact_prepared_target_path_refresh", refresh_started_ns,
         )
@@ -6785,6 +6826,7 @@ def main() -> int:
                 max_successive_samples=2,
                 controlled_successor_wait_sec=3.0,
                 current_source_scope=source_scope,
+                runtime_hot_path_only=True,
             )
         )
         ct_m0f_action = payload["ct_m0f_standing_validation_campaign"]

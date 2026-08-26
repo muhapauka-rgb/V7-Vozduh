@@ -83,9 +83,39 @@ The lifecycle fixture was corrected to model a single synthetic atomic CPS
 state across the live section, registry and protected WIP.  It does not alter
 production state or relax any validator.
 
+## Deployment reconciliation and controlled-preparation repair
+
+The first safe-deploy invocation was intentionally a read-only plan: its
+output described the intended Runtime fingerprint but did not copy files.
+Direct post-plan SHA-256 reads found the prior binaries, so no controlled
+sample was started.  The existing apply path was then invoked with its exact
+confirmation and the required restart of the existing health service.
+
+Deployment `deploy-z8-14-Updatesystem-9a89565-20260826T100805` is independently
+confirmed: local, GitHub and Runtime now match commit
+`9a895658428df2111dcc3c0734ccdd23926d9292`; `v7-health.service` is active;
+the legacy standalone Matrix and Telegram timers remain inactive.
+
+The first controlled preparation stopped before mutation with
+`ct_m0f_condition_fingerprint_binding_changed`.  Two immediately repeated
+read-only selections proved that the source, user and target stayed the same
+while the preparation fingerprint changed.  The sole volatile contributor was
+the target's ordinary fresh health observation.  That observation belongs to
+the post-T0 Matrix/Planner selection, not to the pre-T0 certification
+identity/source reservation.
+
+The bounded repair keeps the exact selected target identifier in the
+preparation contract but excludes only its volatile observation fingerprint
+until post-T0.  After T0, the existing Matrix/Planner owner still selects and
+validates the target afresh.  A regression test changes that target observation
+between two otherwise identical preparations and proves the reservation
+fingerprint remains stable; `116` service-failure tests and `200` autoswitch
+policy tests pass (`316` total).  No ordinary user, route, timer, Authority or
+S11 rule changed.
+
 ## Next measurement
 
-Publish the diagnostic-only change through the safe deploy gate, prove local,
-GitHub and Runtime alignment, then obtain one controlled valid sample.  Its
-full timeline decides whether any recurring, safe cause over 100 ms exists;
+Publish the bounded preparation repair through the safe deploy gate, prove
+local, GitHub and Runtime alignment, then obtain one controlled valid sample.
+Its full timeline decides whether any recurring, safe cause over 100 ms exists;
 there is no performance patch before that causal comparison.

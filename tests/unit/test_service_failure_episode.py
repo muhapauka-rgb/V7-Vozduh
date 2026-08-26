@@ -1472,6 +1472,13 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 with_unrelated_failure = (
                     self.autoswitch.ct_m0f_standing_source_selection_only(args)
                 )
+                # The preparation reservation protects source/identity.
+                # Target health is reselected after T0, so a fresh ordinary
+                # target probe must not invalidate the pre-T0 preparation.
+                target["health"]["observation_fingerprint"] = "target-health-next"
+                with_fresh_target_observation = (
+                    self.autoswitch.ct_m0f_standing_source_selection_only(args)
+                )
 
         self.assertTrue(result["ok"], result)
         self.assertEqual(
@@ -1489,6 +1496,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertTrue(with_unrelated_failure["ok"], with_unrelated_failure)
         self.assertEqual(
             with_unrelated_failure["sample_binding_fingerprint"],
+            result["sample_binding_fingerprint"],
+        )
+        self.assertTrue(
+            with_fresh_target_observation["ok"],
+            with_fresh_target_observation,
+        )
+        self.assertEqual(
+            with_fresh_target_observation["sample_binding_fingerprint"],
             result["sample_binding_fingerprint"],
         )
 

@@ -27230,12 +27230,22 @@ def ct_m0f_standing_source_selection_only(
             if str(row.get("source_id") or "") == selected_source
         ],
         "controlled_source_topology_predecessor": topology_predecessor,
-        "target_observation_fingerprint": str(
-            (selected_target_projection.get("baseline_health") or
-             selected_target_projection.get("health") or {}).get(
-                "observation_fingerprint"
+        # Preparation protects the identity/source envelope only.  The
+        # target is deliberately selected again after T0 by the existing
+        # Matrix/Planner owner, so a fresh target observation cannot be a
+        # pre-T0 equality token: it changes on every normal probe and would
+        # make an otherwise identical controlled preparation impossible.
+        # Keep that observation bound for the post-T0 execution selection.
+        "target_observation_fingerprint": (
+            str(
+                (selected_target_projection.get("baseline_health") or
+                 selected_target_projection.get("health") or {}).get(
+                    "observation_fingerprint"
+                )
+                or ""
             )
-            or ""
+            if selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+            else ""
         ),
     }
     projection = {

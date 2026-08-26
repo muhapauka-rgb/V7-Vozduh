@@ -12766,13 +12766,17 @@ def prepare_ct_m0f_standing_controlled_condition(
         ("source", "selected_source_id"),
         ("target", "selected_target_id"),
     ):
+        # In-place preparation protects the exact certification identity and
+        # source before T0.  A distinct target does not exist yet: selecting
+        # it only after the controlled failure is the current Matrix/Planner
+        # contract.  Do not invent or pin one before that owner decision.
+        if field == "target" and not expected[field]:
+            continue
         if expected[field] != str(selection.get(selection_field) or ""):
             blockers.append(f"ct_m0f_condition_{field}_binding_changed")
     fresh_sample_binding_fingerprint = str(
         selection.get("sample_binding_fingerprint") or ""
     )
-    if len(fresh_sample_binding_fingerprint) != 64:
-        blockers.append("ct_m0f_condition_fresh_binding_fingerprint_missing")
     source_lines = [
         line
         for line in (state_dir / "egress.registry").read_text(
@@ -12805,6 +12809,23 @@ def prepare_ct_m0f_standing_controlled_condition(
     )
     if len(source_lines) != 1:
         blockers.append("ct_m0f_condition_source_registry_identity_not_exact")
+    # PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE has no post-T0 target
+    # selection receipt by design.  Bind the bounded pre-T0 reservation to
+    # the exact immutable source registry row instead; the later Packet/Lease
+    # records the fresh Matrix target receipt before Apply is admitted.
+    pre_t0_binding_kind = "MATRIX_SELECTION_RECEIPT"
+    if (
+        not fresh_sample_binding_fingerprint
+        and not expected["target"]
+        and selection_mode == "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE"
+        and len(source_lines) == 1
+    ):
+        fresh_sample_binding_fingerprint = hashlib.sha256(
+            source_lines[0].encode()
+        ).hexdigest()
+        pre_t0_binding_kind = "SOURCE_REGISTRY_IDENTITY"
+    if len(fresh_sample_binding_fingerprint) != 64:
+        blockers.append("ct_m0f_condition_fresh_binding_fingerprint_missing")
     if not source_users or source_users != exact_certification_users:
         blockers.append("ct_m0f_condition_source_scope_not_certification_only")
     if expected["user"] not in exact_certification_users:
@@ -13090,6 +13111,7 @@ def prepare_ct_m0f_standing_controlled_condition(
             "source": expected["source"],
             "baseline_target": expected["target"],
             "sample_binding_fingerprint": fresh_sample_binding_fingerprint,
+            "pre_t0_binding_kind": pre_t0_binding_kind,
             "requested_sample_binding_fingerprint": expected[
                 "requested_fingerprint"
             ],

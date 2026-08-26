@@ -4504,6 +4504,46 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertTrue(governed["ok"])
         self.assertFalse(stale_pre_t0_target["ok"])
 
+    def test_ct_m0f_post_t0_transaction_reserves_identity_before_target_exists(self):
+        now = datetime(2026, 8, 25, 9, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / "policy.json"
+            audit = root / "operator-execution-audit.jsonl"
+            policy.write_text("{}\n", encoding="utf-8")
+            request = operator_execution.build_ct_m0f_standing_validation_authority_request(
+                policy_generation_hash=operator_execution.sha256_file(policy), now=now,
+            )
+            operator_execution.register_ct_m0f_standing_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            contract = operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy, request_id=request["request_id"], request_hash=request["request_hash"],
+                decision=operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test", audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )["contract"]
+            reserved = operator_execution.reserve_ct_m0f_standing_validation_transaction(
+                contract=contract, implementation_fingerprint="f" * 64,
+                user="10.7.0.18", source="exec-source", target="",
+                sample_binding_fingerprint="b" * 64,
+                source_reservation_id="source-reservation", source_fingerprint="c" * 64,
+                target_binding_mode="POST_T0_OWNER_SELECTED", audit_store=audit,
+                now=now + timedelta(seconds=3),
+            )
+            bound = operator_execution.bind_ct_m0f_standing_validation_transaction(
+                transaction_reservation_id=reserved["reservation"]["transaction_reservation_id"],
+                packet_id="packet-exact", operation_id="operation-exact", lease_id="lease-exact",
+                target="awg3", matrix_sample_binding_fingerprint="d" * 64,
+                audit_store=audit, now=now + timedelta(seconds=4),
+            )
+
+        self.assertTrue(reserved["ok"])
+        self.assertEqual(reserved["reservation"]["target"], "")
+        self.assertTrue(bound["ok"])
+        self.assertEqual(bound["binding"]["prepared_target"], "")
+        self.assertEqual(bound["binding"]["target"], "awg3")
+
     def test_ct_m0f_topology_request_uses_active_standing_contract_basis(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
         manifest = {

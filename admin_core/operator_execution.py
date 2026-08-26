@@ -2762,16 +2762,24 @@ def reserve_ct_m0f_standing_validation_transaction(
     }
     missing = [
         f"ct_m0f_transaction_{key}_missing"
-        for key, value in required.items() if not value
+        for key, value in required.items()
+        if not (
+            key == "target"
+            and target_binding_mode == "POST_T0_OWNER_SELECTED"
+        )
+        and not value
     ]
-    if missing or required["source"] == required["target"]:
+    source_target_collision = bool(
+        required["target"] and required["source"] == required["target"]
+    )
+    if missing or source_target_collision:
         return {
             "ok": False,
             "status": "STOP_SAFE",
             "errors": sorted(set(
                 missing + (
                     ["ct_m0f_transaction_source_target_collision"]
-                    if required["source"] == required["target"] else []
+                    if source_target_collision else []
                 )
             )),
             "audit_write": False,

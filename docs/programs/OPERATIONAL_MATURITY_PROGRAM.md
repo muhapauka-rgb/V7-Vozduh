@@ -8169,10 +8169,10 @@ Historical details:
 Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
-Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
-Resolved contract state: CPS records the frozen deployed prepared-projection freshness correction (`e4106fd647978adf481d78201ed10a183a130fcb`; `deploy-z8-14-Updatesystem-e4106fd-20260826T023921`). The isolated source was restored and one new cold controlled path completed with unchanged S11 semantics at `2696.992 ms` control-plane/kernel cutover and `1746.435 ms` failure-to-decision. This is one valid sample, not an SLO conclusion: the Program is `FROZEN_HARD_PATH_SERIES_PENDING`, with four more homogeneous controlled samples required before the existing 3 s P95 / 5 s individual gate can open Telegram or N10. No automatic micro-patch is admitted during that series. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Execution Authority: `OWNER_DECISION_REQUIRED`
+Resolved current stop: `HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED`
+Resolved current next action: `OWNER_DECISION_REQUIRED_HARD_PATH_3S_2VCPU`
+Resolved contract state: CPS records the frozen deployed prepared-projection freshness correction (`e4106fd647978adf481d78201ed10a183a130fcb`; `deploy-z8-14-Updatesystem-e4106fd-20260826T023921`) and its completed homogeneous proof. Five certification-only, functionally valid S11-preserving samples on fingerprint `ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3` were 2696.992, 4114.938, 4449.524, 4893.144 and 5014.885 ms. Nearest-rank P95 is 5014.885 ms and one valid sample breaches the 5 s ceiling. The Program terminal is therefore `HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED`; automatic performance patching, Telegram, N10 and N11 are not admitted. The prior no-resize constraint leaves an owner choice between an explicit SLO disposition and a materially different control-plane architecture. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 

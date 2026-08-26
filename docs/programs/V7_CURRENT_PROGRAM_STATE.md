@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-26T17:28:00+03:00
+State captured: 2026-08-26T23:25:00+03:00
 Latest terminal Mission: `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION`
 Latest terminal Mission state: `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md`
@@ -40,7 +40,8 @@ This section is the single live volatile current-state surface. Older production
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
-| `STATE_CAPTURED` | `2026-08-26T17:28:00+03:00` |
+| `STATE_CAPTURED` | `2026-08-26T23:25:00+03:00` |
+| `LATEST_SUPPORTING_LIFECYCLE_RECONCILIATION` | `EXPIRED_CT_M0F_CERTIFICATION_SOURCE_RESERVATION_RECONCILED: exact identity 10.7.0.108 returned to awg0 through the existing governed chain; source restored to exact owner backup with zero occupants; reservation ctres_d899f66f641229141922acc7 invalidated as cstopinv_a32b6ddde10fe43fb8563bc7; ordinary-user delta=0. This closes supporting lifecycle state only and does not alter the N10 frontier. Report: docs/reports/engineering/2026-08-26_v5_3_telegram_critical_latency_root_cause_and_safe_reduction.md` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
 | `CURRENT_SAFE_NEXT_ACTION` | `WAITING_INPUT:N10_PRODUCT_AUTHORITY_COHORT_CONTRACT: the Telegram certification-only handoff diagnostic is deployed and consumed. One fresh automatic Candidate -> Packet -> Lease -> Apply -> route -> required-service S11 proof passed functionally, but took 25,354.419 ms and fails the current Telegram 8 s performance ceiling. The isolated client and temporary profile are reset; ordinary-user delta=0. Do not restart a performance patch loop. N10 requires a separate exact product-owner ordinary-like cohort scope before any ordinary movement; N11 remains read-only with no safe deletion admitted.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |

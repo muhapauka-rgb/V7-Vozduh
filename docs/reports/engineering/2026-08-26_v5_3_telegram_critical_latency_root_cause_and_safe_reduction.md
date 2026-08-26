@@ -238,3 +238,61 @@ After the current-state cleanup gate was applied, the fresh Packet, Lease and re
 The existing `v7-users-autoswitch` owner now receives one explicit `controlled-engineering-cleanup` scope from the governed caller.  It proves one immutable Packet/Lease binding, one enabled registry-marked certification identity, its current reserved controlled source, and the already Packet-bound enabled baseline target.  It then suppresses only the unrelated-incident source comparison and keeps selected-user route verification.  It cannot be inferred by ordinary or emergency routing, cannot select a different user/source/target, and does not accept an ordinary identity.  A focused scope test confirms that a shared baseline with ordinary users does not widen the permitted move; the return still contains only the certification identity.
 
 The previous two live attempts remain invalid setup/cleanup attempts: both stopped before route mutation.  The next operation is deploy → repeat the same exact cleanup once → verify source release and baseline route.  Telegram proof is still not started and receives no credit.
+
+## Terminal cleanup consumed and program-frontier reconciliation (2026-08-26 23:00 MSK)
+
+The exact cleanup has now completed.  This section supersedes the preceding
+"next operation" paragraph; it is a lifecycle closure, not a new Telegram
+experiment and not SLO evidence.
+
+The final implementation retained the same existing owners.  Commit
+`3801c24c` preserves the action class stored in the exact governed cleanup
+window: it is one controlled user return, not a broad emergency action.  Commit
+`3952b928` completes an interrupted terminal release safely.  It proves the
+post-release source against the exact backup produced by the existing egress
+owner and appends only the missing invalidation.  It never repeats a route
+move.  This matters because execution-only properties such as
+`execution_reserved` are permanent source attributes, whereas the removed
+per-campaign reservation markers are temporary.
+
+Both commits were published and safely deployed.  Focused tests: **487
+passing** (148 governed-canary CLI, 202 autoswitch policy, 137
+lifecycle/service-failure).  Local, GitHub and deployed code are aligned at
+`3952b9286bf2def602ed91d59f924eb6cd9764b6`.
+
+Live owner-backed terminal evidence:
+
+| Item | Result |
+| --- | --- |
+| governed return | `GOVERNED_TRANSACTION_COMPLETED` |
+| exact route/service verification | `PASS` |
+| certification identity | `10.7.0.108`: execution source -> `awg0` |
+| ordinary-user delta | `0` |
+| source occupants after return | `0` |
+| exact owner-backup match | `true` |
+| old reservation invalidated | `cstopinv_a32b6ddde10fe43fb8563bc7` |
+| Runtime health | `v7-health.service` active |
+
+Direct Linux evidence for the returned identity is consistent: rule
+`from 10.7.0.108 lookup 1106`, table `1106` default device `awg0`, and route
+lookup from that identity selects `awg0`.
+
+The legacy global `v7-user-route-check` utility emitted a global failure while
+scanning every registry user, despite this direct exact policy-route evidence.
+It has no single-user interface and is not the governed transaction verifier;
+the discrepancy is retained as a diagnostic observation and was not used to
+claim a pass.
+
+### Current program frontier
+
+This cleanup closes the interrupted source lifecycle, but it does not reopen
+Telegram performance work.  Fresh CPS remains authoritative: Telegram
+certification-only S11 is functionally proven at `25,354.419 ms`, above the
+active 8-second ceiling.  The test client/profile are clean and ordinary-user
+delta remains zero.
+
+The exact remaining frontier is `N10_PRODUCT_AUTHORITY_COHORT_CONTRACT`.
+It requires a separate, explicit product-owner ordinary-like cohort scope
+before any ordinary identity can be selected, moved or counted as evidence.
+Engineering deploy authority does not supply that product scope.  N11 remains
+read-only; no safe deletion is admitted.

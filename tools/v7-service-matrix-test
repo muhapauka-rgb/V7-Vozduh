@@ -1067,14 +1067,33 @@ def tcp_connect_sample(host: str, port: int, iface: str, timeout: float, require
     return sample
 
 
-def run_telegram_check(iface: str, timeout: int) -> dict[str, Any]:
+def run_telegram_check(
+    iface: str,
+    timeout: int,
+    *,
+    required_endpoints_only: bool = False,
+) -> dict[str, Any]:
+    """Check Telegram through the existing Matrix owner.
+
+    The normal Matrix surface deliberately retains both required and optional
+    endpoints.  A governed S11 transaction has a narrower, explicit contract:
+    it must prove every required Telegram endpoint for the selected profile,
+    not wait for optional diagnostic endpoints or unrelated services.  That
+    contract is observation-only (enforced by ``main``), so it cannot replace
+    or dilute the canonical full-Matrix health projection.
+    """
     started = time.time()
     per_endpoint_timeout = max(1.0, min(float(timeout), 4.0))
+    endpoints = (
+        tuple(item for item in TELEGRAM_ENDPOINTS if item[2])
+        if required_endpoints_only
+        else TELEGRAM_ENDPOINTS
+    )
     samples: list[dict[str, Any]] = []
-    with ThreadPoolExecutor(max_workers=len(TELEGRAM_ENDPOINTS) or 1) as pool:
+    with ThreadPoolExecutor(max_workers=len(endpoints) or 1) as pool:
         futures = [
             pool.submit(tcp_connect_sample, host, port, iface, per_endpoint_timeout, required)
-            for host, port, required in TELEGRAM_ENDPOINTS
+            for host, port, required in endpoints
         ]
         for future in as_completed(futures):
             try:
@@ -1120,13 +1139,24 @@ def run_telegram_check(iface: str, timeout: int) -> dict[str, Any]:
         "required_total": len(required),
         "failed_count": len(failed),
         "required_failed_count": len(required_failed),
+        "probe_scope": (
+            "REQUIRED_PROFILE_ENDPOINTS_ONLY"
+            if required_endpoints_only
+            else "FULL_TELEGRAM_SERVICE_DIAGNOSTIC"
+        ),
         "reason": reason,
         "error": "" if ok else reason,
         "samples": samples,
     }
 
 
-def run_service(service_id: str, iface: str, timeout: int) -> dict[str, Any]:
+def run_service(
+    service_id: str,
+    iface: str,
+    timeout: int,
+    *,
+    required_endpoints_only: bool = False,
+) -> dict[str, Any]:
     meta = SERVICE_CATALOG.get(service_id)
     if not meta:
         return {
@@ -1138,7 +1168,11 @@ def run_service(service_id: str, iface: str, timeout: int) -> dict[str, Any]:
             "reason": "service is not in builtin catalog",
         }
     if meta.get("kind") == "telegram_tcp":
-        return run_telegram_check(iface, timeout)
+        return run_telegram_check(
+            iface,
+            timeout,
+            required_endpoints_only=required_endpoints_only,
+        )
     return run_curl_check(service_id, meta, iface, timeout)
 
 
@@ -1841,6 +1875,16 @@ def build_parser() -> argparse.ArgumentParser:
             "for confirmation before any state transition."
         ),
     )
+    parser.add_argument(
+        "--required-endpoints-only",
+        action="store_true",
+        help=(
+            "For one exact Telegram S11 probe, test every required Telegram "
+            "endpoint but no optional diagnostic endpoint. Requires "
+            "--services telegram and --probe-observation-only so canonical "
+            "full-Matrix semantics are never changed."
+        ),
+    )
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -1893,6 +1937,16 @@ def main() -> int:
         selected = exact_services_to_run(service, str(args.services or ""))
     except ValueError as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=False))
+        return 2
+    if args.required_endpoints_only and (
+        not args.probe_observation_only or selected != ["telegram"]
+    ):
+        print(json.dumps({
+            "error": "required_endpoints_only_requires_observation_only_exact_telegram",
+            "status": "STOP_SAFE",
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }, ensure_ascii=False))
         return 2
     row = egress_row(state_dir, egress_id)
     identity = canonical_egress_identity(row, egress_id=egress_id, iface=iface)
@@ -2081,7 +2135,16 @@ def main() -> int:
     else:
         results = {}
         with ThreadPoolExecutor(max_workers=max(1, min(len(selected), 8))) as pool:
-            futures = {pool.submit(run_service, service_id, iface, timeout): service_id for service_id in selected}
+            futures = {
+                pool.submit(
+                    run_service,
+                    service_id,
+                    iface,
+                    timeout,
+                    required_endpoints_only=bool(args.required_endpoints_only),
+                ): service_id
+                for service_id in selected
+            }
             for future in as_completed(futures):
                 service_id = futures[future]
                 try:

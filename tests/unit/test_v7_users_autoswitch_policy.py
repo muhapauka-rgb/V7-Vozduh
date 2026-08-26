@@ -5060,6 +5060,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             captured["command"][captured["command"].index("--services") + 1],
             "telegram",
         )
+        self.assertIn("--required-endpoints-only", captured["command"])
+        self.assertIn("--probe-observation-only", captured["command"])
         self.assertEqual(captured["command"][captured["command"].index("--lock-timeout-sec") + 1], "17")
         self.assertEqual(captured["timeout"], 27)
 

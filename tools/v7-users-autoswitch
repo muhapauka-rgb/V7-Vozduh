@@ -19441,6 +19441,17 @@ class AutoswitchPlanner:
                 "--timeout", str(timeout_sec),
                 "--lock-timeout-sec", str(lock_timeout_sec),
             ])
+            # S11 is a profile contract, not a full diagnostic Matrix pass.
+            # Telegram has several optional diagnostic endpoints which are
+            # intentionally retained for the regular Matrix but cannot delay
+            # a governed recovery after all mandatory Telegram endpoints have
+            # succeeded.  The existing Matrix owner enforces this exact scope
+            # as observation-only, preserving canonical Matrix semantics.
+            if services == ["telegram"]:
+                command.extend([
+                    "--required-endpoints-only",
+                    "--probe-observation-only",
+                ])
         else:
             # A profile with no declared application service still requires a
             # fresh channel/path proof before the exact payload check, but it

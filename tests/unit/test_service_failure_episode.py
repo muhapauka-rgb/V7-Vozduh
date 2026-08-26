@@ -46,6 +46,29 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid_service_subset"):
             self.matrix.exact_services_to_run("all", "telegram,unknown")
 
+    def test_telegram_required_endpoint_scope_excludes_optional_diagnostics(self):
+        calls = []
+
+        def fake_tcp(host, port, iface, timeout, required):
+            calls.append((host, port, iface, timeout, required))
+            return {
+                "target": f"{host}:{port}", "ok": True, "required": required,
+                "connect_ms": 1.0,
+            }
+
+        with mock.patch.object(self.matrix, "tcp_connect_sample", side_effect=fake_tcp):
+            result = self.matrix.run_telegram_check(
+                "polygon0", 3, required_endpoints_only=True,
+            )
+
+        required_endpoints = [item for item in self.matrix.TELEGRAM_ENDPOINTS if item[2]]
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["probe_scope"], "REQUIRED_PROFILE_ENDPOINTS_ONLY")
+        self.assertEqual(result["required_total"], len(required_endpoints))
+        self.assertEqual(result["total"], len(required_endpoints))
+        self.assertEqual(len(calls), len(required_endpoints))
+        self.assertTrue(all(row[4] for row in calls))
+
     def test_matrix_observation_only_stops_before_event_and_downstream_consumers(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

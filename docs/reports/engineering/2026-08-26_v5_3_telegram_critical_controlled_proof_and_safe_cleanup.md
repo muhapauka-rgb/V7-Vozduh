@@ -91,15 +91,18 @@ change remains.
 
 ## Exact next step
 
-The completed block is
-`TELEGRAM_CRITICAL_CONTROLLED_FUNCTIONAL_PROOF_AND_SAFE_CLEANUP`.
-Repeating client movements merely to make a five-sample distribution remains
-forbidden.
+This block is now consumed by commit
+`74cd3f952ce8adc7747a0495d4b04888ccef1a72`: the fresh post-T0 owner-selected
+target is carried into the prepared handoff without manual selection. A second
+fully cleaned controlled transaction used that branch (`prepared_decision_reused`
+was true; candidate validation was 0.671 ms) and no longer rebuilt the world
+model or fell back to the full Planner. It exposed a distinct next residual:
+the S11 command still included optional Telegram diagnostic endpoints, one of
+which waited about four seconds despite all required Telegram endpoints passing.
 
-The next legal execution is one bounded reconciliation in the existing Matrix
-prepared-decision and Planner consumer: carry the post-T0 owner-selected target
-through the fresh prepared handoff without manual target selection and retain
-every mutable check. It must be proven by focused tests, one controlled sample
-and full cleanup. N10 remains independently blocked: it requires its own
+That is a separate exact-S11 scope reconciliation, recorded in
+`2026-08-26_v5_3_telegram_critical_required_service_s11_scope_reconciliation.md`.
+Repeating client movements merely to manufacture a distribution remains
+forbidden. N10 remains independently blocked: it requires its own
 owner-admitted ordinary-like/cohort contract and must not borrow this
 controlled Telegram evidence.

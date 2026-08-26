@@ -8987,6 +8987,53 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(result["reason"], "n10_packet_bound_restore_barrier_required")
         self.assertEqual(result["user_movement"], 0)
 
+    def test_n10_packet_opens_and_finalizes_exact_execution_control_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            control_file = root / "safe-mode.json"
+            operator_execution.write_json_atomic(
+                control_file,
+                operator_execution.build_autonomous_execution_control_state(
+                    True, actor="unit-test", reason="idle_fail_closed"
+                ),
+            )
+            planner = object.__new__(self.tool.AutoswitchPlanner)
+            planner.args = SimpleNamespace(
+                execution_control_file=str(control_file),
+                approved_source_bundle_hash="",
+                approved_snapshot_bundle_hash="",
+            )
+            planner._n10_execution_control_window = {}
+            plan = {
+                "safety": {
+                    "restore_barrier": {
+                        "approved_source_bundle_hash": "source-bundle",
+                        "approved_snapshot_bundle_hash": "snapshot-bundle",
+                    }
+                }
+            }
+            window = planner._open_n10_execution_control_window(
+                plan,
+                operation_id="govexec_unit",
+                selected_move_hash="selected-unit",
+                action_class="BOUNDED_REBALANCE",
+            )
+            closed = operator_execution.autonomous_execution_control_state(control_file)
+            finalization = operator_execution.finalize_autonomous_execution_control_window(
+                control_file,
+                expected_generation=window["control"]["generation"],
+                operation_id="govexec_unit",
+                actor="unit-test",
+                reason="terminal",
+            )
+
+        self.assertTrue(window["ok"], window)
+        self.assertTrue(window["decision"]["allowed_forward_mutation"])
+        self.assertEqual(closed["state"], "CLOSED")
+        self.assertEqual(closed["scope"], "operation")
+        self.assertTrue(finalization["final_open"])
+        self.assertEqual(finalization["after"]["state"], "OPEN")
+
     def test_apply_uses_valid_approved_lock_moves_when_fresh_plan_selected_moves_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

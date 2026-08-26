@@ -4567,6 +4567,7 @@ class AutoswitchPlanner:
             self.reconnect_events = self._observe_reconnect_events()
         self._routing_intelligence_cache = {}
         self._active_execution_control = {}
+        self._n10_execution_control_window = {}
         self.controlled_campaign_target_admission = (
             controlled_campaign_execution_target_admission(apply_args)
         )
@@ -5800,6 +5801,117 @@ class AutoswitchPlanner:
             snapshot_bundle_hash=snapshot_bundle_hash,
             max_users=max_users,
         )
+
+    def _open_n10_execution_control_window(
+        self,
+        plan: dict[str, Any],
+        *,
+        operation_id: str,
+        selected_move_hash: str,
+        action_class: str,
+    ) -> dict[str, Any]:
+        """Open one existing-owner control window for a Packet-bound N10 apply.
+
+        The global control file is normally OPEN (fail closed for forward
+        mutation).  A valid N10 Packet/Lease/Barrier is the sole authority to
+        create its short, operation-bound CLOSED window; the normal CLI
+        finalizer returns it to OPEN after the terminal result.
+        """
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        barrier = (
+            safety.get("restore_barrier")
+            if isinstance(safety.get("restore_barrier"), dict)
+            else {}
+        )
+        source_bundle_hash = str(
+            getattr(self.args, "approved_source_bundle_hash", "")
+            or barrier.get("approved_source_bundle_hash")
+            or ""
+        )
+        snapshot_bundle_hash = str(
+            getattr(self.args, "approved_snapshot_bundle_hash", "")
+            or barrier.get("approved_snapshot_bundle_hash")
+            or ""
+        )
+        control_path = Path(
+            getattr(self.args, "execution_control_file", DEFAULT_EXECUTION_CONTROL_FILE)
+        )
+        missing = [
+            name
+            for name, value in {
+                "operation_id": operation_id,
+                "selected_move_hash": selected_move_hash,
+                "action_class": action_class,
+                "source_bundle_hash": source_bundle_hash,
+                "snapshot_bundle_hash": snapshot_bundle_hash,
+            }.items()
+            if not str(value or "")
+        ]
+        before = operator_execution.autonomous_execution_control_state(control_path)
+        if missing or not before.get("valid") or before.get("state") != "OPEN":
+            return {
+                "ok": False,
+                "reason": "n10_execution_control_window_not_open",
+                "missing": missing,
+                "before": before,
+                "runtime_mutation": False,
+            }
+        control = operator_execution.build_autonomous_execution_control_state(
+            False,
+            actor="tools/v7-users-autoswitch:n10-ordinary-like",
+            reason="n10_packet_bound_single_device_apply",
+            operation_id=operation_id,
+            selected_move_hash=selected_move_hash,
+            action_class=action_class,
+            source_bundle_hash=source_bundle_hash,
+            snapshot_bundle_hash=snapshot_bundle_hash,
+            max_users=1,
+        )
+        operator_execution.write_json_atomic(control_path, control)
+        decision = self._execution_control_decision(
+            mutation_kind="forward",
+            action_class=action_class,
+            expected_generation=str(control.get("generation") or ""),
+            operation_id=operation_id,
+            selected_move_hash=selected_move_hash,
+            source_bundle_hash=source_bundle_hash,
+            snapshot_bundle_hash=snapshot_bundle_hash,
+            max_users=1,
+        )
+        if not decision.get("allowed_forward_mutation"):
+            finalization = operator_execution.finalize_autonomous_execution_control_window(
+                control_path,
+                expected_generation=str(control.get("generation") or ""),
+                operation_id=operation_id,
+                actor="tools/v7-users-autoswitch:n10-ordinary-like",
+                reason="n10_control_window_pre_apply_stop_safe",
+            )
+            return {
+                "ok": False,
+                "reason": "n10_execution_control_window_validation_failed",
+                "before": before,
+                "control": control,
+                "decision": decision,
+                "finalization": finalization,
+                "runtime_mutation": False,
+            }
+        window = {
+            "ok": True,
+            "before": before,
+            "control": control,
+            "decision": decision,
+            "source_bundle_hash": source_bundle_hash,
+            "snapshot_bundle_hash": snapshot_bundle_hash,
+            "max_users": 1,
+            "owner": "admin_core.operator_execution",
+            "new_owner_created": False,
+        }
+        self._n10_execution_control_window = {
+            "path": str(control_path),
+            "generation": str(control.get("generation") or ""),
+            "operation_id": operation_id,
+        }
+        return window
 
     def _switch_policy(self) -> dict[str, Any]:
         sw = merge_defaults((self.policy or {}).get("switch", {}), DEFAULT_SWITCH_POLICY)
@@ -17155,15 +17267,61 @@ class AutoswitchPlanner:
                     "runtime_mutation": False,
                     "user_movement": 0,
                 }
+        action_class = self._execution_action_class(
+            (plan.get("selected_moves") or [{}])[0].get("move_type", "")
+        )
+        execution_control_bindings = {
+            "expected_generation": str(
+                getattr(self.args, "approved_breaker_generation", "") or ""
+            ),
+            "source_bundle_hash": str(
+                getattr(self.args, "approved_source_bundle_hash", "") or ""
+            ),
+            "snapshot_bundle_hash": str(
+                getattr(self.args, "approved_snapshot_bundle_hash", "") or ""
+            ),
+            "max_users": max(0, to_int(getattr(self.args, "max_selected_moves", 0), 0)),
+        }
+        if n10_product_contract:
+            n10_window = self._open_n10_execution_control_window(
+                plan,
+                operation_id=control_operation_id,
+                selected_move_hash=selected_hash,
+                action_class=action_class,
+            )
+            plan.setdefault("safety", {})["n10_execution_control_window"] = n10_window
+            if not n10_window.get("ok"):
+                return {
+                    "applied": False,
+                    "reason": str(
+                        n10_window.get("reason")
+                        or "n10_execution_control_window_stop_safe"
+                    ),
+                    "execution_control_window": n10_window,
+                    "runtime_mutation": False,
+                    "user_movement": 0,
+                }
+            execution_control_bindings = {
+                "expected_generation": str(
+                    (n10_window.get("control") or {}).get("generation") or ""
+                ),
+                "source_bundle_hash": str(
+                    n10_window.get("source_bundle_hash") or ""
+                ),
+                "snapshot_bundle_hash": str(
+                    n10_window.get("snapshot_bundle_hash") or ""
+                ),
+                "max_users": 1,
+            }
         entry_control = self._execution_control_decision(
             mutation_kind="forward",
-            action_class=self._execution_action_class((plan.get("selected_moves") or [{}])[0].get("move_type", "")),
-            expected_generation=str(getattr(self.args, "approved_breaker_generation", "") or ""),
+            action_class=action_class,
+            expected_generation=execution_control_bindings["expected_generation"],
             operation_id=control_operation_id,
             selected_move_hash=selected_hash,
-            source_bundle_hash=str(getattr(self.args, "approved_source_bundle_hash", "") or ""),
-            snapshot_bundle_hash=str(getattr(self.args, "approved_snapshot_bundle_hash", "") or ""),
-            max_users=max(0, to_int(getattr(self.args, "max_selected_moves", 0), 0)),
+            source_bundle_hash=execution_control_bindings["source_bundle_hash"],
+            snapshot_bundle_hash=execution_control_bindings["snapshot_bundle_hash"],
+            max_users=execution_control_bindings["max_users"],
         )
         plan.setdefault("safety", {})["autonomous_execution_control"] = entry_control
         plan.setdefault("safety", {})[
@@ -17180,9 +17338,9 @@ class AutoswitchPlanner:
                 approved_binding_mismatches.append("selected_move_hash")
             if operation_binding.get("status") != "BOUND":
                 approved_binding_mismatches.append("operation_scoped_binding")
-            if str(getattr(self.args, "approved_source_bundle_hash", "") or "") != str(operation_binding.get("source_bundle_hash") or ""):
+            if execution_control_bindings["source_bundle_hash"] != str(operation_binding.get("source_bundle_hash") or ""):
                 approved_binding_mismatches.append("source_bundle_hash")
-            if str(getattr(self.args, "approved_snapshot_bundle_hash", "") or "") != str(operation_binding.get("snapshot_bundle_hash") or ""):
+            if execution_control_bindings["snapshot_bundle_hash"] != str(operation_binding.get("snapshot_bundle_hash") or ""):
                 approved_binding_mismatches.append("snapshot_bundle_hash")
         if approved_binding_mismatches:
             return {
@@ -17350,9 +17508,9 @@ class AutoswitchPlanner:
                 expected_generation=str(entry_control.get("generation") or ""),
                 operation_id=control_operation_id,
                 selected_move_hash=selected_hash,
-                source_bundle_hash=str(getattr(self.args, "approved_source_bundle_hash", "") or ""),
-                snapshot_bundle_hash=str(getattr(self.args, "approved_snapshot_bundle_hash", "") or ""),
-                max_users=max(0, to_int(getattr(self.args, "max_selected_moves", 0), 0)),
+                source_bundle_hash=execution_control_bindings["source_bundle_hash"],
+                snapshot_bundle_hash=execution_control_bindings["snapshot_bundle_hash"],
+                max_users=execution_control_bindings["max_users"],
             )
             self._record_performance_span(
                 "pre_apply_fresh_state_validation",
@@ -17742,6 +17900,24 @@ class AutoswitchPlanner:
         learning_started_ns = time.monotonic_ns()
         plan["l3_learning_closure"] = self._l3_materialize_learning_closure(plan)
         record_finalization_span("finalization_learning_closure", learning_started_ns)
+        n10_window = getattr(self, "_n10_execution_control_window", {})
+        if isinstance(n10_window, dict) and n10_window.get("generation"):
+            control_finalization_started_ns = time.monotonic_ns()
+            finalization = operator_execution.finalize_autonomous_execution_control_window(
+                Path(str(n10_window.get("path") or DEFAULT_EXECUTION_CONTROL_FILE)),
+                expected_generation=str(n10_window.get("generation") or ""),
+                operation_id=str(n10_window.get("operation_id") or ""),
+                actor="tools/v7-users-autoswitch:n10-ordinary-like",
+                reason=str(operation.get("terminal_reason") or "n10_packet_bound_terminal"),
+            )
+            plan.setdefault("safety", {})[
+                "n10_execution_control_finalization"
+            ] = finalization
+            record_finalization_span(
+                "finalization_n10_execution_control_window",
+                control_finalization_started_ns,
+            )
+            self._n10_execution_control_window = {}
         return plan
 
     def _consume_passive_production_events(self) -> dict[str, Any]:

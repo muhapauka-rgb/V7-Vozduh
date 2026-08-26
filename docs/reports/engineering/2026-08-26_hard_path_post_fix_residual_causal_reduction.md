@@ -6,8 +6,9 @@ Run Nonce: `v53_hard_path_post_fix_residual_20260826`
 **Date:** 2026-08-26  
 **Program:** `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM`  
 **Mission:** `V7_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION`  
-**State:** instrumentation implemented locally and verified; publication and
-controlled evidence are the next gated step
+**State:** `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`; instrumentation,
+publication, deployment and the frozen five-sample controlled series are
+complete.  The next step is an owner product/architecture decision.
 
 ## Owner decision and scope
 

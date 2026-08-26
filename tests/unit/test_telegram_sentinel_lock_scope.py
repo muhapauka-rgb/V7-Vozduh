@@ -482,6 +482,28 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
         self.assertTrue(result["requested"])
         run.assert_called_once()
 
+    def test_canonical_event_handoff_keeps_certification_scope_classification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            events = root / "service-failure-events.jsonl"
+            events.write_text(json.dumps({
+                "event_id": "sfe_certification", "event_type": "SERVICE_FAILURE_OBSERVED",
+                "channel": "execution-only", "source_incident_id": "sfinc_certification",
+                "source_scope": {
+                    "scope_classification": "CERTIFICATION_ONLY",
+                    "affected_scope_count": 0,
+                    "controlled_certification_scope": {"affected_scope_count": 1},
+                },
+            }) + "\n", encoding="utf-8")
+            rows = self.sentinel.canonical_service_events(
+                root, {"sfe_certification"}
+            )
+        self.assertEqual(rows[0]["source_scope"]["scope_classification"], "CERTIFICATION_ONLY")
+        self.assertEqual(
+            rows[0]["source_scope"]["controlled_certification_scope"]["affected_scope_count"],
+            1,
+        )
+
     def test_fast_failure_does_not_wake_for_revalidation_or_zero_scope(self):
         with mock.patch.object(self.sentinel.subprocess, "run") as run:
             result = self.sentinel.wake_existing_matrix_consumer([{

@@ -177,12 +177,32 @@ def canonical_service_events(event_dir: Path, event_ids: set[str]) -> list[dict[
         if not isinstance(row, dict) or str(row.get("event_id") or "") not in event_ids:
             continue
         scope = row.get("source_scope") if isinstance(row.get("source_scope"), dict) else {}
+        controlled_scope = (
+            scope.get("controlled_certification_scope")
+            if isinstance(scope.get("controlled_certification_scope"), dict)
+            else {}
+        )
         rows.append({
             "event_id": str(row.get("event_id") or ""),
             "event_type": str(row.get("event_type") or ""),
             "channel": str(row.get("channel") or ""),
             "source_incident_id": str(row.get("source_incident_id") or ""),
             "affected_scope_count": max(0, int(scope.get("affected_scope_count") or 0)),
+            # Preserve only the classification and bounded count needed by
+            # the next existing consumer.  The canonical Matrix event keeps
+            # the complete scope; this compact handoff never copies users or
+            # becomes another source of truth.
+            "source_scope": {
+                "scope_classification": str(
+                    scope.get("scope_classification") or ""
+                ),
+                "controlled_certification_scope": {
+                    "affected_scope_count": max(
+                        0,
+                        int(controlled_scope.get("affected_scope_count") or 0),
+                    ),
+                },
+            },
         })
     return sorted(rows, key=lambda row: (row["event_id"], row["channel"]))
 

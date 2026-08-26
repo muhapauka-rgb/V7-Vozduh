@@ -163,3 +163,36 @@ The execution channel is therefore not a missed opportunity or a stale classific
 Runtime confirmation after deployment: `v7-health.service` is `active`; the old standalone Matrix timer remains absent; the standalone Telegram timer remains `disabled`; the deployed and local `v7-users-autoswitch` hashes match.  There was no ordinary-user or route effect.
 
 **Recomputed terminal:** `EXTERNAL_SOURCE_REQUIRED` is now evidence-backed for the current state of *all* existing egresses.  Re-entry is either (1) a new complete source through the existing Admin lifecycle, or (2) an explicit release/transfer by the current owner of the separately reserved execution channel.  The latter is a distinct cross-group authority decision and must not be inferred from the Telegram mission.
+
+## Controlled execution-source reuse and Runtime boundary (2026-08-26 21:43–22:15 MSK)
+
+The owner-decision to evaluate `amneziawg-exec-20260528-10-8-1-14` was consumed.  Read-only lineage reconciliation proved that its preceding CT-M0F operation was terminal: its execution lease was finished, the prior certification identity had no remaining assignment on the source, and no Candidate, Packet, Lease or rollback consumer was active.  The old controlled reservation was therefore released through `v7-egress-set-state`, first to its prior backup and then, under the new explicit base-release guard, to the matching clean base state.  No ordinary assignment, route or customer was changed.
+
+Three narrow existing-owner repairs were needed and were focused-tested, published and safely deployed: `75afae88` added guarded release to an exact clean base; `35865aaf` normalised equivalent boolean registry spellings in that guard; `a8ad3d8c` and `549501a1` let an already auto-admitted, empty existing source be recorded and consumed by the existing topology/reservation owner.  The final owner-backed reservation was:
+
+- source: `amneziawg-exec-20260528-10-8-1-14`;
+- group: `t48-d27d985e237c`;
+- reservation: `ctres_d899f66f641229141922acc7`;
+- ordinary users: zero;
+- free capacity after reservation: nine.
+
+The initial-source transition then exposed one real hand-off defect: the controlled-condition owner required the certification identity to already be assigned to the newly reserved source before it invoked the sole route writer.  Commit `b1689e8e4d0c9d432b8f1b24ed2d32e32c147685` reorders only that existing transition.  It requires the exact source reservation and group, moves only the named certification identity through `v7-user-switch`, verifies its policy table and route, then permits the existing selector to read the resulting state.  Focused tests passed (`262` tests); safe deploy and local/GitHub/Runtime alignment passed.
+
+Live proof of that bounded transition succeeded for `10.7.0.108`: its registered source, assignment and Linux table `1106` all resolved to `v7execwg0`.  The selected target remained owner-selected (`awg0`); no target was supplied manually, and no ordinary user moved.
+
+The first Telegram condition was deliberately treated as invalid engineering setup, not SLO evidence: the temporary Telegram-required profile had not yet been set, so Matrix correctly did not bind the source failure to that profile.  The condition was removed through `v7-egress-set-state certification-telegram-recovery`.  The profile was then created through the authenticated canonical `service-preferences-update` owner, not by editing state files, and a new exact controlled condition was prepared.
+
+That second attempt uncovered the current real blocker.  The ordinary Telegram health role itself remained running beyond its one-second cadence; successive deadline misses accumulated, `v7-health.service` reached an approximately 1 GiB memory peak and was OOM-killed, then restarted.  A manually started confirmation process was stopped; it is invalid and receives no evidence/SLO credit.  The source-level Telegram block was removed through the existing recovery owner.  Runtime later recovered (`v7-health.service` active), but the admin service was itself observed near 1 GiB (`MemoryCurrent=1050746880`), so additional profile/admin mutations were stopped as unsafe.
+
+Current safety state:
+
+- no ordinary client or route was changed;
+- the artificial Telegram block is removed;
+- the protected test identity remains isolated on the reserved execution source;
+- the temporary Telegram profile is still present only for that identity because its canonical cleanup request became unsafe while the admin Runtime was memory-saturated;
+- Admin Safe Mode was returned to `OPEN`/enabled after the failed cleanup attempt;
+- the two pre-T0 transaction reservations expired without a Packet, Lease, Apply or recovery movement and must not be counted as a valid sample.
+
+**Current terminal:** `TELEGRAM_CERTIFICATION_RUNTIME_MEMORY_CONVERGENCE_REQUIRED`.
+
+**Exact next action:** first reconcile and bound the existing Telegram/Admin Runtime memory growth on Polygon or an isolated controlled run, prove that the health role completes and remains below the substrate limit, then use the existing canonical profile owner to clear the temporary profile and the existing governed cleanup owner to return `10.7.0.108` to its baseline.  Only after that clean baseline is proven may a fresh Telegram condition begin and be credited to the homogeneous Telegram evidence series.  No further source search or target-policy change is required.

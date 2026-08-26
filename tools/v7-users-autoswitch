@@ -22485,6 +22485,16 @@ def _controlled_source_draft_candidates(
         if hard_limit < 1:
             blockers.append("draft_one_identity_capacity_not_owned")
         pool_egress_id = str(metadata.get("pool_egress_id") or "")
+        if (
+            proposed_id != pool_egress_id
+            and any(
+                str(existing.get("id") or "") == proposed_id
+                for existing in registry_rows
+            )
+        ):
+            blockers.append(
+                f"draft_proposed_egress_id_already_exists:{proposed_id}"
+            )
         duplicate_egress = _controlled_source_draft_duplicate_egress(
             protocol=protocol,
             config_path=config_path,

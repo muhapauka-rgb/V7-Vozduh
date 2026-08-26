@@ -145,6 +145,45 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(candidate["ready_for_guarded_disabled_pool_preflight"])
         self.assertEqual(candidate["duplicate_existing_egress"], "existing")
 
+    def test_controlled_source_draft_excludes_existing_proposed_egress_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            drafts = root / "drafts"
+            state.mkdir()
+            drafts.mkdir()
+            state.joinpath("egress.registry").write_text(
+                "id=duplicate protocol=openvpn type=interface enabled=1\n",
+                encoding="utf-8",
+            )
+            draft_dir = drafts / "duplicate"
+            draft_dir.mkdir()
+            config = "client\nremote 198.51.100.2 1194\n"
+            draft_dir.joinpath("config.input").write_text(config, encoding="utf-8")
+            digest = hashlib.sha256(
+                config.rstrip("\n").encode("utf-8")
+            ).hexdigest()
+            draft_dir.joinpath("metadata.json").write_text(json.dumps({
+                "id": "duplicate",
+                "protocol": "openvpn",
+                "runtime_mode": "interface",
+                "config_sha256": digest,
+                "hard_limit": 2,
+                "last_preflight_status": "PASS",
+                "last_runtime_status": "PASS",
+                "last_quarantine_status": "PASS",
+            }), encoding="utf-8")
+
+            candidate = self.autoswitch._controlled_source_draft_candidates(
+                drafts, state
+            )[0]
+
+        self.assertFalse(candidate["ready_for_guarded_disabled_pool_preflight"])
+        self.assertIn(
+            "draft_proposed_egress_id_already_exists:duplicate",
+            candidate["blockers"],
+        )
+
     def test_exact_ct_reservation_reuses_fresh_decision_lineage(self):
         expected = {
             "contract_id": "contract",

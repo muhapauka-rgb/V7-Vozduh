@@ -2113,6 +2113,32 @@ def route_writer_failure_code(output: str, returncode: Any) -> str:
     return "ROUTE_WRITER_UNCLASSIFIED_FAILURE"
 
 
+def route_writer_diagnostic_timings(output: str) -> dict[str, float]:
+    """Convert the route writer's bounded monotonic markers to safe spans."""
+    markers = {
+        key: float(value)
+        for key, value in re.findall(
+            r"^V7_ROUTE_TIMING_([A-Z0-9_]+)=([0-9]+(?:\.[0-9]+)?)$",
+            str(output or ""),
+            flags=re.MULTILINE,
+        )
+    }
+    stages = (
+        ("lock_wait", "LOCK_STARTED", "ENTERED"),
+        ("bootstrap_and_control", "ENTERED", "BOOTSTRAP_AND_CONTROL_VALIDATED"),
+        ("kernel_mutation", "BOOTSTRAP_AND_CONTROL_VALIDATED", "KERNEL_MUTATION_COMPLETED"),
+        ("assignment_state", "KERNEL_MUTATION_COMPLETED", "ASSIGNMENT_STATE_COMMITTED"),
+        ("registry_commit", "ASSIGNMENT_STATE_COMMITTED", "REGISTRY_COMMITTED"),
+        ("audit", "REGISTRY_COMMITTED", "AUDIT_COMPLETED"),
+        ("post_apply_observation", "AUDIT_COMPLETED", "POST_APPLY_OBSERVATION_COMPLETED"),
+    )
+    return {
+        name: round((markers[end] - markers[start]) * 1000.0, 3)
+        for name, start, end in stages
+        if start in markers and end in markers and markers[end] >= markers[start]
+    }
+
+
 def split_csv(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(v).strip() for v in value if str(v).strip()]
@@ -16828,6 +16854,13 @@ class AutoswitchPlanner:
                 parent="apply_and_verification",
                 details={"member_fingerprint": hashlib.sha256(ip.encode()).hexdigest()[:12]},
             )
+            route_writer_diagnostics = route_writer_diagnostic_timings(
+                proc.stdout or ""
+            )
+            if route_writer_diagnostics:
+                route_write_span.setdefault("details", {})[
+                    "writer_stage_timings_ms"
+                ] = route_writer_diagnostics
             low_level_match = re.search(
                 r"^V7_TIMING_ROUTE_WRITE_MS=([0-9]+(?:\.[0-9]+)?)$",
                 proc.stdout or "",

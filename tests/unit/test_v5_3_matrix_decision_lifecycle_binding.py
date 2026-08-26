@@ -51,6 +51,24 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
                 key,
                 f"`{value}`",
             )
+        # The live CPS now carries a later Mission frontier.  This historical
+        # Phase-G fixture replaces section 0, so its protected-WIP projection
+        # must be replaced in the same synthetic transaction rather than
+        # inheriting today's unrelated live successor.
+        for key, value in (
+            ("current_state_generation", "cpsgen_SFA_V53_SYSTEM_DECISION_AB9E7C037471"),
+            ("current_transition_id", "V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED_V1"),
+            ("smallest_existing_next_action_id", cls.lib.V5_3_PHASE_G_ACTION),
+            ("current_primary_stop", "NONE"),
+            ("smallest_existing_next_action", cls.lib.V5_3_PHASE_G_ACTION),
+        ):
+            cls.phase_g_cps = cls.lib._replace_section_field(
+                cls.phase_g_cps,
+                "### Active Protected Work In Progress",
+                "### Complete Or Locked Capability Records",
+                key,
+                f"`{value}`" if key != "smallest_existing_next_action" else value,
+            )
         cls.cps = cls.phase_g_cps
         for key, value in (
             ("CURRENT_STATE_GENERATION", "cpsgen_SFA_V53_DECISION_TEST"),
@@ -78,6 +96,39 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
                 key,
                 f"`{value}`",
             )
+        # This is one synthetic atomic CPS state: section 0, the registry and
+        # protected WIP must describe the same prepared read-only decision.
+        # Do not inherit the repository's later live V5.3 frontier into this
+        # historical fixture.
+        for section_start, section_end, values in (
+            (
+                "## Authoritative Unfinished Capability Closure Registry",
+                "### Active Protected Work In Progress",
+                (
+                    ("CURRENT_STATE_GENERATION", "cpsgen_SFA_V53_DECISION_TEST"),
+                    ("CURRENT_TRANSITION_ID", "V5_3_MATRIX_DECISION_MISSION_PREPARED_V1"),
+                    ("EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID", cls.lib.V5_3_MATRIX_DECISION_ACTION),
+                    ("CURRENT_STOP_CONDITION", "NONE"),
+                    ("EXACT_CURRENT_SMALLEST_NEXT_ACTION", cls.lib.V5_3_MATRIX_DECISION_ACTION),
+                ),
+            ),
+            (
+                "### Active Protected Work In Progress",
+                "### Complete Or Locked Capability Records",
+                (
+                    ("current_state_generation", "cpsgen_SFA_V53_DECISION_TEST"),
+                    ("current_transition_id", "V5_3_MATRIX_DECISION_MISSION_PREPARED_V1"),
+                    ("smallest_existing_next_action_id", cls.lib.V5_3_MATRIX_DECISION_ACTION),
+                    ("current_primary_stop", "NONE"),
+                    ("smallest_existing_next_action", cls.lib.V5_3_MATRIX_DECISION_ACTION),
+                ),
+            ),
+        ):
+            for key, value in values:
+                cls.cps = cls.lib._replace_section_field(
+                    cls.cps, section_start, section_end, key,
+                    f"`{value}`" if key != "smallest_existing_next_action" else value,
+                )
         cls.decision_cps = cls.cps
         # Restore the present Atlas admission for its own tests.
         for key, value in (

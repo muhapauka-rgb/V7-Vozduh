@@ -39,28 +39,28 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `OWNER_DECISION_REQUIRED: HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `OWNER_DECISION_REQUIRED: keep the existing 2-vCPU product SLO only by admitting a materially different control-plane architecture, or explicitly change/accept the SLO. The prior no-resize constraint remains in force; do not begin Telegram, N10 or N11.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Within the existing V5.3 T0-T11 latency track, execute the owner-authorized bounded post-fix residual causal reduction: capture full server-local monotonic timing and fast-versus-slow comparison; admit code only for a measured, falsified, safe recurring cause above 100 ms. Do not begin Telegram, N10 or N11.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED_20260826` |
-| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `OWNER_DECISION_REQUIRED_HARD_PATH_3S_2VCPU` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `OWNER_DECISION_REQUIRED_HARD_PATH_3S_2VCPU` |
-| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1-N6,PARTIAL_REPLACEMENT_PENDING; N7,APPROVED_BOUNDED_PREPARED_DECISION_IMPLEMENTED_TESTED_DEPLOYED; N8,N9,PARTIAL; N10,HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED; N11,READ_ONLY_DISCOVERY_CONSUMED` |
-| `HARD_PATH_RUNTIME_SLO` | `FROZEN_CURRENT_FINGERPRINT=ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3; five valid certification-only samples, one cold/four warm across five Matrix generations: 2696.992, 4114.938, 4449.524, 4893.144, 5014.885 ms. Nearest-rank P95=5014.885 ms; one valid sample exceeds 5 s. 3 s P95 and 5 s ceiling fail.` |
-| `HARD_PATH_IMPLEMENTATION_STATE` | `OWNER_DECISIONS_CONSUMED; FROZEN_AFTER_DEPLOY-z8-14-Updatesystem-e4106fd-20260826T023921; no further performance patch is admitted during the homogeneous series.` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1-N6,PARTIAL_REPLACEMENT_PENDING; N7,APPROVED_BOUNDED_PREPARED_DECISION_IMPLEMENTED_TESTED_DEPLOYED; N8,N9,PARTIAL; N10,POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE; N11,READ_ONLY_DISCOVERY_CONSUMED` |
+| `HARD_PATH_RUNTIME_SLO` | `BASELINE_FINGERPRINT=ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3; historical frozen distribution 2696.992, 4114.938, 4449.524, 4893.144, 5014.885 ms (P95=5014.885 ms; one sample >5 s). This one bounded owner-authorized causal-reduction Mission may supersede that terminal only through HARD_PATH_RUNTIME_SLO_CONVERGENCE_CONSUMED or HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED.` |
+| `HARD_PATH_IMPLEMENTATION_STATE` | `BASELINE_FROZEN_AFTER_DEPLOY-z8-14-Updatesystem-e4106fd-20260826T023921; code remains unchanged until full timeline evidence proves a recurring avoidable safe cause above 100 ms.` |
 | `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-26_prepared_projection_freshness_arbitration.md` |
 | `HARD_PATH_RUNTIME_FINGERPRINT` | `ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3` |
 | `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `e4106fd647978adf481d78201ed10a183a130fcb; deploy-z8-14-Updatesystem-e4106fd-20260826T023921` |
-| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `BLOCKED_BY_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED; exact governed Telegram S11 receives no independent SLO credit before a new owner decision and successful shared-path proof.` |
-| `V5_3_N10_CURRENT_STATUS` | `BLOCKED_BY_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED; no ordinary or ordinary-like movement is admitted.` |
+| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `BLOCKED_BY_POST_FIX_RESIDUAL_CAUSAL_REDUCTION; exact governed Telegram S11 receives no independent SLO credit before the current shared-path terminal passes.` |
+| `V5_3_N10_CURRENT_STATUS` | `BLOCKED_BY_POST_FIX_RESIDUAL_CAUSAL_REDUCTION; no ordinary or ordinary-like movement is admitted.` |
 | `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_CONSUMED_NO_SAFE_DELETION_ADMITTED; all examined items retain a current role, caller, consumer, state dependency, fallback function or HARD_PATH decision dependency` |
 | `V5_3_RUNTIME_LIVE_HEALTH` | `v7-health.service active; legacy standalone Matrix/Telegram timers disabled; role-based health loop is current producer` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `OWNER_DECISION_REQUIRED_HARD_PATH_3S_2VCPU` |
+| `CURRENT_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
@@ -735,10 +735,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED_20260826` |
-| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `OWNER_DECISION_REQUIRED_HARD_PATH_3S_2VCPU` |
-| `CURRENT_STOP_CONDITION` | `OWNER_DECISION_REQUIRED: HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
@@ -756,8 +756,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | The bounded existing-owner implementation and its frozen series are consumed. All five samples are functionally valid and S11-preserving, but P95 is 5014.885 ms and one valid sample is above 5000 ms. `HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED` is terminal for automatic performance work. OMP must not enter Telegram or N10; it awaits an owner choice between an explicit SLO disposition and a materially different control-plane architecture. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `OWNER_DECISION_REQUIRED_HARD_PATH_3S_2VCPU` |
+| `OMP_CONTINUATION_POINTER` | Owner decision admits a bounded causal-reduction phase inside the existing `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` frontier. The former `HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED` remains historical evidence but cannot dispatch work. OMP must first capture full local causal timing, then repair only a measured and falsified recurring safe cause above 100 ms. No SLO change, resize, new owner, Runtime, Planner, timer, weakened S11 or ordinary-user movement is admitted. The sole terminals are `HARD_PATH_RUNTIME_SLO_CONVERGENCE_CONSUMED` and `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`. |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -766,8 +766,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED_20260826` |
-| `current_transition_id` | `V5_3_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED_V1` |
+| `current_state_generation` | `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE_20260826` |
+| `current_transition_id` | `V5_3_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_V1` |
 | `smallest_existing_next_action_id` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |
@@ -853,7 +853,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED_20260826`; `V5_3_HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED_V1` | the current frozen five-sample proof is functionally valid but has P95 5014.885 ms and one valid 5014.885 ms sample, exceeding the 3 s/5 s contract; no further automatic performance work is legal | `OWNER_DECISION_REQUIRED_HARD_PATH_3S_2VCPU` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `OWNER_DECISION_REQUIRED` | owner explicitly selects a changed/accepted SLO or admits a materially different architecture; only then may a new immutable implementation and fresh controlled series begin |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_ACTIVE_20260826`; `V5_3_HARD_PATH_POST_FIX_RESIDUAL_CAUSAL_REDUCTION_V1` | owner authorized one bounded causal-reduction pass against the historical frozen five-sample proof; it must first prove a recurring safe cause above 100 ms and cannot reopen unrelated work | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | full local timing evidence -> only measured/falsified safe reduction -> controlled Polygon proof -> one of the two defined HARD_PATH terminals |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

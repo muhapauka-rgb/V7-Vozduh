@@ -1941,7 +1941,9 @@ DISCOVERY/BDP -> CANDIDATE ADMISSION -> CPS ATOMIC MISSION IDENTITY
 execution-completion contract continues the bounded Mission through terminal
 completion or one exact blocker without microstep prompts.
 
-### V5.3 historical terminal definition
+### V5.3 terminal definition
+
+#### Historical terminal definition
 
 This terminal list is retained as a broad evidence checklist.  The binding
 completion contract is `MATRIX_ROLE_BASED_RECOVERY_OPTIMIZATION_TERMINAL_COMPLETE`

@@ -1,10 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+v7_route_timing_now() {
+  if [ -r /proc/uptime ]; then
+    read -r now _ < /proc/uptime
+    printf '%s' "$now"
+  else
+    date +%s
+  fi
+}
+
 if [ "${V7_LOCKED_USER_SWITCH:-0}" != "1" ]; then
   export V7_LOCKED_USER_SWITCH=1
+  export V7_ROUTE_TIMING_LOCK_STARTED="$(v7_route_timing_now)"
   exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
 fi
+
+V7_ROUTE_TIMING_ENTERED="$(v7_route_timing_now)"
 
 USER_IP="${1:-}"
 EGRESS="${2:-}"
@@ -132,6 +144,7 @@ fi
 if [ "$CONTROL_HASH_REUSED" != "1" ]; then
   "${validator[@]}" >/dev/null || { echo "STOP_SAFE: autonomous execution control denied"; exit 2; }
 fi
+V7_ROUTE_TIMING_BOOTSTRAP_AND_CONTROL_VALIDATED="$(v7_route_timing_now)"
 
 echo "[V7] user $USER_IP -> $EGRESS / table $table / dev $dev"
 if [ -r /proc/uptime ]; then
@@ -180,6 +193,7 @@ if [ -r /proc/uptime ]; then
 else
   V7_ROUTE_WRITE_COMPLETED="$(date +%s)"
 fi
+V7_ROUTE_TIMING_KERNEL_MUTATION_COMPLETED="$V7_ROUTE_WRITE_COMPLETED"
 V7_ROUTE_WRITE_MS=$(awk -v start="$V7_ROUTE_WRITE_STARTED" -v end="$V7_ROUTE_WRITE_COMPLETED" 'BEGIN { printf "%.3f", (end-start)*1000 }')
 echo "V7_TIMING_ROUTE_WRITE_CLOCK=$V7_ROUTE_WRITE_CLOCK"
 echo "V7_TIMING_ROUTE_WRITE_MS=$V7_ROUTE_WRITE_MS"
@@ -194,6 +208,7 @@ then
   echo "V7_ROUTE_WRITE_FAILURE=ROUTE_ASSIGNMENT_STATE_WRITE_FAILED"
   exit 1
 fi
+V7_ROUTE_TIMING_ASSIGNMENT_STATE_COMMITTED="$(v7_route_timing_now)"
 
 tmp="${REG}.tmp.$$"
 if ! awk -v ip="$USER_IP" -v egress="$EGRESS" -v table="$table" '
@@ -218,6 +233,7 @@ if ! mv "$tmp" "$REG"; then
   echo "V7_ROUTE_WRITE_FAILURE=ROUTE_REGISTRY_COMMIT_FAILED"
   exit 1
 fi
+V7_ROUTE_TIMING_REGISTRY_COMMITTED="$(v7_route_timing_now)"
 
 if command -v v7-audit-log >/dev/null 2>&1; then
   v7-audit-log "user_switch" "users" "ip=$USER_IP from=$FROM_EGRESS to=$EGRESS table=$table dev=$dev breaker_generation=$CONTROL_GENERATION" >/dev/null 2>&1 || true
@@ -225,6 +241,7 @@ fi
 if command -v v7-switch-log >/dev/null 2>&1; then
   v7-switch-log "$USER_IP" "$FROM_EGRESS" "$EGRESS" "$table" "${V7_SWITCH_REASON:-manual}" >/dev/null 2>&1 || true
 fi
+V7_ROUTE_TIMING_AUDIT_COMPLETED="$(v7_route_timing_now)"
 
 echo "=== ROUTE ==="
 if ! route_observation="$(ip route get 8.8.8.8 from "$USER_IP" iif wg0 2>&1)"; then
@@ -238,3 +255,12 @@ if ! assignment_observation="$(cat "$STATE_DIR/user-${USER_IP}.assign" 2>&1)"; t
   exit 1
 fi
 printf '%s\n' "$assignment_observation"
+V7_ROUTE_TIMING_POST_APPLY_OBSERVATION_COMPLETED="$(v7_route_timing_now)"
+printf 'V7_ROUTE_TIMING_LOCK_STARTED=%s\n' "${V7_ROUTE_TIMING_LOCK_STARTED:-$V7_ROUTE_TIMING_ENTERED}"
+printf 'V7_ROUTE_TIMING_ENTERED=%s\n' "$V7_ROUTE_TIMING_ENTERED"
+printf 'V7_ROUTE_TIMING_BOOTSTRAP_AND_CONTROL_VALIDATED=%s\n' "$V7_ROUTE_TIMING_BOOTSTRAP_AND_CONTROL_VALIDATED"
+printf 'V7_ROUTE_TIMING_KERNEL_MUTATION_COMPLETED=%s\n' "$V7_ROUTE_TIMING_KERNEL_MUTATION_COMPLETED"
+printf 'V7_ROUTE_TIMING_ASSIGNMENT_STATE_COMMITTED=%s\n' "$V7_ROUTE_TIMING_ASSIGNMENT_STATE_COMMITTED"
+printf 'V7_ROUTE_TIMING_REGISTRY_COMMITTED=%s\n' "$V7_ROUTE_TIMING_REGISTRY_COMMITTED"
+printf 'V7_ROUTE_TIMING_AUDIT_COMPLETED=%s\n' "$V7_ROUTE_TIMING_AUDIT_COMPLETED"
+printf 'V7_ROUTE_TIMING_POST_APPLY_OBSERVATION_COMPLETED=%s\n' "$V7_ROUTE_TIMING_POST_APPLY_OBSERVATION_COMPLETED"

@@ -14,11 +14,12 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import resource
 import signal
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -326,6 +327,72 @@ def elapsed_ms(start_ns: int, end_ns: int) -> int:
     return max(0, (end_ns - start_ns) // 1_000_000)
 
 
+def _scheduler_observation() -> dict[str, int]:
+    """Read process-local Linux scheduler counters for timing evidence only."""
+    try:
+        parts = Path("/proc/self/schedstat").read_text(encoding="utf-8").split()
+        return {
+            "run_time_ns": int(parts[0]),
+            "runqueue_wait_ns": int(parts[1]),
+            "timeslices": int(parts[2]),
+        }
+    except (OSError, ValueError, IndexError):
+        return {}
+
+
+def health_runtime_observation() -> dict[str, Any]:
+    """Capture no-state process counters for one existing HARD role."""
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+    try:
+        load = [round(float(value), 3) for value in os.getloadavg()]
+    except (AttributeError, OSError, ValueError):
+        load = []
+    return {
+        "pid": os.getpid(),
+        "user_cpu_us": int(float(usage.ru_utime) * 1_000_000),
+        "system_cpu_us": int(float(usage.ru_stime) * 1_000_000),
+        "voluntary_context_switches": int(usage.ru_nvcsw),
+        "involuntary_context_switches": int(usage.ru_nivcsw),
+        "load_average": load,
+        "scheduler": _scheduler_observation(),
+    }
+
+
+def health_runtime_observation_delta(
+    started: dict[str, Any], completed: dict[str, Any],
+) -> dict[str, Any]:
+    """Project a bounded delta; unknown procfs data remains unknown."""
+    before = started if isinstance(started, dict) else {}
+    after = completed if isinstance(completed, dict) else {}
+    before_scheduler = before.get("scheduler") if isinstance(before.get("scheduler"), dict) else {}
+    after_scheduler = after.get("scheduler") if isinstance(after.get("scheduler"), dict) else {}
+    return {
+        "health_owner_pid": int(after.get("pid") or os.getpid()),
+        "process_cpu_ms": round(
+            max(0, int(after.get("user_cpu_us") or 0) - int(before.get("user_cpu_us") or 0)
+            + int(after.get("system_cpu_us") or 0) - int(before.get("system_cpu_us") or 0)) / 1000.0,
+            3,
+        ),
+        "scheduler_run_time_ms": round(
+            max(0, int(after_scheduler.get("run_time_ns") or 0) - int(before_scheduler.get("run_time_ns") or 0)) / 1_000_000.0,
+            3,
+        ) if before_scheduler and after_scheduler else None,
+        "scheduler_runqueue_wait_ms": round(
+            max(0, int(after_scheduler.get("runqueue_wait_ns") or 0) - int(before_scheduler.get("runqueue_wait_ns") or 0)) / 1_000_000.0,
+            3,
+        ) if before_scheduler and after_scheduler else None,
+        "voluntary_context_switches": max(
+            0, int(after.get("voluntary_context_switches") or 0) - int(before.get("voluntary_context_switches") or 0),
+        ),
+        "involuntary_context_switches": max(
+            0, int(after.get("involuntary_context_switches") or 0) - int(before.get("involuntary_context_switches") or 0),
+        ),
+        "load_average_start": before.get("load_average") or [],
+        "load_average_end": after.get("load_average") or [],
+        "diagnostic_only": True,
+    }
+
+
 def terminate_process_group(process: subprocess.Popen[bytes]) -> None:
     """Terminate a bounded legacy child and every child it spawned."""
     try:
@@ -437,6 +504,7 @@ class ManagedRole:
     starts: int = 0
     completions: int = 0
     deadline_misses: int = 0
+    runtime_observation_started: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -511,12 +579,15 @@ class RoleHealthLoop:
             self.persistent_matrix_ready = False
             self.persistent_matrix_load_error = type(exc).__name__
 
-    def _run_persistent_matrix_consumer(self, t0_ns: int) -> int:
+    def _run_persistent_matrix_consumer(
+        self, t0_ns: int, health_dispatch_context: dict[str, Any] | None = None,
+    ) -> int:
         if not self.persistent_matrix_ready or self.persistent_matrix_module is None:
             return 3
         previous_argv = list(sys.argv)
         previous_t0 = os.environ.get("V7_HARD_T0_MONOTONIC_NS")
         previous_owner = os.environ.get("V7_HARD_PERSISTENT_MATRIX_OWNER")
+        previous_context = os.environ.get("V7_HARD_HEALTH_DISPATCH_CONTEXT")
         try:
             sys.argv = [
                 "v7-service-matrix-refresh-all",
@@ -525,6 +596,10 @@ class RoleHealthLoop:
             ]
             os.environ["V7_HARD_T0_MONOTONIC_NS"] = str(t0_ns)
             os.environ["V7_HARD_PERSISTENT_MATRIX_OWNER"] = "1"
+            os.environ["V7_HARD_HEALTH_DISPATCH_CONTEXT"] = json.dumps(
+                health_dispatch_context if isinstance(health_dispatch_context, dict) else {},
+                sort_keys=True,
+            )
             with open(os.devnull, "w", encoding="utf-8") as sink:
                 with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
                     return int(self.persistent_matrix_module.main())
@@ -541,12 +616,22 @@ class RoleHealthLoop:
                 os.environ.pop("V7_HARD_PERSISTENT_MATRIX_OWNER", None)
             else:
                 os.environ["V7_HARD_PERSISTENT_MATRIX_OWNER"] = previous_owner
+            if previous_context is None:
+                os.environ.pop("V7_HARD_HEALTH_DISPATCH_CONTEXT", None)
+            else:
+                os.environ["V7_HARD_HEALTH_DISPATCH_CONTEXT"] = previous_context
 
-    def _fallback_matrix_consumer(self, t0_ns: int) -> None:
+    def _fallback_matrix_consumer(
+        self, t0_ns: int, health_dispatch_context: dict[str, Any] | None = None,
+    ) -> None:
         """Use the exact historical child path only after an in-process fault."""
         environment = os.environ.copy()
         environment["V7_HARD_T0_MONOTONIC_NS"] = str(t0_ns)
         environment.pop("V7_HARD_PERSISTENT_MATRIX_OWNER", None)
+        environment["V7_HARD_HEALTH_DISPATCH_CONTEXT"] = json.dumps(
+            health_dispatch_context if isinstance(health_dispatch_context, dict) else {},
+            sort_keys=True,
+        )
         subprocess.run(
             [
                 "/usr/local/bin/v7-service-matrix-refresh-all",
@@ -559,7 +644,9 @@ class RoleHealthLoop:
             env=environment,
         )
 
-    def _consume_new_persistent_matrix_t0(self, t0_ns: int) -> bool:
+    def _consume_new_persistent_matrix_t0(
+        self, t0_ns: int, health_dispatch_context: dict[str, Any] | None = None,
+    ) -> bool:
         """Consume each current canonical T0 at most once per health process.
 
         The external compatibility child historically re-entered Matrix for
@@ -572,9 +659,16 @@ class RoleHealthLoop:
         if t0_ns <= 0 or t0_ns <= self.persistent_matrix_last_consumed_t0_ns:
             return False
         self._hard_recovery_takeover(monotonic_ns())
-        persistent_rc = self._run_persistent_matrix_consumer(t0_ns)
+        persistent_rc = (
+            self._run_persistent_matrix_consumer(t0_ns, health_dispatch_context)
+            if isinstance(health_dispatch_context, dict) and health_dispatch_context
+            else self._run_persistent_matrix_consumer(t0_ns)
+        )
         if persistent_rc == 3:
-            self._fallback_matrix_consumer(t0_ns)
+            if isinstance(health_dispatch_context, dict) and health_dispatch_context:
+                self._fallback_matrix_consumer(t0_ns, health_dispatch_context)
+            else:
+                self._fallback_matrix_consumer(t0_ns)
         self.persistent_matrix_last_consumed_t0_ns = t0_ns
         return True
 
@@ -728,6 +822,9 @@ class RoleHealthLoop:
                 env=environment,
             )
             role.started_ns = now_ns
+            role.runtime_observation_started = (
+                health_runtime_observation() if role.name == "hard" else {}
+            )
             role.starts += 1
             print(
                 f"V7_HEALTH_ROLE_START role={role.name} start={role.starts} "
@@ -747,7 +844,18 @@ class RoleHealthLoop:
                     self.matrix_state_file, self.users_registry_file
                 )
                 if t0_ns > 0:
-                    self._consume_new_persistent_matrix_t0(t0_ns)
+                    dispatch_ns = monotonic_ns()
+                    context = health_runtime_observation_delta(
+                        role.runtime_observation_started,
+                        health_runtime_observation(),
+                    )
+                    context.update({
+                        "hard_role_pid": int(role.process.pid),
+                        "hard_role_started_monotonic_ns": int(role.started_ns),
+                        "persistent_dispatch_monotonic_ns": int(dispatch_ns),
+                        "matrix_t0_monotonic_ns": int(t0_ns),
+                    })
+                    self._consume_new_persistent_matrix_t0(t0_ns, context)
                     now_ns = monotonic_ns()
             duration = elapsed_ms(role.started_ns, now_ns)
             role.completions += 1
@@ -758,6 +866,7 @@ class RoleHealthLoop:
             )
             role.process = None
             role.started_ns = 0
+            role.runtime_observation_started = {}
             if role.name == "hard":
                 self.hard_recovery_latched = False
 

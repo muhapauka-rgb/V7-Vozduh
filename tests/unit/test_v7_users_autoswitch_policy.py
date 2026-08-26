@@ -141,6 +141,25 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "ROUTE_WRITER_ROUTE_POST_APPLY_OBSERVATION_FAILED",
         )
 
+    def test_route_writer_diagnostic_timings_are_bounded_and_monotonic(self):
+        timings = self.tool.route_writer_diagnostic_timings(
+            "\n".join([
+                "V7_ROUTE_TIMING_LOCK_STARTED=10.000",
+                "V7_ROUTE_TIMING_ENTERED=10.010",
+                "V7_ROUTE_TIMING_BOOTSTRAP_AND_CONTROL_VALIDATED=10.040",
+                "V7_ROUTE_TIMING_KERNEL_MUTATION_COMPLETED=10.045",
+                "V7_ROUTE_TIMING_ASSIGNMENT_STATE_COMMITTED=10.050",
+                "V7_ROUTE_TIMING_REGISTRY_COMMITTED=10.065",
+                "V7_ROUTE_TIMING_AUDIT_COMPLETED=10.070",
+                "V7_ROUTE_TIMING_POST_APPLY_OBSERVATION_COMPLETED=10.090",
+            ])
+        )
+        self.assertEqual(timings["lock_wait"], 10.0)
+        self.assertEqual(timings["bootstrap_and_control"], 30.0)
+        self.assertEqual(timings["kernel_mutation"], 5.0)
+        self.assertEqual(timings["post_apply_observation"], 20.0)
+        self.assertNotIn("unknown", timings)
+
     def write_fixture(
         self,
         root: Path,

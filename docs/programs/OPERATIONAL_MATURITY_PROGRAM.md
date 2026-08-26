@@ -8169,10 +8169,10 @@ Historical details:
 Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
-Execution Authority: `OWNER_DECISION_REQUIRED`
-Resolved current stop: `HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED`
-Resolved current next action: `OWNER_DECISION_REQUIRED_HARD_PATH_3S_2VCPU`
-Resolved contract state: CPS records the frozen deployed prepared-projection freshness correction (`e4106fd647978adf481d78201ed10a183a130fcb`; `deploy-z8-14-Updatesystem-e4106fd-20260826T023921`) and its completed homogeneous proof. Five certification-only, functionally valid S11-preserving samples on fingerprint `ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3` were 2696.992, 4114.938, 4449.524, 4893.144 and 5014.885 ms. Nearest-rank P95 is 5014.885 ms and one valid sample breaches the 5 s ceiling. The Program terminal is therefore `HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED`; automatic performance patching, Telegram, N10 and N11 are not admitted. The prior no-resize constraint leaves an owner choice between an explicit SLO disposition and a materially different control-plane architecture. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Execution Authority: `NONE`
+Resolved current stop: `NONE`
+Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
+Resolved contract state: CPS records one owner-authorized bounded causal-reduction phase inside the existing V5.3 latency frontier. `HARD_PATH_3S_2VCPU_ARCHITECTURE_EXHAUSTED` remains historical evidence; it does not reopen any other closed work. The existing Runtime may be instrumented and only measured, falsified, safe recurring reductions above 100 ms may be admitted, with focused proof, controlled Polygon evidence and safe deployment. It may not change SLO, resize, add an owner/Runtime/Planner/timer, weaken S11 or affect ordinary users. Telegram, N10 and N11 remain blocked. The only valid successor terminals are `HARD_PATH_RUNTIME_SLO_CONVERGENCE_CONSUMED` and `HARD_PATH_POST_FIX_RESIDUAL_EXHAUSTED`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9160,8 +9160,8 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
 Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
-Current terminal report: `docs/reports/engineering/2026-08-25_105000_hard_path_slo_architectural_convergence_blocked.md`
-Latest consumed report: `docs/reports/engineering/2026-08-25_105000_hard_path_slo_architectural_convergence_blocked.md`
+Current terminal report: `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md`
+Latest consumed report: `docs/reports/engineering/2026-08-26_hard_path_post_fix_residual_causal_reduction.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md`

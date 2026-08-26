@@ -3,7 +3,7 @@
 **Date:** 2026-08-26  
 **Program:** `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1`  
 **Mission:** `V7_TELEGRAM_CRITICAL_LATENCY_ROOT_CAUSE_AND_SAFE_REDUCTION`  
-**State:** implementation safely deployed; controlled Telegram evidence paused at an authenticated administrative-lifecycle boundary.
+**State:** implementation safely deployed; a live source-selection defect was repaired and the Telegram evidence is safely blocked until an actually empty, healthy certification source exists.
 
 ## Scope and guardrails
 
@@ -58,9 +58,9 @@ The broader `test_service_failure_automation_evolution` contains one unrelated p
 - Certification identity currently selected by the lawful one-user topology preflight: `10.7.0.108`, currently on `awg0`, table `1106`, certification group `t48-d27d985e237c`.
 - It has no Telegram service profile yet (`{}`), so the normal required-profile sentinel correctly has no basis to generate a Telegram controlled failure for it.
 
-## Controlled-baseline reconciliation
+## Controlled-baseline reconciliation and authenticated source audit
 
-The existing one-user topology owner selected only the validated isolated draft `amneziawg-1779303737-a57ce8`, with an immutable contract:
+The existing one-user topology owner originally selected the validated isolated draft `amneziawg-1779303737-a57ce8`, with an immutable contract:
 
 - exactly one certification identity: `10.7.0.108`;
 - expected assignment: `awg0 -> NEW_DEDICATED_SOURCE`;
@@ -78,20 +78,62 @@ Its first existing-owner consumer stopped safely before any mutation because the
 
 `approved_draft_not_materialized_to_existing_pool_source`, `approved_draft_pool_source_not_unique`, and `approved_draft_runtime_lifecycle_not_ready`.
 
-This was an honest stop: no source reservation, identity move, route mutation or ordinary-user effect was performed.
+The V7 Admin session was subsequently authenticated and the existing admin lifecycle was inspected through its UI.  It correctly rejected that AmneziaWG draft as a duplicate of existing channel `1` (`v7e356a192b79`).  No duplicate was created or enabled.
+
+The next owner-selected OpenVPN candidate, `openvpn-1779388847-d2ad7c`, initially looked eligible because its historic admin lifecycle recorded `added_disabled`, `PASS` preflight/runtime/quarantine and one-identity capacity.  The live admin channel list and `users.registry` proved that the source is no longer empty:
+
+| Live assignment class | Count |
+| --- | ---: |
+| ordinary users on `openvpn-1779388847-d2ad7c` | 2 |
+| another certification identity / group | 1 |
+| total assigned identities | 3 |
+
+Its use as a purported dedicated source would violate the one-user contract.  The draft was not reserved, enabled, changed, or used for a controlled failure.
+
+## Repair: live occupancy wins over historic draft lifecycle
+
+The cause was narrow: `_controlled_source_draft_candidates` checked the historic draft state and duplicate configuration but did not check whether a previously materialized source had later acquired users.  Commit `5cbcbd0726516a4a25a8b7a18d5685dcaa1a364e` (`fix: require empty controlled source draft`) makes the existing topology owner read the existing `users.registry` alongside `egress.registry` and reject every materialized candidate with any current assignment.  It exposes only compact counts and a reason such as:
+
+`draft_materialized_source_not_empty:openvpn-1779388847-d2ad7c`
+
+This is not a new owner, state source, timer, route writer, Planner or Matrix path.  It closes a missing safety predicate in the existing owner.  It was published and deployed by `tools/v7-safe-deploy`; final verdict `PASS`, deployed commit `5cbcbd0726516a4a25a8b7a18d5685dcaa1a364e`.
+
+This follows three earlier, separately deployed hardening commits from the same reconciliation: `c4a9fa7d` rejects an AmneziaWG draft duplicating an existing interface, `4ee4113b` applies the same rule to OpenVPN, and `230d397b` rejects a newly proposed source identifier already present in the registry.  The occupancy check is the final missing condition discovered by the authenticated live audit.
+
+Focused verification after the repair passed:
+
+- AmneziaWG duplicate rejection;
+- OpenVPN duplicate rejection;
+- occupied proposed-source-ID rejection;
+- materialized-source-with-users rejection;
+- existing safe-empty topology boundary test;
+- Python syntax compilation and diff validation.
+
+The live post-deploy topology diagnostic now reports `CONTROLLED_SOURCE_TOPOLOGY_PROVISIONING_REQUIRED`, not a false ready state.  It rejects the formerly selected OpenVPN source with three current assignments and also excludes the 49-user WireGuard source.  The new exact source request `cstopauth_r1_e04ee3039ad91f4dcf7943c7` is pending but no longer matches current preflight, therefore it cannot be consumed by the existing consumer.
+
+## Existing safe-source attempts
+
+Two remaining existing OpenVPN drafts were exercised only by the V7 Admin's normal isolated preparation flow.  That flow performs no user movement and does not add a source unless its field check, temporary runtime test and Matrix quarantine all pass.
+
+| Draft | Result | Effect |
+| --- | --- | --- |
+| `openvpn-1779385423-2121b0` | stopped before temporary launch: the configuration contains unsupported `User`/`Group` directives and lacks safe allowlisted launch data | no pool entry, no runtime profile, no route or user effect |
+| `openvpn-1779387408-c42bdf` | field and temporary runtime checks pass; Matrix quarantine remains `BLOCKED` / service-matrix `WARN` | no pool entry, no runtime profile, no route or user effect |
+
+The panel's normalisation preview did not silently alter either configuration.  In particular, the incomplete first draft was not force-started without a safe credentials method.  No ordinary-client assignment or route fingerprint changed during these checks.
 
 ## Current external boundary and exact continuation
 
-The only lawful materialization path is the existing authenticated `v7-admin-api` lifecycle:
+The only lawful materialization path remains the existing authenticated `v7-admin-api` lifecycle:
 
 `egress-draft-pool-apply` (add disabled) -> `egress-draft-runtime-provision` -> guarded enable/validation -> existing topology consumer -> existing governed certification transaction.
 
 It also owns `service-preferences-update`, the only discovered canonical writer for the temporary Telegram-required profile. It must later set that profile for the one certification identity and clear it during cleanup; direct JSON editing is not lawful.
 
-The API has no current authenticated session in the available browser. A direct console construction of an administrative session was rejected and was **not** used. This is an authentication boundary, not a code or performance blocker.
+Authentication is no longer a boundary: the authenticated UI was used.  The current boundary is an external source prerequisite: V7 has no existing source that is both (a) empty of all current identities, (b) healthy under the required Matrix quarantine, and (c) runnable from a complete safe configuration.  Reusing a shared source, fabricating credentials, weakening quarantine or manually overriding the source owner would break the controlled-test contract.
 
-**Exact next action:** the operator signs into V7 Admin in the opened browser tab. Then, through its existing API only, materialize the exact approved draft as a disabled isolated pool source, provision its runtime profile, conduct its guarded enable validation, and re-run the existing topology consumer. Once the one-identity baseline and temporary Telegram profile are proven, execute the first cold Telegram sample, followed by the warm/final homogeneous evidence series specified by the Mission.
+**Exact next action:** provide or import one distinct, complete source configuration through the existing V7 Admin draft lifecycle.  It must pass field validation, isolated runtime preparation and Matrix quarantine; it must be added disabled with zero assignments.  Then the existing topology owner can create a fresh manifest-bound request, reserve that one source, move only `10.7.0.108`, set the temporary Telegram requirement through `service-preferences-update`, and run the cold Telegram sample followed by the warm/final homogeneous evidence series.
 
 ## Current conclusion
 
-The code-level causal reduction is live and ready to be measured. The mission has not claimed Telegram SLO success or failure because no post-deploy functionally valid Telegram sample exists. The remaining block is a single authenticated, existing-owner preparation step; no safety contract needs to be weakened and no new owner is required.
+The code-level causal reduction is live and ready to be measured. The mission has not claimed Telegram SLO success or failure because no post-deploy functionally valid Telegram sample exists.  The existing system now correctly prevents the previously hidden unsafe source reuse.  The remaining block is a real external source/configuration prerequisite; no safety contract needs to be weakened and no new owner is required.

@@ -3576,6 +3576,111 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertEqual(result["stop_reason"], "packet_not_ready")
 
+    def test_certification_cleanup_uses_current_state_snapshot_gate(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            snapshots = root / "snapshots"
+            audit = root / "audit"
+            for path in (state, events, snapshots, audit):
+                path.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.100 current=controlled enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=controlled enabled=1 controlled_certification_source=1\n"
+                "id=baseline enabled=1\n",
+                encoding="utf-8",
+            )
+            (state / "v7-state.json").write_text("{}", encoding="utf-8")
+            args = argparse.Namespace(
+                execute_controlled_topology_standing_transaction=False,
+                execute_availability_first_standing_stage=False,
+                execute_bounded_delegated_transaction=False,
+                _certification_setup_request=None,
+                _certification_cleanup_request={
+                    "user": "10.7.0.100",
+                    "source": "controlled",
+                    "target": "baseline",
+                },
+                engineering_authority_request_file="",
+                engineering_authority_decision="",
+                max_users=1,
+                max_events=20,
+                approved_source="controlled",
+                confirm_governed_transaction="",
+                execution_control_file=str(root / "control.json"),
+                skip_planner_observe=True,
+                snapshot_root=str(snapshots),
+                certification_user="",
+            )
+            captured_surface = {}
+
+            def cycle(**kwargs):
+                captured_surface.update(kwargs["decision_surface"])
+                return {
+                    "stop_reason": "AUTHORITY_BOUNDARY",
+                    "packet_preview": {"status": "BLOCKED"},
+                }
+
+            with mock.patch.object(
+                module.operator_execution,
+                "autonomous_execution_control_state",
+                return_value={"valid": True, "state": "OPEN"},
+            ), mock.patch.object(
+                module,
+                "refresh_controlled_topology_execution_snapshots",
+                return_value={"ok": True, "returncode": 0},
+            ) as snapshot_refresh, mock.patch.object(
+                module.operator_decision_surface,
+                "build_operator_decision_surface",
+                return_value={"users_by_ip": {}, "batch_preview": {}},
+            ), mock.patch.object(
+                module.autonomy_trust_acceleration,
+                "build_acceleration_inventory",
+                return_value={},
+            ), mock.patch.object(
+                module,
+                "controlled_certification_cleanup_selection",
+                return_value={"selection_status": "SELECTED"},
+            ), mock.patch.object(
+                module,
+                "merge_a4_gap_candidate_into_surface",
+                side_effect=lambda surface, _selection: surface,
+            ), mock.patch.object(
+                module,
+                "attach_controlled_execution_source_binding",
+            ), mock.patch.object(
+                module.operator_execution_pipeline,
+                "governed_canary_knowledge_gated_dry_run_cycle",
+                side_effect=cycle,
+            ):
+                result = module._execute_governed_transaction_with_guards_inner(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=snapshots,
+                    audit_dir=audit,
+                    lease_file=root / "lease.json",
+                )
+
+        snapshot_refresh.assert_called_once_with(
+            args,
+            state_dir=state,
+            event_dir=events,
+            snapshot_root=snapshots,
+            current_state_window=True,
+            current_state_user="10.7.0.100",
+        )
+        self.assertEqual(
+            captured_surface["controlled_execution_gate_profile"],
+            "CONTROLLED_CERTIFICATION_TOPOLOGY",
+        )
+        self.assertEqual(result["stop_reason"], "packet_not_ready")
+
     def test_certification_setup_stops_when_existing_snapshot_owner_cannot_refresh(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

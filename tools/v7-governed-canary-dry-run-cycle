@@ -7694,17 +7694,19 @@ def _execute_governed_transaction_with_guards_inner(
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     availability_reset_snapshot_refresh: dict[str, Any] = {}
     certification_setup_snapshot_refresh: dict[str, Any] = {}
-    if setup_mode:
-        # The exact certification setup is a governed state transition, not a
-        # read-only planner observation.  Refresh the existing snapshot owner
-        # before building its decision surface so an older service-scores
-        # generation cannot turn an otherwise admissible one-user Packet into
-        # a permanent snapshot_mismatch STOP_SAFE.  This writes only the
-        # existing engineering snapshot projection; it grants no Authority and
-        # does not apply routing.  The canonical shared snapshot root keeps
-        # its full consumer contract.  An exact-user candidate scope is only
-        # allowed when this controlled invocation supplies its own snapshot
-        # root, so it cannot replace a shared Engineering read model.
+    if (setup_mode or cleanup_mode) and not (
+        availability_first_reset or ct_m0f_standing_reset
+    ):
+        # Exact certification setup and cleanup are governed state
+        # transitions, not read-only planner observations.  Refresh the
+        # existing snapshot owner before building the decision surface so an
+        # older generation cannot strand the sole certification identity on a
+        # controlled source.  This writes only the existing engineering
+        # snapshot projection; it grants no Authority and does not apply
+        # routing.  The canonical shared snapshot root keeps its full
+        # consumer contract.  An exact-user candidate scope is only allowed
+        # when this controlled invocation supplies its own snapshot root, so
+        # it cannot replace a shared Engineering read model.
         certification_setup_snapshot_refresh = (
             refresh_controlled_topology_execution_snapshots(
                 args,
@@ -7713,7 +7715,11 @@ def _execute_governed_transaction_with_guards_inner(
                 snapshot_root=snapshot_root,
                 current_state_window=True,
                 current_state_user=(
-                    str(getattr(args, "certification_user", "") or "")
+                    (
+                        str(getattr(args, "certification_user", "") or "")
+                        if setup_mode
+                        else str(cleanup_request.get("user") or "")
+                    )
                     if str(getattr(args, "snapshot_root", "") or "")
                     else ""
                 ),
@@ -7721,7 +7727,11 @@ def _execute_governed_transaction_with_guards_inner(
         )
         if not certification_setup_snapshot_refresh.get("ok"):
             return transaction_stop(
-                "controlled_certification_setup_snapshot_refresh_failed",
+                (
+                    "controlled_certification_setup_snapshot_refresh_failed"
+                    if setup_mode
+                    else "controlled_certification_cleanup_snapshot_refresh_failed"
+                ),
                 snapshot_refresh=certification_setup_snapshot_refresh,
             )
     if availability_first_reset or ct_m0f_standing_reset:
@@ -7788,11 +7798,11 @@ def _execute_governed_transaction_with_guards_inner(
         surface["controlled_execution_gate_profile"] = (
             "CONTROLLED_CERTIFICATION_TOPOLOGY"
         )
-    elif setup_mode:
-        # The setup path is also an exact one-user controlled topology
-        # transition.  It shares the current-state-only gate so historical
-        # prediction and learning read models cannot block a Packet whose
-        # service, risk, candidate, pool and rollback inputs are all fresh.
+    elif setup_mode or cleanup_mode:
+        # Exact one-user controlled topology setup and cleanup share the
+        # current-state-only gate.  Historical prediction and learning read
+        # models cannot block a bounded restoration when its service, risk,
+        # candidate, pool, route and rollback inputs are all fresh.
         surface["controlled_execution_gate_profile"] = (
             "CONTROLLED_CERTIFICATION_TOPOLOGY"
         )

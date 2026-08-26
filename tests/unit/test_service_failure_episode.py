@@ -1115,6 +1115,88 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             records[-1]["confirmed_hard_failure_monotonic_ns"],
         )
 
+    def test_ct_m0f_condition_reselects_fresh_matrix_binding(self):
+        """A normal Matrix refresh may change its observation fingerprint.
+
+        The controlled owner must use its own fresh selection while retaining
+        the caller value as audit provenance; source/user/target and the
+        registry row remain exact equality gates.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit_dir = root / "audit"
+            state.mkdir(); events.mkdir(); audit_dir.mkdir()
+            (state / "egress.registry").write_text(
+                "id=exec-source protocol=wireguard type=interface interface=wg-exec "
+                "enabled=1 role=EXECUTION_ONLY controlled_certification_source=1 "
+                "reservation_owner=operator_execution_governance certification_group=ct-m0f "
+                "controlled_source_reservation_id=ctres-test\n",
+                encoding="utf-8",
+            )
+            (state / "users.registry").write_text(
+                "ip=10.7.0.18 current=exec-source enabled=1 certification_user=1 "
+                "certification_group=ct-m0f\n", encoding="utf-8"
+            )
+            policy = root / "policy.json"
+            policy.write_text(json.dumps({
+                self.cycle.operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY: {
+                    "contract_id": "contract", "contract_hash": "a" * 64,
+                },
+            }), encoding="utf-8")
+            args = SimpleNamespace(
+                policy_file=str(policy),
+                ct_m0f_standing_validation_contract_id="contract",
+                ct_m0f_standing_validation_contract_hash="a" * 64,
+                ct_m0f_standing_validation_user="10.7.0.18",
+                ct_m0f_standing_validation_target="awg3",
+                ct_m0f_standing_sample_binding_fingerprint="b" * 64,
+                approved_source="exec-source", egress_state_owner="v7-egress-set-state",
+            )
+            selection = {
+                "ok": True,
+                "selection_mode": "PREPARE_CONTROLLED_FAILURE_CONDITION",
+                "selected_user": "10.7.0.18", "selected_source_id": "exec-source",
+                "selected_target_id": "awg3", "sample_binding_fingerprint": "c" * 64,
+            }
+            def fake_run(command, **_kwargs):
+                if "--ct-m0f-standing-source-selection" in command:
+                    output = json.dumps(selection)
+                elif "--prepare-exact-client-probe-session" in command:
+                    output = json.dumps({"ok": True})
+                else:
+                    output = "condition applied"
+                return self.cycle.subprocess.CompletedProcess(command, 0, stdout=output)
+            with mock.patch.object(
+                self.cycle.operator_execution, "validate_ct_m0f_standing_validation_policy",
+                return_value={"ok": True, "errors": []},
+            ), mock.patch.object(
+                self.cycle.operator_execution, "ensure_ct_m0f_standing_validation_lineage_checkpoint",
+                return_value={"ok": True},
+            ), mock.patch.object(
+                self.cycle.operator_execution, "ct_m0f_runtime_implementation_fingerprint",
+                return_value="d" * 64,
+            ), mock.patch.object(
+                self.cycle, "prepare_controlled_certification_condition",
+                return_value={"final_verdict": "CONTROLLED_CERTIFICATION_CONDITION_PREPARED"},
+            ), mock.patch.object(self.cycle.subprocess, "run", side_effect=fake_run):
+                result = self.cycle.prepare_ct_m0f_standing_controlled_condition(
+                    args, state_dir=state, event_dir=events,
+                    snapshot_root=state / "intelligence", audit_dir=audit_dir,
+                    lease_file=state / "lease.json",
+                )
+            records = self.cycle.operator_execution.read_audit_records(
+                audit_dir / "operator-execution-audit.jsonl"
+            )
+        self.assertEqual(
+            result["final_verdict"],
+            "CT_M0F_STANDING_CONTROLLED_CONDITION_PREPARED",
+            result,
+        )
+        self.assertEqual(records[-1]["sample_binding_fingerprint"], "c" * 64)
+        self.assertEqual(records[-1]["requested_sample_binding_fingerprint"], "b" * 64)
+
     def test_ct_m0f_condition_reuses_exact_existing_baseline_in_place(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

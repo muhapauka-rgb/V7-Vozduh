@@ -12726,7 +12726,16 @@ def prepare_ct_m0f_standing_controlled_condition(
         "user": str(args.ct_m0f_standing_validation_user or ""),
         "source": str(args.approved_source or ""),
         "target": str(args.ct_m0f_standing_validation_target or ""),
-        "fingerprint": str(args.ct_m0f_standing_sample_binding_fingerprint or ""),
+        # The caller's preparation fingerprint is retained as provenance, not
+        # as a lock.  It contains the Matrix source-observation fingerprint,
+        # which changes on every successful ordinary observation.  Treating
+        # it as an equality token made a healthy, continuously refreshing
+        # Matrix unable to admit its own controlled condition.  This owner
+        # immediately obtains a fresh selection below and still binds the
+        # immutable identity/source/target tuple plus the exact registry row.
+        "requested_fingerprint": str(
+            args.ct_m0f_standing_sample_binding_fingerprint or ""
+        ),
     }
     if selection_proc.returncode != 0 or selection.get("ok") is not True:
         blockers.append("ct_m0f_condition_fresh_selection_unavailable")
@@ -12740,10 +12749,14 @@ def prepare_ct_m0f_standing_controlled_condition(
         ("user", "selected_user"),
         ("source", "selected_source_id"),
         ("target", "selected_target_id"),
-        ("fingerprint", "sample_binding_fingerprint"),
     ):
         if expected[field] != str(selection.get(selection_field) or ""):
             blockers.append(f"ct_m0f_condition_{field}_binding_changed")
+    fresh_sample_binding_fingerprint = str(
+        selection.get("sample_binding_fingerprint") or ""
+    )
+    if len(fresh_sample_binding_fingerprint) != 64:
+        blockers.append("ct_m0f_condition_fresh_binding_fingerprint_missing")
     source_lines = [
         line
         for line in (state_dir / "egress.registry").read_text(
@@ -12959,7 +12972,7 @@ def prepare_ct_m0f_standing_controlled_condition(
             user=expected["user"],
             source=expected["source"],
             target=expected["target"],
-            sample_binding_fingerprint=expected["fingerprint"],
+            sample_binding_fingerprint=fresh_sample_binding_fingerprint,
             source_reservation_id=str(
                 source_row.get("controlled_source_reservation_id") or ""
             ),
@@ -13060,7 +13073,10 @@ def prepare_ct_m0f_standing_controlled_condition(
             "user": expected["user"],
             "source": expected["source"],
             "baseline_target": expected["target"],
-            "sample_binding_fingerprint": expected["fingerprint"],
+            "sample_binding_fingerprint": fresh_sample_binding_fingerprint,
+            "requested_sample_binding_fingerprint": expected[
+                "requested_fingerprint"
+            ],
             "transaction_reservation_id": transaction_reservation_id,
             "condition_owner": "v7-egress-set-state",
             "condition_class": condition_class,

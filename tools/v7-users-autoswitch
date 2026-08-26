@@ -22339,6 +22339,42 @@ def _controlled_source_interface_identity(path: Path) -> dict[str, str]:
     return fields
 
 
+def _controlled_source_openvpn_identity(path: Path) -> dict[str, str]:
+    """Redacted OpenVPN equality projection matching the draft lifecycle."""
+    result: dict[str, str] = {}
+    blocks: dict[str, list[str]] = {"cert": [], "key": []}
+    active_block = ""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return result
+    for raw in lines:
+        line = raw.strip()
+        lower = line.lower()
+        if lower in {"<cert>", "<key>"}:
+            active_block = lower[1:-1]
+            continue
+        if lower in {"</cert>", "</key>"}:
+            active_block = ""
+            continue
+        if active_block:
+            blocks[active_block].append(raw.rstrip())
+            continue
+        if not line or line.startswith(("#", ";")):
+            continue
+        key, _, value = line.partition(" ")
+        if key.lower() == "remote" and value.strip() and not result.get("remote"):
+            result["remote"] = value.strip().lower()
+        elif key.lower() == "proto" and value.strip() and not result.get("proto"):
+            result["proto"] = value.strip().lower()
+    result["proto"] = result.get("proto") or "udp"
+    for name, lines in blocks.items():
+        body = "\n".join(lines)
+        if body:
+            result[name] = hashlib.sha256(body.encode("utf-8")).hexdigest()
+    return result
+
+
 def _controlled_source_draft_duplicate_egress(
     *,
     protocol: str,
@@ -22347,8 +22383,12 @@ def _controlled_source_draft_duplicate_egress(
     own_pool_egress_id: str,
 ) -> str:
     """Return only an existing conflicting egress id, never config data."""
-    identity = _controlled_source_interface_identity(config_path)
-    required = ("private_key", "peer_public_key", "endpoint")
+    if protocol == "openvpn":
+        identity = _controlled_source_openvpn_identity(config_path)
+        required = ("remote", "proto")
+    else:
+        identity = _controlled_source_interface_identity(config_path)
+        required = ("private_key", "peer_public_key", "endpoint")
     if not all(identity.get(key) for key in required):
         return ""
     for existing in registry_rows:
@@ -22363,8 +22403,17 @@ def _controlled_source_draft_duplicate_egress(
         existing_path = Path(
             str(existing.get("config") or existing.get("config_path") or "")
         )
-        other = _controlled_source_interface_identity(existing_path)
-        if all(other.get(key) == identity.get(key) for key in required):
+        other = (
+            _controlled_source_openvpn_identity(existing_path)
+            if protocol == "openvpn"
+            else _controlled_source_interface_identity(existing_path)
+        )
+        compare_keys = list(required)
+        if protocol == "openvpn":
+            for key in ("cert", "key"):
+                if identity.get(key) or other.get(key):
+                    compare_keys.append(key)
+        if all(other.get(key) == identity.get(key) for key in compare_keys):
             return egress_id
     return ""
 

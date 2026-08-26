@@ -106,6 +106,14 @@ changed.  The explanation is now attached only after the canonical snapshot
 comparison, preserving the same safety decision without a self-created
 staleness signal.  The autoswitch policy suite then passed again (`204 passed`).
 
+The next fresh Candidate showed that the expired foreign Packet lock was also
+being treated as a source-bundle lease by the snapshot gate.  This is not a
+live lease and cannot authorize an Apply.  The Planner now permits only the
+fresh Candidate needed to make a replacement Packet; direct Apply remains
+blocked until the existing Packet owner writes a new exact Lease/Barrier and
+the one-use contract is rechecked.  The full autoswitch policy suite passed
+after that correction (`205 passed`).
+
 ## Exact next action
 
 Publish and deploy this bounded correction.  The exact N10 Authority for

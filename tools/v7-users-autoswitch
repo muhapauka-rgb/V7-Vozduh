@@ -13785,11 +13785,42 @@ class AutoswitchPlanner:
             else:
                 restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_ok"
         intelligence_snapshot_gate = self._intelligence_snapshot_gate(len(selected))
-        intelligence_snapshot_gate = self._apply_source_bundle_lease_to_intelligence_gate(
-            intelligence_snapshot_gate,
-            restore_barrier,
-            approved_plan_lock,
-        )
+        if n10_foreign_expired_clearance:
+            # The old lock is neither a current source of truth nor a valid
+            # source-bundle lease for this new identity.  The live Planner has
+            # already read the current owners, and N10 cannot apply until a
+            # fresh Packet/Lease/Barrier plus the one-use contract recheck.
+            # Thus the stale lock may not suppress the Candidate that the
+            # existing Packet owner needs to construct that new transaction.
+            # This is candidate-only deferral, never an Apply exemption.
+            if (
+                bool_value(intelligence_snapshot_gate.get("active"))
+                and bool_value(intelligence_snapshot_gate.get("stop_required"))
+            ):
+                intelligence_snapshot_gate.update({
+                    "stop_required_before_n10_packet_recheck": True,
+                    "stop_required": False,
+                    "selected_moves_suppressed": False,
+                    "selected_moves_after_gate": len(selected),
+                    "snapshot_gate_source": "n10_foreign_expired_clearance",
+                    "snapshot_gate_decision": (
+                        "defer_to_fresh_packet_lease_barrier_recheck"
+                    ),
+                    "snapshot_gate_changed_fields": [
+                        "foreign_expired_packet_clearance"
+                    ],
+                    "snapshot_gate_material_change": False,
+                    "n10_candidate_only_deferral": True,
+                    "n10_apply_exemption": False,
+                })
+        else:
+            intelligence_snapshot_gate = (
+                self._apply_source_bundle_lease_to_intelligence_gate(
+                    intelligence_snapshot_gate,
+                    restore_barrier,
+                    approved_plan_lock,
+                )
+            )
         if bool_value(intelligence_snapshot_gate.get("active")) and bool_value(intelligence_snapshot_gate.get("stop_required")):
             if approved_plan_lock.get("present"):
                 restore_barrier["approved_plan_lock_selected_moves_blocked"] = True

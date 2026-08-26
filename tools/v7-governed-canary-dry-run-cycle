@@ -7193,6 +7193,22 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     "child_timed_out": bool(
                         downstream_proof_diagnostic.get("apply_timed_out")
                     ),
+                    # The route writer may correctly refuse an immutable
+                    # Packet during its final mutable revalidation.  Keep
+                    # that exact owner verdict in the bounded invalid sample
+                    # rather than collapsing it into "evidence not emitted".
+                    # This is diagnostic only and never credits a sample.
+                    "apply_reason": str(apply_result.get("reason") or ""),
+                    "apply_unsafe_blocker": str(
+                        apply_result.get("unsafe_blocker") or ""
+                    ),
+                    "approved_plan_lock_reasons": list(
+                        (
+                            apply_result.get("approved_plan_lock_validation")
+                            or {}
+                        ).get("reasons")
+                        or []
+                    )[:12],
                 },
                 "runtime_mutation_performed_by_consumer": False,
                 "routing_mutation_performed_by_consumer": False,

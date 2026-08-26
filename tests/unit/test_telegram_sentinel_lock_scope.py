@@ -465,6 +465,23 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
         self.assertEqual(result["users_moved"], 0)
         run.assert_called_once()
 
+    def test_fast_failure_wakes_existing_planner_for_certification_only_scope(self):
+        event = {
+            "event_id": "sfe_certification", "event_type": "SERVICE_FAILURE_OBSERVED",
+            "channel": "source", "source_incident_id": "sfinc_certification",
+            "affected_scope_count": 0,
+            "source_scope": {
+                "scope_classification": "CERTIFICATION_ONLY",
+                "controlled_certification_scope": {"affected_scope_count": 1},
+            },
+        }
+        with mock.patch.object(self.sentinel.subprocess, "run") as run:
+            run.return_value = SimpleNamespace(returncode=0, stdout="started")
+            result = self.sentinel.wake_existing_matrix_consumer([event])
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["requested"])
+        run.assert_called_once()
+
     def test_fast_failure_does_not_wake_for_revalidation_or_zero_scope(self):
         with mock.patch.object(self.sentinel.subprocess, "run") as run:
             result = self.sentinel.wake_existing_matrix_consumer([{

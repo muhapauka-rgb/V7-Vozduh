@@ -195,10 +195,34 @@ def wake_existing_matrix_consumer(events: list[dict[str, Any]]) -> dict[str, Any
     nor an independent executor.  Revalidations and zero-scope sources remain
     on the normal periodic path to avoid wake storms.
     """
+    def has_actionable_scope(row: dict[str, Any]) -> bool:
+        """Recognise one already-authorised certification scope as actionable.
+
+        The Matrix is still the event and scope owner.  A certification-only
+        source deliberately has no ordinary affected users, so its bounded
+        scope is stored below ``controlled_certification_scope`` rather than
+        in the ordinary ``affected_scope_count``.  Treating that exact scope
+        as zero strands the existing governed consumer after it has received
+        a canonical failure event.  This only wakes the existing one-shot
+        consumer; admission remains entirely with the later owner chain.
+        """
+        if int(row.get("affected_scope_count") or 0) > 0:
+            return True
+        scope = row.get("source_scope")
+        if not isinstance(scope, dict):
+            return False
+        if str(scope.get("scope_classification") or "") != "CERTIFICATION_ONLY":
+            return False
+        controlled = scope.get("controlled_certification_scope")
+        return (
+            isinstance(controlled, dict)
+            and int(controlled.get("affected_scope_count") or 0) > 0
+        )
+
     actionable = [
         row for row in events
         if row.get("event_type") == "SERVICE_FAILURE_OBSERVED"
-        and int(row.get("affected_scope_count") or 0) > 0
+        and has_actionable_scope(row)
     ]
     if not actionable:
         return {

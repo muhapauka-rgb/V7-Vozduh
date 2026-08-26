@@ -260,6 +260,12 @@ passing** (148 governed-canary CLI, 202 autoswitch policy, 137
 lifecycle/service-failure).  Local, GitHub and deployed code are aligned at
 `3952b9286bf2def602ed91d59f924eb6cd9764b6`.
 
+Final independent `v7-truth-check --all` passed after CPS reconciliation:
+local and GitHub are aligned at documentation commit `60ac30ef`; the Runtime
+has the matching deployed executable fingerprint from `a757de86` (the later
+commit is documentation-only), and the CPS projection is atomic and
+consistent.
+
 Live owner-backed terminal evidence:
 
 | Item | Result |

@@ -546,6 +546,101 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
                 ordinary_users,
             )
 
+    def test_controlled_source_release_to_verified_base_requires_exact_group(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = (
+                "id=vless protocol=vless type=interface interface=tun0 enabled=1 "
+                "role=EXECUTION_ONLY route_table=1250 manual_only=1 reserve_only=1 "
+                "canary_reserved=1 execution_reserved=1 "
+                "reservation_owner=operator_execution_governance "
+                "autoswitch_allowed=false rebalance_allowed=false "
+                "production_assignment_allowed=false service_tags=governance "
+                "exclude_route_classes=DIRECT_RU\n"
+            )
+            state = self.write_state(Path(tmp), original, "")
+            fingerprint = hashlib.sha256(original.rstrip("\n").encode()).hexdigest()
+            reserve = self.run_set_state(
+                state,
+                "vless",
+                "certification-reserve",
+                "--reservation-id",
+                "csr_chain_1",
+                "--reservation-expires-at",
+                "2099-01-01T00:00:00+00:00",
+                "--expected-egress-fingerprint",
+                fingerprint,
+                "--certification-group",
+                "telegram-test",
+                "--apply",
+                "--confirm",
+                "RESERVE_CONTROLLED_CERTIFICATION_SOURCE",
+            )
+            self.assertEqual(reserve.returncode, 0, reserve.stdout + reserve.stderr)
+            reserved_fingerprint = next(
+                line.split("=", 1)[1]
+                for line in reserve.stdout.splitlines()
+                if line.startswith("reserved_egress_fingerprint=")
+            )
+            base_backup = state / "egress.registry.backup.v7-egress-set-state.base"
+            base_backup.write_text(original, encoding="utf-8")
+
+            missing_mode = self.run_set_state(
+                state,
+                "vless",
+                "certification-release",
+                "--reservation-id",
+                "csr_chain_1",
+                "--expected-egress-fingerprint",
+                reserved_fingerprint,
+                "--restore-backup",
+                str(base_backup),
+            )
+            self.assertEqual(missing_mode.returncode, 1, missing_mode.stdout)
+            self.assertIn("base restore requires --release-to-base", missing_mode.stdout)
+
+            wrong_group = self.run_set_state(
+                state,
+                "vless",
+                "certification-release",
+                "--reservation-id",
+                "csr_chain_1",
+                "--expected-egress-fingerprint",
+                reserved_fingerprint,
+                "--restore-backup",
+                str(base_backup),
+                "--release-to-base",
+                "--certification-group",
+                "other-campaign",
+            )
+            self.assertEqual(wrong_group.returncode, 2, wrong_group.stdout)
+            self.assertIn(
+                "controlled_source_base_release_group_not_exact", wrong_group.stdout
+            )
+
+            release = self.run_set_state(
+                state,
+                "vless",
+                "certification-release",
+                "--reservation-id",
+                "csr_chain_1",
+                "--expected-egress-fingerprint",
+                reserved_fingerprint,
+                "--restore-backup",
+                str(base_backup),
+                "--release-to-base",
+                "--certification-group",
+                "telegram-test",
+                "--apply",
+                "--confirm",
+                "RELEASE_CONTROLLED_CERTIFICATION_SOURCE_TO_BASE",
+            )
+            self.assertEqual(release.returncode, 0, release.stdout + release.stderr)
+            self.assertIn("release_mode=base_restore", release.stdout)
+            self.assertEqual(
+                (state / "egress.registry").read_text(encoding="utf-8"),
+                original,
+            )
+
     def test_controlled_source_reserve_blocks_nonempty_or_changed_source(self):
         with tempfile.TemporaryDirectory() as tmp:
             original = (

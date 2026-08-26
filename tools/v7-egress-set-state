@@ -15,10 +15,11 @@ RESERVATION_ID=""
 RESERVATION_EXPIRES_AT=""
 EXPECTED_EGRESS_FINGERPRINT=""
 RESTORE_BACKUP=""
+RELEASE_TO_BASE=0
 CONFIRM=""
 
 usage() {
-  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance|certification-failure|certification-telegram-failure|certification-telegram-recovery|certification-scope|certification-reserve|certification-release> [--apply] [--controlled-certification] [--certification-users ip1,ip2] [--certification-group name] [--reservation-id id] [--reservation-expires-at ISO8601] [--expected-egress-fingerprint sha256] [--restore-backup path] [--confirm token]" >&2
+  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance|certification-failure|certification-telegram-failure|certification-telegram-recovery|certification-scope|certification-reserve|certification-release> [--apply] [--controlled-certification] [--certification-users ip1,ip2] [--certification-group name] [--reservation-id id] [--reservation-expires-at ISO8601] [--expected-egress-fingerprint sha256] [--restore-backup path] [--release-to-base] [--confirm token]" >&2
 }
 
 while [ "$#" -gt 2 ]; do
@@ -61,6 +62,10 @@ while [ "$#" -gt 2 ]; do
       [ "$#" -ge 4 ] || { echo "missing value for --restore-backup" >&2; usage; exit 1; }
       RESTORE_BACKUP="$4"
       shift 2
+      ;;
+    --release-to-base)
+      RELEASE_TO_BASE=1
+      shift
       ;;
     --confirm)
       [ "$#" -ge 4 ] || { echo "missing value for --confirm" >&2; usage; exit 1; }
@@ -579,13 +584,52 @@ if [ "$STATE" = "certification-release" ]; then
     echo "reason=controlled_source_reservation_identity_mismatch"
     exit 2
   }
+  release_mode="reservation_restore"
   case "$RESTORE_BACKUP" in
-    "$EGRESS_REG".backup.v7-controlled-source-reserve.*) ;;
+    "$EGRESS_REG".backup.v7-controlled-source-reserve.*)
+      [ "$RELEASE_TO_BASE" -eq 0 ] || {
+        echo "unsafe release-to-base backup type"
+        exit 1
+      }
+      ;;
+    "$EGRESS_REG".backup.v7-egress-set-state.*)
+      [ "$RELEASE_TO_BASE" -eq 1 ] || {
+        echo "base restore requires --release-to-base"
+        exit 1
+      }
+      release_mode="base_restore"
+      ;;
     *) echo "unsafe or missing restore backup"; exit 1 ;;
   esac
   [ -r "$RESTORE_BACKUP" ] || { echo "restore backup is not readable"; exit 1; }
   prior_line="$(grep "^id=${EGRESS_ID} " "$RESTORE_BACKUP" 2>/dev/null || true)"
   [ -n "$prior_line" ] || { echo "restore backup lacks exact egress"; exit 1; }
+  if [ "$release_mode" = "base_restore" ]; then
+    prior_reservation="$(kv_get "$prior_line" controlled_source_reservation_id)"
+    prior_group="$(kv_get "$prior_line" certification_group)"
+    prior_controlled="$(kv_get "$prior_line" controlled_certification_source)"
+    [ -z "$prior_reservation" ] \
+      && [ -z "$prior_group" ] \
+      && [ "$prior_controlled" != "1" ] || {
+        echo "ACTION=blocked"
+        echo "reason=controlled_source_base_restore_not_unreserved"
+        exit 2
+      }
+    current_group="$(kv_get "$line" certification_group)"
+    [ -n "$current_group" ] && [ "$current_group" = "$CERTIFICATION_GROUP" ] || {
+      echo "ACTION=blocked"
+      echo "reason=controlled_source_base_release_group_not_exact"
+      exit 2
+    }
+    for key in id protocol type interface config role route_table manual_only reserve_only canary_reserved execution_reserved reservation_owner autoswitch_allowed rebalance_allowed production_assignment_allowed service_tags exclude_route_classes; do
+      [ "$(kv_get "$line" "$key")" = "$(kv_get "$prior_line" "$key")" ] || {
+        echo "ACTION=blocked"
+        echo "reason=controlled_source_base_restore_identity_changed"
+        echo "field=$key"
+        exit 2
+      }
+    done
+  fi
   assigned_count="$(awk -v e="$EGRESS_ID" '
     {
       enabled="1"; current=""
@@ -604,6 +648,7 @@ if [ "$STATE" = "certification-release" ]; then
     exit 2
   }
   echo "reservation_id=$RESERVATION_ID"
+  echo "release_mode=$release_mode"
   echo "restore_backup=$RESTORE_BACKUP"
   echo "restored_egress_fingerprint=$(line_fingerprint "$prior_line")"
   if [ "$APPLY" -ne 1 ]; then
@@ -611,7 +656,9 @@ if [ "$STATE" = "certification-release" ]; then
     echo "ACTION=none"
     exit 0
   fi
-  [ "$CONFIRM" = "RELEASE_CONTROLLED_CERTIFICATION_SOURCE" ] || {
+  expected_confirm="RELEASE_CONTROLLED_CERTIFICATION_SOURCE"
+  [ "$release_mode" != "base_restore" ] || expected_confirm="RELEASE_CONTROLLED_CERTIFICATION_SOURCE_TO_BASE"
+  [ "$CONFIRM" = "$expected_confirm" ] || {
     echo "ACTION=blocked"
     echo "reason=exact_release_confirmation_required"
     exit 2

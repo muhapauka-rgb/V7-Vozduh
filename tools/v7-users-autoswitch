@@ -7958,6 +7958,109 @@ class AutoswitchPlanner:
             state,
         )
         changed += int(recovery_reconciliation.get("changed") or 0)
+        # Older L3 records were created before passive service-failure
+        # receipts became the normal recovery carrier.  They can therefore
+        # remain OPEN forever even after the Matrix has freshly proved every
+        # exact service that opened the historical incident healthy.  Consume
+        # only that narrow, owner-backed condition here.  A current failure,
+        # an unknown service, or stale Matrix evidence leaves the incident
+        # open; this is recovery reconciliation, never a route action.
+        l3_recovered: list[str] = []
+        matrix_items = (
+            self.matrix.get("items")
+            if isinstance(getattr(self, "matrix", {}), dict)
+            and isinstance(self.matrix.get("items"), dict)
+            else {}
+        )
+        active_l3_states = {
+            "OPEN", "READY_FOR_EXECUTION", "INCIDENT_OPEN_STOP_SAFE",
+            "STOP_SAFE", "SUSPENDED",
+        }
+        now_epoch = time.time()
+        for incident_key, record in list(incidents.items()):
+            if not isinstance(record, dict):
+                continue
+            if (
+                str(record.get("authority_object") or "")
+                != "EMERGENCY_FAILOVER_AUTONOMY"
+                or str(record.get("status") or "") not in active_l3_states
+            ):
+                continue
+            required_services = sorted({
+                str(service) for service in (record.get("failed_required_services") or [])
+                if str(service)
+            })
+            sources = sorted({
+                str(source) for source in (
+                    record.get("failed_sources")
+                    or [record.get("incident_source")]
+                ) if str(source)
+            })
+            if not required_services or not sources:
+                continue
+            recovered_sources: list[str] = []
+            for source in sources:
+                rows = (
+                    (matrix_items.get(source) or {}).get("services")
+                    if isinstance(matrix_items.get(source), dict)
+                    else {}
+                )
+                if not isinstance(rows, dict):
+                    break
+                exact_rows = [rows.get(service) for service in required_services]
+                if any(not isinstance(row, dict) or row.get("ok") is not True for row in exact_rows):
+                    break
+                try:
+                    ages = [
+                        now_epoch - parse_ts(str(row.get("observed_at") or row.get("tested_at") or ""))
+                        for row in exact_rows
+                    ]
+                except (TypeError, ValueError):
+                    break
+                if any(age < 0 or age > 900 for age in ages):
+                    break
+                recovered_sources.append(source)
+            if recovered_sources != sources:
+                continue
+            prior_scope = (
+                record.get("current_source_scope")
+                if isinstance(record.get("current_source_scope"), dict)
+                else record.get("scope_accounting")
+                if isinstance(record.get("scope_accounting"), dict) else {}
+            )
+            frozen_scope = {
+                **prior_scope,
+                "status": "ACCOUNTED",
+                "terminal_scope_frozen": True,
+                "current_matrix_relation": "CURRENTLY_HEALTHY",
+                "recovery_services": required_services,
+                "recovery_sources": recovered_sources,
+                "scope_membership_law": "FRESH_EXACT_MATRIX_RECOVERY_FOR_HISTORICAL_L3_INCIDENT",
+            }
+            incidents[incident_key] = {
+                **record,
+                "status": "CLOSED",
+                "incident_state": "INTENT_CLOSED",
+                "channel_incident_state": "RECOVERED",
+                "terminal_outcome": "RECOVERY_OBSERVED_NO_ACTION",
+                "terminal_state": "RECOVERED",
+                "terminal_reason": "fresh_exact_matrix_recovery_of_historical_l3_services",
+                "closed_at": now_iso(),
+                "next_required_consumer": "",
+                "reentry_condition": "new owner-backed failure generation",
+                "current_source_scope": frozen_scope,
+                "scope_accounting": frozen_scope,
+                "execution_performed": False,
+                "runtime_mutation_performed": True,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+                "apply_executed": False,
+                "authority_expanded": False,
+                "production_maturity_changed": False,
+                "consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
+            }
+            changed += 1
+            l3_recovered.append(str(incident_key))
         if changed:
             state["incidents"] = incidents
             self._write_l3_runtime_state(state)
@@ -7972,6 +8075,11 @@ class AutoswitchPlanner:
             "changed_records": changed,
             "rejected_records": sorted(set(rejected)),
             "recovery_terminal_reconciliation": recovery_reconciliation,
+            "historical_l3_recovery_reconciliation": {
+                "changed": len(l3_recovered),
+                "closed_incident_keys": sorted(l3_recovered),
+                "proof": "fresh exact Matrix health only; no routing mutation",
+            },
             "final_verdict": "PASS" if not rejected else "STOP_SAFE",
             "forbidden_effects": {
                 "candidate_created": False, "packet_created": False, "lease_created": False,

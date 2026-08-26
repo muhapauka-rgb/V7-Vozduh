@@ -6165,6 +6165,40 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertEqual(status["final_verdict"], "PASS", status)
 
+    def test_fresh_matrix_closes_only_historical_l3_service_incident(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            now = self.autoswitch.now_iso()
+            (state_dir / "service-matrix.json").write_text(json.dumps({
+                "items": {"vless": {"services": {
+                    "google": {"ok": True, "observed_at": now},
+                    "youtube": {"ok": True, "observed_at": now},
+                }}},
+            }), encoding="utf-8")
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"old-l3": {
+                    "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+                    "status": "OPEN",
+                    "incident_state": "INCIDENT_OPEN_STOP_SAFE",
+                    "failed_sources": ["vless"],
+                    "failed_required_services": ["google", "youtube"],
+                }},
+            }), encoding="utf-8")
+            planner = self.autoswitch.AutoswitchPlanner.__new__(
+                self.autoswitch.AutoswitchPlanner
+            )
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            planner.matrix = json.loads((state_dir / "service-matrix.json").read_text(encoding="utf-8"))
+            result = planner.reconcile_service_failure_execution_outcomes()
+            record = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))["incidents"]["old-l3"]
+        self.assertEqual(result["historical_l3_recovery_reconciliation"]["changed"], 1)
+        self.assertEqual(record["incident_state"], "INTENT_CLOSED")
+        self.assertEqual(record["terminal_outcome"], "RECOVERY_OBSERVED_NO_ACTION")
+        self.assertFalse(record["routing_mutation_performed"])
+        self.assertEqual(record["users_moved"], 0)
+
     def test_empty_current_route_scope_closes_protection_intent_not_channel_incident(self):
         """A source with no current users cannot remain an actionable cohort."""
         with tempfile.TemporaryDirectory() as tmp:

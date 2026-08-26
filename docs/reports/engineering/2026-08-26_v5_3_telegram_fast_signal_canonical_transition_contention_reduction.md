@@ -2,7 +2,8 @@
 
 **Date:** 2026-08-26  
 **Program:** `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1`  
-**Status:** implementation tested locally; deployment and one new controlled proof pending.  
+**Status:** deployed and live-verified; the following controlled attempt stopped
+before route application and is invalid for performance credit.
 **Scope:** reduce a measured pre-T0 delay without changing Matrix ownership,
 failure criteria, Planner, Authority, routing or ordinary users.
 
@@ -63,11 +64,32 @@ healthy result is published as recovery through that same owner; and a failed
 recovery publication releases the lock rather than leaving a partial state.
 No test performs a route change or moves a user.
 
+## Deployment and live observation
+
+Commit `e1d04fa775d817f78b9be9c464e12455090797eb` passed the existing
+safe-deploy gate and was deployed as
+`deploy-z8-14-Updatesystem-e1d04fa-20260826T165746`. Local, GitHub and Runtime
+fingerprints aligned; `v7-health.service` remained active and the standalone
+Matrix/Telegram timers remained disabled.
+
+Live steady-state Telegram runs then completed in approximately 0.25--0.50 s
+with `service_matrix_lock.scope=no_canonical_matrix_transition`. This confirms
+the repeated healthy writer acquisition is gone. No route, Matrix ownership,
+ordinary assignment or client was changed by deployment.
+
+One later certification-only attempt selected `awg3` through the existing
+Matrix/Planner owner but stopped before a route write at the final immutable
+snapshot gate. It therefore supplies no timing credit. The controlled
+Telegram condition was removed through the existing `v7-egress-set-state`
+recovery owner; the test identity returned to its isolated source and
+ordinary-user delta is zero. The exact diagnostic and its cleanup are recorded
+separately in
+`docs/reports/engineering/2026-08-26_v5_3_telegram_controlled_apply_handoff_diagnostic.md`.
+
 ## Exact next action
 
-Run the existing safe-deploy gate, publish and deploy this single correction.
-Then verify the live health service, owner/timer counts and absence of ordinary
-user changes. Only if the current certification campaign law admits its next
-fresh generation, run one controlled Telegram-critical proof and compare
-failure-to-T0 against the 13,566.293 ms baseline. Do not run a fabricated
-five-sample campaign, alter Telegram failure confirmation, or begin N10/N11.
+Deploy a diagnostics-only extension of the existing route writer and its
+governed caller. The next permitted certification attempt will persist the
+exact snapshot-gate reason and changed inputs if it stops again. Only then may
+the existing owner be corrected for that specific, proven state transition;
+the safety gate itself is not relaxed by this report.

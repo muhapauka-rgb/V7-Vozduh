@@ -8028,6 +8028,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["summary"]["selected_moves"], 0)
         self.assertEqual(plan["apply_result"]["reason"], "approved_plan_lock_selected_moves_missing")
         self.assertEqual(plan["apply_result"]["unsafe_blocker"], "approved_plan_lock_snapshot_gate_stop_required")
+        self.assertEqual(
+            plan["apply_result"]["intelligence_snapshot_gate"]
+            ["snapshot_gate_decision"],
+            "block_material_snapshot_change",
+        )
 
     def test_restore_clearance_reuses_exact_operation_scoped_binding(self):
         with tempfile.TemporaryDirectory() as tmp:

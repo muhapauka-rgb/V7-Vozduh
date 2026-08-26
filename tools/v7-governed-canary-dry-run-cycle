@@ -7234,6 +7234,18 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                         ).get("reasons")
                         or []
                     )[:12],
+                    # The existing route writer owns the snapshot gate.  Keep
+                    # its exact fail-closed decision in invalid certification
+                    # evidence so a later repair cannot guess which mutable
+                    # input changed.
+                    "intelligence_snapshot_gate": (
+                        apply_result.get("intelligence_snapshot_gate")
+                        if isinstance(
+                            apply_result.get("intelligence_snapshot_gate"),
+                            dict,
+                        )
+                        else {}
+                    ),
                 },
                 "runtime_mutation_performed_by_consumer": False,
                 "routing_mutation_performed_by_consumer": False,

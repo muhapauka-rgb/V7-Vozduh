@@ -16598,6 +16598,12 @@ class AutoswitchPlanner:
                     "unsafe_blocker": reason,
                     "selected_moves_diagnostics": diagnostics,
                     "approved_plan_lock_validation": approved_lock,
+                    # Preserve the exact fail-closed snapshot decision for
+                    # the governed caller.  It is diagnostic-only: no gate
+                    # is relaxed and the locked Packet remains unexecuted.
+                    "intelligence_snapshot_gate": (
+                        safety.get("intelligence_snapshots") or {}
+                    ),
                 }
             return {"applied": False, "reason": "no_selected_moves"}
         transaction_reservation_guards = []

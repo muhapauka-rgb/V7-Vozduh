@@ -40,12 +40,12 @@ This section is the single live volatile current-state surface. Older production
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
-| `STATE_CAPTURED` | `2026-08-26T16:18:00+03:00` |
+| `STATE_CAPTURED` | `2026-08-26T17:34:00+03:00` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `TELEGRAM_CRITICAL_FAILURE_TO_T0_CAUSAL_RECONCILIATION: the required-endpoint S11 scope is deployed and one valid cold proof reduced required-service verification from 6,931.644 ms to 1,183.018 ms. The same proof remains 17,759.208 ms because health detection/confirmation before T0 took 13,566.293 ms. The next bounded repair removes unnecessary healthy fast-signal Matrix writes that contend for the existing writer lock; it preserves Matrix ownership, failure confirmation and fast recovery publication. N10 remains separately blocked by its ordinary-like/cohort boundary.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `TELEGRAM_CRITICAL_CONTROLLED_APPLY_HANDOFF_RECONCILIATION: e1d04fa is deployed and live healthy Telegram observations no longer acquire the Matrix writer lock. One certification-only attempt selected awg3 through the existing owner but stopped before a route write at approved_plan_lock_snapshot_gate_stop_required; the condition and source route were reset, ordinary-user delta=0. Deploy the diagnostics-only existing-writer/caller extension, then use one fresh admitted certification attempt to record the exact snapshot-gate change before any owner-rule repair. N10 remains separately blocked by its ordinary-like/cohort boundary.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CRITICAL_FAILURE_TO_T0_CAUSAL_RECONCILIATION_20260826` |
-| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CRITICAL_FAILURE_TO_T0_CAUSAL_RECONCILIATION_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_TELEGRAM_CONTROLLED_APPLY_HANDOFF_DIAGNOSTIC_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_TELEGRAM_CONTROLLED_APPLY_HANDOFF_DIAGNOSTIC_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
@@ -55,7 +55,7 @@ This section is the single live volatile current-state surface. Older production
 | `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-26_v5_3_shared_healthy_target_contract_and_ct_m0f_cold_sample.md` |
 | `HARD_PATH_RUNTIME_FINGERPRINT` | `993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418` |
 | `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `a066d6d719c90d17df57baf7b13328988f6d0c53; deploy-z8-14-Updatesystem-a066d6d-20260826T102227` |
-| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `REQUIRED_SERVICE_S11_SCOPE_DEPLOYED_AND_CONSUMED: the certification-only automatic chain selected awg3 through the existing owner and reused the prepared target (`prepared_decision_reused=true`) without a world-model rebuild or full-Planner fallback. In the new valid cold sample, mandatory Telegram S11 fell to 1,183.018 ms from 6,931.644 ms, but onset-to-S11 was 17,759.208 ms because first failure confirmation before T0 took 13,566.293 ms. The profile, condition, transaction and route were fully reset; ordinary-user effect remains zero.` |
+| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `REQUIRED_SERVICE_S11_SCOPE_DEPLOYED_AND_CONSUMED; FAST_SIGNAL_WRITER_CONTENTION_CORRECTION_DEPLOYED_AT_e1d04fa: live healthy Telegram observations complete in approximately 0.25--0.50 s and do not acquire the Matrix writer lock. A later certification-only attempt selected awg3 through existing Matrix/Planner owners, then safely stopped before route apply at approved_plan_lock_snapshot_gate_stop_required; it is invalid for performance credit. Exact condition cleanup and original source-route restoration passed; ordinary-user effect remains zero.` |
 | `V5_3_TELEGRAM_CONTROLLED_COLD_SAMPLE` | `FUNCTIONALLY_VALID_PERFORMANCE_FAIL; transaction=ctm0ftx_7b76fcada1c0e0999885c3c8; sample=ctm0fsample_a5b05102cbd5111f139d1144; prepared-decision reused; failure-detection=13,566.293 ms; failure-to-decision=14,755.000 ms; decision-to-Apply-admission=276.174 ms; assignment=836.763 ms; kernel visibility=33.211 ms; route-bound required-service verification=1,183.018 ms; onset-to-S11=17,759.208 ms; source restored; ordinary-user delta=0.` |
 | `V5_3_N10_CURRENT_STATUS` | `BLOCKED_AUTHORITY_NO_ADMITTED_ORDINARY_LIKE_COHORT; the active shared-target contract is exact one-certification-identity only and explicitly forbids ordinary-user movement or reclassification.` |
 | `CT_M0F_SHARED_TARGET_COLD_SAMPLE` | `VALID_FUNCTIONAL_COLD_SAMPLE; contract=sdpc_1cc223801f69992ac18f6e2e; Matrix/Planner selected awg3 (not manually); onset-to-control-plane-and-kernel cutover=4768.462 ms; failure-to-decision=3299.169 ms; decision-to-apply=263.808 ms; assignment=735.131 ms; kernel visibility=15.995 ms; target route-bound payload=454.359 ms; 3 s performance target failed, but the 5 s per-sample ceiling passed. Reset returned 10.7.0.124 to the isolated source; ordinary-user delta=0.` |
@@ -72,7 +72,7 @@ This section is the single live volatile current-state surface. Older production
 | `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_CURRENT_2VCPU_ROLLOUT_CONTRACT_ACCEPTED` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_TYPE` | `NONE; required-service S11 scope reconciliation is deployed and proven. One bounded existing-owner fast-signal writer-contention repair is locally tested and awaits normal safe deploy. Further movements solely to fill a five-sample series remain prohibited.` |
+| `EXTERNAL_INPUT_TYPE` | `NONE; e1d04fa fast-signal writer-contention repair is deployed and live-verified. A diagnostics-only existing-owner extension is locally tested and awaits normal safe deploy. Further movements solely to fill a five-sample series remain prohibited.` |
 | `TRANSACTION_TERMINAL_CLASS` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED` |
 | `PROGRAM_TERMINAL_CLASS` | `NONE` |
 | `NEXT_MISSION_FORMED` | `FALSE` |

@@ -1074,6 +1074,27 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(scope["reasons"], [])
         self.assertFalse(scope["authority_expanded"])
 
+    def test_controlled_engineering_setup_and_cleanup_keep_governed_window_class(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        planner.args = SimpleNamespace(
+            emergency_failover_autonomy=False,
+            controlled_engineering_setup=True,
+            controlled_engineering_cleanup=False,
+        )
+        self.assertEqual(
+            planner._execution_action_class("planned"),
+            "EMERGENCY_FAILOVER",
+        )
+        planner.args = SimpleNamespace(
+            emergency_failover_autonomy=False,
+            controlled_engineering_setup=False,
+            controlled_engineering_cleanup=True,
+        )
+        self.assertEqual(
+            planner._execution_action_class("planned"),
+            "EMERGENCY_FAILOVER",
+        )
+
     def test_availability_first_scope_consumes_exact_standing_semantic_binding(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

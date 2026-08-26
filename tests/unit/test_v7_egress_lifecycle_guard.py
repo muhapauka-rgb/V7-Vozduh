@@ -393,6 +393,7 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
             )
             self.assertEqual(inject.returncode, 0, inject.stdout + inject.stderr)
             self.assertIn("ACTION=controlled_certification_telegram_failure_injected", inject.stdout)
+            self.assertIn("telegram_table=v7_ct_telegram_wg1", inject.stdout)
             nft_state = (state / "nft.table").read_text(encoding="utf-8")
             self.assertIn('oifname "wg1"', nft_state)
             self.assertIn("149.154.167.50", nft_state)

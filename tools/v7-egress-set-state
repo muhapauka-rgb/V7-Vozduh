@@ -95,7 +95,9 @@ telegram_table_name() {
   # Egress ids are already constrained by safe_id.  nft identifiers cannot
   # contain '-' or '.', so derive one deterministic, owner-scoped table name.
   local normalized
-  normalized="$(tr -c '[:alnum:]_' '_' <<< "$EGRESS_ID")"
+  # Do not use a here-string: its implicit newline becomes a trailing
+  # underscore and changes the owner-scoped table identity.
+  normalized="$(printf '%s' "$EGRESS_ID" | tr -c '[:alnum:]_' '_')"
   printf 'v7_ct_telegram_%s' "$normalized"
 }
 
@@ -843,7 +845,17 @@ EOF
     echo "reason=certification_telegram_failure_nft_apply_failed"
     exit 2
   fi
-  if ! nft list table inet "$telegram_table" | grep -Fq "oifname \"$ifname\""; then
+  # Do not put `grep -q` directly in an nft pipeline under pipefail.  When
+  # grep finds the rule early it closes the pipe, nft receives SIGPIPE, and a
+  # valid table is incorrectly rejected as failed.  Read the bounded table
+  # dump first, then verify its exact interface rule.
+  telegram_table_dump="$(nft list table inet "$telegram_table")" || {
+    nft delete table inet "$telegram_table" >/dev/null 2>&1 || true
+    echo "ACTION=blocked"
+    echo "reason=certification_telegram_failure_nft_list_failed"
+    exit 2
+  }
+  if ! grep -Fq "oifname \"$ifname\"" <<< "$telegram_table_dump"; then
     nft delete table inet "$telegram_table" >/dev/null 2>&1 || true
     echo "ACTION=blocked"
     echo "reason=certification_telegram_failure_nft_verification_failed"

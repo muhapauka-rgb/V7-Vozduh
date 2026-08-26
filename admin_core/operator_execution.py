@@ -111,6 +111,8 @@ CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS = 900
 CURRENT_ACTION_CLASS_CONTRACT_REQUEST_TTL_SECONDS = 900
 CURRENT_ACTION_CLASS_AUDIT_SCHEMA = "v7.current-action-class-contract-authority-audit.v1"
 CURRENT_ACTION_CLASS_REQUEST_RECORD_TYPE = "current_action_class_contract_request_emitted"
+N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS = "N10_ORDINARY_LIKE_SINGLE_DEVICE"
+N10_FRESH_PLANNER_TARGET_SELECTION = "FRESH_PLANNER_ONLY_AT_CONSUMPTION"
 DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE = Path("/opt/v7/audit/operator-execution-audit.jsonl")
 STANDING_DELEGATED_POLICY_REQUEST_SCHEMA = "v7.standing-delegated-operational-policy-authority-request.v1"
 STANDING_DELEGATED_POLICY_SCHEMA = "v7.standing-delegated-operational-policy.v1"
@@ -5600,6 +5602,7 @@ def build_current_action_class_contract_authority_request(template, *, issue_pre
         "scope": {
             "source_egress": str(scope.get("source_egress") or ""),
             "target_egress": str(scope.get("target_egress") or ""),
+            "target_selection": str(scope.get("target_selection") or ""),
             "max_users": as_int(template.get("max_users"), 0),
             "max_concurrent_transactions": as_int(template.get("max_concurrent_transactions"), 0),
         },
@@ -5663,7 +5666,12 @@ def validate_current_action_class_contract_authority_request(
     subject = request.get("subject") if isinstance(request.get("subject"), dict) else {}
     if not str(request.get("active_program") or ""):
         errors.append("current_action_class_contract_program_missing")
-    if str(request.get("action_class") or "").upper() not in {"GOVERNED_ONLY", "EMERGENCY_FAILOVER"}:
+    action_class = str(request.get("action_class") or "").upper()
+    if action_class not in {
+        "GOVERNED_ONLY",
+        "EMERGENCY_FAILOVER",
+        N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+    }:
         errors.append("current_action_class_contract_action_class_invalid")
     max_authority_class = str(request.get("max_authority_class") or "").upper()
     authority_ceiling = str(request.get("authority_ceiling") or "").upper()
@@ -5675,7 +5683,15 @@ def validate_current_action_class_contract_authority_request(
         errors.append("current_action_class_contract_policy_generation_missing")
     if not str(subject.get("user_ip") or ""):
         errors.append("current_action_class_contract_subject_missing")
-    if not str(scope.get("source_egress") or "") or not str(scope.get("target_egress") or ""):
+    n10_unbound_target = (
+        action_class == N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+        and not str(scope.get("target_egress") or "")
+        and str(scope.get("target_selection") or "")
+        == N10_FRESH_PLANNER_TARGET_SELECTION
+    )
+    if not str(scope.get("source_egress") or "") or (
+        not str(scope.get("target_egress") or "") and not n10_unbound_target
+    ):
         errors.append("current_action_class_contract_scope_missing")
     if as_int(scope.get("max_users"), 0) != 1 or as_int(scope.get("max_concurrent_transactions"), 0) != 1:
         errors.append("current_action_class_contract_blast_radius_invalid")
@@ -5761,7 +5777,11 @@ def issue_current_action_class_contract(
         "authority_ceiling": str(request.get("authority_ceiling") or ""),
         "policy_generation_hash": str(request.get("policy_generation_hash") or ""),
         "subject": copy.deepcopy(request.get("subject") or {}),
-        "scope": {"source_egress": str(scope.get("source_egress") or ""), "target_egress": str(scope.get("target_egress") or "")},
+        "scope": {
+            "source_egress": str(scope.get("source_egress") or ""),
+            "target_egress": str(scope.get("target_egress") or ""),
+            "target_selection": str(scope.get("target_selection") or ""),
+        },
         "max_users": 1,
         "max_concurrent_transactions": 1,
         "incident_generation": copy.deepcopy(request.get("incident_generation") or {}),
@@ -5835,13 +5855,30 @@ def consume_current_action_class_contract(policy, *, contract_id, contract_hash,
     expected_scope = contract.get("scope") if isinstance(contract.get("scope"), dict) else {}
     if str((subject or {}).get("user_ip") or "") != str(expected_subject.get("user_ip") or ""):
         raise PacketError("current_action_class_contract_consumption_subject_mismatch")
-    if {
-        "source_egress": str((scope or {}).get("source_egress") or ""),
-        "target_egress": str((scope or {}).get("target_egress") or ""),
-    } != {
+    n10_unbound_target = (
+        str(contract.get("action_class") or "").upper()
+        == N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+        and not str(expected_scope.get("target_egress") or "")
+        and str(expected_scope.get("target_selection") or "")
+        == N10_FRESH_PLANNER_TARGET_SELECTION
+    )
+    expected_scope_pair = {
         "source_egress": str(expected_scope.get("source_egress") or ""),
         "target_egress": str(expected_scope.get("target_egress") or ""),
-    }:
+    }
+    actual_scope_pair = {
+        "source_egress": str((scope or {}).get("source_egress") or ""),
+        "target_egress": str((scope or {}).get("target_egress") or ""),
+    }
+    if n10_unbound_target:
+        scope_matches = (
+            actual_scope_pair["source_egress"] == expected_scope_pair["source_egress"]
+            and bool(actual_scope_pair["target_egress"])
+            and actual_scope_pair["target_egress"] != actual_scope_pair["source_egress"]
+        )
+    else:
+        scope_matches = actual_scope_pair == expected_scope_pair
+    if not scope_matches:
         raise PacketError("current_action_class_contract_consumption_scope_mismatch")
     if dict(source_generation or {}) != dict(contract.get("source_generation") or {}):
         raise PacketError("current_action_class_contract_consumption_generation_mismatch")
@@ -5854,6 +5891,8 @@ def consume_current_action_class_contract(policy, *, contract_id, contract_hash,
         "consumed_at": now.isoformat(), "operation_id": str(operation_id),
         "retry_allowed": False,
     })
+    if n10_unbound_target:
+        consumption["planner_selected_target_egress"] = actual_scope_pair["target_egress"]
     contract["one_use_consumption"] = consumption
     # The contract hash identifies the immutable issuance; consumption is a
     # governed lifecycle transition and intentionally does not rewrite it.

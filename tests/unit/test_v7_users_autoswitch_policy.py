@@ -68,6 +68,51 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             [],
         )
 
+    def test_n10_authority_request_is_exact_source_bound_and_target_unbound(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.5 current=wireguard-source table=105\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=wireguard-source enabled=1\n",
+                encoding="utf-8",
+            )
+            for name in (
+                "service-matrix.json", "service-preferences.json",
+                "egress-quality-summary.json", "egress-load-summary.json",
+            ):
+                (state / name).write_text("{}", encoding="utf-8")
+            policy = root / "policy.json"
+            org_policy = root / "org-policy.json"
+            audit = root / "audit.jsonl"
+            policy.write_text(json.dumps({"authority_budget": {"authority_class": "CANARY"}}), encoding="utf-8")
+            org_policy.write_text("{}", encoding="utf-8")
+            args = SimpleNamespace(
+                user="10.7.0.5", apply=False, target_egress="", source_egress="",
+                state_dir=str(state), policy_file=str(policy), org_policy_file=str(org_policy),
+                quality_summary_file=str(state / "egress-quality-summary.json"),
+                load_summary_file=str(state / "egress-load-summary.json"),
+                action_class_audit_store=str(audit),
+            )
+            result = self.tool.n10_ordinary_like_authority_request_only(args)
+            self.assertTrue(result["ok"], result.get("blockers"))
+            request = result["request"]
+            self.assertEqual(
+                request["action_class"],
+                operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+            )
+            self.assertEqual(request["scope"]["source_egress"], "wireguard-source")
+            self.assertEqual(request["scope"]["target_egress"], "")
+            self.assertEqual(
+                request["scope"]["target_selection"],
+                operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION,
+            )
+            self.assertEqual(result["registration"]["status"], "REGISTERED")
+
     def test_empty_profile_uses_existing_path_owner_without_service_probes(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

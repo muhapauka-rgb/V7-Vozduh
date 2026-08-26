@@ -2118,6 +2118,50 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 now=now + timedelta(seconds=301),
             )
 
+    def test_n10_contract_binds_source_but_defers_target_to_fresh_consumption(self):
+        template = action_contract_template()
+        template.update({
+            "action_class": operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+            "scope": {
+                "source_egress": "wireguard-source",
+                "target_egress": "",
+                "target_selection": operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION,
+            },
+        })
+        request = build_current_action_class_contract_authority_request(
+            template, issue_preflight={"ready": True, "blockers": []},
+        )
+        validation = validate_current_action_class_contract_authority_request(
+            request, decision="APPROVE_ONCE_AS_SCOPED",
+        )
+        self.assertTrue(validation["ok"], validation["errors"])
+        issued = issue_current_action_class_contract(
+            {"authority_budget": {}}, request, decision="APPROVE_ONCE_AS_SCOPED",
+            expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+            authority_actor_id="test-authority", authority_decision_id="accdec-n10",
+        )
+        contract = issued["contract"]
+        consumed = consume_current_action_class_contract(
+            issued["policy"], contract_id=contract["contract_id"], contract_hash=contract["contract_hash"],
+            subject=contract["subject"],
+            scope={"source_egress": "wireguard-source", "target_egress": "awg0"},
+            source_generation=contract["source_generation"], operation_id="n10-op",
+        )
+        self.assertEqual(consumed["consumption"]["planner_selected_target_egress"], "awg0")
+        rejected = issue_current_action_class_contract(
+            {"authority_budget": {}}, request, decision="APPROVE_ONCE_AS_SCOPED",
+            expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+            authority_actor_id="test-authority", authority_decision_id="accdec-n10-2",
+        )
+        rejected_contract = rejected["contract"]
+        with self.assertRaisesRegex(PacketError, "consumption_scope_mismatch"):
+            consume_current_action_class_contract(
+                rejected["policy"], contract_id=rejected_contract["contract_id"],
+                contract_hash=rejected_contract["contract_hash"], subject=rejected_contract["subject"],
+                scope={"source_egress": "wireguard-source", "target_egress": ""},
+                source_generation=rejected_contract["source_generation"], operation_id="n10-empty-target",
+            )
+
     def test_current_action_contract_rejects_malformed_incident_and_authority_ceiling(self):
         malformed = action_contract_template()
         malformed["incident_generation"] = {"incident_id": ""}

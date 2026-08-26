@@ -13815,13 +13815,28 @@ class AutoswitchPlanner:
                 ((current_action_contract.get("subject") or {}).get("user_ip"))
                 or ""
             )
-            if locked_users and locked_users != {n10_user}:
+            # An expired Packet clearance never remains a current decision for
+            # N10.  That includes a previous, incomplete N10 attempt for the
+            # same identity: the fresh one-use Authority contract below must
+            # produce a new Candidate and then a new Packet/Lease/Barrier.
+            # Keeping the old same-user lock as a hard planning gate would
+            # turn its TTL into a permanent self-deadlock, while treating it
+            # as an Apply exemption would be unsafe.  The latter is never
+            # allowed: this branch is candidate-only and the fresh packet
+            # barrier still rechecks every mutable source before Apply.
+            if locked_users:
+                relation = (
+                    "same_identity"
+                    if locked_users == {n10_user}
+                    else "different_identity"
+                )
                 n10_foreign_expired_clearance = True
                 n10_foreign_expired_clearance_details = {
                     "n10_foreign_expired_clearance_ignored": True,
                     "n10_foreign_expired_clearance_reason": (
-                        "expired_packet_lock_belongs_to_different_identity"
+                        "expired_packet_lock_not_current_n10_transaction"
                     ),
+                    "n10_expired_clearance_identity_relation": relation,
                     "n10_required_next_owner": (
                         "existing operator-execution Packet/Lease/Barrier owner"
                     ),

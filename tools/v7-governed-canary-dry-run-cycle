@@ -13287,6 +13287,292 @@ def cleanup_controlled_certification_condition(
     }
 
 
+def reconcile_expired_controlled_source_reservation(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    """Close one stranded, expired topology reservation through existing owners.
+
+    A controlled-source reservation deliberately cannot be released while its
+    certification identity is still assigned to that source.  This is the
+    narrow terminal counterpart of the existing topology provisioning flow:
+    it derives the original source from the consumed topology Authority record,
+    restores only that exact identity through the governed Packet/Lease/Apply
+    chain, then asks the existing egress owner to restore its exact backup.
+    It is not a discretionary user switch or an alternate route writer.
+    """
+    if (
+        str(args.confirm_expired_controlled_source_reservation_cleanup or "")
+        != "RECONCILE_EXPIRED_CONTROLLED_SOURCE_RESERVATION"
+    ):
+        return transaction_stop(
+            "expired_controlled_source_reservation_cleanup_confirmation_required"
+        )
+    reservation_id = str(args.controlled_source_reservation_id or "")
+    if not re.fullmatch(r"ctres_[0-9a-f]{24}", reservation_id):
+        return transaction_stop(
+            "expired_controlled_source_reservation_identity_invalid"
+        )
+
+    audit_store = Path(
+        getattr(args, "operator_execution_audit_store", "") or audit_dir / "operator-execution-audit.jsonl"
+    )
+    records = operator_execution.read_audit_records(audit_store)
+    provisions = [
+        row for row in records
+        if row.get("record_type")
+        == operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE
+        and str(row.get("reservation_id") or "") == reservation_id
+    ]
+    if len(provisions) != 1:
+        return transaction_stop(
+            "expired_controlled_source_reservation_provision_lineage_invalid",
+            matching_provision_records=len(provisions),
+        )
+    provision = provisions[0]
+    source = str(provision.get("source_id") or "")
+    request_id = str(provision.get("authority_request_id") or "")
+    request_hash = str(provision.get("authority_request_hash") or "")
+    restore_backup = str(provision.get("restore_backup") or "")
+    try:
+        request = operator_execution.controlled_source_topology_request_from_audit(
+            request_id,
+            request_hash,
+            audit_store=audit_store,
+        )
+    except operator_execution.PacketError as exc:
+        return transaction_stop(
+            "expired_controlled_source_reservation_authority_lineage_invalid",
+            error=str(exc),
+        )
+    manifest = request.get("manifest") if isinstance(request.get("manifest"), dict) else {}
+    user = str(manifest.get("trial_identity") or "")
+    target = str(manifest.get("existing_source") or "")
+    group = str(manifest.get("certification_group") or "")
+    blockers: list[str] = []
+    if str(manifest.get("selected_source_or_draft") or "") != source:
+        blockers.append("expired_controlled_source_manifest_source_mismatch")
+    if str(provision.get("manifest_hash") or "") != str(manifest.get("manifest_hash") or ""):
+        blockers.append("expired_controlled_source_manifest_hash_mismatch")
+    if not user or not source or not target or source == target or not group:
+        blockers.append("expired_controlled_source_exact_rollback_scope_invalid")
+    expiry = str(provision.get("reservation_expires_at") or "")
+    try:
+        expires_at = datetime.fromisoformat(expiry.replace("Z", "+00:00"))
+        if expires_at.tzinfo is None:
+            raise ValueError("timezone required")
+        if datetime.now(timezone.utc) < expires_at:
+            blockers.append("expired_controlled_source_reservation_not_expired")
+    except ValueError:
+        blockers.append("expired_controlled_source_reservation_expiry_invalid")
+    lease_state = operator_execution.execution_lease_state(
+        operator_execution.load_execution_lease(lease_file)
+    )
+    if lease_state.get("active"):
+        blockers.append("expired_controlled_source_active_execution_lease_exists")
+
+    users = read_registry(state_dir / "users.registry")
+    egress = read_registry(state_dir / "egress.registry")
+    user_rows = [row for row in users if str(row.get("ip") or "") == user]
+    source_rows = [row for row in egress if str(row.get("id") or "") == source]
+    target_rows = [row for row in egress if str(row.get("id") or "") == target]
+    if len(user_rows) != 1:
+        blockers.append("expired_controlled_source_user_identity_not_unique")
+    if len(source_rows) != 1:
+        blockers.append("expired_controlled_source_registry_identity_not_unique")
+    if len(target_rows) != 1:
+        blockers.append("expired_controlled_source_rollback_target_not_unique")
+    user_row = user_rows[0] if len(user_rows) == 1 else {}
+    source_row = source_rows[0] if len(source_rows) == 1 else {}
+    if str(user_row.get("current") or "") != source:
+        blockers.append("expired_controlled_source_user_not_on_exact_source")
+    if not bool_value(user_row.get("certification_user")):
+        blockers.append("expired_controlled_source_subject_not_certification_user")
+    if str(user_row.get("certification_group") or "") != group:
+        blockers.append("expired_controlled_source_user_group_mismatch")
+    if not bool_value(source_row.get("controlled_certification_source")):
+        blockers.append("expired_controlled_source_marker_missing")
+    if str(source_row.get("controlled_source_reservation_id") or "") != reservation_id:
+        blockers.append("expired_controlled_source_registry_reservation_mismatch")
+    if str(source_row.get("certification_group") or "") != group:
+        blockers.append("expired_controlled_source_registry_group_mismatch")
+    if not bool_value(source_row.get("enabled", "1")) or str(source_row.get("state") or "enabled").lower() in {"disabled", "maintenance"}:
+        blockers.append("expired_controlled_source_condition_still_active")
+    occupants = [
+        row for row in users
+        if bool_value(row.get("enabled", "1"))
+        and str(row.get("current") or "") == source
+    ]
+    if len(occupants) != 1 or str((occupants[0] if occupants else {}).get("ip") or "") != user:
+        blockers.append("expired_controlled_source_has_unrelated_occupants")
+    if not restore_backup or not restore_backup.startswith(str(state_dir / "egress.registry.backup.v7-controlled-source-reserve.")):
+        blockers.append("expired_controlled_source_restore_backup_invalid")
+    if blockers:
+        return transaction_stop(
+            "expired_controlled_source_reservation_cleanup_not_admitted",
+            blockers=sorted(set(blockers)),
+            reservation_id=reservation_id,
+            source=source,
+            target=target,
+            lease_state=lease_state,
+        )
+
+    transaction_args = copy.copy(args)
+    transaction_args._certification_cleanup_request = {
+        "user": user,
+        "source": source,
+        "target": target,
+    }
+    transaction_args.skip_planner_observe = True
+    transaction_args.execute_bounded_delegated_transaction = False
+    transaction_args.engineering_authority_request_file = ""
+    transaction_args.action_class_audit_store = str(audit_store)
+    transaction_args.operator_execution_audit_store = str(audit_store)
+    transaction = execute_governed_transaction_with_guards(
+        transaction_args,
+        state_dir=state_dir,
+        event_dir=event_dir,
+        snapshot_root=snapshot_root,
+        audit_dir=audit_dir,
+        lease_file=lease_file,
+    )
+    if not (
+        transaction.get("final_verdict") == "GOVERNED_TRANSACTION_COMPLETED"
+        and transaction.get("verification_result") == "PASS"
+        and int(transaction.get("users_moved") or 0) == 1
+    ):
+        return transaction_stop(
+            "expired_controlled_source_governed_rollback_failed",
+            reservation_id=reservation_id,
+            rollback_transaction=transaction,
+        )
+
+    refreshed_lines = [
+        line for line in (state_dir / "egress.registry").read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines()
+        if line.startswith(f"id={source} ")
+    ]
+    if len(refreshed_lines) != 1:
+        return transaction_stop(
+            "expired_controlled_source_release_registry_identity_changed",
+            reservation_id=reservation_id,
+            rollback_transaction=transaction,
+        )
+    release_command = [
+        str(getattr(args, "egress_state_owner", "") or "v7-egress-set-state"),
+        source,
+        "certification-release",
+        "--reservation-id", reservation_id,
+        "--expected-egress-fingerprint",
+        operator_execution.sha256_bytes(refreshed_lines[0].encode("utf-8")),
+        "--restore-backup", restore_backup,
+        "--apply",
+        "--confirm", "RELEASE_CONTROLLED_CERTIFICATION_SOURCE",
+    ]
+    try:
+        release_proc = subprocess.run(
+            release_command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=180,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return transaction_stop(
+            "expired_controlled_source_release_owner_failed",
+            reservation_id=reservation_id,
+            rollback_transaction=transaction,
+            release_error=f"{type(exc).__name__}:{exc}",
+        )
+    release_result = _key_value_process_output(release_proc.stdout or "")
+    if release_proc.returncode != 0 or release_result.get("ACTION") != "controlled_source_released":
+        return transaction_stop(
+            "expired_controlled_source_release_not_applied",
+            reservation_id=reservation_id,
+            rollback_transaction=transaction,
+            release_returncode=release_proc.returncode,
+            release_result=release_result,
+        )
+
+    released_rows = [
+        row for row in read_registry(state_dir / "egress.registry")
+        if str(row.get("id") or "") == source
+    ]
+    remaining_users = [
+        row for row in read_registry(state_dir / "users.registry")
+        if bool_value(row.get("enabled", "1"))
+        and str(row.get("current") or "") == source
+    ]
+    released_source = released_rows[0] if len(released_rows) == 1 else {}
+    release_snapshot = {
+        "source_id": source,
+        "source_exists": len(released_rows) == 1,
+        "reservation_absent": not any(
+            str(released_source.get(key) or "").strip()
+            for key in (
+                "execution_reservation_id",
+                "controlled_source_reservation_id",
+                "reservation_id",
+            )
+        ),
+        "controlled_source_markers_absent": not any(
+            bool_value(released_source.get(key))
+            if key not in {"reservation_owner", "certification_group"}
+            else str(released_source.get(key) or "").strip()
+            for key in (
+                "controlled_certification_source",
+                "execution_reserved",
+                "canary_reserved",
+                "reservation_owner",
+                "certification_group",
+            )
+        ),
+        "assigned_user_count": len(remaining_users),
+    }
+    release_snapshot["snapshot_fingerprint"] = operator_execution.sha256_json(
+        release_snapshot
+    )
+    try:
+        invalidation = operator_execution.invalidate_released_controlled_source_topology_request(
+            request_id=request_id,
+            request_hash=request_hash,
+            source_id=source,
+            release_snapshot=release_snapshot,
+            audit_store=audit_store,
+        )
+    except operator_execution.PacketError as exc:
+        return transaction_stop(
+            "expired_controlled_source_release_invalidation_failed",
+            reservation_id=reservation_id,
+            rollback_transaction=transaction,
+            release_result=release_result,
+            release_snapshot=release_snapshot,
+            error=str(exc),
+        )
+    return {
+        "schema_version": "v7.expired-controlled-source-reservation-reconciliation.v1",
+        "final_verdict": "EXPIRED_CONTROLLED_SOURCE_RESERVATION_RECONCILED",
+        "reservation_id": reservation_id,
+        "source": source,
+        "restored_initial_egress": target,
+        "rollback_transaction": transaction,
+        "release_result": release_result,
+        "release_invalidation": invalidation,
+        "release_snapshot": release_snapshot,
+        "ordinary_user_delta": 0,
+        "users_moved": 1,
+        "authority_expanded": False,
+        "production_maturity_change": False,
+    }
+
+
 def reset_ct_m0f_standing_validation_sample(
     args: argparse.Namespace,
     *,
@@ -14360,6 +14646,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--cleanup-controlled-certification-condition", action="store_true")
     parser.add_argument("--confirm-controlled-certification-cleanup", default="")
+    parser.add_argument(
+        "--reconcile-expired-controlled-source-reservation",
+        action="store_true",
+        help=(
+            "Return one stranded certification-only identity through the "
+            "existing governed cleanup chain and release its exact expired "
+            "controlled-source reservation."
+        ),
+    )
+    parser.add_argument("--controlled-source-reservation-id", default="")
+    parser.add_argument(
+        "--confirm-expired-controlled-source-reservation-cleanup",
+        default="",
+    )
     parser.add_argument("--verify-controlled-certification-preflight", action="store_true")
     parser.add_argument(
         "--provision-controlled-certification-substrate",
@@ -14503,6 +14803,24 @@ def main(argv=None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
         return 0 if result.get("final_verdict") == "CONTROLLED_CERTIFICATION_CLEANUP_COMPLETE" else 2
+    if args.reconcile_expired_controlled_source_reservation:
+        result = reconcile_expired_controlled_source_reservation(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(json.dumps(
+            result,
+            ensure_ascii=False,
+            indent=2 if args.pretty else None,
+            sort_keys=True,
+        ))
+        return 0 if result.get("final_verdict") == (
+            "EXPIRED_CONTROLLED_SOURCE_RESERVATION_RECONCILED"
+        ) else 2
     if args.reset_ct_m0f_standing_validation_sample:
         result = reset_ct_m0f_standing_validation_sample(
             args,

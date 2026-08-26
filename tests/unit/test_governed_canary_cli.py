@@ -2913,6 +2913,147 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(drifted["selection_status"], "STOP_SAFE")
         self.assertIn("cleanup_user_not_on_registered_rollback_source", drifted["blockers"])
 
+    def test_expired_controlled_source_reservation_reconciles_only_owner_bound_rollback(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            audit = root / "audit"
+            audit.mkdir()
+            reservation_id = "ctres_" + "a" * 24
+            source = "isolated-source"
+            target = "original-source"
+            user = "10.7.0.108"
+            backup = state / "egress.registry.backup.v7-controlled-source-reserve.unit"
+            backup.write_text("id=isolated-source enabled=1 role=EXECUTION_ONLY\n", encoding="utf-8")
+            (state / "users.registry").write_text(
+                f"ip={user} current={source} enabled=1 certification_user=1 certification_group=group-a\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=isolated-source enabled=1 controlled_certification_source=1 "
+                f"controlled_source_reservation_id={reservation_id} certification_group=group-a\n"
+                "id=original-source enabled=1\n",
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                confirm_expired_controlled_source_reservation_cleanup=(
+                    "RECONCILE_EXPIRED_CONTROLLED_SOURCE_RESERVATION"
+                ),
+                controlled_source_reservation_id=reservation_id,
+                operator_execution_audit_store=str(audit / "operator-execution-audit.jsonl"),
+                egress_state_owner="v7-egress-set-state",
+            )
+            provision = {
+                "record_type": operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE,
+                "reservation_id": reservation_id,
+                "source_id": source,
+                "authority_request_id": "cstopauth_r1_test",
+                "authority_request_hash": "b" * 64,
+                "reservation_expires_at": "2020-01-01T00:00:00+00:00",
+                "restore_backup": str(backup),
+                "manifest_hash": "manifest-test",
+            }
+            request = {"manifest": {
+                "trial_identity": user,
+                "existing_source": target,
+                "certification_group": "group-a",
+                "selected_source_or_draft": source,
+                "manifest_hash": "manifest-test",
+            }}
+            completed = {
+                "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                "verification_result": "PASS",
+                "users_moved": 1,
+            }
+            released = subprocess.CompletedProcess(
+                ["v7-egress-set-state"], 0,
+                stdout="ACTION=controlled_source_released\n",
+            )
+            with mock.patch.object(module.operator_execution, "read_audit_records", return_value=[provision]), mock.patch.object(
+                module.operator_execution, "controlled_source_topology_request_from_audit", return_value=request,
+            ), mock.patch.object(
+                module.operator_execution, "load_execution_lease", return_value={},
+            ), mock.patch.object(
+                module.operator_execution, "execution_lease_state", return_value={"active": False},
+            ), mock.patch.object(
+                module, "execute_governed_transaction_with_guards", return_value=completed,
+            ) as governed, mock.patch.object(
+                module.subprocess, "run", return_value=released,
+            ) as run, mock.patch.object(
+                module.operator_execution,
+                "invalidate_released_controlled_source_topology_request",
+                return_value={"status": "INVALIDATED_RELEASED_PREDECESSOR"},
+            ):
+                result = module.reconcile_expired_controlled_source_reservation(
+                    args,
+                    state_dir=state,
+                    event_dir=root,
+                    snapshot_root=root,
+                    audit_dir=audit,
+                    lease_file=state / "operator-execution-lease.json",
+                )
+        self.assertEqual(
+            result["final_verdict"],
+            "EXPIRED_CONTROLLED_SOURCE_RESERVATION_RECONCILED",
+        )
+        self.assertEqual(
+            governed.call_args.kwargs["state_dir"], state,
+        )
+        self.assertEqual(run.call_args.args[0][0:3], [
+            "v7-egress-set-state", source, "certification-release",
+        ])
+        self.assertIn("--reservation-id", run.call_args.args[0])
+
+    def test_expired_controlled_source_reservation_refuses_active_lease(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            audit = root / "audit"
+            audit.mkdir()
+            reservation_id = "ctres_" + "b" * 24
+            args = argparse.Namespace(
+                confirm_expired_controlled_source_reservation_cleanup=(
+                    "RECONCILE_EXPIRED_CONTROLLED_SOURCE_RESERVATION"
+                ),
+                controlled_source_reservation_id=reservation_id,
+                operator_execution_audit_store=str(audit / "operator-execution-audit.jsonl"),
+            )
+            provision = {
+                "record_type": operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE,
+                "reservation_id": reservation_id,
+                "source_id": "isolated-source",
+                "authority_request_id": "cstopauth_r1_test",
+                "authority_request_hash": "c" * 64,
+                "reservation_expires_at": "2020-01-01T00:00:00+00:00",
+                "restore_backup": str(state / "egress.registry.backup.v7-controlled-source-reserve.unit"),
+                "manifest_hash": "manifest-test",
+            }
+            with mock.patch.object(module.operator_execution, "read_audit_records", return_value=[provision]), mock.patch.object(
+                module.operator_execution, "controlled_source_topology_request_from_audit", return_value={"manifest": {}},
+            ), mock.patch.object(
+                module.operator_execution, "load_execution_lease", return_value={},
+            ), mock.patch.object(
+                module.operator_execution, "execution_lease_state", return_value={"active": True},
+            ), mock.patch.object(module, "execute_governed_transaction_with_guards") as governed:
+                result = module.reconcile_expired_controlled_source_reservation(
+                    args,
+                    state_dir=state,
+                    event_dir=root,
+                    snapshot_root=root,
+                    audit_dir=audit,
+                    lease_file=state / "operator-execution-lease.json",
+                )
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
+        self.assertIn(
+            "expired_controlled_source_active_execution_lease_exists",
+            result["blockers"],
+        )
+        governed.assert_not_called()
+
     def test_controlled_campaign_reset_admits_only_exact_execution_target_to_controlled_source(self):
         module = load_cli_module()
         selected = module.controlled_certification_cleanup_selection(

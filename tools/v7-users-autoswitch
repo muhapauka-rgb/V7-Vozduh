@@ -13682,6 +13682,47 @@ class AutoswitchPlanner:
         ]
         approved_plan_lock = self._approved_plan_lock_validation(restore_barrier)
         approved_identity_hash = ""
+        # A completed, expired clearance is a one-use binding for its own
+        # Packet.  It must never become a global, permanent prohibition on a
+        # later ordinary product action.  N10 does not inherit that clearance:
+        # it has its own exact one-user Authority contract and must obtain a
+        # new Packet/Lease/Barrier before Apply.  Keep the historical lock in
+        # the diagnostic surface, but let the existing Planner produce the
+        # fresh Candidate needed by the existing Packet owner.
+        n10_foreign_expired_clearance = False
+        if (
+            n10_ordinary_like_context
+            and bool_value(restore_barrier.get("expired"))
+            and bool_value(restore_barrier.get("cleared"))
+            and approved_plan_lock.get("present")
+            and not approved_plan_lock.get("ok")
+        ):
+            locked_users = {
+                str(item)
+                for item in (approved_plan_lock.get("selected_users") or [])
+                if str(item)
+            }
+            n10_user = str(
+                ((current_action_contract.get("subject") or {}).get("user_ip"))
+                or ""
+            )
+            if locked_users and locked_users != {n10_user}:
+                n10_foreign_expired_clearance = True
+                restore_barrier["n10_foreign_expired_clearance_ignored"] = True
+                restore_barrier["n10_foreign_expired_clearance_reason"] = (
+                    "expired_packet_lock_belongs_to_different_identity"
+                )
+                restore_barrier["n10_required_next_owner"] = (
+                    "existing operator-execution Packet/Lease/Barrier owner"
+                )
+                restore_barrier["n10_foreign_lock_users"] = sorted(locked_users)
+                # The lock remains visible above; it is not a current N10
+                # decision and cannot replace the freshly selected target.
+                approved_plan_lock = {
+                    "present": False,
+                    "ok": False,
+                    "reason": "n10_foreign_expired_clearance_ignored",
+                }
         if approved_plan_lock.get("present"):
             restore_barrier["approved_plan_lock_validation"] = approved_plan_lock
             if approved_plan_lock.get("ok"):
@@ -13720,6 +13761,7 @@ class AutoswitchPlanner:
             bool_value(restore_barrier.get("expired"))
             and bool_value(restore_barrier.get("cleared"))
             and restore_barrier.get("clearance_max_selected_moves") is not None
+            and not n10_foreign_expired_clearance
         ):
             clearance_max_selected_moves = to_int(restore_barrier.get("clearance_max_selected_moves"), 0)
             restore_barrier["clearance_selected_moves_before_guard"] = len(selected)
@@ -16875,6 +16917,50 @@ class AutoswitchPlanner:
                     ),
                 }
             return {"applied": False, "reason": "no_selected_moves"}
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        action_contract = (
+            (safety.get("authority_budget_gate") or {}).get(
+                "current_action_class_contract"
+            )
+            or {}
+        )
+        n10_product_contract = (
+            str(action_contract.get("action_class") or "").upper()
+            == operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+        )
+        if n10_product_contract:
+            barrier = safety.get("restore_barrier") or {}
+            approved_lock = barrier.get("approved_plan_lock_validation") or {}
+            selected_users = sorted(
+                str(move.get("user_ip") or "")
+                for move in (plan.get("selected_moves") or [])
+                if isinstance(move, dict)
+            )
+            selected_targets = sorted({
+                str(move.get("recommended_egress") or "")
+                for move in (plan.get("selected_moves") or [])
+                if isinstance(move, dict)
+            })
+            allowed_users = sorted(
+                str(item) for item in (barrier.get("allowed_users") or [])
+            )
+            allowed_targets = sorted(
+                str(item) for item in (barrier.get("allowed_targets") or [])
+            )
+            if not (
+                bool_value(approved_lock.get("ok"))
+                and selected_users == allowed_users
+                and selected_targets == allowed_targets
+            ):
+                return {
+                    "applied": False,
+                    "reason": "n10_packet_bound_restore_barrier_required",
+                    "next_required_owner": (
+                        "existing operator-execution Packet/Lease/Barrier owner"
+                    ),
+                    "routing_mutation": False,
+                    "user_movement": 0,
+                }
         transaction_reservation_guards = []
         for move in (plan.get("selected_moves") or []):
             if not isinstance(move, dict):

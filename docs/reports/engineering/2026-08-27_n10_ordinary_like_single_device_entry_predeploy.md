@@ -3,7 +3,7 @@
 **Date:** 2026-08-27  
 **Program:** `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1`  
 **Mission:** `V7_N10_ORDINARY_LIKE_SINGLE_DEVICE_PRODUCTION_ENTRY`  
-**Status:** `IMPLEMENTATION_READY_FOR_SAFE_DEPLOY`
+**Status:** `N10_FOREIGN_EXPIRED_CLEARANCE_REPAIR_READY_FOR_SAFE_DEPLOY`
 
 ## Fresh reality
 
@@ -71,10 +71,38 @@ path.  They remain visible rather than being hidden or changed in this Mission.
 - Matrix/Planner/timer changes: `0`;
 - OpenVPN incident state: retained.
 
+## Second fresh-planning reconciliation
+
+The deployed N10 Authority request and fresh Planner run proved that the
+Planner can select one current target for `10.7.0.5` without borrowing the
+historical recommendation.  It correctly stopped before Apply because the
+canonical restore-barrier file still contained an expired Packet lock for the
+previous certification identity `10.7.0.108`.
+
+That lock is not a live operation, is past its one-use expiry and names a
+different user.  It must stay visible for audit, but it cannot prevent a new
+product-scoped transaction forever.  The correction therefore does only two
+things in the existing Planner and existing Packet/Lease/Barrier lifecycle:
+
+- an N10 plan may retain its fresh one-device Candidate when the only blocking
+  clearance is an expired Packet lock for another identity;
+- N10 Apply is still impossible until the existing Packet owner has created a
+  new, matching Packet/Lease/Barrier for that exact fresh Planner decision.
+
+The correction neither deletes nor overwrites the historical lock, nor allows
+direct Apply from the fresh plan.  Any current, unexpired or same-user lock
+continues to block as before.
+
+Focused verification after this correction: `205 passed` (the complete
+autoswitch policy suite plus the N10 Authority contract test).  The new test
+proves both halves: a foreign expired clearance is ignored only for Candidate
+creation, and a route move remains refused until a new Packet-bound Barrier
+exists.
+
 ## Exact next action
 
-Run the existing safe-deploy gate, publish and deploy this bounded correction.
-Then create and issue one fresh N10 Authority for `10.7.0.5`, run the Planner
-without a target argument, and continue only if it creates the normal governed
-Candidate → Packet → Lease → Barrier → `v7-user-switch` transaction.  Any
+Publish and deploy this bounded correction.  The exact N10 Authority for
+`10.7.0.5` is already issued and remains one-use.  Then run the Planner without
+a target argument, create the normal governed Candidate → Packet → Lease →
+Barrier transaction, and continue only if all fresh owners still agree.  Any
 generation drift, capacity loss or service failure remains `STOP_SAFE`.

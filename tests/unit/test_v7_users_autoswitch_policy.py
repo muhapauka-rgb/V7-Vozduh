@@ -8849,6 +8849,74 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(len(selected["moves"]), 2)
         self.assertNotEqual(selected["selected_move_hash"], operator_execution.EMPTY_SELECTED_MOVES_HASH)
 
+    def test_n10_ignores_only_foreign_expired_clearance_until_fresh_packet_barrier(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_state="disabled",
+                authority_budget={
+                    "authority_class": "CANARY",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CERTIFIED",
+                    "current_allowed_user_budget": 1,
+                    "current_action_class_contract": {
+                        "schema_version": "v7.current-action-class-contract.v1",
+                        "action_class": (
+                            operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+                        ),
+                        "max_authority_class": "CANARY",
+                        "max_users": 1,
+                        "max_concurrent_transactions": 1,
+                        "subject": {"user_ip": "10.0.0.2"},
+                        "scope": {
+                            "source_egress": "1",
+                            "target_egress": "",
+                            "target_selection": (
+                                operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION
+                            ),
+                        },
+                        "expires_at": "2999-01-01T00:00:00+00:00",
+                    },
+                },
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2000-01-01T00:00:00+00:00",
+                    "allow_post_ttl_apply": True,
+                    "generation_clearance": True,
+                    "clearance_max_selected_moves": 1,
+                    "clearance_expires_at": "2000-01-01T00:00:00+00:00",
+                    "approved_plan_lock": {
+                        "schema_version": "v7.approved-plan-lock.v1",
+                        "selected_move_count": 1,
+                        "selected_move_hash": "historical",
+                        "snapshot_bundle_hash": "historical",
+                        "expires_at": "2000-01-01T00:00:00+00:00",
+                        "selected_moves": [{
+                            "user_ip": "10.0.0.99",
+                            "current_egress": "historical-source",
+                            "recommended_egress": "historical-target",
+                            "move_type": "failover",
+                        }],
+                    },
+                },
+            )
+            args = self.args_for(
+                root,
+                ["--mode", "guarded", "--user", "10.0.0.2", "--max-selected-moves", "1", "--apply"],
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            result = planner.apply(plan)
+
+        barrier = plan["safety"]["restore_barrier"]
+        self.assertTrue(barrier["n10_foreign_expired_clearance_ignored"])
+        self.assertEqual(barrier["n10_foreign_lock_users"], ["10.0.0.99"])
+        self.assertEqual(len(plan["selected_moves"]), 1)
+        self.assertEqual(plan["selected_moves"][0]["user_ip"], "10.0.0.2")
+        self.assertEqual(result["reason"], "n10_packet_bound_restore_barrier_required")
+        self.assertEqual(result["user_movement"], 0)
+
     def test_apply_uses_valid_approved_lock_moves_when_fresh_plan_selected_moves_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

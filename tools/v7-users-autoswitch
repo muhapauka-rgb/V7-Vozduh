@@ -5823,14 +5823,19 @@ class AutoswitchPlanner:
             if isinstance(safety.get("restore_barrier"), dict)
             else {}
         )
+        # The Packet/Barrier and the operation-scoped binding deliberately
+        # hash different representations of the same current transaction.
+        # The Packet binds the governed approval bundle; the existing binding
+        # owner binds the exact route-writer projection.  Do not compare their
+        # hashes as if they were interchangeable.  Require both owners, and
+        # bind execution control to the latter representation.
+        operation_binding = self._operation_scoped_source_binding(plan)
         source_bundle_hash = str(
-            getattr(self.args, "approved_source_bundle_hash", "")
-            or barrier.get("approved_source_bundle_hash")
+            operation_binding.get("source_bundle_hash")
             or ""
         )
         snapshot_bundle_hash = str(
-            getattr(self.args, "approved_snapshot_bundle_hash", "")
-            or barrier.get("approved_snapshot_bundle_hash")
+            operation_binding.get("snapshot_bundle_hash")
             or ""
         )
         control_path = Path(
@@ -5848,12 +5853,20 @@ class AutoswitchPlanner:
             if not str(value or "")
         ]
         before = operator_execution.autonomous_execution_control_state(control_path)
-        if missing or not before.get("valid") or before.get("state") != "OPEN":
+        if (
+            missing
+            or operation_binding.get("status") != "BOUND"
+            or not barrier.get("approved_source_bundle_hash")
+            or not barrier.get("approved_snapshot_bundle_hash")
+            or not before.get("valid")
+            or before.get("state") != "OPEN"
+        ):
             return {
                 "ok": False,
                 "reason": "n10_execution_control_window_not_open",
                 "missing": missing,
                 "before": before,
+                "operation_scoped_binding": operation_binding,
                 "runtime_mutation": False,
             }
         control = operator_execution.build_autonomous_execution_control_state(
@@ -5902,6 +5915,7 @@ class AutoswitchPlanner:
             "decision": decision,
             "source_bundle_hash": source_bundle_hash,
             "snapshot_bundle_hash": snapshot_bundle_hash,
+            "operation_scoped_binding": operation_binding,
             "max_users": 1,
             "owner": "admin_core.operator_execution",
             "new_owner_created": False,

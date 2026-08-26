@@ -9012,12 +9012,21 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     }
                 }
             }
-            window = planner._open_n10_execution_control_window(
-                plan,
-                operation_id="govexec_unit",
-                selected_move_hash="selected-unit",
-                action_class="BOUNDED_REBALANCE",
-            )
+            with mock.patch.object(
+                planner,
+                "_operation_scoped_source_binding",
+                return_value={
+                    "status": "BOUND",
+                    "source_bundle_hash": "source-binding",
+                    "snapshot_bundle_hash": "snapshot-binding",
+                },
+            ):
+                window = planner._open_n10_execution_control_window(
+                    plan,
+                    operation_id="govexec_unit",
+                    selected_move_hash="selected-unit",
+                    action_class="BOUNDED_REBALANCE",
+                )
             closed = operator_execution.autonomous_execution_control_state(control_file)
             finalization = operator_execution.finalize_autonomous_execution_control_window(
                 control_file,

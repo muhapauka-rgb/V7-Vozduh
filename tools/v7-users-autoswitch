@@ -22430,6 +22430,10 @@ def _controlled_source_draft_candidates(
         parse_registry(state_dir / "egress.registry")
         if state_dir is not None else []
     )
+    user_rows = (
+        parse_registry(state_dir / "users.registry")
+        if state_dir is not None else []
+    )
     for metadata_path in sorted(drafts_dir.glob("*/metadata.json")):
         metadata = read_json(metadata_path, {})
         if not isinstance(metadata, dict):
@@ -22485,6 +22489,25 @@ def _controlled_source_draft_candidates(
         if hard_limit < 1:
             blockers.append("draft_one_identity_capacity_not_owned")
         pool_egress_id = str(metadata.get("pool_egress_id") or "")
+        # A materialized draft is reusable only while it is genuinely empty.
+        # ``added_disabled`` describes the admin lifecycle action, not the
+        # current assignment reality: ordinary or another certification
+        # campaign may have subsequently acquired the same source.  The
+        # one-user topology contract reserves an *initially empty* source, so
+        # never reinterpret an occupied source as dedicated merely because a
+        # historic draft says it was added disabled.
+        assigned_users = [
+            user for user in user_rows
+            if str(user.get("current") or "") == pool_egress_id
+        ] if pool_egress_id else []
+        ordinary_assigned_users = [
+            user for user in assigned_users
+            if not bool_value(user.get("certification_user"))
+        ]
+        if assigned_users:
+            blockers.append(
+                f"draft_materialized_source_not_empty:{pool_egress_id}"
+            )
         if (
             proposed_id != pool_egress_id
             and any(
@@ -22529,6 +22552,8 @@ def _controlled_source_draft_candidates(
             "config_generation_bound": config_bound,
             "config_fingerprint": normalized_hash,
             "duplicate_existing_egress": duplicate_egress,
+            "assigned_user_count": len(assigned_users),
+            "ordinary_assigned_user_count": len(ordinary_assigned_users),
             "hard_capacity": hard_limit,
             "one_identity_trial_capacity": max(0, hard_limit - 1),
             "ready_for_guarded_disabled_pool_preflight": not blockers,

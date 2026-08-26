@@ -184,6 +184,56 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             candidate["blockers"],
         )
 
+    def test_controlled_source_draft_excludes_materialized_source_with_users(self):
+        """An old disabled-draft marker cannot override live assignments."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            drafts = root / "drafts"
+            state.mkdir()
+            drafts.mkdir()
+            config = "client\nremote 198.51.100.2 1194\nproto udp\n"
+            config_path = root / "source.ovpn"
+            config_path.write_text(config, encoding="utf-8")
+            state.joinpath("egress.registry").write_text(
+                "id=occupied protocol=openvpn type=interface "
+                f"config={config_path} enabled=0\n",
+                encoding="utf-8",
+            )
+            state.joinpath("users.registry").write_text(
+                "ip=10.7.0.9 current=occupied table=1109 enabled=1\n"
+                "ip=10.7.0.10 current=occupied table=1110 enabled=1 "
+                "certification_user=1 certification_group=other\n",
+                encoding="utf-8",
+            )
+            draft_dir = drafts / "occupied"
+            draft_dir.mkdir()
+            draft_dir.joinpath("config.input").write_text(config, encoding="utf-8")
+            digest = hashlib.sha256(config.rstrip("\n").encode("utf-8")).hexdigest()
+            draft_dir.joinpath("metadata.json").write_text(json.dumps({
+                "id": "occupied",
+                "pool_egress_id": "occupied",
+                "protocol": "openvpn",
+                "runtime_mode": "interface",
+                "config_sha256": digest,
+                "hard_limit": 2,
+                "last_preflight_status": "PASS",
+                "last_runtime_status": "PASS",
+                "last_quarantine_status": "PASS",
+            }), encoding="utf-8")
+
+            candidate = self.autoswitch._controlled_source_draft_candidates(
+                drafts, state
+            )[0]
+
+        self.assertFalse(candidate["ready_for_guarded_disabled_pool_preflight"])
+        self.assertEqual(candidate["assigned_user_count"], 2)
+        self.assertEqual(candidate["ordinary_assigned_user_count"], 1)
+        self.assertIn(
+            "draft_materialized_source_not_empty:occupied",
+            candidate["blockers"],
+        )
+
     def test_exact_ct_reservation_reuses_fresh_decision_lineage(self):
         expected = {
             "contract_id": "contract",

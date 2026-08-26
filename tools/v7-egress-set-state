@@ -244,6 +244,19 @@ kv_get() {
   }' <<< "$line"
 }
 
+same_base_source_field() {
+  local key="$1"
+  local current="$2"
+  local prior="$3"
+  case "$key" in
+    canary_reserved|execution_reserved|autoswitch_allowed|rebalance_allowed|production_assignment_allowed)
+      case "$current" in 1|true|yes) current="true";; 0|false|no|"") current="false";; esac
+      case "$prior" in 1|true|yes) prior="true";; 0|false|no|"") prior="false";; esac
+      ;;
+  esac
+  [ "$current" = "$prior" ]
+}
+
 interface_live() {
   local ifname="$1"
   [ -n "$ifname" ] && [ -e "/sys/class/net/$ifname" ]
@@ -622,7 +635,7 @@ if [ "$STATE" = "certification-release" ]; then
       exit 2
     }
     for key in id protocol type interface config role route_table manual_only reserve_only canary_reserved execution_reserved reservation_owner autoswitch_allowed rebalance_allowed production_assignment_allowed service_tags exclude_route_classes; do
-      [ "$(kv_get "$line" "$key")" = "$(kv_get "$prior_line" "$key")" ] || {
+      same_base_source_field "$key" "$(kv_get "$line" "$key")" "$(kv_get "$prior_line" "$key")" || {
         echo "ACTION=blocked"
         echo "reason=controlled_source_base_restore_identity_changed"
         echo "field=$key"

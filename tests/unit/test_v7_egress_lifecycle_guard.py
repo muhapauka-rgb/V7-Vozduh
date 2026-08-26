@@ -551,7 +551,7 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
             original = (
                 "id=vless protocol=vless type=interface interface=tun0 enabled=1 "
                 "role=EXECUTION_ONLY route_table=1250 manual_only=1 reserve_only=1 "
-                "canary_reserved=1 execution_reserved=1 "
+                "canary_reserved=true execution_reserved=true "
                 "reservation_owner=operator_execution_governance "
                 "autoswitch_allowed=false rebalance_allowed=false "
                 "production_assignment_allowed=false service_tags=governance "

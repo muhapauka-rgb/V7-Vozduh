@@ -35,3 +35,22 @@ then no executable engineering frontier exists.
 Wait for `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` and re-enter only on
 fresh owner-backed evidence.  This is a lawful product boundary, not a failed
 implementation and not permission to create synthetic production evidence.
+
+## Final publication and runtime reconciliation
+
+The existing OMP pointer owner was run after terminal consumption.  It aligned
+the top-level latest/previous report pointers and the volatile pointer section
+with CPS; the owner validation returned `PASS` with zero contradictions.
+
+Focused verification passed:
+
+- `test_19_existing_owner_atomically_reconciles_only_current_omp_pointers`;
+- `test_product_engineering_terminal_projection_reconciles_stale_service_failure_stop`.
+
+The correction was committed and published as
+`8cc64c9a80f255e39f522dfa15db5e4d1694b37e` on `Updatesystem`.  Safe deploy
+`deploy-z8-14-Updatesystem-8cc64c9-20260827T164330` completed through the
+existing deploy owner.  Independent post-deploy truth checks confirmed local,
+GitHub and Runtime alignment on that commit, active `v7-health.service`, no
+active standalone autoswitch/Matrix/Telegram timers, and no route or user
+movement.  The final all-scope truth check returned `PASS`.

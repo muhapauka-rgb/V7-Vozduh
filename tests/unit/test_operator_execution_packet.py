@@ -3930,6 +3930,47 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(len(packet["rollback_manifest"]["items"]), 1)
         self.assertEqual(packet["rollback_manifest"]["items"][0]["user_ip"], "10.7.0.11")
 
+    def test_n10_current_contract_can_authorize_exact_packet_without_second_approval(self):
+        template = action_contract_template()
+        template.update({
+            "action_class": operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+            "subject": {"user_ip": "10.7.0.11"},
+            "scope": {
+                "source_egress": "1", "target_egress": "",
+                "target_selection": operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION,
+            },
+            "source_generation": {
+                "planner_generation_id": "gen-move",
+                "source_bundle_hash": "source-bundle-hash-test",
+                "snapshot_bundle_hash": "snapshot-bundle-hash-test",
+                "selected_move_hash": "unbound-target-selection",
+            },
+        })
+        request = build_current_action_class_contract_authority_request(
+            template, issue_preflight={"ready": True, "blockers": []},
+        )
+        issued = issue_current_action_class_contract(
+            {"authority_budget": {}}, request,
+            decision="APPROVE_ONCE_AS_SCOPED",
+            expected_request_id=request["request_id"],
+            expected_request_hash=request["request_hash"],
+            authority_actor_id="test-authority", authority_decision_id="accdec-packet",
+        )
+        packet = packet_from_plan(
+            self.movement_plan(),
+            approval_author="ignored", approval_reviewer="ignored",
+            current_action_class_contract=issued["contract"],
+        )
+
+        validation = operator_execution.validate_packet(packet)
+
+        self.assertTrue(validation["ok"], validation["errors"])
+        self.assertEqual(packet["approvals"], [])
+        self.assertEqual(
+            packet["current_action_class_contract"]["contract_id"],
+            issued["contract"]["contract_id"],
+        )
+
     def test_packet_from_plan_prefers_final_selected_moves_over_decisions(self):
         plan = self.movement_plan()
         plan["safety"]["restore_barrier"]["clearance_selected_moves_before_guard"] = 2

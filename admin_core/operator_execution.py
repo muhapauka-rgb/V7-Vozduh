@@ -6631,7 +6631,77 @@ def validate_engineering_authority_binding(packet, errors, *, now=None):
         errors.append("engineering_authority_policy_scope_hash_mismatch")
 
 
+def validate_current_action_class_packet_authority(packet, errors, *, now=None):
+    """Validate the already-issued one-use N10 contract as Packet authority.
+
+    This is deliberately a Packet representation of the existing Authority
+    decision, not a second approval path.  The contract is consumed later by
+    the existing autoswitch consumer immediately before the first route write.
+    """
+    now = now or utc_now()
+    contract = packet.get("current_action_class_contract")
+    if not isinstance(contract, dict) or not contract:
+        return False
+    action_class = str(contract.get("action_class") or "").upper()
+    if action_class not in {
+        N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+        N10_SMALL_COHORT_ACTION_CLASS,
+    }:
+        errors.append("current_action_class_packet_authority_action_class_invalid")
+        return True
+    if contract.get("schema_version") != CURRENT_ACTION_CLASS_CONTRACT_SCHEMA:
+        errors.append("current_action_class_packet_authority_schema_invalid")
+    if current_action_class_contract_hash(contract) != str(contract.get("contract_hash") or ""):
+        errors.append("current_action_class_packet_authority_hash_mismatch")
+    try:
+        if parse_ts(contract.get("expires_at")) <= now:
+            errors.append("current_action_class_packet_authority_expired")
+    except PacketError:
+        errors.append("current_action_class_packet_authority_expiry_invalid")
+    decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
+    consumption = contract.get("one_use_consumption") if isinstance(contract.get("one_use_consumption"), dict) else {}
+    if decision.get("decision") != ENGINEERING_AUTHORITY_APPROVAL:
+        errors.append("current_action_class_packet_authority_not_approved")
+    if not str(contract.get("contract_id") or "") or not str(decision.get("request_id") or ""):
+        errors.append("current_action_class_packet_authority_identity_missing")
+    if consumption.get("state") != "ISSUED" or as_int(consumption.get("consumed_uses"), 0) != 0:
+        errors.append("current_action_class_packet_authority_not_available")
+    constraints = packet.get("constraints") if isinstance(packet.get("constraints"), dict) else {}
+    users = sorted(str(item) for item in (constraints.get("allowed_users") or []) if str(item))
+    targets = sorted({str(item) for item in (constraints.get("allowed_targets") or []) if str(item)})
+    subject = contract.get("subject") if isinstance(contract.get("subject"), dict) else {}
+    expected_users = (
+        sorted({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()})
+        if action_class == N10_SMALL_COHORT_ACTION_CLASS
+        else [str(subject.get("user_ip") or "")]
+    )
+    scope = contract.get("scope") if isinstance(contract.get("scope"), dict) else {}
+    rollback_sources = sorted({
+        str(item.get("rollback_target") or "")
+        for item in ((packet.get("rollback_manifest") or {}).get("items") or [])
+        if isinstance(item, dict) and str(item.get("rollback_target") or "")
+    })
+    if users != expected_users or as_int(constraints.get("selected_move_budget"), 0) != len(expected_users):
+        errors.append("current_action_class_packet_authority_subject_mismatch")
+    if len(targets) != 1:
+        errors.append("current_action_class_packet_authority_exact_target_required")
+    if rollback_sources != [str(scope.get("source_egress") or "")]:
+        errors.append("current_action_class_packet_authority_source_mismatch")
+    bound_target = str(scope.get("target_egress") or "")
+    if bound_target and targets != [bound_target]:
+        errors.append("current_action_class_packet_authority_target_mismatch")
+    if as_int(contract.get("max_users"), 0) != len(expected_users) or as_int(contract.get("max_concurrent_transactions"), 0) != 1:
+        errors.append("current_action_class_packet_authority_scope_invalid")
+    return True
+
+
 def validate_approvals(packet, errors, *, now=None):
+    if validate_current_action_class_packet_authority(packet, errors, now=now):
+        if packet.get("approvals") not in ([], None):
+            errors.append("operator_approvals_present_for_current_action_class_packet")
+        if packet.get("delegated_policy_authority") not in ({}, None):
+            errors.append("delegated_policy_present_for_current_action_class_packet")
+        return
     authority = packet.get("delegated_policy_authority")
     if isinstance(authority, dict) and authority:
         if authority.get("authority_basis") != "DELEGATED_AUTONOMY_POLICY":
@@ -9833,6 +9903,7 @@ def packet_from_plan(
     breaker_generation="",
     delegated_policy_authority=None,
     service_failure_causal_binding=None,
+    current_action_class_contract=None,
 ):
     now = utc_now()
     expires_at = now + timedelta(seconds=max(1, as_int(ttl_seconds, DEFAULT_CLEARANCE_TTL_SECONDS)))
@@ -9861,11 +9932,12 @@ def packet_from_plan(
         "runtime_action": RUNTIME_ACTION_CREATE_CLEARANCE,
         "created_at": now.isoformat(),
         "expires_at": expires_at.isoformat(),
-        "approvals": [] if delegated_policy_authority else [
+        "approvals": [] if (delegated_policy_authority or current_action_class_contract) else [
             {"operator_id": approval_author, "role": "approval_author", "confirmed_at": now.isoformat()},
             {"operator_id": approval_reviewer, "role": "approval_reviewer", "confirmed_at": now.isoformat()},
         ],
         "delegated_policy_authority": copy.deepcopy(delegated_policy_authority or {}),
+        "current_action_class_contract": copy.deepcopy(current_action_class_contract or {}),
         "constraints": {
             "selected_move_budget": as_int(selected.get("selected_move_count"), 0),
             "allowed_users": allowed_users,

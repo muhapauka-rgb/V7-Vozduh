@@ -22907,9 +22907,20 @@ def continue_omp_engineering_control_loop(
                 },
                 "errors": [],
             }
+        # A REAL_WORLD_LIMIT on the natural-production lane must not suppress
+        # an independent, read-only Phase-6 engineering obligation.  The
+        # obligation cannot grant production credit or expand Authority, so it
+        # is safe to consume before returning to the natural-evidence wait.
+        # Engineering/operational Authority boundaries still preempt all
+        # generic work.
+        product_engineering_lane = (
+            current_stop == "REAL_WORLD_LIMIT"
+            and _plain_live_value(live, "CURRENT_PROGRAM_STAGE")
+            == "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE"
+        )
         if external_input_required and current_stop in {
-            "ENGINEERING_AUTHORITY", "OPERATIONAL_AUTHORITY", "REAL_WORLD_LIMIT",
-        }:
+            "ENGINEERING_AUTHORITY", "OPERATIONAL_AUTHORITY",
+        } | ({"REAL_WORLD_LIMIT"} if not product_engineering_lane else set()):
             return {
                 "schema": "v7.omp-continue-engineering-loop.v1",
                 "final_verdict": "PASS",
@@ -23102,6 +23113,15 @@ def continue_omp_engineering_control_loop(
                 "scenario": (product.get("scenario") or {}).get("result_fingerprint"),
                 "behavior": product.get("behavior_change"),
             }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+            current_obligation = str(product.get("engineering_obligation_id") or "")
+            prior_consumed_obligations = re.findall(
+                r"POLYGON-ACTION-CLASS-[A-Z0-9_-]+-ENGINEERING-G1(?::CONSUMED)?",
+                _plain_live_value(live, "ACTION_CLASS_ENGINEERING_FRONTIER"),
+            )
+            consumed_obligations = sorted({
+                *(item for item in prior_consumed_obligations if item),
+                current_obligation,
+            })
             state = normalized_cps_live_state({
                 **_normalized_state_from_live_cps(cps_text),
                 "state_captured": utc_now(),
@@ -23129,6 +23149,7 @@ def continue_omp_engineering_control_loop(
                 ),
                 "next_mission_formed": "FALSE",
                 "next_mission_id": "NONE",
+                "pending_wake_id": "NONE",
                 "current_safe_next_action": (
                     "KEEP PASSIVE NATURAL EVENT CAPTURE READY FOR EACH ACTION CLASS; "
                     "DO NOT MANUFACTURE L8 EVIDENCE OR APPLY HARD-FAILURE ROUTING"
@@ -23156,7 +23177,7 @@ def continue_omp_engineering_control_loop(
                     "channel hard-fail failover:ENGINEERING_ONLY_NO_L7_L8_CREDIT"
                 ),
                 "action_class_engineering_frontier": (
-                    f"{product.get('engineering_obligation_id')}:CONSUMED"
+                    "; ".join(f"{item}:CONSUMED" for item in consumed_obligations)
                 ),
                 "next_product_action_class": "NONE",
                 "product_frontier_selection": "CHANNEL_HARD_FAILURE_FAILOVER_ENGINEERING_CONSUMED",

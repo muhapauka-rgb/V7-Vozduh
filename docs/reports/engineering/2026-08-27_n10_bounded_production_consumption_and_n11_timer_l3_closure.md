@@ -144,3 +144,13 @@ timers remain inactive/not-found; and no ordinary-user route or assignment
 changed.  The existing Core-primary and broad route proofs remain valid from
 the preceding N10/N11 block.  No new owner, timer, registry, queue, or state
 source was introduced.
+
+The remaining Phase-6 action-class obligations were then consumed in order
+through the same OMP consumer.  The continuation owner now preserves all
+consumed obligation identities instead of replacing the previous one, and a
+`REAL_WORLD_LIMIT` natural-evidence boundary no longer suppresses independent
+read-only engineering work (Authority and production effects remain blocked).
+The complete Phase-6/7 campaign finalizer returned `PASS` with 64/64 scenarios,
+no executable frontier, no active Candidate/Packet/Lease and no pending wake.
+Its separate report is
+`docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`.

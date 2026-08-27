@@ -11888,7 +11888,11 @@ class AutoswitchPlanner:
             if not SAFE_IP_RE.match(ip):
                 continue
             registry_row = registry_by_ip.get(ip, {})
-            raw = {**registry_row, **row}
+            # ``users.registry`` is the canonical mutable assignment owner.
+            # ``v7-state.json`` may retain useful non-routing diagnostics, but
+            # it must never overwrite a newer registry current/table/enabled
+            # value during an ordinary N10 cohort or its post-apply check.
+            raw = {**row, **registry_row}
             # Certification identity is a lifecycle/registry ownership fact,
             # not a historical state-overlay preference.  Preserve the live
             # registry value when the overlay carries an older false/empty
@@ -20823,7 +20827,7 @@ class AutoswitchPlanner:
             lines.append(f"FAIL: unsafe user ip: {user_ip}")
             lines.append("V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES=INVALID_USER_IP")
             return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
-        users = {user.ip: user for user in self._load_users()}
+        users = {user.ip: user for user in self._load_runtime_registry_users()}
         user = users.get(user_ip)
         if not user or not user.enabled:
             lines.append(f"FAIL: user={user_ip} not found or disabled")
@@ -20845,11 +20849,32 @@ class AutoswitchPlanner:
         except OSError:
             assign_egress = "missing"
         lines.append(f"USER={user.ip} TABLE={user.table} REGISTRY_EGRESS={user.current} ASSIGN_EGRESS={assign_egress or 'missing'} EXPECTED_EGRESS={expected_id} EXPECTED_DEV={egress.interface}")
+        route_rc = 0
         if assign_egress and assign_egress != "missing" and assign_egress != user.current:
-            lines.append(f"WARN: user={user.ip} registry/assign mismatch registry={user.current} assign={assign_egress}")
+            route_rc = 1
+            failure_categories.append("REGISTRY_ASSIGNMENT_MISMATCH")
+            lines.append(f"FAIL: user={user.ip} registry/assign mismatch registry={user.current} assign={assign_egress}")
         else:
             lines.append(f"OK: user={user.ip} registry matches assignment")
-        route_rc = 0
+        try:
+            core = subprocess.run(
+                ["v7-routing-sync", "--core-primary-verify", "--json"],
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                check=False, timeout=10,
+            )
+            core_payload = json.loads(core.stdout or "{}")
+        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            core_payload = {}
+            core = subprocess.CompletedProcess(argv, 2)
+        if core.returncode == 0 and core_payload.get("status") == "CORE_PRIMARY_VERIFY_PASS":
+            lines.append("OK: user is covered by verified Core-primary class routing")
+            if failure_categories:
+                lines.append(
+                    "V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES="
+                    + ",".join(sorted(set(failure_categories)))
+                )
+            lines.append("V7_SCOPED_USER_ROUTE_CHECK=" + ("OK" if route_rc == 0 else "FAIL"))
+            return subprocess.CompletedProcess(argv, route_rc, stdout="\n".join(lines) + "\n")
         try:
             policy_rules = subprocess.run(
                 ["ip", "rule", "show"],

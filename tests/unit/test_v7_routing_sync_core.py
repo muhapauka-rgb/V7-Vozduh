@@ -89,9 +89,9 @@ class RoutingSyncCoreTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         loader.exec_module(module)
         users = [
-            {"ip": "10.7.0.2", "current": "source", "enabled": "1"},
-            {"ip": "10.7.0.3", "current": "target", "enabled": "1"},
-            {"ip": "10.7.0.4", "current": "target", "enabled": "1"},
+            {"ip": "10.7.0.2", "current": "source", "table": "1002", "enabled": "1"},
+            {"ip": "10.7.0.3", "current": "target", "table": "1003", "enabled": "1"},
+            {"ip": "10.7.0.4", "current": "target", "table": "1004", "enabled": "1"},
         ]
         classes = [
             {"mark": 512, "members": ["10.7.0.2"]},
@@ -118,7 +118,8 @@ class RoutingSyncCoreTests(unittest.TestCase):
         with mock.patch.object(module, "exact_reset_authority", return_value=(True, {"contract_id": "rcpp-test"})), \
              mock.patch.object(module, "derived_classes", return_value=(users, classes)), \
              mock.patch.object(module, "run", side_effect=fake_run), \
-             mock.patch.object(module, "verify", return_value={"status": "CORE_PRIMARY_VERIFY_PASS"}):
+             mock.patch.object(module, "verify", return_value={"status": "CORE_PRIMARY_VERIFY_PASS"}), \
+             mock.patch.object(module, "retire_legacy_primary_routes", return_value={"rules_removed": 2, "routes_removed": 2}):
             result = module.core_primary_cohort_commit(
                 ["10.7.0.3", "10.7.0.4"], "op-cohort",
             )

@@ -2175,7 +2175,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
     def test_scoped_post_apply_route_verification_uses_expected_target(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.write_fixture(root, current_egress="1")
+            self.write_fixture(root, current_egress="vless")
             (root / "state" / "user-10.0.0.2.assign").write_text("egress=vless\n", encoding="utf-8")
             planner = self.tool.AutoswitchPlanner(self.args_for(root))
 
@@ -2198,7 +2198,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 result = planner._verify_user_route("10.0.0.2", expected_egress="vless")
 
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("REGISTRY_EGRESS=1", result.stdout)
+        self.assertIn("REGISTRY_EGRESS=vless", result.stdout)
         self.assertIn("ASSIGN_EGRESS=vless", result.stdout)
         self.assertIn("EXPECTED_EGRESS=vless", result.stdout)
         self.assertIn("policy rule selects table 100", result.stdout)

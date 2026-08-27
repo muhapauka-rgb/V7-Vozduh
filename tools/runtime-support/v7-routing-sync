@@ -309,6 +309,22 @@ def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> di
             "whole_system": whole_system,
             "runtime_mutation": True,
         }
+    # The route writer stages a temporary exact source rule so its immediate
+    # kernel write is observable.  Once the same Core-primary owner has
+    # published the cohort map, that per-user primary rule is superseded.
+    # Retire only the exact cohort, never the fallback implementation or a
+    # broad population projection.
+    retired = retire_legacy_primary_routes([
+        users_by_ip[ip] for ip in normalized
+    ])
+    whole_system = verify()
+    if whole_system.get("status") != "CORE_PRIMARY_VERIFY_PASS":
+        return {
+            "status": "STOP_SAFE",
+            "blockers": ["core_primary_cohort_post_retirement_verify_failed"],
+            "whole_system": whole_system,
+            "runtime_mutation": True,
+        }
     return {
         "status": "CORE_PRIMARY_COHORT_COMMIT_PASS",
         "operation_id": operation_id,
@@ -319,6 +335,7 @@ def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> di
         "authority_contract_id": authority.get("contract_id", ""),
         "affected_scope_verified": True,
         "whole_system": whole_system,
+        "retired_legacy_primary_routes": retired,
         "runtime_mutation": True,
     }
 

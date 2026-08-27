@@ -11870,6 +11870,12 @@ class AutoswitchPlanner:
                 continue
             registry_row = registry_by_ip.get(ip, {})
             raw = {**registry_row, **row}
+            # Certification identity is a lifecycle/registry ownership fact,
+            # not a historical state-overlay preference.  Preserve the live
+            # registry value when the overlay carries an older false/empty
+            # copy, so ordinary product scopes cannot absorb a test identity.
+            if "certification_user" in registry_row:
+                raw["certification_user"] = registry_row["certification_user"]
             group = str(raw.get("group") or raw.get("org") or raw.get("organization") or org_users.get(ip) or self.org_policy.get("default_group") or "default")
             users.append(User(
                 ip=ip,

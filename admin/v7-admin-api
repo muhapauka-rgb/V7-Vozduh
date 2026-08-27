@@ -16110,7 +16110,14 @@ def run_json_command(cmd, timeout=40, max_output=5_000_000):
         )
         output = proc.stdout or ""
     except subprocess.TimeoutExpired as exc:
-        timeout_output = (exc.stdout or "") + "\nTIMEOUT"
+        # On Python 3.14 TimeoutExpired may expose captured stdout as bytes
+        # even when subprocess.run(text=True) was requested.  Normalize it
+        # before appending the marker; otherwise a slow read-only overview
+        # request raises TypeError and the admin UI cannot render users.
+        timeout_stdout = exc.stdout or ""
+        if isinstance(timeout_stdout, bytes):
+            timeout_stdout = timeout_stdout.decode("utf-8", errors="replace")
+        timeout_output = timeout_stdout + "\nTIMEOUT"
         return {
             "cmd": cmd,
             "rc": 124,

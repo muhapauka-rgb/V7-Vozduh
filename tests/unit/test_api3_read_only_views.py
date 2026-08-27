@@ -193,6 +193,25 @@ class Api3ReadOnlyViewsTest(unittest.TestCase):
         self.assertTrue(result["output_truncated"])
         self.assertLessEqual(len(result["output"]), 12000)
 
+    def test_run_json_command_handles_bytes_on_timeout(self):
+        original = self.admin.subprocess.run
+
+        def fake_run(*args, **kwargs):
+            raise self.admin.subprocess.TimeoutExpired(
+                cmd=["slow"], timeout=1, output=b"partial output"
+            )
+
+        try:
+            self.admin.subprocess.run = fake_run
+            result = self.admin.run_json_command(["slow"], timeout=1)
+        finally:
+            self.admin.subprocess.run = original
+
+        self.assertEqual(result["rc"], 124)
+        self.assertEqual(result["parse_error"], "timeout")
+        self.assertIn("partial output", result["output"])
+        self.assertIn("TIMEOUT", result["output"])
+
 
 if __name__ == "__main__":
     unittest.main()

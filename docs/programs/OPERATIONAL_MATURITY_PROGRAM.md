@@ -9158,9 +9158,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `WAITING_CURRENT_N10_COHORT`
-Resolved current next action: `N10_FRESH_LAWFUL_COHORT_REENTRY_REQUIRED`
-Current terminal report: `docs/reports/engineering/2026-08-27_n10_prepared_cohort_live_source_reconciliation.md`
+Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
+Resolved current next action: `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED`
+Current terminal report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
 Latest consumed report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`

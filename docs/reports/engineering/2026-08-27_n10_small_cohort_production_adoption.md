@@ -27,7 +27,30 @@ No route, user assignment, Matrix cadence, timer, target eligibility policy, Pla
 - Added tests prove that a cohort request is generated only from one prepared class without a manually passed user/source/target, and that Authority issuance/consumption rejects any membership mismatch while allowing exactly the issued group and one fresh target.
 - `py_compile` and `git diff --check`: passed.
 
+## Deployment and live result
+
+Published and deployed commits: `9582fbed`, `9bda78e7`, `a905bc2a`, `24a7d9c9`, `ee262106`, `f47c3113`, `bdd225ec`, and `e17f1cbe`.  Each deployment passed the existing safe-deploy gate; the final Runtime hash, local hash and GitHub commit were aligned. `v7-health.service` was active; the obsolete standalone full-Matrix timer remained disabled.
+
+The live Matrix owner then rebuilt the prepared projection in observation-only mode. It automatically excluded certification identity `10.7.0.19` and registered one exact two-member request for `10.7.0.33` and `10.7.0.68`, both on `openvpn-1779388847-d2ad7c`. No user, route, Candidate, Packet or Lease was created during preparation.
+
+The existing Authority owner issued one exact 15-minute, one-use contract (`acc_dedd67a17e836c53db52b364`), with source, two names, membership fingerprint, maximum two users, maximum one concurrent transaction, rollback and per-member S11 requirements. Issuance wrote policy/audit only; it did not move users.
+
+The governed live invocation then performed the bounded fresh decision path for exactly two members:
+
+- active scope: `2` users;
+- candidate evaluation: `35.773 ms` for two decisions;
+- authority/capacity validation: `0.151 ms`;
+- no route writer invocation and `0` users moved.
+
+It stopped before Apply with `n10_packet_bound_restore_barrier_required`. The direct measured cause is that the existing N10 Packet/Lease/Barrier producer still materializes an exact single-device approved barrier only; the new two-member contract is correctly recognised by Planner and Authority, but does not yet receive the corresponding existing-owner cohort Packet/Barrier bundle. This is a bounded implementation gap, not a safety bypass and not an external dependency.
+
+## Verification
+
+- Focused unit suite after the final change: **317 passed**.
+- All safe-deploy gates: **PASS**.
+- Final live attempt: **DENIED before Apply**, so no ordinary-client route or assignment changed.
+- The decision invocation also exposed stale intelligence snapshot source hashes; this was independently STOP_SAFE and remains a required freshness repair before any cohort retry.
+
 ## Exact next action
 
-Run the existing safe-deploy gate, publish/deploy this bounded implementation, independently compare local/GitHub/Runtime hashes, then ask the existing Matrix/Planner owner for the new small-cohort Authority request.  Only if that request is fresh and issued through the existing Authority owner may the governed multi-member transaction run.
-
+Extend the existing Packet/Lease/Barrier owner (not a new owner) to materialize and validate one exact common-target cohort bundle for the already-issued `N10_SMALL_COHORT` contract. It must bind the two exact members, one Planner-selected target, current source generation and one operation; it must stop remaining forwards on the first failure. Then refresh the existing intelligence snapshots, issue a fresh one-use contract (the current one must not be reused), and rerun the same bounded transaction.

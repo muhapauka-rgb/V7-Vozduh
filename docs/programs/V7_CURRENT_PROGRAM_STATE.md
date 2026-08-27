@@ -2,10 +2,10 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-27T01:51:00+03:00
-Latest terminal Mission: `V7_N10_ORDINARY_LIKE_SINGLE_DEVICE_PRODUCTION_ENTRY`
-Latest terminal Mission state: `N10_ORDINARY_LIKE_CONSUMED`
-Latest terminal Mission report: `docs/reports/engineering/2026-08-27_n10_ordinary_like_single_device_entry_predeploy.md`
+State captured: 2026-08-27T09:41:00+03:00
+Latest terminal Mission: `V7_N10_SMALL_COHORT_PRODUCTION_ADOPTION`
+Latest terminal Mission state: `N10_SMALL_COHORT_CONSUMED`
+Latest terminal Mission report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
 Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G Polygon result: no cross-egress parallelism is admitted. Full Matrix remains the live baseline, subset remains shadow-only, automatic FAST remains held, and the existing V5.3 T0-T11 latency track is next.
 
@@ -13,7 +13,7 @@ Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-27T01:51:00+03:00`
+Captured: `2026-08-27T09:41:00+03:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -21,7 +21,7 @@ This section is the single live volatile current-state surface. Older production
 | --- | --- |
 | `ACTIVE_PROGRAM` | `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
 | `PRIMARY_ENGINEERING_FRONTIER` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `PRIMARY_ENGINEERING_NEXT_ACTION` | `N10_SMALL_COHORT_AUTHORITY_CONTRACT` |
+| `PRIMARY_ENGINEERING_NEXT_ACTION` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT` |
 | `LEGACY_V7_ROUTING_HOT_PATH` | `FROZEN_FOR_CAPABILITY_GROWTH; PROGRAM_LEVEL_ENGINEERING_RULE_ONLY; RUNTIME_UNCHANGED` |
 | `SYSTEM_RESET_PROGRAM_CONTRACT` | `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` |
 | `SYSTEM_RESET_PROGRAM_STATE` | `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE` |
@@ -40,17 +40,17 @@ This section is the single live volatile current-state surface. Older production
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
-| `STATE_CAPTURED` | `2026-08-27T01:51:00+03:00` |
+| `STATE_CAPTURED` | `2026-08-27T09:41:00+03:00` |
 | `LATEST_SUPPORTING_LIFECYCLE_RECONCILIATION` | `EXPIRED_CT_M0F_CERTIFICATION_SOURCE_RESERVATION_RECONCILED: exact identity 10.7.0.108 returned to awg0 through the existing governed chain; source restored to exact owner backup with zero occupants; reservation ctres_d899f66f641229141922acc7 invalidated as cstopinv_a32b6ddde10fe43fb8563bc7; ordinary-user delta=0. This closes supporting lifecycle state only and does not alter the N10 frontier. Report: docs/reports/engineering/2026-08-26_v5_3_telegram_critical_latency_root_cause_and_safe_reduction.md` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `WAITING_INPUT:N10_SMALL_COHORT_AUTHORITY_CONTRACT: N10 ordinary-like one-device production entry is consumed. Existing owners moved only 10.7.0.5 from wireguard-1779454504-c43409 to Planner-selected awg3; exact route/kernel and profile-required telegram,youtube,google server-side S11 passed in 5,307.641 ms. The consumed Authority cannot be widened. Re-enter only with a new exact compatible ordinary cohort contract; N11 may proceed independently as read-only route-check/replacement-closure reconciliation.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `WAITING_INPUT:N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT: the exact two-member ordinary cohort completed through fresh Planner -> Packet -> Lease -> Barrier -> sole writer -> route/kernel -> required-service S11 on Planner-selected awg3. The consumed one-use contract cannot be widened or reused. Re-enter only when the product/Authority owner defines an exact bounded-production scope, maximum simultaneous movement, rollback and observation contract; N11 may proceed independently as read-only whole-system route-scope/replacement-closure reconciliation.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_N10_ORDINARY_LIKE_CONSUMED_20260827` |
-| `CURRENT_TRANSITION_ID` | `V5_3_N10_ORDINARY_LIKE_CONSUMED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `N10_SMALL_COHORT_AUTHORITY_CONTRACT` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_N10_SMALL_COHORT_CONSUMED_20260827` |
+| `CURRENT_TRANSITION_ID` | `V5_3_N10_SMALL_COHORT_CONSUMED_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:N10_SMALL_COHORT_AUTHORITY_CONTRACT` |
-| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1,NOT_REQUIRED_ALREADY_CONSUMED; N2,CONTROLLED_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_CONSUMED; N3,NOT_REQUIRED_ALREADY_CONSUMED; N4,NOT_REQUIRED_ALREADY_CONSUMED; N5,NOT_REQUIRED_ALREADY_CONSUMED; N6,NOT_REQUIRED_ALREADY_CONSUMED; N7,TELEGRAM_CLASS_FAILURE_TO_T0_CAUSAL_RECONCILIATION; N8,CONTROLLED_AUTOMATIC_TELEGRAM_S11_FUNCTIONAL_PROOF_REQUIRED_SCOPE_CONSUMED_PERFORMANCE_FAIL; N9,NOT_REQUIRED_ALREADY_CONSUMED; N10,ORDINARY_LIKE_ONE_DEVICE_CONSUMED_WAITING_SMALL_COHORT_AUTHORITY; N11,READ_ONLY_DISCOVERY_PASS_NO_SAFE_DELETION_ADMITTED` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT` |
+| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1,NOT_REQUIRED_ALREADY_CONSUMED; N2,CONTROLLED_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_CONSUMED; N3,NOT_REQUIRED_ALREADY_CONSUMED; N4,NOT_REQUIRED_ALREADY_CONSUMED; N5,NOT_REQUIRED_ALREADY_CONSUMED; N6,NOT_REQUIRED_ALREADY_CONSUMED; N7,TELEGRAM_CLASS_FAILURE_TO_T0_CAUSAL_RECONCILIATION; N8,CONTROLLED_AUTOMATIC_TELEGRAM_S11_FUNCTIONAL_PROOF_REQUIRED_SCOPE_CONSUMED_PERFORMANCE_FAIL; N9,NOT_REQUIRED_ALREADY_CONSUMED; N10,ORDINARY_LIKE_ONE_DEVICE_AND_SMALL_COHORT_CONSUMED_WAITING_BOUNDED_PRODUCTION_AUTHORITY; N11,READ_ONLY_DISCOVERY_PASS_WITH_BROAD_ROUTE_SCOPE_RECONCILIATION_OPEN` |
 | `HARD_PATH_RUNTIME_SLO` | `FINAL_FINGERPRINT=993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418; frozen valid distribution 2661.051, 2887.710, 6520.639, 2144.202, 3840.331 ms (P95=6520.639 ms; one sample >5 s). Historical 3 s/5 s objective remains unmet. OWNER_ACCEPTED_CURRENT_2VCPU_ROLLOUT_CONTRACT=P95<=7000 ms,max<=8000 ms; exact S11 and all safety semantics unchanged.` |
 | `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN_PERFORMANCE_LOGIC; bounded lifecycle-consumer repairs are deployed at 63bc020f7db75b7421b4383bd443e9509c8c0fdb (deploy-z8-14-Updatesystem-63bc020-20260826T145345). No further HARD-path micro-optimization is admitted.` |
 | `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-26_v5_3_shared_healthy_target_contract_and_ct_m0f_cold_sample.md` |
@@ -59,9 +59,9 @@ This section is the single live volatile current-state surface. Older production
 | `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `FUNCTIONAL_S11_PROVEN_PERFORMANCE_FAIL; FAST_SIGNAL_WRITER_CONTENTION_CORRECTION_DEPLOYED_AT_e1d04fa remains live: healthy Telegram observations complete in approximately 0.25--0.50 s without a Matrix writer lock. Diagnostics-only commit 5ac5dd4 is deployed. Its first exact cause was temporary service_preferences changed after the snapshot; corrected ordering yielded valid sample ctm0fsample_f428b96f42e835ff5f4614e2: full automatic S11 passed at 25,354.419 ms, exceeding the current 8 s ceiling. Source, client route and profile reset passed; ordinary-user delta=0.` |
 | `V5_3_TELEGRAM_CONTROLLED_COLD_SAMPLE` | `FUNCTIONALLY_VALID_PERFORMANCE_FAIL; transaction=ctm0ftx_7b76fcada1c0e0999885c3c8; sample=ctm0fsample_a5b05102cbd5111f139d1144; prepared-decision reused; failure-detection=13,566.293 ms; failure-to-decision=14,755.000 ms; decision-to-Apply-admission=276.174 ms; assignment=836.763 ms; kernel visibility=33.211 ms; route-bound required-service verification=1,183.018 ms; onset-to-S11=17,759.208 ms; source restored; ordinary-user delta=0.` |
 | `V5_3_TELEGRAM_CONTROLLED_FRESH_SAMPLE` | `FUNCTIONALLY_VALID_PERFORMANCE_FAIL; contract=ctm0fsdpc_208482a67dc4103e5f0ef7b6; sample=ctm0fsample_f428b96f42e835ff5f4614e2; existing owners selected the target automatically; failure-to-decision=18,163.325 ms; decision-to-Apply=240.232 ms; assignment=685.845 ms; kernel visibility=17.853 ms; required-service S11 tail=6,247.165 ms; onset-to-S11=25,354.419 ms. It remains in evidence and fails the current 8 s ceiling. Terminal reset restored 10.7.0.124 to awg0 and removed its temporary profile; ordinary-user delta=0.` |
-| `V5_3_N10_CURRENT_STATUS` | `N10_ORDINARY_LIKE_CONSUMED: exact one-device Authority acc_a3c6bbd31bcabd79793debcc moved only 10.7.0.5 to fresh Planner-selected awg3. Candidate/Packet/Lease/Barrier, sole route writer, exact route/kernel and telegram,youtube,google S11 passed; Apply->S11=5,307.641 ms<=8,000 ms. Next small cohort remains blocked until a new exact product/Authority cohort contract exists.` |
+| `V5_3_N10_CURRENT_STATUS` | `N10_SMALL_COHORT_CONSUMED: exact two-member one-use Authority acc_fe89f57530e7069ba80e9a5f completed fresh Planner -> Candidate/Packet/Lease/Barrier -> sole writer -> route/kernel -> required-service S11 on Planner-selected awg3. Per-member Apply->S11 was 1,132.873 ms and 1,070.531 ms, both <=8,000 ms; circuit breaker stayed clear and rollback was not needed. The contract is consumed. Next bounded production requires a new exact product/Authority scope and must not reuse or widen this cohort.` |
 | `CT_M0F_SHARED_TARGET_COLD_SAMPLE` | `VALID_FUNCTIONAL_COLD_SAMPLE; contract=sdpc_1cc223801f69992ac18f6e2e; Matrix/Planner selected awg3 (not manually); onset-to-control-plane-and-kernel cutover=4768.462 ms; failure-to-decision=3299.169 ms; decision-to-apply=263.808 ms; assignment=735.131 ms; kernel visibility=15.995 ms; target route-bound payload=454.359 ms; 3 s performance target failed, but the 5 s per-sample ceiling passed. Reset returned 10.7.0.124 to the isolated source; ordinary-user delta=0.` |
-| `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_PASS_NO_SAFE_DELETION_ADMITTED; no superseded-ready-to-delete responsibility was found.` |
+| `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_PASS_NO_SAFE_DELETION_ADMITTED; broad legacy route-check still reports unrelated historical-registry inconsistencies while exact N10 member verification passed. Its whole-system scope/reconciliation remains open; no deletion or unrelated route repair is admitted by this result.` |
 | `V5_3_RUNTIME_LIVE_HEALTH` | `v7-health.service active; legacy standalone Matrix/Telegram timers disabled; role-based health loop is current producer` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
@@ -69,12 +69,12 @@ This section is the single live volatile current-state surface. Older production
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_WAITING_INPUT_N10_SMALL_COHORT_AUTHORITY_CONTRACT` |
+| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_WAITING_INPUT_N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `EXTERNAL_OWNER_REQUIRED_N10_SMALL_COHORT_AUTHORITY_CONTRACT` |
+| `PROGRAM_TERMINAL_STATE` | `EXTERNAL_OWNER_REQUIRED_N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT` |
 | `OMP_CONTINUATION_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `PRODUCT_AND_AUTHORITY_SCOPE_REQUIRED_FOR_N10: the active contract is certification-only and forbids ordinary-user reclassification or movement. No further movement may be made solely to improve the Telegram performance distribution.` |
+| `EXTERNAL_INPUT_TYPE` | `PRODUCT_AND_AUTHORITY_SCOPE_REQUIRED_FOR_N10_BOUNDED_PRODUCTION: the consumed two-member contract forbids widening, reuse or additional movement. The product/Authority owner must define the exact bounded-production class or identities, maximum simultaneous movement, rollback and observation contract. No further movement may be made solely to produce evidence.` |
 | `TRANSACTION_TERMINAL_CLASS` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED` |
 | `PROGRAM_TERMINAL_CLASS` | `EXTERNAL_OWNER_REQUIRED` |
 | `NEXT_MISSION_FORMED` | `FALSE` |
@@ -213,11 +213,11 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `MISSION_CONSUMED` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_N10_ORDINARY_LIKE_SINGLE_DEVICE_PRODUCTION_ENTRY` |
-| `LATEST_TERMINAL_RUN_NONCE` | `v53_n10_ordinary_like_20260827` |
-| `LATEST_TERMINAL_MISSION_STATE` | `N10_ORDINARY_LIKE_CONSUMED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-27_n10_ordinary_like_single_device_entry_predeploy.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-08-26T22:49:00+00:00` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_N10_SMALL_COHORT_PRODUCTION_ADOPTION` |
+| `LATEST_TERMINAL_RUN_NONCE` | `v53_n10_small_cohort_20260827` |
+| `LATEST_TERMINAL_MISSION_STATE` | `N10_SMALL_COHORT_CONSUMED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-08-27T06:35:13+00:00` |
 | `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md` |
 | `CURRENT_MISSION_ROLE` | `ACTIVE_MISSION` |
@@ -740,9 +740,9 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_N10_ORDINARY_LIKE_CONSUMED_20260827` |
-| `CURRENT_TRANSITION_ID` | `V5_3_N10_ORDINARY_LIKE_CONSUMED_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `N10_SMALL_COHORT_AUTHORITY_CONTRACT` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_N10_SMALL_COHORT_CONSUMED_20260827` |
+| `CURRENT_TRANSITION_ID` | `V5_3_N10_SMALL_COHORT_CONSUMED_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT` |
 | `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
@@ -750,9 +750,9 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_N10_ORDINARY_LIKE_SINGLE_DEVICE_PRODUCTION_ENTRY` |
-| `LATEST_TERMINAL_MISSION_STATE` | `N10_ORDINARY_LIKE_CONSUMED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-27_n10_ordinary_like_single_device_entry_predeploy.md` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_N10_SMALL_COHORT_PRODUCTION_ADOPTION` |
+| `LATEST_TERMINAL_MISSION_STATE` | `N10_SMALL_COHORT_CONSUMED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md` |
 | `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
@@ -761,8 +761,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | N10 one-device ordinary-like production entry is consumed with a fresh Planner-selected target and exact server-side S11 below the accepted 8 s ceiling. HARD_PATH remains frozen and the Telegram performance limitation remains historical evidence. N10 may advance only after the product/Authority owner emits a new exact small-cohort contract; N11 remains independently read-only until a safe replacement closure is proven. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `N10_SMALL_COHORT_AUTHORITY_CONTRACT` |
+| `OMP_CONTINUATION_POINTER` | N10 one-device and exact two-member ordinary cohort production entries are consumed with fresh Planner-selected targets and exact server-side S11 below the accepted 8 s ceiling. HARD_PATH remains frozen and the Telegram performance limitation remains historical evidence. N10 may advance only after the product/Authority owner emits a new exact bounded-production scope; N11 remains independently read-only until a safe replacement closure and broad route-scope reconciliation are proven. |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -771,13 +771,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_N10_ORDINARY_LIKE_CONSUMED_20260827` |
-| `current_transition_id` | `V5_3_N10_ORDINARY_LIKE_CONSUMED_V1` |
-| `smallest_existing_next_action_id` | `N10_SMALL_COHORT_AUTHORITY_CONTRACT` |
+| `current_state_generation` | `cpsgen_SFA_V53_N10_SMALL_COHORT_CONSUMED_20260827` |
+| `current_transition_id` | `V5_3_N10_SMALL_COHORT_CONSUMED_V1` |
+| `smallest_existing_next_action_id` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |
-| `latest_terminal_mission_id` | `V7_N10_ORDINARY_LIKE_SINGLE_DEVICE_PRODUCTION_ENTRY` |
-| `latest_terminal_mission_state` | `N10_ORDINARY_LIKE_CONSUMED` |
+| `latest_terminal_mission_id` | `V7_N10_SMALL_COHORT_PRODUCTION_ADOPTION` |
+| `latest_terminal_mission_state` | `N10_SMALL_COHORT_CONSUMED` |
 | `previous_terminal_mission_id` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
@@ -790,7 +790,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `last_responsible_link` | existing V5.3 Program contract -> BDP/OMP admission -> CPS read-only Mission -> Phase C/D/E evidence consumer |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | N10_SMALL_COHORT_AUTHORITY_CONTRACT |
+| `smallest_existing_next_action` | N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -858,7 +858,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_N10_ORDINARY_LIKE_CONSUMED_20260827`; `V5_3_N10_ORDINARY_LIKE_CONSUMED_V1` | One ordinary-like production device has passed the fresh Planner -> governed apply -> exact route/kernel -> required-service S11 chain in `5,307.641 ms`, inside the accepted 8 s ceiling. HARD_PATH remains frozen and N11 has no safe deletion. | `N10_SMALL_COHORT_AUTHORITY_CONTRACT` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `EXTERNAL_OWNER_REQUIRED` | no further ordinary movement until the product owner supplies an exact compatible small-cohort scope; N11 remains independently read-only. |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_N10_SMALL_COHORT_CONSUMED_20260827`; `V5_3_N10_SMALL_COHORT_CONSUMED_V1` | One ordinary-like device and one exact two-member ordinary cohort have passed fresh Planner -> governed apply -> exact route/kernel -> required-service S11 chains inside the accepted 8 s ceiling. HARD_PATH remains frozen and N11 has no safe deletion. | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `EXTERNAL_OWNER_REQUIRED` | no further ordinary movement until the product owner supplies an exact bounded-production scope; N11 remains independently read-only. |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -926,7 +926,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `EXTERNAL_OWNER_REQUIRED`; the one-device N10 Authority is consumed and non-reusable; current next action is `N10_SMALL_COHORT_AUTHORITY_CONTRACT`; no further mutation is authorized until that exact scope exists |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `EXTERNAL_OWNER_REQUIRED`; the one-device and small-cohort N10 Authorities are consumed and non-reusable; current next action is `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT`; no further mutation is authorized until that exact scope exists |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

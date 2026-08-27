@@ -14,7 +14,7 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-08-27_n10_ordinary_like_single_device_entry_predeploy.md` (`N10_ORDINARY_LIKE_CONSUMED`; exactly one ordinary-like device completed the governed route and required-service S11 below the accepted 8 s ceiling).
+Latest consumed report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md` (`N10_SMALL_COHORT_CONSUMED`; exactly two ordinary members completed the fresh Planner-selected governed route and required-service S11 below the accepted 8 s ceiling).
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md` (`V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1`; admitted system-level revalidation; automatic FAST role consumer held).
 Current V5.3 contract-correction report: `docs/reports/engineering/2026-08-20_160200_v5_3_system_health_revalidation_gate_correction.md` (`SYSTEM_LEVEL_HEALTH_TEST_STABILITY_REVALIDATION_GATE_REQUIRED`; no new Mission or Runtime effect).
 Latest Reset terminal report: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md` (`RESET_M10_POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION_PASS`; final Reset Program terminal restored).
@@ -8171,8 +8171,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
-Resolved current next action: `N10_SMALL_COHORT_AUTHORITY_CONTRACT`
-Resolved contract state: CPS retains the accepted frozen HARD-path evidence and the historical Telegram performance limitation. The exact N10 one-device ordinary-like product Authority has now been consumed: the fresh existing Planner selected the target, the governed route applied through the sole writer, and exact route/kernel plus profile-required server-side S11 passed in `5,307.641 ms`, below the current 8 s ceiling. This grants only one-device N10 credit. The consumed contract cannot be widened; a new exact product/Authority small-cohort contract is required before another ordinary identity can move, so the current stop remains `EXTERNAL_OWNER_REQUIRED`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT`
+Resolved contract state: CPS retains the accepted frozen HARD-path evidence and the historical Telegram performance limitation. The exact N10 one-device and two-member small-cohort product Authorities have now been consumed: the fresh existing Planner selected the common target, the governed route applied through the sole writer, and exact route/kernel plus required-service S11 passed below the current 8 s ceiling. The cohort contract cannot be widened or reused. A new exact bounded-production product/Authority scope is required before further ordinary movement, so the current stop remains `EXTERNAL_OWNER_REQUIRED`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9159,9 +9159,9 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
-Resolved current next action: `N10_SMALL_COHORT_AUTHORITY_CONTRACT`
-Current terminal report: `docs/reports/engineering/2026-08-27_n10_ordinary_like_single_device_entry_predeploy.md`
-Latest consumed report: `docs/reports/engineering/2026-08-27_n10_ordinary_like_single_device_entry_predeploy.md`
+Resolved current next action: `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT`
+Current terminal report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
+Latest consumed report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md`

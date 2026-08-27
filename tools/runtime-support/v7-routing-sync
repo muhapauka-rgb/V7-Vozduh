@@ -221,6 +221,92 @@ def core_primary_fallback() -> dict:
     return {"status": "CORE_PRIMARY_FALLBACK_PASS", "legacy": legacy, "core_table_present": False}
 
 
+def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> dict:
+    """Atomically update only an already-governed Core-primary cohort.
+
+    The canonical users registry remains the sole desired-state source.  This
+    operation is deliberately narrower than ``core_primary_apply``: it is
+    lawful only when the live table is otherwise exact and the cohort does not
+    create, retire or renumber a routing class.  Those cases retain the
+    existing full-projection owner/fallback instead of silently widening this
+    bounded operation.
+    """
+    authority_ok, authority = exact_reset_authority(POLICY)
+    normalized: list[str] = []
+    try:
+        normalized = sorted({str(ipaddress.ip_address(value)) for value in members})
+    except ValueError:
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_member_invalid"], "runtime_mutation": False}
+    if not authority_ok:
+        return {"status": "STOP_SAFE", "blockers": ["exact_reset_core_primary_promotion_contract_required"], "runtime_mutation": False}
+    if not 2 <= len(normalized) <= 4:
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_scope_must_be_2_to_4"], "runtime_mutation": False}
+    users, classes = derived_classes()
+    users_by_ip = {str(row.get("ip") or ""): row for row in users}
+    if any(ip not in users_by_ip for ip in normalized):
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_registry_member_not_enabled"], "runtime_mutation": False}
+    nft = run(["nft", "-j", "list", "table", NFT_FAMILY, NFT_TABLE])
+    try:
+        nft_payload = json.loads(nft.stdout or "{}") if nft.returncode == 0 else {}
+    except json.JSONDecodeError:
+        nft_payload = {}
+    actual_user_class, user_class_readable = nft_map_elements(nft_payload, "user_class")
+    actual_class_egress, class_egress_readable = nft_map_elements(nft_payload, "class_egress")
+    expected_user_class = {
+        (str(member), str(row["mark"]))
+        for row in classes for member in row["members"]
+    }
+    expected_class_egress = {
+        (str(row["mark"]), str(row["mark"])) for row in classes
+    }
+    selected = set(normalized)
+    actual_outside = {entry for entry in actual_user_class if entry[0] not in selected}
+    expected_outside = {entry for entry in expected_user_class if entry[0] not in selected}
+    expected_selected = sorted(entry for entry in expected_user_class if entry[0] in selected)
+    if (
+        not user_class_readable
+        or not class_egress_readable
+        or actual_outside != expected_outside
+        or actual_class_egress != expected_class_egress
+        or len(expected_selected) != len(normalized)
+    ):
+        return {
+            "status": "STOP_SAFE",
+            "blockers": ["core_primary_cohort_baseline_not_exact_or_class_delta_required"],
+            "runtime_mutation": False,
+        }
+    # This nft batch is one kernel-visible projection commit.  It never
+    # recreates the table or touches entries outside ``normalized``.
+    element_text = ", ".join(f"{ip} : 0x{int(mark):x}" for ip, mark in expected_selected)
+    proc = run([
+        "nft", "-f", "-",
+    ], input_text=(
+        f"replace element {NFT_FAMILY} {NFT_TABLE} user_class {{ {element_text} }}\n"
+    ))
+    if proc.returncode:
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_nft_atomic_commit_failed", proc.stdout[-1000:]], "runtime_mutation": False}
+    whole_system = verify()
+    if whole_system.get("status") != "CORE_PRIMARY_VERIFY_PASS":
+        return {
+            "status": "STOP_SAFE",
+            "blockers": ["core_primary_cohort_post_commit_whole_system_verify_failed"],
+            "whole_system": whole_system,
+            "runtime_mutation": True,
+        }
+    return {
+        "status": "CORE_PRIMARY_COHORT_COMMIT_PASS",
+        "operation_id": operation_id,
+        "affected_users": len(normalized),
+        "affected_user_fingerprint": canonical_hash(normalized),
+        "membership_generation": canonical_hash(users),
+        "class_generation": canonical_hash([{key: value for key, value in row.items() if key != "members"} for row in classes]),
+        "authority_contract_id": authority.get("contract_id", ""),
+        "affected_scope_verified": True,
+        "whole_system": whole_system,
+        "runtime_mutation": True,
+    }
+
+
 def nft_map_elements(payload: object, name: str) -> tuple[set[tuple[str, str]], bool]:
     """Return the exact live nft map contents without making them a new state source."""
     if not isinstance(payload, dict):
@@ -316,10 +402,13 @@ def core_primary_active() -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--core-primary-apply", action="store_true")
+    parser.add_argument("--core-primary-cohort-commit", action="store_true")
     parser.add_argument("--core-primary-fallback", action="store_true")
     parser.add_argument("--core-primary-verify", action="store_true")
     parser.add_argument("--core-primary-active", action="store_true")
     parser.add_argument("--user", default="")
+    parser.add_argument("--cohort-user", action="append", default=[])
+    parser.add_argument("--operation-id", default="")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     lock_path = Path(os.environ.get("V7_ROUTING_LOCK", "/tmp/v7-routing.lock"))
@@ -327,6 +416,8 @@ def main() -> int:
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
         if args.user:
             result = scoped_user_sync(args.user)
+        elif args.core_primary_cohort_commit:
+            result = core_primary_cohort_commit(args.cohort_user, args.operation_id)
         elif args.core_primary_apply:
             result = core_primary_apply()
         elif args.core_primary_fallback:

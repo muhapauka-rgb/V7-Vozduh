@@ -1894,6 +1894,57 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(checkpoint["unapplied"], ["10.0.0.3"])
         self.assertEqual(len(checkpoint["subreceipts"]), 1)
 
+    def test_n10_core_primary_cohort_uses_one_projection_commit_after_all_members_stage(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        planner.args = SimpleNamespace(verify=True)
+        planner._performance_spans = []
+        planner.safety_file = Path("/tmp/unit-core-cohort-safety.json")
+        planner._active_execution_control = {}
+        staged = []
+        commits = []
+        planner._execution_control_decision = lambda **kwargs: {
+            "allowed_forward_mutation": kwargs.get("mutation_kind") == "forward",
+            "rollback_only_allowed": kwargs.get("mutation_kind") == "rollback",
+            "generation": "g1",
+        }
+        planner._run_switch = lambda ip, egress, reason: (
+            staged.append((ip, egress, reason, bool(getattr(planner, "_core_primary_cohort_defer", False))))
+            or subprocess.CompletedProcess(["switch"], 0, stdout="ok")
+        )
+        planner._core_primary_cohort_commit = lambda members, operation_id: (
+            commits.append((members, operation_id))
+            or subprocess.CompletedProcess(
+                ["commit"], 0,
+                stdout=json.dumps({"status": "CORE_PRIMARY_COHORT_COMMIT_PASS"}),
+            )
+        )
+        planner._verify_routes_for_apply = lambda ip, target: subprocess.CompletedProcess(
+            ["verify"], 0, stdout="ok",
+        )
+        planner._bounded_cohort_checkpoint = lambda *_args, **_kwargs: {
+            "checkpoint": {"state": "SUCCESS"},
+        }
+        planner._update_safety_after_apply = lambda _rows: None
+        moves = [
+            {"user_ip": "10.0.0.2", "current_egress": "1", "recommended_egress": "vless", "move_type": "failover"},
+            {"user_ip": "10.0.0.3", "current_egress": "1", "recommended_egress": "vless", "move_type": "failover"},
+        ]
+        plan = {"operation": {"operation_id": "op-core-cohort"}, "safety": {}}
+        result = planner._apply_n10_core_primary_cohort(
+            plan, selected_moves=moves, entry_control={"generation": "g1"},
+            action_class=operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            selected_hash="selected", execution_control_bindings={
+                "source_bundle_hash": "source", "snapshot_bundle_hash": "snapshot", "max_users": 2,
+            }, bounded_checkpoint={},
+        )
+
+        self.assertTrue(result["applied"])
+        self.assertEqual([row["terminal_outcome_classification"] for row in result["results"]], ["SUCCESS", "SUCCESS"])
+        self.assertEqual(len(commits), 1)
+        self.assertEqual(commits[0][0], ["10.0.0.2", "10.0.0.3"])
+        self.assertTrue(all(item[3] for item in staged))
+        self.assertFalse(planner._core_primary_cohort_defer)
+
     def test_bounded_cohort_checkpoint_blocks_duplicate_forward_apply_after_restart(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

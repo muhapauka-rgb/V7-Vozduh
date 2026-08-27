@@ -166,6 +166,21 @@ if command -v v7-routing-sync >/dev/null 2>&1; then
   fi
 fi
 
+# A bounded N10 cohort may stage its already-authorized canonical member
+# assignments and let the same Core-primary owner publish their nft membership
+# delta once.  This is an operation-scoped hand-off, not a second writer: the
+# caller must later invoke ``v7-routing-sync --core-primary-cohort-commit``.
+# Any other action class keeps the established immediate projection commit.
+CORE_PRIMARY_COHORT_DEFER="${V7_CORE_PRIMARY_COHORT_DEFER:-0}"
+if [ "$CORE_PRIMARY_COHORT_DEFER" = "1" ]; then
+  if [ "$CORE_PRIMARY_ACTIVE" != "1" ] \
+    || [ "$ACTION_CLASS" != "N10_SMALL_COHORT" ] \
+    || ! [[ "$MAX_USERS" =~ ^[2-4]$ ]]; then
+    echo "STOP_SAFE: core-primary cohort defer outside exact N10 cohort scope"
+    exit 2
+  fi
+fi
+
 # A Core-primary rebuild derives from the registry.  Keep a narrowly scoped
 # preimage only for the duration of this one governed operation so a failed
 # rebuild cannot leave the canonical assignment ahead of the live map.
@@ -178,7 +193,7 @@ cleanup_core_primary_preimage() {
   [ -z "${CORE_ASSIGNMENT_BACKUP:-}" ] || rm -f "$CORE_ASSIGNMENT_BACKUP" || true
 }
 trap cleanup_core_primary_preimage EXIT
-if [ "$CORE_PRIMARY_ACTIVE" = "1" ]; then
+if [ "$CORE_PRIMARY_ACTIVE" = "1" ] && [ "$CORE_PRIMARY_COHORT_DEFER" != "1" ]; then
   CORE_REGISTRY_BACKUP="${REG}.core-primary-rollback.$$"
   if ! cp "$REG" "$CORE_REGISTRY_BACKUP"; then
     echo "V7_ROUTE_WRITE_FAILURE=ROUTE_CORE_PRIMARY_PREIMAGE_FAILED"
@@ -289,7 +304,7 @@ V7_ROUTE_TIMING_REGISTRY_COMMITTED="$(v7_route_timing_now)"
 # user switch can leave the nft membership map temporarily pointed at the old
 # egress class.  This is not another route writer or state source: it invokes
 # the current registry-wide owner and fails closed if that owner cannot commit.
-if [ "$CORE_PRIMARY_ACTIVE" = "1" ]; then
+if [ "$CORE_PRIMARY_ACTIVE" = "1" ] && [ "$CORE_PRIMARY_COHORT_DEFER" != "1" ]; then
   if ! core_primary_apply_output="$(v7-routing-sync --core-primary-apply --json 2>&1)"; then
     core_primary_apply_output=""
   fi
@@ -319,6 +334,8 @@ if [ "$CORE_PRIMARY_ACTIVE" = "1" ]; then
   fi
   cleanup_core_primary_preimage
   echo "V7_CORE_PRIMARY_SYNC=PASS"
+elif [ "$CORE_PRIMARY_ACTIVE" = "1" ]; then
+  echo "V7_CORE_PRIMARY_SYNC=DEFERRED_COHORT"
 fi
 
 if command -v v7-audit-log >/dev/null 2>&1; then

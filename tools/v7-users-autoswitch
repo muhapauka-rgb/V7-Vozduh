@@ -17973,6 +17973,38 @@ class AutoswitchPlanner:
                     "bounded_cohort_transaction": bounded_checkpoint.get("checkpoint") or {},
                     "remaining_forward_mutations_stopped": True,
                 }
+        # A small N10 cohort has one Packet/lease and one exact core-map
+        # publication boundary.  Reusing the existing writer one member at a
+        # time remains necessary for its low-level table/assignment work, but
+        # the Core-primary projection must not be rebuilt for every member.
+        core_primary_cohort_projection = (
+            action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+            and 2 <= len(selected_moves) <= 4
+        )
+        if core_primary_cohort_projection:
+            if not self.args.verify:
+                return {
+                    "applied": False,
+                    "reason": "core_primary_cohort_requires_post_commit_verification",
+                    "runtime_mutation": False,
+                    "user_movement": 0,
+                }
+            active = self._core_primary_cohort_active()
+            plan.setdefault("safety", {})["core_primary_cohort_projection"] = active
+            if not active.get("ok"):
+                return {
+                    "applied": False,
+                    "reason": "core_primary_cohort_owner_not_active",
+                    "core_primary_cohort_projection": active,
+                    "runtime_mutation": False,
+                    "user_movement": 0,
+                }
+            return self._apply_n10_core_primary_cohort(
+                plan, selected_moves=selected_moves, entry_control=entry_control,
+                action_class=action_class, selected_hash=selected_hash,
+                execution_control_bindings=execution_control_bindings,
+                bounded_checkpoint=bounded_checkpoint,
+            )
         for move_index, move in enumerate(selected_moves):
             fresh_validation_started_ns = time.monotonic_ns()
             item_control = self._execution_control_decision(
@@ -20450,6 +20482,197 @@ class AutoswitchPlanner:
                 self.reconnect_state["updated"] = now_iso()
                 write_json_atomic(self.reconnect_state_file, self.reconnect_state)
 
+    def _core_primary_cohort_active(self) -> dict[str, Any]:
+        """Read the existing Core-primary owner; this creates no new truth."""
+        try:
+            proc = subprocess.run(
+                ["v7-routing-sync", "--core-primary-active", "--json"],
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                check=False, timeout=15,
+            )
+            payload = json.loads(proc.stdout or "{}")
+        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            payload = {}
+        return {
+            "ok": proc.returncode == 0 and payload.get("status") == "CORE_PRIMARY_ACTIVE"
+            if "proc" in locals() else False,
+            "owner": "existing v7-routing-sync Core-primary owner",
+            "status": str(payload.get("status") or "UNAVAILABLE"),
+            "runtime_mutation": False,
+        }
+
+    def _core_primary_cohort_commit(
+        self, members: list[str], operation_id: str,
+    ) -> subprocess.CompletedProcess[str]:
+        argv = [
+            "v7-routing-sync", "--core-primary-cohort-commit",
+            "--operation-id", operation_id,
+        ]
+        for member in sorted(set(members)):
+            argv.extend(["--cohort-user", member])
+        try:
+            return subprocess.run(
+                argv, text=True, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, check=False, timeout=30,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return subprocess.CompletedProcess(argv, 2, stdout=f"STOP_SAFE: core-primary cohort commit unavailable: {exc}\n")
+
+    def _cohort_rollback_to_preimage(
+        self, *, rows: list[dict[str, Any]], entry_control: dict[str, Any],
+        action_class: str, operation_id: str, publish_projection: bool = True,
+    ) -> dict[str, Any]:
+        """Return staged canonical rows, then publish one matching map delta."""
+        rollback_rows: list[dict[str, Any]] = []
+        for row in reversed(rows):
+            rollback_control = self._execution_control_decision(
+                mutation_kind="rollback", action_class=action_class,
+                expected_generation=str(entry_control.get("generation") or ""),
+                rollback_certified=True, operation_id=operation_id,
+            )
+            if not rollback_control.get("rollback_only_allowed"):
+                return {"ok": False, "reason": "core_primary_cohort_rollback_control_denied", "rows": rollback_rows}
+            self._active_execution_control = rollback_control
+            proc = self._run_switch(
+                str(row.get("user_ip") or ""), str(row.get("from") or ""), "rollback",
+            )
+            rollback_rows.append({"user_ip": row.get("user_ip"), "rc": proc.returncode})
+            if proc.returncode != 0:
+                return {"ok": False, "reason": "core_primary_cohort_member_rollback_failed", "rows": rollback_rows}
+        if not publish_projection:
+            return {"ok": True, "reason": "", "rows": rollback_rows, "projection": {"status": "PREIMAGE_MAP_RETAINED"}}
+        commit = self._core_primary_cohort_commit(
+            [str(row.get("user_ip") or "") for row in rows], operation_id,
+        )
+        try:
+            payload = json.loads(commit.stdout or "{}")
+        except json.JSONDecodeError:
+            payload = {}
+        return {
+            "ok": commit.returncode == 0 and payload.get("status") == "CORE_PRIMARY_COHORT_COMMIT_PASS",
+            "reason": "" if commit.returncode == 0 and payload.get("status") == "CORE_PRIMARY_COHORT_COMMIT_PASS" else "core_primary_cohort_rollback_projection_commit_failed",
+            "rows": rollback_rows,
+            "projection": payload,
+        }
+
+    def _apply_n10_core_primary_cohort(
+        self, plan: dict[str, Any], *, selected_moves: list[dict[str, Any]],
+        entry_control: dict[str, Any], action_class: str, selected_hash: str,
+        execution_control_bindings: dict[str, Any], bounded_checkpoint: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Consume one existing N10 cohort through one Core-primary map commit."""
+        operation_id = str((plan.get("operation") or {}).get("operation_id") or "")
+        results: list[dict[str, Any]] = []
+        circuit_breaker = {
+            "owner": "tools/v7-users-autoswitch.apply",
+            "policy": "stop_remaining_forward_mutations_after_first_non_success",
+            "tripped": False, "trigger_user": "", "trigger_terminal": "",
+            "remaining_not_attempted": 0,
+        }
+        self._core_primary_cohort_defer = True
+        try:
+            for index, move in enumerate(selected_moves):
+                control = self._execution_control_decision(
+                    mutation_kind="forward", action_class=action_class,
+                    expected_generation=str(entry_control.get("generation") or ""),
+                    operation_id=operation_id, selected_move_hash=selected_hash,
+                    source_bundle_hash=str(execution_control_bindings.get("source_bundle_hash") or ""),
+                    snapshot_bundle_hash=str(execution_control_bindings.get("snapshot_bundle_hash") or ""),
+                    max_users=to_int(execution_control_bindings.get("max_users"), 0),
+                )
+                if not control.get("allowed_forward_mutation"):
+                    circuit_breaker.update({"tripped": True, "trigger_user": str(move.get("user_ip") or ""), "trigger_terminal": "CONTROL_DENIED", "remaining_not_attempted": len(selected_moves) - index})
+                    break
+                self._active_execution_control = control
+                started_ns = time.monotonic_ns()
+                proc = self._run_switch(
+                    str(move.get("user_ip") or ""),
+                    str(move.get("recommended_egress") or ""),
+                    str(move.get("move_type") or "planned"),
+                )
+                row = {
+                    "user_ip": str(move.get("user_ip") or ""),
+                    "from": str(move.get("current_egress") or ""),
+                    "to": str(move.get("recommended_egress") or ""),
+                    "move_type": move.get("move_type"), "operation_id": operation_id,
+                    "selected_move_hash": selected_hash, "rc": proc.returncode,
+                    "output": (proc.stdout or "")[-4000:],
+                    "route_writer_timing": self._record_performance_span(
+                        "route_writer_subprocess_and_low_level_mutation", started_ns,
+                        owner="existing v7-user-switch route writer",
+                        status="PASS" if proc.returncode == 0 else "FAIL",
+                        parent="apply_and_verification",
+                    ),
+                    "core_primary_projection": "STAGED" if proc.returncode == 0 else "NOT_STAGED",
+                    "terminal_outcome_classification": "COHORT_PROJECTION_PENDING" if proc.returncode == 0 else "APPLY_FAILURE",
+                    "rollback_attempted": False,
+                }
+                results.append(row)
+                if proc.returncode != 0:
+                    circuit_breaker.update({"tripped": True, "trigger_user": row["user_ip"], "trigger_terminal": "APPLY_FAILURE", "remaining_not_attempted": len(selected_moves) - index - 1})
+                    break
+            if len(results) != len(selected_moves) or any(row["rc"] != 0 for row in results):
+                rollback = self._cohort_rollback_to_preimage(
+                    rows=[row for row in results if row["rc"] == 0], entry_control=entry_control,
+                    action_class=action_class, operation_id=operation_id,
+                    publish_projection=False,
+                ) if any(row["rc"] == 0 for row in results) else {"ok": True, "rows": []}
+                for row in results:
+                    if row["rc"] == 0:
+                        row.update({"rollback_attempted": True, "rollback_result": "OK" if rollback.get("ok") else "FAIL", "terminal_outcome_classification": "ROLLBACK_SUCCESS" if rollback.get("ok") else "ROLLBACK_FAILURE"})
+                plan.setdefault("safety", {})["core_primary_cohort_rollback"] = rollback
+            else:
+                projection = self._core_primary_cohort_commit(
+                    [row["user_ip"] for row in results], operation_id,
+                )
+                try:
+                    projection_payload = json.loads(projection.stdout or "{}")
+                except json.JSONDecodeError:
+                    projection_payload = {}
+                plan.setdefault("safety", {})["core_primary_cohort_projection_commit"] = projection_payload
+                if projection.returncode != 0 or projection_payload.get("status") != "CORE_PRIMARY_COHORT_COMMIT_PASS":
+                    rollback = self._cohort_rollback_to_preimage(rows=results, entry_control=entry_control, action_class=action_class, operation_id=operation_id)
+                    for row in results:
+                        row.update({"rollback_attempted": True, "rollback_result": "OK" if rollback.get("ok") else "FAIL", "terminal_outcome_classification": "ROLLBACK_SUCCESS" if rollback.get("ok") else "ROLLBACK_FAILURE"})
+                    circuit_breaker.update({"tripped": True, "trigger_terminal": "CORE_PRIMARY_COHORT_COMMIT_FAILED"})
+                    plan.setdefault("safety", {})["core_primary_cohort_rollback"] = rollback
+                else:
+                    failed = False
+                    for row in results:
+                        verify = self._verify_routes_for_apply(row["user_ip"], row["to"])
+                        row.update({
+                            "verify_rc": verify.returncode,
+                            "verify_output": (verify.stdout or "")[-4000:],
+                            "route_verification_scope": "selected_user_then_whole_system",
+                            "terminal_outcome_classification": "SUCCESS" if verify.returncode == 0 else "VERIFY_FAILED",
+                            "core_primary_projection": "COMMITTED",
+                        })
+                        failed = failed or verify.returncode != 0
+                    if failed:
+                        rollback = self._cohort_rollback_to_preimage(rows=results, entry_control=entry_control, action_class=action_class, operation_id=operation_id)
+                        for row in results:
+                            row.update({"rollback_attempted": True, "rollback_result": "OK" if rollback.get("ok") else "FAIL", "terminal_outcome_classification": "ROLLBACK_SUCCESS" if rollback.get("ok") else "ROLLBACK_FAILURE"})
+                        circuit_breaker.update({"tripped": True, "trigger_terminal": "POST_COMMIT_VERIFY_FAILED"})
+                        plan.setdefault("safety", {})["core_primary_cohort_rollback"] = rollback
+        finally:
+            self._core_primary_cohort_defer = False
+        cohort_success = len(results) == len(selected_moves) and all(row.get("terminal_outcome_classification") == "SUCCESS" for row in results)
+        checkpoint = self._bounded_cohort_checkpoint(
+            plan, selected_moves, results=results,
+            terminal_state="SUCCESS" if cohort_success else "CONTAINED_STOP_SAFE",
+            terminal_reason="core_primary_cohort_projection_verified" if cohort_success else "core_primary_cohort_projection_contained",
+        )
+        self._update_safety_after_apply(results)
+        plan.setdefault("safety", {})["cohort_circuit_breaker"] = circuit_breaker
+        return {
+            "applied": bool(results), "results": results,
+            "safety_file": str(self.safety_file),
+            "cohort_circuit_breaker": circuit_breaker,
+            "remaining_forward_mutations_stopped": circuit_breaker["tripped"],
+            "bounded_cohort_transaction": checkpoint.get("checkpoint") or bounded_checkpoint.get("checkpoint") or {},
+            "core_primary_cohort_projection": True,
+        }
+
     def _run_switch(self, ip: str, egress: str, reason: str) -> subprocess.CompletedProcess[str]:
         control = dict(self._active_execution_control or {})
         mutation_kind = "rollback" if reason == "rollback" else "forward"
@@ -20486,6 +20709,8 @@ class AutoswitchPlanner:
         )
         env["V7_ADMIN_SAFE_MODE_FILE"] = str(control_file)
         env["V7_EXECUTION_CONTROL_FILE_HASH"] = sha256_file(control_file)
+        if bool(getattr(self, "_core_primary_cohort_defer", False)):
+            env["V7_CORE_PRIMARY_COHORT_DEFER"] = "1"
         return subprocess.run(
             ["v7-user-switch", ip, egress],
             text=True,

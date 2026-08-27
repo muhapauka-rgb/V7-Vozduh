@@ -422,6 +422,42 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertIn("--core-primary-apply --json", calls)
         self.assertIn("V7_CORE_PRIMARY_SYNC=PASS", result.stdout)
 
+    def test_exact_n10_cohort_member_stages_without_global_core_rebuild(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, _ip_log = self.fixture(root)
+            sync_log = root / "sync.log"
+            sync = root / "bin" / "v7-routing-sync"
+            sync.write_text(
+                "#!/bin/sh\n"
+                f"printf '%s\\n' \"$*\" >> '{sync_log}'\n"
+                "if [ \"$1\" = \"--core-primary-active\" ]; then\n"
+                "  printf '{\\\"status\\\": \\\"CORE_PRIMARY_ACTIVE\\\"}\\n'\n"
+                "  exit 0\n"
+                "fi\n"
+                "exit 97\n",
+                encoding="utf-8",
+            )
+            sync.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_n10",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-n10",
+                "V7_EXECUTION_ACTION_CLASS": "N10_SMALL_COHORT",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-n10",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-n10",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-n10",
+                "V7_EXECUTION_MAX_USERS": "2",
+                "V7_CORE_PRIMARY_COHORT_DEFER": "1",
+            })
+            result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
+            calls = sync_log.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("V7_CORE_PRIMARY_SYNC=DEFERRED_COHORT", result.stdout)
+        self.assertIn("--core-primary-active --json", calls)
+        self.assertNotIn("--core-primary-apply", calls)
+
     def test_core_primary_sync_failure_is_returned_to_the_existing_caller(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

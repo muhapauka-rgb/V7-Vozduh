@@ -508,7 +508,9 @@ def sha256_json(payload: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, Any]:
+def build_prepared_class_decision_projection(
+    plan: dict[str, Any], *, ordinary_user_ips: Optional[set[str]] = None,
+) -> dict[str, Any]:
     """Compact the existing Planner result for pre-incident fast validation.
 
     This is a projection of the normal Matrix/Planner owner, not a second
@@ -528,7 +530,9 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
     exclusions = 0
     for row in decisions:
         user = str(row.get("user_ip") or row.get("user") or "")
-        if bool_value(row.get("certification_user")):
+        if bool_value(row.get("certification_user")) or (
+            ordinary_user_ips is not None and user not in ordinary_user_ips
+        ):
             # N10 is an ordinary-user product lane.  Certification identities
             # remain available to their own governed campaigns but may never
             # enter an ordinary cohort merely because their route/profile is
@@ -21574,7 +21578,14 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         parent="service_failure_advisory",
     )
     prepared_projection_started_ns = time.monotonic_ns()
-    prepared_class_decisions = build_prepared_class_decision_projection(plan)
+    ordinary_user_ips = {
+        str(row.get("ip") or "")
+        for row in parse_registry(Path(args.state_dir) / "users.registry")
+        if str(row.get("ip") or "") and not bool_value(row.get("certification_user"))
+    }
+    prepared_class_decisions = build_prepared_class_decision_projection(
+        plan, ordinary_user_ips=ordinary_user_ips,
+    )
     prepared_freshness = validate_prepared_class_decision_projection(
         prepared_class_decisions,
         prepared_class_decisions.get("invalidators") or {},

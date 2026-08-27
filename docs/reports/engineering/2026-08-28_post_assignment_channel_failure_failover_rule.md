@@ -71,9 +71,20 @@ suite.
 
 ## Runtime and production effect
 
-No production service, route, client assignment, Matrix cadence or Authority
-state was changed in this block. The code change is ready for the normal
-safe-deploy gate; no live client was moved merely to test the rule.
+Commit `956871d06dabe4f59da1ed604eeb75391e500dec` was published to the
+`Updatesystem` branch and deployed through `tools/v7-safe-deploy` as
+`deploy-z8-14-Updatesystem-956871d-20260828T000919`. The post-deploy
+`v7-truth-check --all` was `FULLY_ALIGNED`; local, GitHub and Runtime hashes
+matched, and `v7-health.service` was active.
+
+A read-only production Planner reconciliation then observed 126 users and 7
+egresses, selected zero moves, and reported `NO_INCIDENT_DISABLED`. This is
+expected for the current product state: the global emergency-failover runtime
+policy remains disabled and the intelligence snapshot gate is stale, so no
+client was moved and no route was changed. The new rule is therefore deployed
+and ready to be consumed by the existing governed L3 path when its existing
+production Authority/policy gates are enabled; this report does not claim a
+live failover outcome.
 
 ## Limitations and safety
 
@@ -90,4 +101,3 @@ Run the existing safe-deploy gate, publish/deploy this already-tested change,
 then perform one read-only production reconciliation proving that a fresh
 failed source with assigned users is discovered by the existing Matrix ->
 Planner consumer and that no unrelated users are selected.
-

@@ -292,9 +292,11 @@ def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> di
     proc = run([
         "nft", "-f", "-",
     ], input_text=(
-        # The deployed nft parser accepts the established map-update grammar
-        # as ``add element``.  A map key is replaced atomically by this one
-        # batch; no delete/recreate or per-user full projection is introduced.
+        # The deployed nft version has neither ``replace element`` nor
+        # duplicate-tolerant ``add element``.  Its transactional batch keeps
+        # the delete/add pair atomic: there is no kernel-visible interval and
+        # no table recreation or per-user full projection.
+        f"delete element {NFT_FAMILY} {NFT_TABLE} user_class {{ {', '.join(ip for ip, _ in expected_selected)} }}\n"
         f"add element {NFT_FAMILY} {NFT_TABLE} user_class {{ {element_text} }}\n"
     ))
     if proc.returncode:

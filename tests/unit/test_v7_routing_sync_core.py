@@ -127,6 +127,7 @@ class RoutingSyncCoreTests(unittest.TestCase):
         self.assertEqual(result["affected_users"], 2)
         batch = [input_text for argv, input_text in calls if argv == ["nft", "-f", "-"]]
         self.assertEqual(len(batch), 1)
+        self.assertIn("delete element inet v7_routing_core user_class", batch[0])
         self.assertIn("add element inet v7_routing_core user_class", batch[0])
         self.assertIn("10.7.0.3 : 0x201", batch[0])
         self.assertNotIn("10.7.0.2", batch[0])

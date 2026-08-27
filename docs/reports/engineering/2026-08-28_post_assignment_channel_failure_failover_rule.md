@@ -128,3 +128,33 @@ policy or move her manually.  The exact remaining action is an owner-backed
 one-user reclassification/Authority decision (or certification cleanup),
 followed by a fresh Matrix/intelligence snapshot and the normal
 Candidate -> Packet -> Lease -> Barrier -> Apply -> verification path.
+
+## Second fix: fresh Matrix is now accepted for a failed assigned channel
+
+The first change correctly kept the failed source scope visible, but the
+emergency evidence gate still required the file-level freshness of the legacy
+`v7-state.json`.  On production that projection had not been refreshed since
+2026-08-23, while the canonical Matrix owner was producing current results.
+The deployed follow-up now accepts a **fresh Matrix majority failure** as the
+channel-level failure evidence: at least half of the services (and at least
+two) must fail in one fresh Matrix generation.  A single service failure still
+cannot trigger whole-channel movement.
+
+Focused verification now totals **219** policy tests plus **7** trigger
+revalidation tests, all passing.  Commit `c9c7cf7da30dc0eb80aed224e0eaac8f996ff00a`
+was deployed via `tools/v7-safe-deploy` as
+`deploy-z8-14-Updatesystem-c9c7cf7-20260828T002808`; the Runtime binary
+contains the new Matrix evidence path.
+
+After a fresh owner-backed VLESS Matrix run, 13 of 14 service probes failed
+(Telegram was the only successful service), so the source is currently
+functionally degraded.  The Planner still did not apply Liza's move because
+the old approved plan lock is expired and belongs to a different four-user
+operation.  The snapshot gate correctly returned `SOURCE_CHANGED` and
+`WAIT_FOR_ATOMIC_REPLAN`; the emergency gate therefore had no selected move.
+No manual registry edit, route write, or client movement was performed.
+
+The remaining action is now precise: the existing operation/Authority owner
+must close or supersede the expired lock and issue a fresh single-user scope
+for `10.7.0.125`; then the existing Planner may reselect a current safe target
+and consume Candidate -> Packet -> Lease -> Barrier -> Apply with verification.

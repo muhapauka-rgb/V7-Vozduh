@@ -93,3 +93,38 @@ and `PHASE6_PRODUCT_ENGINEERING:POLYGON-ACTION-CLASS-SERVICE_PLANE_PARTIAL_FAILU
 The V7 Service Failure program itself remains non-terminal until its explicit
 N0–N11 scale, hard/Telegram evidence and zero-residue conditions are consumed;
 this report must not be read as a false terminal claim.
+
+## OMP continuation: product-engineering frontier and CPS/OMP reconciliation
+
+The next existing OMP frontier was executed through the bounded
+`PHASE6V4_PARTIAL_APPLY_CIRCUIT_BREAKER` Polygon scenario.  It returned
+`PASS`, was consumed by the existing scenario owner, and had no Runtime,
+production, routing, user or Authority effect.  The following product
+engineering obligation
+`POLYGON-ACTION-CLASS-SERVICE_PLANE_PARTIAL_FAILURE-ENGINEERING-G1` was then
+consumed through the existing OMP consumer.  Its result is engineering-only:
+the L8 natural-observation window remains passive and no production credit was
+created.
+
+The first persistent CPS projection correctly stopped itself with
+`cps_current_stop_divergence`: the old V5.3 `EXTERNAL_OWNER_REQUIRED` stop was
+left underneath a terminal product-engineering result.  This was a bounded
+existing-owner lifecycle defect, not a Runtime or policy defect.  The fix in
+`tools/v7_sync_lib.py` makes the already-consumed result project its exact
+read-only boundary (`REAL_WORLD_LIMIT`, no executable frontier, and the
+existing natural-evidence re-entry action) while preserving mission-role
+identity and the existing policy.  The same run atomically updated the CPS and
+the existing OMP volatile pointers; post-write CPS and OMP consistency both
+returned `PASS`.  No route, assignment, ordinary user, Matrix cadence or
+Authority changed.
+
+The focused regression for this transition passes, as does `py_compile` via
+in-memory compilation.  The full OMP test module was started but exceeded the
+interactive execution window; it produced no assertion failure before being
+stopped.  The bounded reader and exact OMP transition tests remain passing.
+
+Current frontier after this block: the executable OMP engineering frontier is
+closed for this generation.  The existing OMP now waits for a qualifying
+natural production outcome or a new owner-backed obligation; synthetic events
+must not be manufactured.  This is a lane-local boundary, not a claim that the
+overall V7 Service Failure Program is complete.

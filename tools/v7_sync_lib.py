@@ -23108,11 +23108,42 @@ def continue_omp_engineering_control_loop(
                 "current_state_generation": f"cpsgen_MLP_{result_fingerprint[:12].upper()}",
                 "current_transition_id": "MULTI_LANE_PRODUCT_ACTION_CLASS_ENGINEERING_CONSUMED_V1",
                 "current_active_scope": "INDEPENDENT_CHANNEL_HARD_FAILURE_ENGINEERING_CONSUMED_L8_OBSERVATION_WINDOWS_REMAIN",
+                # This product-engineering result is a terminal, read-only
+                # boundary for the current action-class lane.  The previous
+                # implementation kept the stale V5.3 external-owner stop and
+                # frontier here, so the CPS consistency owner correctly
+                # rejected its own otherwise valid projection.  Make the
+                # existing terminal semantics explicit; no Runtime or
+                # production authority is changed.
+                "current_stop_condition": "REAL_WORLD_LIMIT",
+                "current_next_action_id": "WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY",
+                "current_program_execution_frontier": "NONE",
+                "current_execution_frontier": "NONE",
+                "current_program_stage": "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
+                "current_completion_contract": "INTEGRATION_COMPLETION",
+                "current_completion_verdict": "COMPLETE_CONSUMED",
+                "omp_continuation_required": "FALSE",
+                "external_input_required": "TRUE",
+                "external_input_type": (
+                    "FRESH_QUALIFYING_CONTROLLED_WINDOW_OR_NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION"
+                ),
+                "next_mission_formed": "FALSE",
+                "next_mission_id": "NONE",
                 "current_safe_next_action": (
                     "KEEP PASSIVE NATURAL EVENT CAPTURE READY FOR EACH ACTION CLASS; "
                     "DO NOT MANUFACTURE L8 EVIDENCE OR APPLY HARD-FAILURE ROUTING"
                 ),
                 "current_scope_class": "MULTI_LANE_PRODUCT_ENGINEERING",
+                "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+                "wip_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+                "wip_current_primary_stop": "REAL_WORLD_LIMIT",
+                "wip_smallest_existing_next_action_id": "WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY",
+                "wip_smallest_existing_next_action": (
+                    "WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY; "
+                    "preserve CAP-U07 protected WIP"
+                ),
+                "smallest_existing_next_action": "WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY",
+                "aep_phase6_status": "ACTIVE_MULTI_LANE_CERTIFICATION",
                 "program_frontier_input": (
                     "single-user governed candidate failover retains only natural L8; "
                     "independent channel hard-fail failover engineering was consumed through existing Polygon and OMP owners"

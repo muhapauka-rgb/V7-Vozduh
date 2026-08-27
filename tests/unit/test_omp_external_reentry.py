@@ -38,6 +38,10 @@ class OmpExternalReentryTest(unittest.TestCase):
             target = self.root / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
+        scenario = ROOT / self.lib.FUTURE_SCALE_SCENARIO_CORPUS_PATH
+        scenario_target = self.root / self.lib.FUTURE_SCALE_SCENARIO_CORPUS_PATH
+        scenario_target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(scenario, scenario_target)
         cps_path = self.root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
         active_state = dict(self.lib.NORMALIZED_CPS_LIVE_STATE)
         active_state.update({
@@ -291,6 +295,53 @@ class OmpExternalReentryTest(unittest.TestCase):
         )
         self.assertEqual(result["exact_next_automatic_action"], frontier)
         self.assertFalse(any(result["forbidden_effects"].values()))
+
+    def test_product_engineering_terminal_projection_reconciles_stale_service_failure_stop(self):
+        """A consumed product lane must close the stale V5.3 stop atomically."""
+        original = self.lib.execute_multi_lane_product_action_class_engineering
+        original_reconciliation = self.lib.program_execution_reconciliation
+        self.lib.execute_multi_lane_product_action_class_engineering = lambda *_args, **_kwargs: {
+            "final_verdict": "PASS",
+            "engineering_obligation_id": "POLYGON-ACTION-CLASS-SERVICE_PLANE_PARTIAL_FAILURE-ENGINEERING-G1",
+            "scenario": {"result_fingerprint": "a" * 64},
+            "behavior_change": (
+                "INDEPENDENT_ACTION_CLASS_ENGINEERING_CONSUMED_WITHOUT_L7_L8_CROSS_CREDIT"
+            ),
+            "next_output": "KEEP_L8_PASSIVE_CAPTURE_READY_FOR_EACH_ACTION_CLASS",
+            "runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": 0,
+            "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+            "forbidden_effects": {}, "errors": [],
+        }
+        self.lib.program_execution_reconciliation = lambda *_args, **_kwargs: {
+            "final_verdict": "PASS",
+            "executable_program_frontier": [
+                "PHASE6_PRODUCT_ENGINEERING:POLYGON-ACTION-CLASS-SERVICE_PLANE_PARTIAL_FAILURE-ENGINEERING-G1",
+            ],
+            "errors": [],
+        }
+        try:
+            result = self.lib.continue_omp_engineering_control_loop(
+                root=self.root, persist_cps=True,
+            )
+        finally:
+            self.lib.execute_multi_lane_product_action_class_engineering = original
+            self.lib.program_execution_reconciliation = original_reconciliation
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertTrue(result["atomic_update"]["ok"], result)
+        cps = (self.root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(
+            encoding="utf-8",
+        )
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            cps,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        self.assertEqual(self.lib._plain_live_value(live, "CURRENT_STOP_CONDITION"), "REAL_WORLD_LIMIT")
+        self.assertEqual(self.lib._plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER"), "NONE")
+        self.assertEqual(
+            self.lib._plain_live_value(live, "CURRENT_NEXT_ACTION_ID"),
+            "WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY",
+        )
 
     def test_product_evolution_arbitration_counterfactuals(self):
         arbitrate = self.lib.service_failure_product_evolution_arbitration

@@ -8170,9 +8170,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
-Resolved current next action: `N10_LAWFUL_CURRENT_COHORT_BOUNDARY`
-Resolved contract state: CPS retains the accepted frozen HARD-path evidence and historical Telegram performance limitation. The exact historical N10 Authorities are non-reusable. The existing Core-primary owner now has a deployed, Runtime-verified 2–4 member cohort preflight and one atomic affected-scope map commit; mandatory service/path S11 is required after every member route verification. The last fresh exact four-member request drifted to two members at Packet materialization and was denied before movement. No ordinary movement is admitted until Matrix emits another exact current cohort and the existing Authority owner issues a new one-use scope. This is a CPS-derived pointer only; Authority, receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY`
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9158,8 +9158,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
-Resolved current next action: `N10_LAWFUL_CURRENT_COHORT_BOUNDARY`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY`
 Current terminal report: `docs/reports/engineering/2026-08-27_n10_bounded_production_and_n11_core_route_closure.md`
 Latest consumed report: `docs/reports/engineering/2026-08-27_n10_bounded_production_and_n11_core_route_closure.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`

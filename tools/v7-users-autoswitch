@@ -17427,8 +17427,8 @@ class AutoswitchPlanner:
         # downstream planning.  Packet validation needs the exact signed
         # Authority record from the existing policy owner, never that summary.
         contract = (
-            self.authority_budget_policy.get("current_action_class_contract")
-            if isinstance(self.authority_budget_policy.get("current_action_class_contract"), dict)
+            ((self.policy or {}).get("authority_budget") or {}).get("current_action_class_contract")
+            if isinstance(((self.policy or {}).get("authority_budget") or {}).get("current_action_class_contract"), dict)
             else {}
         )
         action_class = str(contract.get("action_class") or "").upper()

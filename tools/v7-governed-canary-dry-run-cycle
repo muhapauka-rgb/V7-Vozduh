@@ -929,6 +929,7 @@ def run_l3_production_validation_plan(
     planner_module: Any = None,
     standing_policy_lineage_reuse: dict[str, Any] | None = None,
     prepared_decision_handoff: dict[str, Any] | None = None,
+    ordinary_service_failure_only: bool = False,
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
@@ -968,6 +969,8 @@ def run_l3_production_validation_plan(
         ])
     if source:
         command.extend(["--source-egress", source])
+    if ordinary_service_failure_only:
+        command.append("--ordinary-service-failure-context")
     if target:
         command.extend(["--target-egress", target])
     if controlled_user:
@@ -6107,6 +6110,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             args, "_standing_policy_lineage_reuse", {},
         ),
         prepared_decision_handoff=prepared_decision_handoff,
+        ordinary_service_failure_only=bool(
+            getattr(args, "ordinary_service_failure_only", False)
+        ),
     )
     record_second_level(
         "planner_subprocess_full_lifecycle",

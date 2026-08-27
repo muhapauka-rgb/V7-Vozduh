@@ -14555,7 +14555,10 @@ class AutoswitchPlanner:
         expired_foreign_clearance_details: dict[str, Any] = {}
         ordinary_service_failure_context = (
             not n10_ordinary_like_context
-            and not bool_value(getattr(self.args, "emergency_failover_autonomy", False))
+            and (
+                bool_value(getattr(self.args, "ordinary_service_failure_context", False))
+                or not bool_value(getattr(self.args, "emergency_failover_autonomy", False))
+            )
             and bool_value(incident_source_continuity.get("active"))
             and any(
                 str(move.get("current_egress") or "")
@@ -22061,6 +22064,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-selected-moves", type=int, default=0, help="Narrow selected moves to this maximum without raising policy limits.")
     parser.add_argument("--allow-hard-full", action="store_true", help="Allow HARD_FULL egress as a candidate.")
     parser.add_argument("--emergency-failover-autonomy", action="store_true", help="Enable one-run bounded emergency failover autonomy from existing policy gates.")
+    parser.add_argument(
+        "--ordinary-service-failure-context",
+        action="store_true",
+        help="Mark the current Planner read as the existing ordinary service-failure consumer context.",
+    )
     parser.add_argument("--apply", action="store_true", help="Apply selected moves. Default is read-only dry-run.")
     parser.add_argument(
         "--routing-core-certification",

@@ -114,6 +114,51 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
                 0,
             )
 
+    def test_service_matrix_majority_ignores_unidentified_rows_without_blocking_identified_quorum(self):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_health_loop_matrix_mixed_identity", str(ROOT / "tools/runtime-support/v7-health-loop")
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        health = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        sys.modules[loader.name] = health
+        spec.loader.exec_module(health)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            matrix_path = root / "service-matrix.json"
+            users_path = root / "users.registry"
+            checked = datetime.now(timezone.utc).isoformat()
+            matrix_path.write_text(json.dumps({
+                "items": {"vless": {
+                    "updated": checked,
+                    "services": {
+                        # A newly observed row may not have episode IDs yet.
+                        "whatsapp": {"ok": False, "status": "FAIL"},
+                        "google": {
+                            "ok": False, "status": "FAIL",
+                            "source_incident_id": "sfinc_google",
+                            "failure_event_id": "sfe_google",
+                            "confirmed_hard_failure_monotonic_ns": 111,
+                        },
+                        "youtube": {
+                            "ok": False, "status": "FAIL",
+                            "source_incident_id": "sfinc_youtube",
+                            "failure_event_id": "sfe_youtube",
+                            "confirmed_hard_failure_monotonic_ns": 222,
+                        },
+                        "telegram": {"ok": True, "status": "OK"},
+                        "__channel_liveness__": {"ok": True, "status": "OK"},
+                    },
+                }},
+            }), encoding="utf-8")
+            users_path.write_text(
+                "ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                health.canonical_service_failure_t0_ns(matrix_path, users_path),
+                222,
+            )
+
     def test_hard_failure_keeps_fast_consumer_in_same_priority_window(self):
         diagnose = DIAGNOSE_TOOL.read_text(encoding="utf-8")
         service = (

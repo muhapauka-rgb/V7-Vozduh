@@ -274,17 +274,21 @@ def canonical_service_failure_t0_ns(
             threshold = max(2, (len(service_rows) + 1) // 2)
             if len(failed_rows) < threshold:
                 continue
-            # Every credited failure must carry Matrix's immutable incident
-            # identity.  Missing identity means stale/ambiguous evidence and
-            # therefore remains fail-closed.
-            if any(
-                not str(row.get("source_incident_id") or "")
-                or not str(row.get("failure_event_id") or "")
-                for row in failed_rows[:threshold]
-            ):
+            # The majority used for the wake must carry Matrix's immutable
+            # incident identity.  New/transitioning service rows may still be
+            # missing an episode id in the same generation; they are simply
+            # excluded from the credited quorum rather than making the whole
+            # source unknown or allowing an unidentified failure to wake a
+            # route action.
+            identified_failed_rows = [
+                row for row in failed_rows
+                if str(row.get("source_incident_id") or "")
+                and str(row.get("failure_event_id") or "")
+            ]
+            if len(identified_failed_rows) < threshold:
                 continue
             t0_values = []
-            for row in failed_rows:
+            for row in identified_failed_rows:
                 try:
                     value = int(str(
                         row.get("confirmed_hard_failure_monotonic_ns")

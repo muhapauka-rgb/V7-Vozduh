@@ -9847,6 +9847,91 @@ class AutoswitchPlanner:
             or reason in CURRENT_CHANNEL_FAILURE_REASONS
             or (severity_value == "FAIL" and channel_state == "down")
         )
+
+        # Matrix is the canonical health owner.  A healthy v7-health process
+        # can refresh service-matrix.json while the legacy v7-state projection
+        # remains old; requiring that stale projection here would hide the
+        # exact clients whose channel has just failed.  Accept a channel-level
+        # failure only when a fresh Matrix generation shows a clear majority
+        # of service probes failing.  A single service failure remains a
+        # service-specific degradation and cannot trigger whole-channel
+        # failover.
+        matrix_row = (
+            (self.matrix.get("items") or {}).get(str(current.get("egress") or ""))
+            if isinstance(self.matrix, dict)
+            else {}
+        )
+        matrix_row = matrix_row if isinstance(matrix_row, dict) else {}
+        matrix_services = matrix_row.get("services") if isinstance(matrix_row.get("services"), dict) else {}
+        matrix_checked_at = str(matrix_row.get("checked_at") or matrix_row.get("updated") or "")
+        matrix_age = -1.0
+        if matrix_checked_at:
+            try:
+                matrix_age = max(0.0, time.time() - parse_ts(matrix_checked_at))
+            except (TypeError, ValueError):
+                matrix_age = -1.0
+        matrix_fresh_limit = max(
+            1,
+            to_int(
+                self.service_signal_policy.get("service_truth_fresh_seconds"),
+                900,
+            ),
+        )
+        matrix_fresh = bool(
+            matrix_age >= 0.0
+            and matrix_age <= max(1800, matrix_fresh_limit)
+        )
+        matrix_failed_services = [
+            str(service_id)
+            for service_id, service_row in matrix_services.items()
+            if isinstance(service_row, dict)
+            and (
+                service_row.get("ok") is False
+                or str(service_row.get("status") or "").upper()
+                in {"FAIL", "DOWN", "ERROR"}
+            )
+        ]
+        matrix_total_services = len(matrix_services)
+        matrix_failure_threshold = max(
+            2,
+            int(math.ceil(matrix_total_services * 0.5))
+            if matrix_total_services
+            else 2,
+        )
+        matrix_channel_failure = bool(
+            matrix_fresh
+            and affected_users > 0
+            and matrix_total_services > 0
+            and len(matrix_failed_services) >= matrix_failure_threshold
+        )
+        if matrix_channel_failure:
+            return {
+                "schema_version": "v7.confirmed-current-channel-failure-evidence.v1",
+                "confirmed": True,
+                "wake_source": "confirmed_current_channel_failure",
+                "channel": str(current.get("egress") or ""),
+                "affected_user": user_ip,
+                "affected_users_on_channel": affected_users,
+                "severity": "FAIL",
+                "diagnose_reason": "service_matrix_majority_failure",
+                "matrix_failed_services": matrix_failed_services,
+                "matrix_failed_service_count": len(matrix_failed_services),
+                "matrix_total_service_count": matrix_total_services,
+                "matrix_failure_threshold": matrix_failure_threshold,
+                "block_reason": "fresh_matrix_majority_channel_failure",
+                "freshness": {
+                    "state": "FRESH",
+                    "age_seconds": round(matrix_age, 3),
+                    "max_age_seconds": max(1800, matrix_fresh_limit),
+                    "checked_at": matrix_checked_at,
+                    "source": "service-matrix.json",
+                },
+                "producer": "tools/v7-users-autoswitch._current_channel_failure_evidence",
+                "source_object": "service-matrix.json:current egress service failures + users.registry assignment",
+                "owner": "tools/v7-service-matrix-test",
+                "authority_expanded": False,
+                "runtime_apply_allowed_now": False,
+            }
         confirmed = (
             hard_block
             and severity_value == "FAIL"

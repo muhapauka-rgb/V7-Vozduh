@@ -172,6 +172,48 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(scope["current_channel_failure"])
         self.assertTrue(evidence["confirmed"])
 
+    def test_fresh_matrix_majority_failure_is_used_when_v7_state_projection_is_stale(self):
+        """Canonical Matrix failure must not be hidden by an old v7-state file."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=1)
+            state_dir = root / "state"
+            state_path = state_dir / "v7-state.json"
+            os.utime(state_path, (1, 1))
+            matrix_path = state_dir / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"].update({
+                "checked_at": "2999-01-01T00:00:00+00:00",
+                "updated": "2999-01-01T00:00:00+00:00",
+            })
+            matrix["items"]["1"]["services"].update({
+                "youtube": {"ok": False, "status": "FAIL"},
+                "instagram": {"ok": False, "status": "FAIL"},
+                "google": {"ok": False, "status": "FAIL"},
+            })
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            evidence = planner._current_channel_failure_evidence(
+                {
+                    "egress": "1",
+                    "eligible": False,
+                    "severity_classification": {
+                        "severity": "OK",
+                        "hard_block": False,
+                        "reason": "",
+                    },
+                    "users": 1,
+                    "enabled": True,
+                    "state": "enabled",
+                },
+                user_ip="10.0.0.2",
+            )
+
+        self.assertTrue(evidence["confirmed"])
+        self.assertEqual(evidence["diagnose_reason"], "service_matrix_majority_failure")
+        self.assertEqual(evidence["matrix_failed_service_count"], 3)
+
     def test_n10_authority_request_is_exact_source_bound_and_target_unbound(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

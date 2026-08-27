@@ -1658,7 +1658,6 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             args = self.args_for(root, [
                 "--apply", "--no-verify", "--max-selected-moves", "1",
                 "--approved-operation-id", "packet-operation-id",
-                "--approved-selected-move-hash", "hash-one",
             ])
             planner = self.tool.AutoswitchPlanner(args)
             plan = {
@@ -1687,7 +1686,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "restore_barrier": {
                         "allowed_users": ["10.0.0.2"],
                         "allowed_targets": ["vless"],
-                        "approved_plan_lock_validation": {"ok": True},
+                        "approved_plan_lock_validation": {
+                            "ok": True,
+                            "selected_move_hash": "hash-one",
+                        },
                     },
                 },
             }
@@ -1695,11 +1697,16 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "allowed": True,
                 "allowed_forward_mutation": True,
                 "generation": "control-generation",
-                "scope": "global",
+                "scope": "operation",
             }
             n10_window = {
                 "ok": True,
                 "control": {"generation": "control-generation"},
+                "source_bundle_hash": "route-projection-source",
+                "snapshot_bundle_hash": "route-projection-snapshot",
+            }
+            operation_binding = {
+                "status": "BOUND",
                 "source_bundle_hash": "route-projection-source",
                 "snapshot_bundle_hash": "route-projection-snapshot",
             }
@@ -1711,6 +1718,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 planner, "_open_n10_execution_control_window", return_value=n10_window,
             ), mock.patch.object(
                 planner, "_execution_control_decision", return_value=allowed,
+            ), mock.patch.object(
+                planner, "_operation_scoped_source_binding", return_value=operation_binding,
             ), mock.patch.object(
                 planner, "_validate_atomic_execution_envelope", return_value={"ok": True},
             ), mock.patch.object(

@@ -17749,7 +17749,23 @@ class AutoswitchPlanner:
         operation_binding: dict[str, Any] = {}
         if entry_control.get("scope") == "operation":
             operation_binding = self._operation_scoped_source_binding(plan)
-            if str(getattr(self.args, "approved_selected_move_hash", "") or "") != selected_hash:
+            # N10 starts from an issued current-action contract, so the
+            # approved execution identity only exists after the existing
+            # Packet/Lease/Barrier owner has materialized its approved lock.
+            # It must be compared with that lock, not with the optional
+            # legacy CLI binding (which is deliberately absent for automatic
+            # N10 consumption).  Other operation-scoped callers retain their
+            # exact explicit argument contract.
+            approved_selected_move_hash = str(
+                getattr(self.args, "approved_selected_move_hash", "") or ""
+            )
+            if n10_product_contract:
+                barrier = safety.get("restore_barrier") or {}
+                approved_lock = barrier.get("approved_plan_lock_validation") or {}
+                approved_selected_move_hash = str(
+                    approved_lock.get("selected_move_hash") or ""
+                )
+            if approved_selected_move_hash != selected_hash:
                 approved_binding_mismatches.append("selected_move_hash")
             if operation_binding.get("status") != "BOUND":
                 approved_binding_mismatches.append("operation_scoped_binding")

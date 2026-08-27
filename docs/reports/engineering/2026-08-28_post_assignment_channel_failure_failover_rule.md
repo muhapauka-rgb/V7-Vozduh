@@ -101,3 +101,30 @@ Run the existing safe-deploy gate, publish/deploy this already-tested change,
 then perform one read-only production reconciliation proving that a fresh
 failed source with assigned users is discovered by the existing Matrix ->
 Planner consumer and that no unrelated users are selected.
+
+## Follow-up reconciliation: Liza was detected but not moved
+
+The fresh production read-only run for Liza (`10.7.0.125`) confirms that the
+new assignment-failure correlation works: the Planner produced one bounded
+candidate from `vless` to `awg0`.  It was not applied because the existing
+execution gates were closed:
+
+- `emergency_failover_enabled=false` and `l3_incident_state=NO_INCIDENT_DISABLED`;
+- the intelligence snapshot gate was `STOP` because service/channel scores,
+  risk, trust and blast-radius snapshots were expired or had source-hash
+  mismatches;
+- the selected move was therefore reduced from one candidate to zero applied
+  moves (`selected_moves_after_gate=0`, terminal `DRY_RUN`);
+- `users.registry` still records `10.7.0.125 current=vless enabled=1`;
+- current VLESS diagnosis is a fresh hard transport failure
+  (`curl_failed_and_handshake_unsupported`).
+
+There is also a role-state inconsistency that must be resolved by the existing
+owners before ordinary production movement: the VLESS registry row is marked
+as a controlled certification source with `autoswitch_allowed=false` and
+`production_assignment_allowed=false`, while Liza's current assignment row
+has no certification marker.  This change deliberately did not override that
+policy or move her manually.  The exact remaining action is an owner-backed
+one-user reclassification/Authority decision (or certification cleanup),
+followed by a fresh Matrix/intelligence snapshot and the normal
+Candidate -> Packet -> Lease -> Barrier -> Apply -> verification path.

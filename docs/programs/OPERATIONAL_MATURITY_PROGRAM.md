@@ -14,14 +14,14 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md` (`N10_SMALL_COHORT_CONSUMED`; exactly two ordinary members completed the fresh Planner-selected governed route and required-service S11 below the accepted 8 s ceiling).
+Latest consumed report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md` (`COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`)
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md` (`V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1`; admitted system-level revalidation; automatic FAST role consumer held).
 Current V5.3 contract-correction report: `docs/reports/engineering/2026-08-20_160200_v5_3_system_health_revalidation_gate_correction.md` (`SYSTEM_LEVEL_HEALTH_TEST_STABILITY_REVALIDATION_GATE_REQUIRED`; no new Mission or Runtime effect).
 Latest Reset terminal report: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md` (`RESET_M10_POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION_PASS`; final Reset Program terminal restored).
 Latest RT2 contract extension report: `docs/reports/engineering/2026-08-13_380000_rt2_deep_simplification_and_automatic_internet_operation_contract.md` (`RT2_DEEP_SIMPLIFICATION_AUTOMATIC_INTERNET_CONTRACT_READY_NOT_ADMITTED`).
 Current boundary evidence: `docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md` (`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED`; not a terminal Mission report and not an Authority decision).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md` (`RUNTIME_PACKAGE_MINIMAL_PASS_WITH_OWNER_BACKED_KEEP_BOUNDARIES`).
+Previous consumed report: `docs/reports/engineering/2026-07-17_230111_phase6a_obligation_corpus_continuation_and_next_generation.md`
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Latest bounded RS7 Mission report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md` (`ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_RUNTIME_CONSUMED`; wrappers and consumers physically collapsed, deployed and verified).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
@@ -8171,8 +8171,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9159,9 +9159,9 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY`
-Current terminal report: `docs/reports/engineering/2026-08-27_n10_bounded_production_and_n11_core_route_closure.md`
-Latest consumed report: `docs/reports/engineering/2026-08-27_n10_bounded_production_and_n11_core_route_closure.md`
+Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
+Current terminal report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
+Latest consumed report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md`

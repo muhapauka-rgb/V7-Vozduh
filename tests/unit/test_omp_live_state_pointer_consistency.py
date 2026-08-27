@@ -178,8 +178,13 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
             "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
         ))
+        report_label = (
+            "Current active Mission report"
+            if live["CURRENT_MISSION_ROLE"].strip("`") == "ACTIVE_MISSION"
+            else "Current terminal report"
+        )
         self.assertIn(
-            f"Current active Mission report: `{live['CURRENT_MISSION_REPORT'].strip('`')}`",
+            f"{report_label}: `{live['CURRENT_MISSION_REPORT'].strip('`')}`",
             reconciled,
         )
         self.assertEqual(

@@ -1264,6 +1264,8 @@ def atomic_reconcile_omp_current_pointer_from_cps(
     stop = _plain_live_value(live, "CURRENT_STOP_CONDITION")
     next_action = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
     report = _plain_live_value(live, "CURRENT_MISSION_REPORT")
+    terminal_state = _plain_live_value(live, "LATEST_TERMINAL_MISSION_STATE")
+    previous_report = _plain_live_value(live, "PREVIOUS_TERMINAL_MISSION_REPORT")
     active_mission = _plain_live_value(live, "CURRENT_MISSION_ROLE") == "ACTIVE_MISSION"
     authority_status = _plain_live_value(
         live, "CURRENT_AUTHORITY_REQUEST_STATUS"
@@ -1363,6 +1365,23 @@ def atomic_reconcile_omp_current_pointer_from_cps(
             "## 27. Permanent Production Command Verdict",
             include_report=True,
         )
+        if not active_mission:
+            # Mission-role validation also checks the compact metadata at the
+            # top of OMP.  Keep that durable summary pointed at the same
+            # terminal report/state as the volatile pointer section; this is
+            # still a read-only pointer projection, not a second state owner.
+            candidate = re.sub(
+                r"(?m)^Latest consumed report:.*$",
+                f"Latest consumed report: `{report}` (`{terminal_state}`)",
+                candidate,
+                count=1,
+            )
+            candidate = re.sub(
+                r"(?m)^Previous consumed report:.*$",
+                f"Previous consumed report: `{previous_report}`",
+                candidate,
+                count=1,
+            )
     except ValueError as exc:
         return {
             "ok": False,

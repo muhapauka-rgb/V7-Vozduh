@@ -40,6 +40,19 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         cls.matrix = load_module("v7_service_matrix_scope_automation", ROOT / "tools" / "v7-service-matrix-test")
         cls.refresh = load_module("v7_service_matrix_refresh_automation", ROOT / "tools" / "v7-service-matrix-refresh-all")
 
+    def test_live_owner_history_window_is_bounded_and_keeps_newest_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "closure-records.jsonl"
+            path.write_text(
+                "".join(json.dumps({"seq": index}) + "\n" for index in range(2505)),
+                encoding="utf-8",
+            )
+            rows = self.autoswitch.read_live_owner_history_window(path)
+
+        self.assertEqual(len(rows), self.autoswitch.LIVE_OWNER_HISTORY_WINDOW_LIMIT)
+        self.assertEqual(rows[0]["seq"], 505)
+        self.assertEqual(rows[-1]["seq"], 2504)
+
     def test_exact_client_probe_owner_is_loaded_once_in_process(self):
         previous = self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE
         self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE = None

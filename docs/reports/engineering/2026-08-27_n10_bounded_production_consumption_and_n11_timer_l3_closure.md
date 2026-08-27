@@ -52,3 +52,31 @@ Commit `d49e6d20efb455cb8a01e67007a425a7f5cf79bf` closes a stale Runtime-snapsho
 The final static consumer scan found two live descriptive tails, not a second routing path: Telegram's handoff still named the deleted Matrix timer, and the recovery installer still issued harmless commands against the three retired timer names. They now name/use only `v7-health.service`; the installer cannot revive a removed periodic owner. The readiness review no longer retains a special exception for a timer that no longer exists. The Program marks pre-N11 timer wording as historical evidence and the existing atomic CPS owner now projects the real current re-entry owner. Focused tests are 56/56 PASS. `tools/v7-control-plane-governance-check` remains classified as a legacy read-only audit artifact: it is neither an installed Runtime entrypoint nor a recovery consumer, so no deletion is claimed without a separately proven replacement scope.
 
 Commit `6aba757ee9aa6422ea5ada37612717d2959813ee` was safely deployed as `deploy-z8-14-Updatesystem-6aba757-20260827T152509`. The final truth check returned `FULLY_ALIGNED`: local, GitHub, CPS and Runtime agree. Direct Runtime verification confirmed `v7-health.service` active, all three retired timers `not-found`/inactive, `CORE_PRIMARY_VERIFY_PASS`, and `V7_USER_ROUTE_CHECK=OK`. No route change or user movement occurred during this N11 follow-up.
+
+## N11 replacement-closure audit and bounded live-history repair
+
+The fresh static/runtime audit classified the remaining surfaces as follows:
+
+| Surface | Current classification | Evidence |
+| --- | --- | --- |
+| `v7-health.service` + `v7-health-loop` | `PRIMARY` Matrix/Telegram owner | Runtime owner status `LIVE_V7_HEALTH_MATRIX_OWNER_PROVEN`; service active/enabled |
+| `v7-users-autoswitch.service`, `v7-service-matrix-refresh.service`, `v7-telegram-sentinel.service` | `FALLBACK`/manual recovery services | no active timer; all three retired timer units are `not-found`/inactive |
+| `v7-egress-quality-compact.timer` | `DEEP_BACKGROUND` quality owner | independent quality-history role, not a failover wake path |
+| removed timer names in truth-check/tests and old governance checker | `RETIRED_DELETED` compatibility/history | read-only snapshot compatibility or historical fixture; no Runtime consumer |
+| `tools/v7-control-plane-governance-check` | `EXPLICITLY_DEFERRED` legacy read-only audit | static/runtime scan found no installed recovery caller; its old fixture verdict is not current N0–N11 truth |
+
+The audit also found unbounded JSONL materialization in live advisory/decision
+consumers.  Commit `44e17786c3f0c04a8f1f61e1a15ba6ce392c57a8` adds `read_live_owner_history_window`, reusing the
+existing append-only owners with a 2,000-row/8 MB recent window.  The durable
+history is unchanged; missing current evidence remains fail-closed.  Offline
+reconciliation paths retain their full historical reads.  This closes the
+N11 scale-law residue without adding an owner, cache, registry or alternate
+truth source.  A focused bounded-window test and exact shadow-outcome test
+pass; the complete 122-test module reports 107 passes and 15 pre-existing
+fixture/environment errors (missing `matrix` setup, missing `state_dir` in a
+legacy helper test, and sandbox socket denial), with no new assertion failure.
+
+Before publication, `tools/v7-truth-check --all --json` returned `PASS` with no
+blockers after independent GitHub verification.  Runtime remained on the
+previous deployed fingerprint until the safe deploy below; no route or user
+assignment was changed by this repair.

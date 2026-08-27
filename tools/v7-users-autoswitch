@@ -58,6 +58,13 @@ DEFAULT_RESTORE_BARRIER_FILE = DEFAULT_STATE_DIR / "autoswitch-restore-barrier.j
 SERVICE_FAILURE_EVENT_WINDOW_LIMIT = 20_000
 SERVICE_FAILURE_EVENT_WINDOW_MIN_BYTES = 4_000_000
 SERVICE_FAILURE_EVENT_WINDOW_MAX_BYTES = 32_000_000
+# Live decisions may consult only a bounded recent owner window.  The
+# append-only journals remain authoritative; callers that need older evidence
+# use the explicit offline/reconciliation readers below.  Missing evidence in
+# this window is deliberately fail-closed rather than an invitation to scan
+# the entire history on the incident-critical path.
+LIVE_OWNER_HISTORY_WINDOW_LIMIT = 2_000
+LIVE_OWNER_HISTORY_WINDOW_MAX_BYTES = 8_000_000
 DEFAULT_EGRESS_DRAFTS_DIR = Path("/etc/v7/egress-drafts")
 DEFAULT_EXECUTION_CONTROL_FILE = operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE
 DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS = 90
@@ -3233,6 +3240,28 @@ def read_service_failure_event_window(
     )
 
 
+def read_live_owner_history_window(
+    path: Path,
+    *,
+    limit: int = LIVE_OWNER_HISTORY_WINDOW_LIMIT,
+) -> list[dict[str, Any]]:
+    """Read a bounded recent window for a live decision consumer.
+
+    The JSONL owner remains the sole source of truth.  This helper only keeps
+    the synchronous decision path from materializing unbounded history; an
+    absent matching row is treated as unknown by the caller and therefore
+    cannot authorize a move.
+    """
+    bounded_limit = max(
+        1, min(int(limit or 1), LIVE_OWNER_HISTORY_WINDOW_LIMIT)
+    )
+    return read_jsonl(
+        Path(path),
+        tail_limit=bounded_limit,
+        tail_max_bytes=LIVE_OWNER_HISTORY_WINDOW_MAX_BYTES,
+    )
+
+
 def read_jsonl_exact_schema(path: Path, schema_version: str) -> tuple[list[dict[str, Any]], bool]:
     """Stream one immutable JSONL owner and materialize only one exact schema.
 
@@ -3635,7 +3664,9 @@ def ct_m0f_active_service_failure_binding_projection(
         # different generation or scope remains fail-closed ambiguity.
         closure_rows = cache.get("closure_rows")
         if not isinstance(closure_rows, list):
-            closure_rows = read_jsonl(state_dir / "closure-records.jsonl")
+            closure_rows = read_live_owner_history_window(
+                state_dir / "closure-records.jsonl"
+            )
             cache["closure_rows"] = closure_rows
         consumed_pairs = {
             (
@@ -7913,7 +7944,9 @@ class AutoswitchPlanner:
         # that service.  Preserve the existing append-only receipts and choose
         # the exact post-incident receipt for every service below.
         recoveries_by_source: dict[str, list[dict[str, Any]]] = {}
-        for row in read_jsonl(self.state_dir / "closure-records.jsonl"):
+        for row in read_live_owner_history_window(
+            self.state_dir / "closure-records.jsonl"
+        ):
             if str(row.get("object_type") or "") != "passive_production_event":
                 continue
             if str(row.get("terminal_outcome_classification") or "") != "RECOVERY_OBSERVED_NO_ACTION":
@@ -10498,7 +10531,7 @@ class AutoswitchPlanner:
             marker = schema_markers[kind]
             matches: list[dict[str, Any]] = []
             for item_path in path:
-                for row in read_jsonl(item_path):
+                for row in read_live_owner_history_window(item_path):
                     schema = str(row.get("schema_version") or "")
                     if marker not in schema:
                         continue
@@ -19202,8 +19235,10 @@ class AutoswitchPlanner:
     def reconcile_service_failure_shadow_outcomes(self) -> dict[str, Any]:
         """Attach only exact, owner-backed execution outcomes to shadow rows."""
         shadow_path = self.state_dir / "shadow-autonomy-decisions.jsonl"
-        history = read_jsonl(shadow_path)
-        executions = read_jsonl(self.state_dir / "execution-events.jsonl")
+        history = read_live_owner_history_window(shadow_path)
+        executions = read_live_owner_history_window(
+            self.state_dir / "execution-events.jsonl"
+        )
         existing = {
             (str(row.get("decision_id") or ""), str(row.get("outcome_id") or ""))
             for row in history
@@ -19299,7 +19334,7 @@ class AutoswitchPlanner:
         closure_load_started_ns = time.monotonic_ns()
         pre_obligation_state = self._load_l3_runtime_state()
         pre_obligation_incidents = pre_obligation_state.get("incidents") if isinstance(pre_obligation_state.get("incidents"), dict) else {}
-        closures = read_jsonl(closure_path)
+        closures = read_live_owner_history_window(closure_path)
         record_advisory_span(
             "advisory_l3_and_closure_history_load",
             closure_load_started_ns,
@@ -19840,7 +19875,7 @@ class AutoswitchPlanner:
             obligation_build_started_ns,
         )
         durable_projection_started_ns = time.monotonic_ns()
-        shadow_rows = read_jsonl(shadow_path)
+        shadow_rows = read_live_owner_history_window(shadow_path)
         shadow_ids = {str(row.get("decision_id") or "") for row in shadow_rows}
         shadow_record: dict[str, Any] = {}
         if chosen:

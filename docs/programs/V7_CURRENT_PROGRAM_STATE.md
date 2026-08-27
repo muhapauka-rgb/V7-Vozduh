@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-27T10:07:00+03:00
+State captured: 2026-08-27T10:46:46+03:00
 Latest terminal Mission: `V7_N10_SMALL_COHORT_PRODUCTION_ADOPTION`
 Latest terminal Mission state: `N10_SMALL_COHORT_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
@@ -13,7 +13,7 @@ Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-27T10:07:00+03:00`
+Captured: `2026-08-27T10:46:46+03:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -21,7 +21,7 @@ This section is the single live volatile current-state surface. Older production
 | --- | --- |
 | `ACTIVE_PROGRAM` | `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
 | `PRIMARY_ENGINEERING_FRONTIER` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `PRIMARY_ENGINEERING_NEXT_ACTION` | `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED` |
+| `PRIMARY_ENGINEERING_NEXT_ACTION` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
 | `LEGACY_V7_ROUTING_HOT_PATH` | `FROZEN_FOR_CAPABILITY_GROWTH; PROGRAM_LEVEL_ENGINEERING_RULE_ONLY; RUNTIME_UNCHANGED` |
 | `SYSTEM_RESET_PROGRAM_CONTRACT` | `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` |
 | `SYSTEM_RESET_PROGRAM_STATE` | `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE` |
@@ -40,17 +40,17 @@ This section is the single live volatile current-state surface. Older production
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
-| `STATE_CAPTURED` | `2026-08-27T10:07:00+03:00` |
+| `STATE_CAPTURED` | `2026-08-27T10:46:46+03:00` |
 | `LATEST_SUPPORTING_LIFECYCLE_RECONCILIATION` | `EXPIRED_CT_M0F_CERTIFICATION_SOURCE_RESERVATION_RECONCILED: exact identity 10.7.0.108 returned to awg0 through the existing governed chain; source restored to exact owner backup with zero occupants; reservation ctres_d899f66f641229141922acc7 invalidated as cstopinv_a32b6ddde10fe43fb8563bc7; ordinary-user delta=0. This closes supporting lifecycle state only and does not alter the N10 frontier. Report: docs/reports/engineering/2026-08-26_v5_3_telegram_critical_latency_root_cause_and_safe_reduction.md` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED: fresh Runtime inspection proves the current owner has only full-population core-primary apply (125 users) or legacy per-user repair; it has no existing once-per-governed-cohort affected-scope projection commit. Current Core-primary state is exact (125/125 memberships; 4/4 classes) and no user may move merely to test it. Re-enter only after an owner decision defines the smallest existing-owner extension for atomic cohort-bound projection update, its rollback and its exact affected-scope/whole-system verification. The independent bounded-production product Authority then remains required.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED: owner-approved Core-primary cohort commit is deployed at b8400c480143f5529ee7bf2a718153b7d900aeb5 and Runtime revalidation passes (125/125 memberships; 4/4 classes; v7-health active; legacy standalone Matrix/Telegram timers inactive). The extension stages only a 2–4 member N10 cohort, atomically publishes only its map delta, then verifies affected routes plus the whole system and rolls back on failure. No new ordinary movement is authorized until Product/Authority issues one fresh exact bounded cohort contract with members, source/target scope, maximum, rollback and observation terms.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_CORE_PRIMARY_COHORT_GATE_20260827` |
-| `CURRENT_TRANSITION_ID` | `V5_3_CORE_PRIMARY_COHORT_GATE_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_20260827` |
+| `CURRENT_TRANSITION_ID` | `V5_3_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED` |
-| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1,NOT_REQUIRED_ALREADY_CONSUMED; N2,CONTROLLED_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_CONSUMED; N3,NOT_REQUIRED_ALREADY_CONSUMED; N4,NOT_REQUIRED_ALREADY_CONSUMED; N5,NOT_REQUIRED_ALREADY_CONSUMED; N6,NOT_REQUIRED_ALREADY_CONSUMED; N7,TELEGRAM_CLASS_FAILURE_TO_T0_CAUSAL_RECONCILIATION; N8,CONTROLLED_AUTOMATIC_TELEGRAM_S11_FUNCTIONAL_PROOF_REQUIRED_SCOPE_CONSUMED_PERFORMANCE_FAIL; N9,NOT_REQUIRED_ALREADY_CONSUMED; N10,ORDINARY_LIKE_ONE_DEVICE_AND_SMALL_COHORT_CONSUMED_PRE_N10_CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED; N11,READ_ONLY_DISCOVERY_PARTIAL_ROUTE_SCOPE_RECONCILED_REMAINDER_OPEN` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
+| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1,NOT_REQUIRED_ALREADY_CONSUMED; N2,CONTROLLED_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_CONSUMED; N3,NOT_REQUIRED_ALREADY_CONSUMED; N4,NOT_REQUIRED_ALREADY_CONSUMED; N5,NOT_REQUIRED_ALREADY_CONSUMED; N6,NOT_REQUIRED_ALREADY_CONSUMED; N7,TELEGRAM_CLASS_FAILURE_TO_T0_CAUSAL_RECONCILIATION; N8,CONTROLLED_AUTOMATIC_TELEGRAM_S11_FUNCTIONAL_PROOF_REQUIRED_SCOPE_CONSUMED_PERFORMANCE_FAIL; N9,NOT_REQUIRED_ALREADY_CONSUMED; N10,ORDINARY_LIKE_ONE_DEVICE_AND_SMALL_COHORT_CONSUMED_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_AWAITING_NEW_EXACT_PRODUCT_AUTHORITY; N11,READ_ONLY_DISCOVERY_PARTIAL_ROUTE_SCOPE_RECONCILED_REMAINDER_OPEN` |
 | `HARD_PATH_RUNTIME_SLO` | `FINAL_FINGERPRINT=993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418; frozen valid distribution 2661.051, 2887.710, 6520.639, 2144.202, 3840.331 ms (P95=6520.639 ms; one sample >5 s). Historical 3 s/5 s objective remains unmet. OWNER_ACCEPTED_CURRENT_2VCPU_ROLLOUT_CONTRACT=P95<=7000 ms,max<=8000 ms; exact S11 and all safety semantics unchanged.` |
 | `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN_PERFORMANCE_LOGIC; bounded lifecycle-consumer repairs are deployed at 63bc020f7db75b7421b4383bd443e9509c8c0fdb (deploy-z8-14-Updatesystem-63bc020-20260826T145345). No further HARD-path micro-optimization is admitted.` |
 | `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-26_v5_3_shared_healthy_target_contract_and_ct_m0f_cold_sample.md` |
@@ -69,12 +69,12 @@ This section is the single live volatile current-state surface. Older production
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_WAITING_INPUT_CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED` |
+| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_WAITING_INPUT_N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `EXTERNAL_OWNER_REQUIRED_CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED` |
+| `PROGRAM_TERMINAL_STATE` | `EXTERNAL_OWNER_REQUIRED_N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
 | `OMP_CONTINUATION_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED_BEFORE_N10_BOUNDED_PRODUCTION: the current exact Core-primary owner can only rebuild all compatible users or perform legacy per-user repair. Define the smallest existing-owner extension for one atomic affected-cohort projection commit after canonical cohort assignments, with rollback and exact affected-scope plus whole-system verification. No further ordinary movement may be made solely to produce evidence. After this decision, product/Authority must still define the exact bounded-production class or identities, maximum simultaneous movement, rollback and observation contract.` |
+| `EXTERNAL_INPUT_TYPE` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED: the Core-primary cohort-commit owner extension is deployed and verified. Product/Authority must now issue one fresh non-reusable bounded-production contract defining the exact 2–4 ordinary identities or class slice, source/target scope, maximum simultaneous movement, rollback, observation and stop conditions. No client may move merely to demonstrate the new implementation.` |
 | `TRANSACTION_TERMINAL_CLASS` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED` |
 | `PROGRAM_TERMINAL_CLASS` | `EXTERNAL_OWNER_REQUIRED` |
 | `NEXT_MISSION_FORMED` | `FALSE` |
@@ -740,9 +740,9 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_CORE_PRIMARY_COHORT_GATE_20260827` |
-| `CURRENT_TRANSITION_ID` | `V5_3_CORE_PRIMARY_COHORT_GATE_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_20260827` |
+| `CURRENT_TRANSITION_ID` | `V5_3_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
 | `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
@@ -761,8 +761,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | N10 one-device and exact two-member ordinary cohort production entries are consumed with fresh Planner-selected targets and exact server-side S11 below the accepted 8 s ceiling. HARD_PATH remains frozen and the Telegram performance limitation remains historical evidence. Before a new bounded-production scope can be issued or consumed, the current route/projection owner must gain an owner-decided one atomic affected-cohort Core-primary projection commit; the current owner has only full-population apply or legacy per-user repair. N11 remains read-only and responsibility-scoped. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED` |
+| `OMP_CONTINUATION_POINTER` | N10 one-device and exact two-member ordinary cohort production entries are consumed with fresh Planner-selected targets and exact server-side S11 below the accepted 8 s ceiling. HARD_PATH remains frozen and the Telegram performance limitation remains historical evidence. The owner-approved Core-primary cohort commit is deployed at b8400c48 and permits one atomic 2–4 member map delta after governed staging, with exact plus whole-system verification and rollback. A fresh exact Product/Authority cohort contract is required before any further ordinary movement. N11 remains read-only and responsibility-scoped. |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -771,9 +771,9 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_CORE_PRIMARY_COHORT_GATE_20260827` |
-| `current_transition_id` | `V5_3_CORE_PRIMARY_COHORT_GATE_V1` |
-| `smallest_existing_next_action_id` | `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED` |
+| `current_state_generation` | `cpsgen_SFA_V53_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_20260827` |
+| `current_transition_id` | `V5_3_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_V1` |
+| `smallest_existing_next_action_id` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |
 | `latest_terminal_mission_id` | `V7_N10_SMALL_COHORT_PRODUCTION_ADOPTION` |
@@ -790,7 +790,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `last_responsible_link` | existing V5.3 Program contract -> BDP/OMP admission -> CPS read-only Mission -> Phase C/D/E evidence consumer |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED |
+| `smallest_existing_next_action` | N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -858,7 +858,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_CORE_PRIMARY_COHORT_GATE_20260827`; `V5_3_CORE_PRIMARY_COHORT_GATE_V1` | One ordinary-like device and one exact two-member ordinary cohort have passed fresh Planner -> governed apply -> exact route/kernel -> required-service S11 chains inside the accepted 8 s ceiling. HARD_PATH remains frozen and N11 has no safe deletion. Fresh owner evidence proves the Core-primary route owner lacks a once-per-cohort affected-scope commit. | `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED` | existing V5.3 Program, OMP lifecycle, current route/projection owner and Health/Test/Stability owners | `EXTERNAL_OWNER_REQUIRED` | no further ordinary movement until an owner-decided atomic affected-cohort Core-primary projection extension is defined; afterward exact product/Authority scope remains required; N11 remains independently read-only. |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_20260827`; `V5_3_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_V1` | One ordinary-like device and one exact two-member ordinary cohort have passed fresh Planner -> governed apply -> exact route/kernel -> required-service S11 chains inside the accepted 8 s ceiling. HARD_PATH remains frozen and N11 has no safe deletion. The existing Core-primary owner now has a deployed once-per-cohort affected-scope map commit. | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` | existing V5.3 Program, OMP lifecycle, current route/projection owner and Health/Test/Stability owners | `EXTERNAL_OWNER_REQUIRED` | no further ordinary movement until a fresh exact 2–4 member Product/Authority contract is issued; N11 remains independently read-only. |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -926,7 +926,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `EXTERNAL_OWNER_REQUIRED`; current stop is `EXTERNAL_OWNER_REQUIRED`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; the one-device and small-cohort N10 Authorities are consumed and non-reusable; the Core-primary route owner lacks a once-per-cohort affected-scope commit; current next action is `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED`; no mutation is authorized until that boundary and then exact product scope exist |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `EXTERNAL_OWNER_REQUIRED`; current stop is `EXTERNAL_OWNER_REQUIRED`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; the one-device and small-cohort N10 Authorities are consumed and non-reusable; the Core-primary cohort commit is deployed and verified; current next action is `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED`; no mutation is authorized until that fresh exact product scope exists |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

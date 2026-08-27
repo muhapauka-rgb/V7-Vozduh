@@ -57,16 +57,35 @@ It includes new checks proving that:
 imports. Its explicit bytecode-write step was blocked by the local macOS cache
 directory permission, not by a source syntax error.
 
-## Production effect at this point
+## Deployment and Runtime verification
 
-None yet. No Runtime deployment, route, assignment, client, Matrix, timer or
-Authority contract changed during implementation. Safe deploy, Runtime
-alignment and an owner-admitted controlled proof remain mandatory.
+Published commit: `b8400c480143f5529ee7bf2a718153b7d900aeb5`.
+
+The standard `tools/v7-safe-deploy` passed after the existing required health
+service restart. Runtime deployment receipt:
+`deploy-z8-14-Updatesystem-b8400c4-20260827T104642`.
+
+Independent Runtime checks passed:
+
+| Check | Result |
+| --- | --- |
+| Local / GitHub / Runtime commit | aligned at `b8400c48` |
+| `v7-health.service` | active |
+| New Core-primary cohort command | present |
+| Core map membership | 125 expected / 125 actual; zero mismatch |
+| Class-to-egress mapping | 4 expected / 4 actual; zero mismatch |
+| Whole-system route check | PASS |
+| Desired-state check | PASS, zero errors |
+| Standalone Matrix and Telegram timers | inactive as intended |
+
+No client, route assignment, Matrix state, service profile or Authority
+contract was changed while deploying or verifying this implementation.
 
 ## Next step
 
-Run the existing safe-deploy gate for this exact implementation. If it admits
-the manifest, publish/deploy, prove Runtime alignment, then request a fresh
-exact bounded N10 product/Authority contract before any ordinary-client move.
+Request a fresh exact bounded N10 product/Authority contract before any
+ordinary-client move. It must name the 2–4 member scope, source/target,
+rollback, observation window and stop conditions; the old consumed contracts
+cannot be reused.
 
 Captured: `2026-08-27T10:44:51+03:00`

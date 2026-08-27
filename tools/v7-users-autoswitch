@@ -8044,10 +8044,25 @@ class AutoswitchPlanner:
         changed = 0
         consumed = 0
         rejected: list[str] = []
+        ignored_non_l3_binding_kinds: set[str] = set()
+        ignored_non_l3_binding_count = 0
         feedback_ingest_started_ns = time.monotonic_ns()
         for row in execution_outcome_rows:
             binding = self._effective_service_failure_causal_binding(row)
             if not binding:
+                continue
+            # Certification-only Matrix experiments retain their immutable
+            # execution evidence, but are not parents of an L3 production
+            # incident.  Treating them as such made this L3-only consumer
+            # report a permanent false STOP_SAFE for a deliberately isolated
+            # historical lane.  Preserve the record and leave its owning
+            # certification/closure consumers unchanged; only direct L3
+            # handoffs may update the L3 incident projection here.
+            if not bool_value(binding.get("direct_l3_handoff")):
+                ignored_non_l3_binding_count += 1
+                ignored_non_l3_binding_kinds.add(
+                    str(binding.get("binding_kind") or "UNCLASSIFIED")
+                )
                 continue
             source_incident_id = str(binding.get("source_incident_id") or "")
             source_event_id = str(binding.get("source_event_id") or "")
@@ -8421,6 +8436,8 @@ class AutoswitchPlanner:
             "consumed_records": consumed,
             "changed_records": changed,
             "rejected_records": sorted(set(rejected)),
+            "ignored_non_l3_binding_count": ignored_non_l3_binding_count,
+            "ignored_non_l3_binding_kinds": sorted(ignored_non_l3_binding_kinds),
             "recovery_terminal_reconciliation": recovery_reconciliation,
             "historical_l3_recovery_reconciliation": {
                 "changed": len(l3_recovered),
@@ -19784,6 +19801,31 @@ class AutoswitchPlanner:
 
     def _l3_materialize_learning_closure(self, plan: dict[str, Any]) -> dict[str, Any]:
         safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        action_contract = (
+            (safety.get("authority_budget_gate") or {}).get(
+                "current_action_class_contract"
+            )
+            if isinstance(safety.get("authority_budget_gate"), dict)
+            else {}
+        )
+        action_class = str(action_contract.get("action_class") or "").upper()
+        # N10 is a governed ordinary-product migration with its own exact
+        # Packet/Lease/Barrier and bounded-cohort closure.  A concurrent or
+        # historical L3 read model must never turn that product outcome into
+        # L3 emergency feedback: that would create a false incident consumer
+        # and leave an orphaned L3 projection.  Real emergency paths retain
+        # the unchanged learning/closure flow below.
+        if action_class in {
+            operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+            operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+        }:
+            return {
+                "active": False,
+                "reason": "n10_product_contract_uses_existing_packet_lease_and_bounded_cohort_closure",
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
         incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
         l3_eligibility = safety.get("l3_execution_eligibility") if isinstance(safety.get("l3_execution_eligibility"), dict) else {}
         if not incident or str(incident.get("authority_object") or "") != "EMERGENCY_FAILOVER_AUTONOMY":

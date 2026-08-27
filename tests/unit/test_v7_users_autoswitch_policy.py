@@ -205,6 +205,53 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertFalse(result["ok"])
             self.assertEqual(result["blockers"], ["n10_small_cohort_prepared_class_missing"])
 
+    def test_n10_product_contract_never_materializes_l3_learning_feedback(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        result = planner._l3_materialize_learning_closure({
+            "safety": {
+                "authority_budget_gate": {
+                    "current_action_class_contract": {
+                        "action_class": operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                    },
+                },
+                # This simulates a historical L3 projection still being
+                # readable at finalization.  It must not own an N10 outcome.
+                "l3_incident": {"authority_object": "EMERGENCY_FAILOVER_AUTONOMY"},
+            },
+        })
+        self.assertFalse(result["active"])
+        self.assertEqual(
+            result["reason"],
+            "n10_product_contract_uses_existing_packet_lease_and_bounded_cohort_closure",
+        )
+
+    def test_l3_outcome_reconciliation_ignores_certification_only_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "execution-events.jsonl").write_text(json.dumps({
+                "schema_version": "v7.execution-outcome-record.v1",
+                "feedback_id": "certification-only-feedback",
+            }) + "\n", encoding="utf-8")
+            planner = object.__new__(self.tool.AutoswitchPlanner)
+            planner.state_dir = state
+            planner.matrix = {}
+            planner._load_l3_runtime_state = mock.Mock(return_value={"incidents": {}})
+            planner._reconcile_recovered_service_failure_intents = mock.Mock(
+                return_value={"changed": 0, "closed_incident_ids": []},
+            )
+            planner._effective_service_failure_causal_binding = mock.Mock(return_value={
+                "binding_kind": "CERTIFICATION_ONLY_MATRIX_FAILURE",
+                "direct_l3_handoff": False,
+            })
+            result = planner.reconcile_service_failure_execution_outcomes()
+            self.assertEqual(result["final_verdict"], "PASS")
+            self.assertEqual(result["rejected_records"], [])
+            self.assertEqual(result["ignored_non_l3_binding_count"], 1)
+            self.assertEqual(
+                result["ignored_non_l3_binding_kinds"],
+                ["CERTIFICATION_ONLY_MATRIX_FAILURE"],
+            )
+
     def test_prepared_cohort_slice_excludes_certification_identity(self):
         base = {
             "current_egress": "source", "recommended_egress": "target",

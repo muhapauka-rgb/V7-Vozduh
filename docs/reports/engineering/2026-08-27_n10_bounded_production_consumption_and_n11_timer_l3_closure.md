@@ -77,6 +77,19 @@ fixture/environment errors (missing `matrix` setup, missing `state_dir` in a
 legacy helper test, and sandbox socket denial), with no new assertion failure.
 
 Before publication, `tools/v7-truth-check --all --json` returned `PASS` with no
-blockers after independent GitHub verification.  Runtime remained on the
-previous deployed fingerprint until the safe deploy below; no route or user
-assignment was changed by this repair.
+blockers after independent GitHub verification.  The change was then published
+and safely deployed as commit `cc73a7d8c265f8191042c41025ecd265922109d8`,
+deployment `deploy-z8-14-Updatesystem-cc73a7d-20260827T155151`.  The first
+deploy attempt correctly stopped because the health-loop restart flag was not
+explicit; the second attempt restarted only the existing `v7-health.service`
+and completed with `PASS`.  A fresh post-deploy truth check returned
+`FULLY_ALIGNED`/`PASS`, with local, GitHub and Runtime commits equal and no
+warnings or blockers.  No route or user assignment changed during this repair.
+
+The N11 block is therefore complete for the proven replacement scope.  The
+program-level successor is the existing OMP frontier reported by
+`--omp-program-reconciliation`: `PHASE6A_SCENARIO:PHASE6V4_PARTIAL_APPLY_CIRCUIT_BREAKER`
+and `PHASE6_PRODUCT_ENGINEERING:POLYGON-ACTION-CLASS-SERVICE_PLANE_PARTIAL_FAILURE-ENGINEERING-G1`.
+The V7 Service Failure program itself remains non-terminal until its explicit
+N0–N11 scale, hard/Telegram evidence and zero-residue conditions are consumed;
+this report must not be read as a false terminal claim.

@@ -4765,6 +4765,7 @@ def refresh_prepared_class_projection(
     summary_file: Path,
     lock_timeout_sec: int,
     timeout_sec: int = 45,
+    force_rebuild: bool = False,
 ) -> dict[str, Any]:
     """Persist one compact Planner projection in the existing Matrix summary.
 
@@ -4793,7 +4794,7 @@ def refresh_prepared_class_projection(
         for row in (existing_projection.get("classes") or [])
         if isinstance(row, dict)
     )
-    if legacy_cohort_projection:
+    if legacy_cohort_projection or force_rebuild:
         # The same Matrix/Planner owner performs the one-time rebuild.  This
         # is background preparation, never an incident-time member scan and
         # never a route/user mutation.
@@ -6246,6 +6247,11 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--force-prepared-projection-rebuild",
+        action="store_true",
+        help="With --refresh-prepared-projection-only, ask the existing Matrix/Planner owner for one explicit observation-only rebuild.",
+    )
+    parser.add_argument(
         "--initialize-standing-lineage-only",
         action="store_true",
         help=(
@@ -6400,6 +6406,7 @@ def main() -> int:
             summary_file=summary_file,
             lock_timeout_sec=int(args.lock_timeout_sec),
             timeout_sec=max(45, int(args.passive_consumer_timeout_sec)),
+            force_rebuild=bool(args.force_prepared_projection_rebuild),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None))
         return 0 if result.get("ok") else 2

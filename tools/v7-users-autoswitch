@@ -29063,7 +29063,14 @@ def main() -> int:
             return 0
         planner = AutoswitchPlanner(args)
         plan = planner.plan()
-        projection = build_prepared_class_decision_projection(plan)
+        ordinary_user_ips = {
+            str(row.get("ip") or "")
+            for row in parse_registry(Path(args.state_dir) / "users.registry")
+            if str(row.get("ip") or "") and not bool_value(row.get("certification_user"))
+        }
+        projection = build_prepared_class_decision_projection(
+            plan, ordinary_user_ips=ordinary_user_ips,
+        )
         freshness = validate_prepared_class_decision_projection(
             projection, projection.get("invalidators") or {},
         )

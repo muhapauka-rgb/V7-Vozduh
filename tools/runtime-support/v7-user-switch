@@ -78,7 +78,14 @@ if [ "$MUTATION_KIND" = "forward" ]; then
   [ -n "$SELECTED_MOVE_HASH" ] || { echo "STOP_SAFE: selected move hash missing"; exit 2; }
   [ -n "$SOURCE_BUNDLE_HASH" ] || { echo "STOP_SAFE: source bundle hash missing"; exit 2; }
   [ -n "$SNAPSHOT_BUNDLE_HASH" ] || { echo "STOP_SAFE: snapshot bundle hash missing"; exit 2; }
-  [ "$MAX_USERS" = "1" ] || { echo "STOP_SAFE: max users must equal one"; exit 2; }
+  if [ "$MAX_USERS" != "1" ]; then
+    # A group is lawful only when the existing operation control explicitly
+    # names the narrow N10 cohort class and its already bounded 2..4 scope.
+    # Every other writer invocation retains the historical one-user fence.
+    [ "$ACTION_CLASS" = "N10_SMALL_COHORT" ] \
+      && [[ "$MAX_USERS" =~ ^[2-4]$ ]] \
+      || { echo "STOP_SAFE: max users outside exact action scope"; exit 2; }
+  fi
 fi
 
 validator=(
@@ -129,15 +136,16 @@ if [ "$MUTATION_KIND" = "forward" ] \
       --arg move "$SELECTED_MOVE_HASH" \
       --arg source "$SOURCE_BUNDLE_HASH" \
       --arg snapshot "$SNAPSHOT_BUNDLE_HASH" \
+      --arg max "$MAX_USERS" \
       '.state == "CLOSED"
        and .scope == "operation"
        and .generation == $generation
        and .operation_id == $operation
-       and .action_class == $action
+      and .action_class == $action
        and .selected_move_hash == $move
        and .source_bundle_hash == $source
        and .snapshot_bundle_hash == $snapshot
-       and .max_users == 1' "$CONTROL_FILE" >/dev/null 2>&1; then
+       and ((.max_users | tostring) == $max)' "$CONTROL_FILE" >/dev/null 2>&1; then
     CONTROL_HASH_REUSED=1
   fi
 fi

@@ -116,6 +116,58 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("route replace default dev tun0 table 100", calls)
 
+    def test_exact_n10_cohort_control_allows_only_its_bounded_member_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, ip_log = self.fixture(root)
+            control = root / "safe-mode.json"
+            control.write_text(json.dumps({
+                "state": "CLOSED", "scope": "operation", "generation": "aec_n10",
+                "operation_id": "op-n10", "action_class": "N10_SMALL_COHORT",
+                "selected_move_hash": "move-n10", "source_bundle_hash": "source-n10",
+                "snapshot_bundle_hash": "snapshot-n10", "max_users": 2,
+            }) + "\n", encoding="utf-8")
+            validator = root / "bin" / "v7-operator-execution-packet"
+            validator.write_text("#!/bin/sh\nexit 99\n", encoding="utf-8")
+            validator.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_n10",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-n10",
+                "V7_EXECUTION_ACTION_CLASS": "N10_SMALL_COHORT",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-n10",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-n10",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-n10",
+                "V7_EXECUTION_MAX_USERS": "2",
+                "V7_ADMIN_SAFE_MODE_FILE": str(control),
+                "V7_EXECUTION_CONTROL_FILE_HASH": hashlib.sha256(control.read_bytes()).hexdigest(),
+            })
+            result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
+            calls = ip_log.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("route replace default dev tun0 table 100", calls)
+
+    def test_non_n10_multi_user_context_is_denied_before_route_replace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env, ip_log = self.fixture(Path(tmp))
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_test",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-test",
+                "V7_EXECUTION_ACTION_CLASS": "EMERGENCY_FAILOVER",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",
+                "V7_EXECUTION_MAX_USERS": "2",
+            })
+            result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
+            calls = ip_log.read_text(encoding="utf-8") if ip_log.exists() else ""
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("max users outside exact action scope", result.stdout)
+        self.assertNotIn("route replace", calls)
+
     def test_changed_parent_control_hash_falls_back_and_denies(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -17678,8 +17678,12 @@ class AutoswitchPlanner:
                     "runtime_mutation": False,
                     "user_movement": 0,
                 }
-        action_class = self._execution_action_class(
-            (plan.get("selected_moves") or [{}])[0].get("move_type", "")
+        action_class = (
+            str(action_contract.get("action_class") or "").upper()
+            if n10_product_contract
+            else self._execution_action_class(
+                (plan.get("selected_moves") or [{}])[0].get("move_type", "")
+            )
         )
         execution_control_bindings = {
             "expected_generation": str(
@@ -17957,7 +17961,10 @@ class AutoswitchPlanner:
             fresh_validation_started_ns = time.monotonic_ns()
             item_control = self._execution_control_decision(
                 mutation_kind="forward",
-                action_class=self._execution_action_class(move.get("move_type", "")),
+                action_class=(
+                    action_class if n10_product_contract
+                    else self._execution_action_class(move.get("move_type", ""))
+                ),
                 expected_generation=str(entry_control.get("generation") or ""),
                 operation_id=control_operation_id,
                 selected_move_hash=selected_hash,
@@ -18203,7 +18210,10 @@ class AutoswitchPlanner:
                     row["rollback_attempted"] = True
                     rollback_control = self._execution_control_decision(
                         mutation_kind="rollback",
-                        action_class=self._execution_action_class(move.get("move_type", "")),
+                        action_class=(
+                            action_class if n10_product_contract
+                            else self._execution_action_class(move.get("move_type", ""))
+                        ),
                         expected_generation=str(item_control.get("generation") or ""),
                         rollback_certified=True,
                         operation_id=operation_id,

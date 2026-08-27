@@ -57,6 +57,8 @@ AUTONOMOUS_EXECUTION_ACTION_CLASSES = {
     "EMERGENCY_FAILOVER",
     "RECOVERY_ADMISSION",
     "USER_SWITCH",
+    "N10_ORDINARY_LIKE_SINGLE_DEVICE",
+    "N10_SMALL_COHORT",
 }
 LEASE_TERMINAL_STATUSES = {"EXECUTION_FINISHED", "ROLLBACK_FINISHED", "OPERATOR_CANCELLED"}
 SELECTED_MOVE_SEMANTIC_FIELDS = (
@@ -409,6 +411,15 @@ def build_autonomous_execution_control_state(
         "updated_at": now.isoformat(),
         "nonce": secrets.token_hex(16),
     })
+    action_class_text = str(action_class or "").upper()
+    max_users_value = as_int(max_users, 0)
+    bounded_n10_cohort = (
+        action_class_text == N10_SMALL_COHORT_ACTION_CLASS
+        and 2 <= max_users_value <= 4
+    )
+    operation_scope_valid = (
+        max_users_value == 1 or bounded_n10_cohort
+    )
     state = {
         "schema_version": AUTONOMOUS_EXECUTION_CONTROL_SCHEMA,
         "enabled": enabled,
@@ -419,7 +430,7 @@ def build_autonomous_execution_control_state(
             str(action_class or ""),
             str(source_bundle_hash or ""),
             str(snapshot_bundle_hash or ""),
-            as_int(max_users, 0) == 1,
+            operation_scope_valid,
         ]) else "operation",
         "generation": generation,
         "updated_at": now.isoformat(),
@@ -432,10 +443,10 @@ def build_autonomous_execution_control_state(
         state.update({
             "operation_id": str(operation_id or ""),
             "selected_move_hash": str(selected_move_hash or ""),
-            "action_class": str(action_class or "").upper(),
+            "action_class": action_class_text,
             "source_bundle_hash": str(source_bundle_hash or ""),
             "snapshot_bundle_hash": str(snapshot_bundle_hash or ""),
-            "max_users": as_int(max_users, 0),
+            "max_users": max_users_value,
         })
     return state
 
@@ -476,8 +487,16 @@ def autonomous_execution_control_state(path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL
             blockers.append("execution_control_source_bundle_hash_missing")
         if not str(data.get("snapshot_bundle_hash") or "").strip():
             blockers.append("execution_control_snapshot_bundle_hash_missing")
-        if as_int(data.get("max_users"), 0) != 1:
-            blockers.append("execution_control_max_users_not_one")
+        action_class = str(data.get("action_class") or "").upper()
+        max_users = as_int(data.get("max_users"), 0)
+        if not (
+            max_users == 1
+            or (
+                action_class == N10_SMALL_COHORT_ACTION_CLASS
+                and 2 <= max_users <= 4
+            )
+        ):
+            blockers.append("execution_control_max_users_outside_exact_scope")
     generation = str(data.get("generation") or "")
     if not generation.startswith("aec_"):
         blockers.append("execution_control_generation_invalid")

@@ -172,6 +172,25 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(projection["class_count"], 1)
         self.assertEqual(projection["classes"][0]["ordinary_member_slice"], ["10.7.0.2", "10.7.0.3"])
 
+    def test_prepared_cohort_excludes_decision_with_stale_registry_source(self):
+        plan = {
+            "decisions": [{
+                "user_ip": "10.7.0.2", "certification_user": False,
+                "current_egress": "failed-source",
+                "recommended_egress": "healthy-target",
+                "profile_required_services": ["telegram"],
+            }],
+            "safety": {"generation": {"inputs": {}, "volatile_inputs": {}}},
+        }
+        projection = self.tool.build_prepared_class_decision_projection(
+            plan,
+            ordinary_user_ips={"10.7.0.2"},
+            ordinary_user_assignments={"10.7.0.2": "already-recovered"},
+        )
+        self.assertEqual(projection["class_count"], 0)
+        self.assertEqual(projection["status"], "NO_COMPATIBLE_PREPARED_CLASS")
+        self.assertEqual(projection["stale_registry_source_exclusions"], 1)
+
     def test_n10_source_generation_ignores_matrix_envelope_but_not_source_health(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

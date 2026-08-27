@@ -510,6 +510,7 @@ def sha256_json(payload: Any) -> str:
 
 def build_prepared_class_decision_projection(
     plan: dict[str, Any], *, ordinary_user_ips: Optional[set[str]] = None,
+    ordinary_user_assignments: Optional[dict[str, str]] = None,
 ) -> dict[str, Any]:
     """Compact the existing Planner result for pre-incident fast validation.
 
@@ -528,6 +529,7 @@ def build_prepared_class_decision_projection(
     groups: dict[str, dict[str, Any]] = {}
     global_hot_contracts: dict[str, dict[str, Any]] = {}
     exclusions = 0
+    stale_registry_source_exclusions = 0
     for row in decisions:
         user = str(row.get("user_ip") or row.get("user") or "")
         if bool_value(row.get("certification_user")) or (
@@ -543,6 +545,18 @@ def build_prepared_class_decision_projection(
         target = str(row.get("recommended_egress") or "")
         if not user or not source or not target or source == target:
             exclusions += 1
+            continue
+        # The Planner can retain a decision for a source that a completed
+        # governed operation has already vacated.  A prepared N10 class must
+        # use the canonical live assignment, not that historical direction.
+        # Exclude disagreement rather than silently rewriting its source or
+        # target in this Matrix-owned projection.
+        if (
+            ordinary_user_assignments is not None
+            and str(ordinary_user_assignments.get(user) or "") != source
+        ):
+            exclusions += 1
+            stale_registry_source_exclusions += 1
             continue
         services = sorted(str(item) for item in (
             row.get("profile_required_services")
@@ -739,6 +753,7 @@ def build_prepared_class_decision_projection(
         "classes": prepared,
         "class_count": len(prepared),
         "excluded_decision_count": exclusions,
+        "stale_registry_source_exclusions": stale_registry_source_exclusions,
         "invalidators": invalidators,
         # Health observations, capacity and anti-flap state are validated at
         # use time by their existing owners.  In particular, a confirmed
@@ -21958,13 +21973,19 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         parent="service_failure_advisory",
     )
     prepared_projection_started_ns = time.monotonic_ns()
-    ordinary_user_ips = {
-        str(row.get("ip") or "")
-        for row in parse_registry(Path(args.state_dir) / "users.registry")
+    ordinary_users = [
+        row for row in parse_registry(Path(args.state_dir) / "users.registry")
         if str(row.get("ip") or "") and not bool_value(row.get("certification_user"))
+    ]
+    ordinary_user_ips = {str(row.get("ip") or "") for row in ordinary_users}
+    ordinary_user_assignments = {
+        str(row.get("ip") or ""): str(row.get("current") or "")
+        for row in ordinary_users
     }
     prepared_class_decisions = build_prepared_class_decision_projection(
-        plan, ordinary_user_ips=ordinary_user_ips,
+        plan,
+        ordinary_user_ips=ordinary_user_ips,
+        ordinary_user_assignments=ordinary_user_assignments,
     )
     prepared_freshness = validate_prepared_class_decision_projection(
         prepared_class_decisions,
@@ -29443,13 +29464,19 @@ def main() -> int:
             return 0
         planner = AutoswitchPlanner(args)
         plan = planner.plan()
-        ordinary_user_ips = {
-            str(row.get("ip") or "")
-            for row in parse_registry(Path(args.state_dir) / "users.registry")
+        ordinary_users = [
+            row for row in parse_registry(Path(args.state_dir) / "users.registry")
             if str(row.get("ip") or "") and not bool_value(row.get("certification_user"))
+        ]
+        ordinary_user_ips = {str(row.get("ip") or "") for row in ordinary_users}
+        ordinary_user_assignments = {
+            str(row.get("ip") or ""): str(row.get("current") or "")
+            for row in ordinary_users
         }
         projection = build_prepared_class_decision_projection(
-            plan, ordinary_user_ips=ordinary_user_ips,
+            plan,
+            ordinary_user_ips=ordinary_user_ips,
+            ordinary_user_assignments=ordinary_user_assignments,
         )
         freshness = validate_prepared_class_decision_projection(
             projection, projection.get("invalidators") or {},

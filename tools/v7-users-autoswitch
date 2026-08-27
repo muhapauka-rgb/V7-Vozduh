@@ -17423,9 +17423,14 @@ class AutoswitchPlanner:
         immutable selection plus the issued one-use N10 Authority contract into
         the existing execution artifacts which ``apply`` already requires.
         """
-        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
-        gate = safety.get("authority_budget_gate") if isinstance(safety.get("authority_budget_gate"), dict) else {}
-        contract = gate.get("current_action_class_contract") if isinstance(gate.get("current_action_class_contract"), dict) else {}
+        # The plan exposes a deliberately compact, redacted contract status to
+        # downstream planning.  Packet validation needs the exact signed
+        # Authority record from the existing policy owner, never that summary.
+        contract = (
+            self.authority_budget_policy.get("current_action_class_contract")
+            if isinstance(self.authority_budget_policy.get("current_action_class_contract"), dict)
+            else {}
+        )
         action_class = str(contract.get("action_class") or "").upper()
         if action_class not in {
             operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,

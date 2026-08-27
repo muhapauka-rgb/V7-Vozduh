@@ -640,16 +640,21 @@ def runtime_readonly_check(
         if isinstance(snapshot.get("command_results"), dict)
         else {}
     )
+    # A snapshot can predate the N11 removal of these units.  They are not
+    # runtime evidence once the units have been retired; retaining their old
+    # read-only status cells would falsely make a fresh snapshot invalid.
+    for retired_command in (
+        ["systemctl", "status", "v7-users-autoswitch.timer", "--no-pager"],
+        ["systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager"],
+    ):
+        command_results.pop(command_key(retired_command), None)
     matrix_successor = current_matrix_owned_service_failure_successor(
         Path(str(manifest.get("canonical_workspace") or ""))
     )
     matrix_owner_command = command_key(
         ["systemctl", "status", "v7-health.service", "--no-pager"]
     )
-    if (
-        matrix_successor.get("matrix_owned")
-        and matrix_owner_command not in command_results
-    ):
+    if matrix_owner_command not in command_results:
         # Fill only the exact missing caller-status cell from the existing
         # production read-only access path.  This is an observation, not a
         # snapshot write or a substitute for the Matrix consumer.

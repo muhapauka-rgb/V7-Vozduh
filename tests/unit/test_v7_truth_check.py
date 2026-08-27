@@ -558,6 +558,31 @@ class V7TruthCheckTest(unittest.TestCase):
             "LIVE_V7_HEALTH_MATRIX_OWNER_PROVEN",
         )
 
+    def test_runtime_snapshot_ignores_retired_matrix_timer_status_cells(self):
+        """N11 retirement must not invalidate an otherwise fresh snapshot."""
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.manifest(workspace=tmp)
+            manifest["runtime_snapshot_path"] = str(Path(tmp) / "runtime-snapshot.json")
+            snapshot = self.runtime_snapshot()
+            for unit in (
+                "v7-users-autoswitch.timer",
+                "v7-service-matrix-refresh.timer",
+            ):
+                key = self.tool.command_key([
+                    "systemctl", "status", unit, "--no-pager",
+                ])
+                snapshot["command_results"][key] = {
+                    "rc": 3, "stdout": "Active: inactive (dead)", "stderr": "",
+                }
+            Path(manifest["runtime_snapshot_path"]).write_text(
+                json.dumps(snapshot), encoding="utf-8"
+            )
+            result = self.tool.combine_results(
+                manifest, mode="all", runner=self.runner(), cwd=Path(tmp)
+            )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["runtime"]["unknown_commands"], [])
+
     def test_deploy_metadata_runtime_identity_remains_fail_closed_on_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:
             manifest = self.manifest(workspace=tmp)

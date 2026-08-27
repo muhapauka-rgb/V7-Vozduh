@@ -351,7 +351,7 @@ This section is the single live volatile current-state surface. Older production
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; v6 consumed and non-reusable; no declared L7 coverage cell remains` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_PACKET; current program waits only for natural L8 evidence` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `NONE` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `EXTERNAL_OWNER_REQUIRED` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
 | `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_ADDITIONAL_AUTHORITY_INSIDE_ACTIVE_STANDING_POLICY; fresh event and existing policy gates remain required` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED_FOR_DECLARED_L7_COVERAGE; natural L8 remains external` |
@@ -431,7 +431,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_SERVICE_FAILURE_LAST_OUTCOME_POINTER` | `sfinc_be20296fba3d8a6a33e58a583f1b58db` |
 | `CURRENT_SERVICE_FAILURE_LEARNING_POINTER` | `learn_e16e4c543fa49dede6477238` |
 | `CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER` | `tools/v7-service-matrix-refresh-all` |
-| `CURRENT_SERVICE_FAILURE_REENTRY_CONDITION` | `enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor` |
+| `CURRENT_SERVICE_FAILURE_REENTRY_CONDITION` | `v7-health.service loads the existing Matrix consumer and performs fresh observation; no standalone Matrix timer is a current recovery path` |
 | `CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE` | `0` |
 | `CURRENT_VLESS_INCIDENT_GENERATION` | `NONE_OPEN` |
 | `CURRENT_VLESS_INCIDENT_ID` | `NONE_OPEN` |
@@ -727,7 +727,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-08-27T07:07:00+00:00`
+Generated At: `2026-08-27T14:30:00+03:00`
 
 Runtime Authority: `NONE`
 
@@ -926,7 +926,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `EXTERNAL_OWNER_REQUIRED`; current stop is `EXTERNAL_OWNER_REQUIRED`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; Core-primary cohort preflight/commit/S11 closure is deployed and verified; current next action is `N10_LAWFUL_CURRENT_COHORT_BOUNDARY`; no mutation is authorized until a fresh exact Matrix cohort survives Packet materialization. |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `EXTERNAL_OWNER_REQUIRED`; current stop is `EXTERNAL_OWNER_REQUIRED`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; the N10 affected-cohort Core-primary evidence is retained as historical proof, while every new mutation requires a fresh exact Matrix cohort, Packet/Lease/Barrier and one-use existing-owner contract. |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

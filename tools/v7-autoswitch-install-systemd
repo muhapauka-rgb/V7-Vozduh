@@ -50,12 +50,8 @@ if [ "${1:-}" = "--apply" ]; then
   systemctl daemon-reload
   systemctl enable --now v7-egress-quality-compact.timer
   # Matrix observation, Telegram evidence and governed execution live inside
-  # the single v7-health owner.  These old periodic wake paths are removed
-  # from the installer so a recovery deploy cannot silently revive duplicate
-  # owners; their static service files remain explicit manual fallbacks.
-  systemctl disable --now v7-users-autoswitch.timer 2>/dev/null || true
-  systemctl disable --now v7-telegram-sentinel.timer 2>/dev/null || true
-  systemctl disable --now v7-service-matrix-refresh.timer 2>/dev/null || true
+  # the single v7-health owner.  No legacy periodic owner is installed or
+  # revived here; static services remain explicit manual fallbacks.
   systemctl status v7-health.service --no-pager
   systemctl status v7-egress-quality-compact.timer --no-pager
 else

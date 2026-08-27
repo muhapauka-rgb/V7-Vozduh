@@ -4448,11 +4448,15 @@ the CPS-preserved pending request preimage exactly matches request ID/hash,
 policy scope hash, action class, max users and concurrency. Every other
 mismatch remains `STOP_SAFE`.
 
-After activation, no Matrix command was invoked manually. The enabled
-`v7-service-matrix-refresh.timer` started the ordinary owner cycle at
+After activation, no Matrix command was invoked manually. The then-enabled
+standalone `v7-service-matrix-refresh.timer` started the ordinary owner cycle at
 `2026-07-28T02:28:48+00:00`. It completed successfully and advanced the VLESS
 observation from `2026-07-28T02:13:42.685967+00:00` to
 `2026-07-28T02:28:49.259364+00:00`.
+
+This is historical execution evidence only.  The standalone timer was retired
+in N11; it is not a current consumer or recovery path.  The current owner is
+`v7-health.service`, which loads the existing Matrix consumer.
 
 The current route-backed VLESS scope is:
 
@@ -5013,12 +5017,12 @@ one deterministic wake after the atomic successor projection; the watchdog is
 fallback only. Consumption and successor publication are interprocess
 exact-once through the existing closure owner.
 
-For an active Service Failure drain, the already-enabled production
-`v7-service-matrix-refresh.timer` is the primary successor consumer. After
+For an active Service Failure drain, the production `v7-health.service` is the
+primary successor owner and loads the existing Matrix consumer. After
 the source CPS has mirrored a verified Outcome and the existing OMP owner has
 acknowledged `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN`, no additional
 Codex wake is published: the next fresh revalidation belongs to that Matrix
-timer. Codex remains only a source-CPS mirror/watchdog at this boundary; it
+consumer. Codex remains only a source-CPS mirror/watchdog at this boundary; it
 does not own Candidate, Packet, lease, apply, routing or user movement.
 
 The wake is suppressed only for an exact independent `ENGINEERING_AUTHORITY`

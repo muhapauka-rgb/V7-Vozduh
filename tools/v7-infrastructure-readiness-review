@@ -196,7 +196,7 @@ def main() -> int:
                 f"{name} runs every {interval}s.",
                 "Verify capacity impact as egress count grows; summarize results instead of adding UI metric noise.",
             )
-        if name != "v7-telegram-sentinel.timer" and not timer.get("RandomizedDelaySec") and interval is not None and interval >= 60:
+        if not timer.get("RandomizedDelaySec") and interval is not None and interval >= 60:
             add_finding(
                 findings,
                 "info",
@@ -315,4 +315,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

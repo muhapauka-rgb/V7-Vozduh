@@ -1552,12 +1552,11 @@ def main() -> int:
             ),
             "ok": True,
             "event_ids": list(fast_signal_bridge.get("new_event_ids") or []),
-            # The legacy apply timer is deliberately held.  CPS names the
-            # Matrix refresh owner as the lawful durable-successor consumer;
-            # that owner may subsequently admit the existing governed
-            # executor only after its independent live gates pass.
-            "consumer": "existing v7-service-matrix-refresh-all -> existing governed CT-M0F consumer",
-            "wake_owner": "v7-service-matrix-refresh.timer",
+            # v7-health.service owns the Matrix refresh consumer.  It may
+            # subsequently admit the existing governed executor only after
+            # its independent live gates pass.
+            "consumer": "existing v7-health.service loaded v7-service-matrix-refresh-all -> existing governed CT-M0F consumer",
+            "wake_owner": "v7-health.service",
             "apply_timer_required": False,
             "runtime_mutation_performed": False,
             "routing_mutation_performed": False,

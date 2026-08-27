@@ -70,7 +70,7 @@ class V53NonTelegramTriggerRevalidationTest(unittest.TestCase):
         # The health owner is the only automatic caller.  The governed
         # autoswitch service remains a manual recovery fallback, not a timer.
         installer = self.read("tools/v7-autoswitch-install-systemd")
-        self.assertIn("disable --now v7-users-autoswitch.timer", installer)
+        self.assertNotIn("v7-users-autoswitch.timer", installer)
         self.assertNotIn("enable --now v7-users-autoswitch.timer", installer)
         self.assertIn('reason == "interface_down_or_missing"', autoswitch)
         self.assertIn('"confirmed_current_channel_failure"', autoswitch)

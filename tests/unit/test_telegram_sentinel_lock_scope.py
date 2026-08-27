@@ -476,9 +476,9 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
             )
             self.assertEqual(
                 handoff["consumer"],
-                "existing v7-service-matrix-refresh-all -> existing governed CT-M0F consumer",
+                "existing v7-health.service loaded v7-service-matrix-refresh-all -> existing governed CT-M0F consumer",
             )
-            self.assertEqual(handoff["wake_owner"], "v7-service-matrix-refresh.timer")
+            self.assertEqual(handoff["wake_owner"], "v7-health.service")
             self.assertFalse(handoff["apply_timer_required"])
 
     def test_fast_failure_wakes_only_existing_planner_for_new_nonzero_scope(self):

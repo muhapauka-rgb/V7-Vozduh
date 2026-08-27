@@ -112,6 +112,7 @@ CURRENT_ACTION_CLASS_CONTRACT_REQUEST_TTL_SECONDS = 900
 CURRENT_ACTION_CLASS_AUDIT_SCHEMA = "v7.current-action-class-contract-authority-audit.v1"
 CURRENT_ACTION_CLASS_REQUEST_RECORD_TYPE = "current_action_class_contract_request_emitted"
 N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS = "N10_ORDINARY_LIKE_SINGLE_DEVICE"
+N10_SMALL_COHORT_ACTION_CLASS = "N10_SMALL_COHORT"
 N10_FRESH_PLANNER_TARGET_SELECTION = "FRESH_PLANNER_ONLY_AT_CONSUMPTION"
 DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE = Path("/opt/v7/audit/operator-execution-audit.jsonl")
 STANDING_DELEGATED_POLICY_REQUEST_SCHEMA = "v7.standing-delegated-operational-policy-authority-request.v1"
@@ -5598,13 +5599,19 @@ def build_current_action_class_contract_authority_request(template, *, issue_pre
         "max_authority_class": str(template.get("max_authority_class") or ""),
         "authority_ceiling": str(template.get("authority_ceiling") or template.get("max_authority_class") or ""),
         "policy_generation_hash": str(template.get("policy_generation_hash") or ""),
-        "subject": {"user_ip": str(subject.get("user_ip") or "")},
+        "subject": {
+            "user_ip": str(subject.get("user_ip") or ""),
+            "user_ips": sorted({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()}),
+        },
         "scope": {
             "source_egress": str(scope.get("source_egress") or ""),
             "target_egress": str(scope.get("target_egress") or ""),
             "target_selection": str(scope.get("target_selection") or ""),
             "max_users": as_int(template.get("max_users"), 0),
             "max_concurrent_transactions": as_int(template.get("max_concurrent_transactions"), 0),
+            "prepared_class_id": str(scope.get("prepared_class_id") or ""),
+            "membership_fingerprint": str(scope.get("membership_fingerprint") or ""),
+            "member_slice_fingerprint": str(scope.get("member_slice_fingerprint") or ""),
         },
         "incident_generation": incident_generation,
         "source_generation": source_generation,
@@ -5671,6 +5678,7 @@ def validate_current_action_class_contract_authority_request(
         "GOVERNED_ONLY",
         "EMERGENCY_FAILOVER",
         N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+        N10_SMALL_COHORT_ACTION_CLASS,
     }:
         errors.append("current_action_class_contract_action_class_invalid")
     max_authority_class = str(request.get("max_authority_class") or "").upper()
@@ -5681,10 +5689,15 @@ def validate_current_action_class_contract_authority_request(
         errors.append("current_action_class_contract_authority_exceeds_ceiling")
     if len(str(request.get("policy_generation_hash") or "")) != 64:
         errors.append("current_action_class_contract_policy_generation_missing")
-    if not str(subject.get("user_ip") or ""):
+    cohort_subject = action_class == N10_SMALL_COHORT_ACTION_CLASS
+    subject_ips = sorted({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()})
+    if cohort_subject:
+        if str(subject.get("user_ip") or "") or not 2 <= len(subject_ips) <= 4:
+            errors.append("current_action_class_contract_cohort_subject_invalid")
+    elif not str(subject.get("user_ip") or ""):
         errors.append("current_action_class_contract_subject_missing")
     n10_unbound_target = (
-        action_class == N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+        action_class in {N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS, N10_SMALL_COHORT_ACTION_CLASS}
         and not str(scope.get("target_egress") or "")
         and str(scope.get("target_selection") or "")
         == N10_FRESH_PLANNER_TARGET_SELECTION
@@ -5693,7 +5706,8 @@ def validate_current_action_class_contract_authority_request(
         not str(scope.get("target_egress") or "") and not n10_unbound_target
     ):
         errors.append("current_action_class_contract_scope_missing")
-    if as_int(scope.get("max_users"), 0) != 1 or as_int(scope.get("max_concurrent_transactions"), 0) != 1:
+    expected_users = len(subject_ips) if cohort_subject else 1
+    if as_int(scope.get("max_users"), 0) != expected_users or as_int(scope.get("max_concurrent_transactions"), 0) != 1:
         errors.append("current_action_class_contract_blast_radius_invalid")
     source_generation = request.get("source_generation") if isinstance(request.get("source_generation"), dict) else {}
     if not all(str(source_generation.get(key) or "") for key in ("planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash")):
@@ -5781,8 +5795,11 @@ def issue_current_action_class_contract(
             "source_egress": str(scope.get("source_egress") or ""),
             "target_egress": str(scope.get("target_egress") or ""),
             "target_selection": str(scope.get("target_selection") or ""),
+            "prepared_class_id": str(scope.get("prepared_class_id") or ""),
+            "membership_fingerprint": str(scope.get("membership_fingerprint") or ""),
+            "member_slice_fingerprint": str(scope.get("member_slice_fingerprint") or ""),
         },
-        "max_users": 1,
+        "max_users": as_int(scope.get("max_users"), 0),
         "max_concurrent_transactions": 1,
         "incident_generation": copy.deepcopy(request.get("incident_generation") or {}),
         "source_generation": copy.deepcopy(request.get("source_generation") or {}),
@@ -5853,11 +5870,18 @@ def consume_current_action_class_contract(policy, *, contract_id, contract_hash,
         raise PacketError("current_action_class_contract_not_available_for_one_use_consumption")
     expected_subject = contract.get("subject") if isinstance(contract.get("subject"), dict) else {}
     expected_scope = contract.get("scope") if isinstance(contract.get("scope"), dict) else {}
-    if str((subject or {}).get("user_ip") or "") != str(expected_subject.get("user_ip") or ""):
+    cohort_subject = str(contract.get("action_class") or "").upper() == N10_SMALL_COHORT_ACTION_CLASS
+    expected_subject_ips = sorted({str(item).strip() for item in (expected_subject.get("user_ips") or []) if str(item).strip()})
+    actual_subject_ips = sorted({str(item).strip() for item in ((subject or {}).get("user_ips") or []) if str(item).strip()})
+    subject_matches = (
+        actual_subject_ips == expected_subject_ips if cohort_subject
+        else str((subject or {}).get("user_ip") or "") == str(expected_subject.get("user_ip") or "")
+    )
+    if not subject_matches:
         raise PacketError("current_action_class_contract_consumption_subject_mismatch")
     n10_unbound_target = (
         str(contract.get("action_class") or "").upper()
-        == N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+        in {N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS, N10_SMALL_COHORT_ACTION_CLASS}
         and not str(expected_scope.get("target_egress") or "")
         and str(expected_scope.get("target_selection") or "")
         == N10_FRESH_PLANNER_TARGET_SELECTION

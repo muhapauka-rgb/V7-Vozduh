@@ -652,6 +652,13 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
             **semantic,
             "member_count": len(members),
             "membership_fingerprint": sha256_json({"members": members}),
+            # A bounded, deterministic slice is intentionally different from
+            # persisting every class member.  It lets the existing Matrix /
+            # Planner projection feed the N10 small-cohort contract without
+            # an incident-time O(all-users) reconstruction or a new registry.
+            "ordinary_member_slice": members[:4],
+            "ordinary_member_slice_fingerprint": sha256_json({"members": members[:4]}),
+            "ordinary_member_slice_limit": 4,
             "raw_member_list_stored": False,
             "prepared_action": "FAILOVER_TO_EXISTING_PLANNER_TARGET",
             "hot_target_limit": 4,
@@ -2241,7 +2248,14 @@ def runtime_authority_contract_status(
         and bool(str(contract.get("contract_hash") or ""))
         and operator_execution.current_action_class_contract_hash(contract) == str(contract.get("contract_hash") or "")
         and bool(str(contract.get("active_program") or ""))
-        and bool(str(subject.get("user_ip") or ""))
+        and (
+            bool(str(subject.get("user_ip") or ""))
+            or (
+                str(contract.get("action_class") or "").upper()
+                == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                and 2 <= len({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()}) <= 4
+            )
+        )
         and decision.get("decision") == operator_execution.ENGINEERING_AUTHORITY_APPROVAL
         and bool(str(decision.get("request_id") or ""))
         and bool(str(decision.get("request_hash") or ""))
@@ -2250,7 +2264,10 @@ def runtime_authority_contract_status(
         and bool(str(decision.get("decision_id") or ""))
     )
     n10_unbound_target = (
-        action_class == operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+        action_class in {
+            operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+            operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+        }
         and not str(scope.get("target_egress") or "")
         and str(scope.get("target_selection") or "")
         == operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION
@@ -2262,10 +2279,17 @@ def runtime_authority_contract_status(
         "GOVERNED_ONLY",
         "EMERGENCY_FAILOVER",
         operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+        operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
     }
     expiry_ok = parse_ts(expires_at) > now
     class_ok = AUTHORITY_CLASS_RANK[allowed_class] >= AUTHORITY_CLASS_RANK[certified_class]
-    budget_ok = (max_users > 0) if not strict_provenance_contract else (max_users == 1 and max_concurrent_transactions == 1)
+    cohort_subject_ips = {str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()}
+    expected_exact_budget = (
+        len(cohort_subject_ips)
+        if action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+        else 1
+    )
+    budget_ok = (max_users > 0) if not strict_provenance_contract else (max_users == expected_exact_budget and max_concurrent_transactions == 1)
     source_generation_ok = (not strict_provenance_contract) or (all(str(source_generation.get(key) or "") for key in (
         "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
     )) and all(str(incident_generation.get(key) or "") for key in ("incident_id", "incident_generation")))
@@ -2399,7 +2423,10 @@ def runtime_authority_contract_status(
         "max_authority_class": allowed_class,
         "max_users": max_users,
         "max_concurrent_transactions": max_concurrent_transactions,
-        "subject": {"user_ip": str(subject.get("user_ip") or "")},
+        "subject": {
+            "user_ip": str(subject.get("user_ip") or ""),
+            "user_ips": sorted(cohort_subject_ips),
+        },
         "expires_at": expires_at,
         "scope": {
             "source_egress": str(scope.get("source_egress") or ""),
@@ -2608,6 +2635,71 @@ def n10_ordinary_like_source_generation(args: argparse.Namespace, user_ip: str, 
     })
     selected_move_hash = sha256_json({
         "user_ip": user_ip,
+        "source_egress": source_egress,
+        "target_selection": operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION,
+    })
+    return {
+        "planner_generation_id": planner_generation_id,
+        "source_bundle_hash": source_bundle_hash,
+        "snapshot_bundle_hash": snapshot_bundle_hash,
+        "selected_move_hash": selected_move_hash,
+    }
+
+
+def n10_small_cohort_source_generation(
+    args: argparse.Namespace, user_ips: list[str], source_egress: str,
+) -> dict[str, str]:
+    """Bind a small N10 cohort to current owners without choosing a target.
+
+    The cohort is the bounded Matrix/Planner member slice, not a caller
+    supplied list.  The target remains a fresh existing-Planner decision at
+    consumption; this helper only makes membership/source drift fail closed.
+    """
+    user_ips = sorted({str(item).strip() for item in user_ips if str(item).strip()})
+    state_dir = Path(args.state_dir)
+    policy_projection = read_json(Path(args.policy_file), {})
+    if isinstance(policy_projection, dict):
+        policy_projection = copy.deepcopy(policy_projection)
+        budget = policy_projection.get("authority_budget")
+        if isinstance(budget, dict):
+            budget = dict(budget)
+            budget.pop("current_action_class_contract", None)
+            policy_projection["authority_budget"] = budget
+    users = parse_registry(state_dir / "users.registry")
+    exact_users = sorted(
+        [row for row in users if str(row.get("ip") or "") in user_ips],
+        key=lambda row: str(row.get("ip") or ""),
+    )
+    egresses = parse_registry(state_dir / "egress.registry")
+    exact_source = next(
+        (row for row in egresses if str(row.get("id") or "") == source_egress), {}
+    )
+    material = {
+        "exact_cohort_assignments": sha256_json(exact_users),
+        "exact_source_egress": sha256_json(exact_source),
+        "source_matrix_semantic": sha256_json(
+            n10_ordinary_like_matrix_semantic_generation(state_dir, source_egress)
+        ),
+        "service_preferences": sha256_file(state_dir / "service-preferences.json"),
+        "policy_semantic": sha256_json(policy_projection),
+        "org_policy": sha256_file(Path(args.org_policy_file)),
+    }
+    planner_generation_id = sha256_json({
+        "n10_action_class": operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+        "members": user_ips,
+        "material": material,
+    })
+    source_bundle_hash = sha256_json({
+        "planner_generation_id": planner_generation_id,
+        "user_ips": user_ips,
+        "source_egress": source_egress,
+        "owner_material": material,
+    })
+    snapshot_bundle_hash = sha256_json({
+        key: material[key] for key in ("source_matrix_semantic", "service_preferences")
+    })
+    selected_move_hash = sha256_json({
+        "user_ips": user_ips,
         "source_egress": source_egress,
         "target_selection": operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION,
     })
@@ -5960,7 +6052,7 @@ class AutoswitchPlanner:
             action_class=action_class,
             source_bundle_hash=source_bundle_hash,
             snapshot_bundle_hash=snapshot_bundle_hash,
-            max_users=1,
+            max_users=max(1, len(plan.get("selected_moves") or [])),
         )
         operator_execution.write_json_atomic(control_path, control)
         decision = self._execution_control_decision(
@@ -5971,7 +6063,7 @@ class AutoswitchPlanner:
             selected_move_hash=selected_move_hash,
             source_bundle_hash=source_bundle_hash,
             snapshot_bundle_hash=snapshot_bundle_hash,
-            max_users=1,
+            max_users=max(1, len(plan.get("selected_moves") or [])),
         )
         if not decision.get("allowed_forward_mutation"):
             finalization = operator_execution.finalize_autonomous_execution_control_window(
@@ -5998,7 +6090,7 @@ class AutoswitchPlanner:
             "source_bundle_hash": source_bundle_hash,
             "snapshot_bundle_hash": snapshot_bundle_hash,
             "operation_scoped_binding": operation_binding,
-            "max_users": 1,
+            "max_users": max(1, len(plan.get("selected_moves") or [])),
             "owner": "admin_core.operator_execution",
             "new_owner_created": False,
         }
@@ -12796,7 +12888,10 @@ class AutoswitchPlanner:
         action_contract_subject = action_contract.get("subject") if isinstance(action_contract.get("subject"), dict) else {}
         n10_unbound_target = (
             str(action_contract.get("action_class") or "").upper()
-            == operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+            in {
+                operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+                operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            }
             and not str(action_contract_scope.get("target_egress") or "")
             and str(action_contract_scope.get("target_selection") or "")
             == operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION
@@ -12804,13 +12899,32 @@ class AutoswitchPlanner:
         bridge_enabled = bool(bridge.get("enabled")) and lifecycle_state in AUTHORITY_BRIDGE_STATES
         class_budget = authority_class_budget(authority_class, to_int(policy.get("current_allowed_user_budget"), 1))
         allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), class_budget), class_budget))
+        if (
+            action_contract_valid
+            and (action_contract.get("provenance") or {}).get("strict_provenance_contract")
+            and str(action_contract.get("action_class") or "").upper()
+            == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+        ):
+            # The existing Authority owner issued this exact small product
+            # scope.  It is a hard ceiling, not a general widening of the
+            # normal policy budget.
+            allowed_budget = min(
+                to_int(action_contract.get("max_users"), 0),
+                len({str(item).strip() for item in (action_contract_subject.get("user_ips") or []) if str(item).strip()}),
+            )
         if bridge_enabled:
             allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), 0), to_int(bridge.get("bridge_budget_ceiling"), 0)))
         selected_before = len(selected)
         if action_contract_valid and (action_contract.get("provenance") or {}).get("strict_provenance_contract"):
             scoped_selected = [
                 move for move in selected
-                if str(move.get("user_ip") or "") == str(action_contract_subject.get("user_ip") or "")
+                if (
+                    str(move.get("user_ip") or "") in {
+                        str(item).strip() for item in (action_contract_subject.get("user_ips") or []) if str(item).strip()
+                    }
+                    if str(action_contract.get("action_class") or "").upper() == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                    else str(move.get("user_ip") or "") == str(action_contract_subject.get("user_ip") or "")
+                )
                 and str(move.get("current_egress") or "") == str(action_contract_scope.get("source_egress") or "")
                 and (
                     n10_unbound_target
@@ -13721,6 +13835,26 @@ class AutoswitchPlanner:
         enabled = bool_value(self.switch_policy.get("autoswitch_enabled"))
         target_egress = str(self.args.target_egress or "").strip()
         source_egress = str(getattr(self.args, "source_egress", "") or "").strip()
+        active_product_contract = (
+            self.authority_budget_policy.get("current_action_class_contract")
+            if isinstance(self.authority_budget_policy.get("current_action_class_contract"), dict)
+            else {}
+        )
+        active_product_class = str(active_product_contract.get("action_class") or "").upper()
+        active_product_scope = active_product_contract.get("scope") if isinstance(active_product_contract.get("scope"), dict) else {}
+        active_product_subject = active_product_contract.get("subject") if isinstance(active_product_contract.get("subject"), dict) else {}
+        n10_small_cohort_context = (
+            bool(active_product_contract.get("valid"))
+            and active_product_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+            and not target_egress
+            and not source_egress
+            and str(active_product_scope.get("target_selection") or "") == operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION
+        )
+        n10_small_cohort_users = sorted({
+            str(item).strip() for item in (active_product_subject.get("user_ips") or []) if str(item).strip()
+        })
+        if n10_small_cohort_context:
+            source_egress = str(active_product_scope.get("source_egress") or "")
         requested_max_selected_moves = to_int(
             getattr(self.args, "max_selected_moves", 0), 0
         )
@@ -13808,6 +13942,8 @@ class AutoswitchPlanner:
             ]
         if self.args.user:
             active = [user for user in active if user.ip == self.args.user]
+        if n10_small_cohort_context:
+            active = [user for user in active if user.ip in set(n10_small_cohort_users)]
         if source_egress and requested_max_selected_moves > 0:
             active = active[:requested_max_selected_moves]
         scope_started_ns = time.monotonic_ns()
@@ -13868,12 +14004,26 @@ class AutoswitchPlanner:
         n10_ordinary_like_context = (
             bool(current_action_contract.get("valid"))
             and str(current_action_contract.get("action_class") or "").upper()
-            == operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+            in {
+                operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+                operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            }
             and not str((current_action_contract.get("scope") or {}).get("target_egress") or "")
             and str((current_action_contract.get("scope") or {}).get("target_selection") or "")
             == operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION
-            and str((current_action_contract.get("subject") or {}).get("user_ip") or "")
-            == str(getattr(self.args, "user", "") or "")
+            and (
+                (
+                    str(current_action_contract.get("action_class") or "").upper()
+                    == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                    and set(n10_small_cohort_users) == {
+                        str(user.ip) for user in active
+                    }
+                )
+                or (
+                    str((current_action_contract.get("subject") or {}).get("user_ip") or "")
+                    == str(getattr(self.args, "user", "") or "")
+                )
+            )
         )
         if (
             source_egress
@@ -13904,9 +14054,15 @@ class AutoswitchPlanner:
             contract_scope = current_action_contract.get("scope") or {}
             contract_subject = current_action_contract.get("subject") or {}
             before_filter = len(selection_source)
+            allowed_product_users = (
+                set(n10_small_cohort_users)
+                if str(current_action_contract.get("action_class") or "").upper()
+                == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                else {str(contract_subject.get("user_ip") or "")}
+            )
             selection_source = [
                 item for item in selection_source
-                if str(item.get("user_ip") or "") == str(contract_subject.get("user_ip") or "")
+                if str(item.get("user_ip") or "") in allowed_product_users
                 and str(item.get("current_egress") or "") == str(contract_scope.get("source_egress") or "")
                 and str(item.get("recommended_egress") or "")
                 and str(item.get("recommended_egress") or "") != str(item.get("current_egress") or "")
@@ -13915,11 +14071,11 @@ class AutoswitchPlanner:
                 **incident_source_continuity,
                 "ordinary_like_coexistence": {
                     "active": True,
-                    "action_class": operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+                    "action_class": str(current_action_contract.get("action_class") or ""),
                     "contract_id": str(current_action_contract.get("contract_id") or ""),
                     "selection_before_scope": before_filter,
                     "selection_after_scope": len(selection_source),
-                    "law": "unrelated_active_incident_retained; exact_one_user_product_contract_uses_same_planner_and_apply_serialization",
+                    "law": "unrelated_active_incident_retained; exact_product_contract_uses_same_planner_and_apply_serialization",
                 },
             }
         elif bool_value(incident_source_continuity.get("active")):
@@ -13965,6 +14121,29 @@ class AutoswitchPlanner:
         selected_after_request_cap_count = len(selected)
         pre_contract_selected = list(selected)
         selected, authority_budget_gate = self._authority_budget_gate(selected)
+        n10_small_cohort_convergence = {}
+        if n10_small_cohort_context:
+            selected_users = sorted(str(move.get("user_ip") or "") for move in selected)
+            selected_targets = sorted({
+                str(move.get("recommended_egress") or "")
+                for move in selected if str(move.get("recommended_egress") or "")
+            })
+            expected_users = sorted(n10_small_cohort_users)
+            exact_one_target = selected_users == expected_users and len(selected_targets) == 1
+            n10_small_cohort_convergence = {
+                "required_members": expected_users,
+                "selected_members": selected_users,
+                "selected_targets": selected_targets,
+                "ok": exact_one_target,
+                "law": "all_exact_members_one_fresh_existing_planner_target_or_stop_safe",
+            }
+            if not exact_one_target:
+                selected = []
+                authority_budget_gate = {
+                    **authority_budget_gate,
+                    "valid": False,
+                    "blockers": sorted(set((authority_budget_gate.get("blockers") or []) + ["n10_small_cohort_exact_members_or_single_target_missing"])),
+                }
         authority_cap_applied = bool(authority_budget_gate.get("authority_cap_applied"))
         effective_cap_inputs = [
             affected_candidate_moves,
@@ -13986,6 +14165,8 @@ class AutoswitchPlanner:
         else:
             blast_radius_scope = "bounded_by_policy"
         restore_barrier = dict(self.restore_barrier)
+        if n10_small_cohort_convergence:
+            restore_barrier["n10_small_cohort_target_convergence"] = n10_small_cohort_convergence
         selected_moves_source = "planner_selection" if selected else "planner_no_selection"
         selected_before_restore_barrier = [
             {
@@ -17297,7 +17478,10 @@ class AutoswitchPlanner:
         )
         n10_product_contract = (
             str(action_contract.get("action_class") or "").upper()
-            == operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+            in {
+                operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+                operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            }
         )
         if n10_product_contract:
             barrier = safety.get("restore_barrier") or {}
@@ -17407,7 +17591,7 @@ class AutoswitchPlanner:
                 "snapshot_bundle_hash": str(
                     n10_window.get("snapshot_bundle_hash") or ""
                 ),
-                "max_users": 1,
+                "max_users": len(plan.get("selected_moves") or []),
             }
         entry_control = self._execution_control_decision(
             mutation_kind="forward",
@@ -17515,14 +17699,26 @@ class AutoswitchPlanner:
         strict_contract = ((action_contract.get("provenance") or {}).get("strict_provenance_contract") is True)
         if strict_contract:
             selected_for_contract = list(plan.get("selected_moves") or [])
-            if len(selected_for_contract) != 1:
+            contract_action_class = str(action_contract.get("action_class") or "").upper()
+            expected_contract_users = (
+                sorted({str(item).strip() for item in ((action_contract.get("subject") or {}).get("user_ips") or []) if str(item).strip()})
+                if contract_action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                else [str((action_contract.get("subject") or {}).get("user_ip") or "")]
+            )
+            is_n10_product_action = contract_action_class in {
+                operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+                operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            }
+            if (
+                (is_n10_product_action and sorted(str(row.get("user_ip") or "") for row in selected_for_contract) != expected_contract_users)
+                or (not is_n10_product_action and len(selected_for_contract) != 1)
+            ):
                 return {
                     "applied": False,
-                    "reason": "current_action_class_contract_exact_one_user_consumption_required",
+                    "reason": "current_action_class_contract_exact_member_consumption_required",
                     "selected_move_count": len(selected_for_contract),
                 }
             move = selected_for_contract[0]
-            contract_action_class = str(action_contract.get("action_class") or "").upper()
             contract_source_generation = (
                 n10_ordinary_like_source_generation(
                     self.args,
@@ -17531,6 +17727,12 @@ class AutoswitchPlanner:
                 )
                 if contract_action_class
                 == operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+                else n10_small_cohort_source_generation(
+                    self.args, expected_contract_users,
+                    str(move.get("current_egress") or ""),
+                )
+                if contract_action_class
+                == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
                 else action_class_contract_source_generation(plan, move)
             )
             try:
@@ -17538,7 +17740,11 @@ class AutoswitchPlanner:
                     Path(self.args.policy_file),
                     contract_id=str(action_contract.get("contract_id") or ""),
                     contract_hash=str(action_contract.get("contract_hash") or ""),
-                    subject={"user_ip": str(move.get("user_ip") or "")},
+                    subject=(
+                        {"user_ips": expected_contract_users}
+                        if contract_action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                        else {"user_ip": str(move.get("user_ip") or "")}
+                    ),
                     scope={
                         "source_egress": str(move.get("current_egress") or ""),
                         "target_egress": str(move.get("recommended_egress") or ""),
@@ -21043,6 +21249,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "Build and register one exact N10 ordinary-like Authority request "
             "for --user. It never chooses a target, writes policy, creates "
             "execution objects or changes routing."
+        ),
+    )
+    parser.add_argument(
+        "--n10-small-cohort-authority-request-only",
+        action="store_true",
+        help=(
+            "Build and register one exact 2--4 member N10 Authority request "
+            "from a fresh prepared Matrix/Planner class. It never accepts a "
+            "manual user/source/target, writes policy, or changes routing."
         ),
     )
     parser.add_argument(
@@ -27298,6 +27513,86 @@ def n10_ordinary_like_authority_request_only(args: argparse.Namespace) -> dict[s
     }
 
 
+def n10_small_cohort_authority_request_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Produce an exact N10 cohort request from one fresh prepared class.
+
+    No source, target or user may be named by the caller.  The only eligible
+    cohort is a 2--4 member slice already emitted by the Matrix-owned Planner
+    projection.  This is preparation, never an execution or a target choice.
+    """
+    forbidden = []
+    for name in ("user", "source_egress", "target_egress"):
+        if str(getattr(args, name, "") or "").strip():
+            forbidden.append(name)
+    if bool_value(getattr(args, "apply", False)):
+        forbidden.append("apply")
+    reuse = reuse_current_prepared_class_projection(args)
+    projection = reuse.get("prepared_class_decisions") or {}
+    raw_policy = read_json(Path(args.policy_file), {})
+    raw_budget = raw_policy.get("authority_budget") if isinstance(raw_policy.get("authority_budget"), dict) else {}
+    existing = raw_budget.get("current_action_class_contract") if isinstance(raw_budget.get("current_action_class_contract"), dict) else {}
+    existing_use = existing.get("one_use_consumption") if isinstance(existing.get("one_use_consumption"), dict) else {}
+    blockers = list(forbidden)
+    if not reuse.get("ok"):
+        blockers.extend(str(item) for item in (reuse.get("blockers") or ["prepared_projection_not_fresh"]))
+    if str(existing_use.get("state") or "") == "ISSUED" and parse_ts(existing.get("expires_at")) > datetime.now(timezone.utc).timestamp():
+        blockers.append("n10_unconsumed_current_action_contract_exists")
+    classes = [
+        row for row in (projection.get("classes") or [])
+        if isinstance(row, dict)
+        and 2 <= to_int(row.get("member_count"), 0) <= 4
+        and 2 <= len([item for item in (row.get("ordinary_member_slice") or []) if str(item)]) <= 4
+        and str(row.get("source_channel") or "")
+        and str(row.get("target_channel") or "")
+        and str(row.get("source_channel") or "") != str(row.get("target_channel") or "")
+    ]
+    # Require exactly one top-ranked compatible source class.  Ambiguity is a
+    # STOP_SAFE, rather than an implicit policy decision hidden in this adapter.
+    classes.sort(key=lambda row: (-to_int(row.get("member_count"), 0), str(row.get("class_id") or "")))
+    selected = classes[0] if len(classes) == 1 else {}
+    if not classes:
+        blockers.append("n10_small_cohort_prepared_class_missing")
+    elif len(classes) > 1:
+        blockers.append("n10_small_cohort_prepared_class_ambiguous")
+    members = sorted({str(item) for item in (selected.get("ordinary_member_slice") or []) if str(item)})
+    source = str(selected.get("source_channel") or "")
+    users = {str(row.get("ip") or ""): row for row in parse_registry(Path(args.state_dir) / "users.registry")}
+    if len(members) not in range(2, 5) or any(
+        not users.get(ip)
+        or bool_value(users[ip].get("certification_user"))
+        or str(users[ip].get("current") or "") != source
+        for ip in members
+    ):
+        blockers.append("n10_small_cohort_member_source_truth_changed")
+    generation = n10_small_cohort_source_generation(args, members, source) if not blockers else {}
+    if not all(str(generation.get(key) or "") for key in ("planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash")):
+        blockers.append("n10_small_cohort_owner_generation_missing")
+    authority_class = normalize_authority_class(raw_budget.get("certified_authority_class") or raw_budget.get("authority_class") or "CANARY")
+    template = {
+        "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        "action_class": operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+        "max_authority_class": authority_class, "authority_ceiling": authority_class,
+        "policy_generation_hash": sha256_file(Path(args.policy_file)),
+        "max_users": len(members), "max_concurrent_transactions": 1, "max_ttl_seconds": 900,
+        "subject": {"user_ips": members},
+        "scope": {"source_egress": source, "target_egress": "", "target_selection": operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION, "max_users": len(members), "max_concurrent_transactions": 1, "prepared_class_id": str(selected.get("class_id") or ""), "membership_fingerprint": str(selected.get("membership_fingerprint") or ""), "member_slice_fingerprint": str(selected.get("ordinary_member_slice_fingerprint") or "")},
+        "incident_generation": {"incident_id": "N10_SMALL_COHORT_NO_FAILURE_INJECTION", "incident_generation": str(generation.get("planner_generation_id") or "")},
+        "source_generation": generation,
+        "verification_contract": {"owner": "tools/v7-users-autoswitch", "required": True, "immediate_and_temporal_observation": True, "success_criteria": "every_member_exact_route_kernel_and_current_profile_required_services_server_side_s11_at_or_below_8000ms"},
+        "rollback_containment_contract": {"owner": "tools/v7-users-autoswitch", "required": True, "triggered_by_verifier": True, "direct_terminal_manufacture_forbidden": True},
+        "cooldown": {"required": True, "seconds": 180}, "anti_flap": {"required": True, "same_source_target_repeat_forbidden": True},
+        "stop_conditions": sorted(operator_execution.CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS | {"ordinary_scope_expansion_forbidden", "cohort_member_drift_forbidden", "cohort_target_divergence_forbidden", "first_member_failure_stops_remaining_forwards"}),
+    }
+    request = operator_execution.build_current_action_class_contract_authority_request(template, issue_preflight={"ready": not blockers, "blockers": sorted(set(blockers))})
+    registration = {"status": "NOT_REGISTERED"}
+    if not blockers:
+        try:
+            registration = operator_execution.register_current_action_class_contract_request(request, audit_store=args.action_class_audit_store, producer_id="tools/v7-users-autoswitch:n10-small-cohort")
+        except operator_execution.PacketError as exc:
+            blockers.append(str(exc))
+    return {"schema_version": "v7.n10-small-cohort-authority-request.v1", "status": "N10_SMALL_COHORT_AUTHORITY_REQUEST_READY" if not blockers else "STOP_SAFE_PRECONDITION", "ok": not blockers, "blockers": sorted(set(blockers)), "request": request, "registration": registration, "prepared_class": {"class_id": selected.get("class_id", ""), "members": members, "source": source, "target_is_unbound": True}, "next_required_consumer": "existing operator-execution Authority owner", "reentry": "prepared cohort -> fresh existing Planner -> Candidate -> Packet -> Lease -> Barrier -> existing v7-user-switch", "forbidden_effects": {"policy_write": False, "authority_granted": False, "runtime_apply": False, "routing_mutation": False, "user_movement": 0}}
+
+
 def routing_core_certification_authority_request_only(args: argparse.Namespace) -> dict[str, Any]:
     """Build the exact RESET-M6 one-use request from existing truth owners."""
     user_ip = str(getattr(args, "user", "") or "")
@@ -28769,6 +29064,10 @@ def main() -> int:
         return 0 if result.get("status") == "PASS" else 2
     if args.n10_ordinary_like_authority_request_only:
         result = n10_ordinary_like_authority_request_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("ok") else 2
+    if args.n10_small_cohort_authority_request_only:
+        result = n10_small_cohort_authority_request_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("ok") else 2
     if args.action_class_contract_reconciliation_only:

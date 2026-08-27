@@ -2075,6 +2075,50 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 source_generation=contract["source_generation"], operation_id="operation-2",
             )
 
+    def test_n10_small_cohort_contract_binds_exact_members_and_one_target(self):
+        members = ["10.7.0.19", "10.7.0.20", "10.7.0.21"]
+        request = build_current_action_class_contract_authority_request({
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "action_class": "N10_SMALL_COHORT",
+            "max_authority_class": "CANARY", "authority_ceiling": "CANARY",
+            "policy_generation_hash": "b" * 64,
+            "subject": {"user_ips": members},
+            "scope": {
+                "source_egress": "openvpn-source", "target_egress": "",
+                "target_selection": "FRESH_PLANNER_ONLY_AT_CONSUMPTION",
+                "prepared_class_id": "pcd-test", "membership_fingerprint": "members-test",
+            },
+            "max_users": 3, "max_concurrent_transactions": 1,
+            "incident_generation": {"incident_id": "n10-cohort", "incident_generation": "generation-1"},
+            "source_generation": {
+                "planner_generation_id": "planner-1", "source_bundle_hash": "source-1",
+                "snapshot_bundle_hash": "snapshot-1", "selected_move_hash": "move-1",
+            },
+            "verification_contract": {"owner": "tools/v7-users-autoswitch", "required": True, "immediate_and_temporal_observation": True, "success_criteria": "every_member_s11"},
+            "rollback_containment_contract": {"owner": "tools/v7-users-autoswitch", "required": True, "triggered_by_verifier": True, "direct_terminal_manufacture_forbidden": True},
+            "cooldown": {"required": True, "seconds": 180},
+            "anti_flap": {"required": True, "same_source_target_repeat_forbidden": True},
+            "stop_conditions": ["no_safe_target", "stale_or_changed_situation", "selected_move_identity_changed", "target_capacity_or_service_gate_failed", "verification_failure", "rollback_required", "authority_decision_expired", "one_use_consumed_or_contended"],
+        }, issue_preflight={"ready": True, "blockers": []})
+        valid = validate_current_action_class_contract_authority_request(
+            request, decision="APPROVE_ONCE_AS_SCOPED", expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+        )
+        self.assertTrue(valid["ok"], valid["errors"])
+        issued = issue_current_action_class_contract(
+            {"authority_budget": {}}, request, decision="APPROVE_ONCE_AS_SCOPED",
+            expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+            authority_actor_id="test-authority", authority_decision_id="accdec-cohort",
+        )
+        contract = issued["contract"]
+        self.assertEqual(contract["max_users"], 3)
+        self.assertEqual(contract["subject"]["user_ips"], members)
+        consumed = consume_current_action_class_contract(
+            issued["policy"], contract_id=contract["contract_id"], contract_hash=contract["contract_hash"],
+            subject={"user_ips": members}, scope={"source_egress": "openvpn-source", "target_egress": "awg3"},
+            source_generation=contract["source_generation"], operation_id="cohort-operation",
+        )
+        self.assertEqual(consumed["consumption"]["state"], "CONSUMED")
+
     def test_current_action_contract_request_expires_before_authority_issuance(self):
         now = datetime(2026, 7, 26, tzinfo=timezone.utc)
         request = build_current_action_class_contract_authority_request({

@@ -113,6 +113,48 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             )
             self.assertEqual(result["registration"]["status"], "REGISTERED")
 
+    def test_n10_small_cohort_request_uses_one_prepared_class_and_no_manual_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            members = ["10.7.0.19", "10.7.0.20", "10.7.0.21"]
+            (state / "users.registry").write_text(
+                "".join(f"ip={ip} current=openvpn-source table=10{index}\n" for index, ip in enumerate(members)),
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text("id=openvpn-source enabled=1\n", encoding="utf-8")
+            (state / "service-matrix.json").write_text(json.dumps({"items": {"openvpn-source": {"status": "OK", "services": {}}}}), encoding="utf-8")
+            (state / "service-preferences.json").write_text("{}", encoding="utf-8")
+            policy, org_policy, audit = root / "policy.json", root / "org-policy.json", root / "audit.jsonl"
+            policy.write_text(json.dumps({"authority_budget": {"authority_class": "CANARY"}}), encoding="utf-8")
+            org_policy.write_text("{}", encoding="utf-8")
+            args = SimpleNamespace(
+                user="", apply=False, target_egress="", source_egress="", state_dir=str(state),
+                policy_file=str(policy), org_policy_file=str(org_policy), safety_file=str(root / "safety.json"),
+                action_class_audit_store=str(audit),
+            )
+            projection = {
+                "classes": [{
+                    "class_id": "pcd_test", "member_count": 3,
+                    "ordinary_member_slice": members,
+                    "ordinary_member_slice_fingerprint": "slice-test",
+                    "membership_fingerprint": "members-test",
+                    "source_channel": "openvpn-source", "target_channel": "awg3",
+                }],
+            }
+            with mock.patch.object(self.tool, "reuse_current_prepared_class_projection", return_value={
+                "ok": True, "prepared_class_decisions": projection, "blockers": [],
+            }):
+                result = self.tool.n10_small_cohort_authority_request_only(args)
+            self.assertTrue(result["ok"], result.get("blockers"))
+            request = result["request"]
+            self.assertEqual(request["action_class"], operator_execution.N10_SMALL_COHORT_ACTION_CLASS)
+            self.assertEqual(request["subject"]["user_ips"], members)
+            self.assertEqual(request["scope"]["source_egress"], "openvpn-source")
+            self.assertEqual(request["scope"]["target_egress"], "")
+            self.assertEqual(request["scope"]["max_users"], 3)
+
     def test_n10_source_generation_ignores_matrix_envelope_but_not_source_health(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

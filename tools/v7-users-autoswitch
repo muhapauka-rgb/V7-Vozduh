@@ -14547,10 +14547,27 @@ class AutoswitchPlanner:
         # new Packet/Lease/Barrier before Apply.  Keep the historical lock in
         # the diagnostic surface, but let the existing Planner produce the
         # fresh Candidate needed by the existing Packet owner.
-        n10_foreign_expired_clearance = False
-        n10_foreign_expired_clearance_details: dict[str, Any] = {}
+        # A completed clearance is scoped to the transaction that created it.
+        # When the current ordinary service-failure incident is different from
+        # that expired lock, let the existing Planner build a fresh packet;
+        # never reuse or mutate the historical lock.
+        expired_foreign_clearance_reconciliation = False
+        expired_foreign_clearance_details: dict[str, Any] = {}
+        ordinary_service_failure_context = (
+            not n10_ordinary_like_context
+            and not bool_value(getattr(self.args, "emergency_failover_autonomy", False))
+            and bool_value(incident_source_continuity.get("active"))
+            and any(
+                str(move.get("current_egress") or "")
+                == str(incident_source_continuity.get("incident_source") or "")
+                and str(move.get("recommended_egress") or "")
+                and str(move.get("recommended_egress") or "")
+                != str(move.get("current_egress") or "")
+                for move in selected_before_restore_barrier
+            )
+        )
         if (
-            n10_ordinary_like_context
+            (n10_ordinary_like_context or ordinary_service_failure_context)
             and bool_value(restore_barrier.get("expired"))
             and bool_value(restore_barrier.get("cleared"))
             and approved_plan_lock.get("present")
@@ -14561,10 +14578,17 @@ class AutoswitchPlanner:
                 for item in (approved_plan_lock.get("selected_users") or [])
                 if str(item)
             }
-            n10_user = str(
-                ((current_action_contract.get("subject") or {}).get("user_ip"))
-                or ""
-            )
+            current_users = {
+                str(item.get("user_ip") or "")
+                for item in selected_before_restore_barrier
+                if str(item.get("user_ip") or "")
+            }
+            current_source = str(incident_source_continuity.get("incident_source") or "")
+            current_targets = {
+                str(item.get("recommended_egress") or "")
+                for item in selected_before_restore_barrier
+                if str(item.get("recommended_egress") or "")
+            }
             # An expired Packet clearance never remains a current decision for
             # N10.  That includes a previous, incomplete N10 attempt for the
             # same identity: the fresh one-use Authority contract below must
@@ -14574,30 +14598,73 @@ class AutoswitchPlanner:
             # as an Apply exemption would be unsafe.  The latter is never
             # allowed: this branch is candidate-only and the fresh packet
             # barrier still rechecks every mutable source before Apply.
-            if locked_users:
+            lock_source = str(
+                approved_plan_lock.get("source_egress")
+                or approved_plan_lock.get("incident_source")
+                or ""
+            )
+            lock_targets = {
+                str(item.get("recommended_egress") or "")
+                for item in (approved_plan_lock.get("selected_moves") or [])
+                if str(item.get("recommended_egress") or "")
+            }
+            lock_is_foreign = (
+                locked_users != current_users
+                or (lock_source and current_source and lock_source != current_source)
+                or (lock_targets and current_targets and lock_targets != current_targets)
+            )
+            # For N10 the expired lock is always a prior one-use transaction;
+            # ordinary production may ignore it only when the live incident
+            # proves a different user/source/target scope.
+            if locked_users and (n10_ordinary_like_context or lock_is_foreign):
                 relation = (
                     "same_identity"
-                    if locked_users == {n10_user}
+                    if locked_users == current_users
                     else "different_identity"
                 )
-                n10_foreign_expired_clearance = True
-                n10_foreign_expired_clearance_details = {
-                    "n10_foreign_expired_clearance_ignored": True,
-                    "n10_foreign_expired_clearance_reason": (
-                        "expired_packet_lock_not_current_n10_transaction"
+                expired_foreign_clearance_reconciliation = True
+                scope_label = (
+                    "n10" if n10_ordinary_like_context else "ordinary_service_failure"
+                )
+                expired_foreign_clearance_details = {
+                    "expired_foreign_clearance_reconciled": True,
+                    "expired_foreign_clearance_scope": scope_label,
+                    "expired_foreign_clearance_reason": (
+                        "expired_packet_lock_not_current_transaction_scope"
                     ),
-                    "n10_expired_clearance_identity_relation": relation,
-                    "n10_required_next_owner": (
+                    "expired_clearance_identity_relation": relation,
+                    "expired_clearance_current_users": sorted(current_users),
+                    "expired_clearance_current_source": current_source,
+                    "expired_clearance_current_targets": sorted(current_targets),
+                    "expired_clearance_lock_source": lock_source,
+                    "expired_clearance_lock_targets": sorted(lock_targets),
+                    "expired_clearance_required_next_owner": (
                         "existing operator-execution Packet/Lease/Barrier owner"
                     ),
-                    "n10_foreign_lock_users": sorted(locked_users),
+                    "expired_foreign_lock_users": sorted(locked_users),
                 }
-                # The lock remains visible above; it is not a current N10
-                # decision and cannot replace the freshly selected target.
+                if n10_ordinary_like_context:
+                    # Preserve the established N10 diagnostic contract for
+                    # existing consumers while sharing the safer generic
+                    # reconciliation path.
+                    expired_foreign_clearance_details.update({
+                        "n10_foreign_expired_clearance_ignored": True,
+                        "n10_foreign_expired_clearance_reason": (
+                            "expired_packet_lock_not_current_n10_transaction"
+                        ),
+                        "n10_expired_clearance_identity_relation": relation,
+                        "n10_required_next_owner": (
+                            "existing operator-execution Packet/Lease/Barrier owner"
+                        ),
+                        "n10_foreign_lock_users": sorted(locked_users),
+                    })
+                # The historical lock remains visible in the diagnostic
+                # surface; it is not a current decision and cannot replace a
+                # fresh target selected from the live incident.
                 approved_plan_lock = {
                     "present": False,
                     "ok": False,
-                    "reason": "n10_foreign_expired_clearance_ignored",
+                    "reason": "expired_foreign_clearance_reconciled",
                 }
         if approved_plan_lock.get("present"):
             restore_barrier["approved_plan_lock_validation"] = approved_plan_lock
@@ -14637,7 +14704,7 @@ class AutoswitchPlanner:
             bool_value(restore_barrier.get("expired"))
             and bool_value(restore_barrier.get("cleared"))
             and restore_barrier.get("clearance_max_selected_moves") is not None
-            and not n10_foreign_expired_clearance
+            and not expired_foreign_clearance_reconciliation
         ):
             clearance_max_selected_moves = to_int(restore_barrier.get("clearance_max_selected_moves"), 0)
             restore_barrier["clearance_selected_moves_before_guard"] = len(selected)
@@ -14658,7 +14725,7 @@ class AutoswitchPlanner:
             else:
                 restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_ok"
         intelligence_snapshot_gate = self._intelligence_snapshot_gate(len(selected))
-        if n10_foreign_expired_clearance:
+        if expired_foreign_clearance_reconciliation:
             # The old lock is neither a current source of truth nor a valid
             # source-bundle lease for this new identity.  The live Planner has
             # already read the current owners, and N10 cannot apply until a
@@ -14675,7 +14742,7 @@ class AutoswitchPlanner:
                     "stop_required": False,
                     "selected_moves_suppressed": False,
                     "selected_moves_after_gate": len(selected),
-                    "snapshot_gate_source": "n10_foreign_expired_clearance",
+                    "snapshot_gate_source": "expired_foreign_clearance_reconciliation",
                     "snapshot_gate_decision": (
                         "defer_to_fresh_packet_lease_barrier_recheck"
                     ),
@@ -14683,8 +14750,8 @@ class AutoswitchPlanner:
                         "foreign_expired_packet_clearance"
                     ],
                     "snapshot_gate_material_change": False,
-                    "n10_candidate_only_deferral": True,
-                    "n10_apply_exemption": False,
+                    "expired_foreign_clearance_candidate_only_deferral": True,
+                    "apply_exemption": False,
                 })
         else:
             intelligence_snapshot_gate = (
@@ -14712,8 +14779,8 @@ class AutoswitchPlanner:
         # canonical, on-disk barrier.  This annotation is diagnostic output,
         # not a new barrier generation and must not create a false snapshot
         # mismatch in the current transaction.
-        if n10_foreign_expired_clearance_details:
-            restore_barrier.update(n10_foreign_expired_clearance_details)
+        if expired_foreign_clearance_details:
+            restore_barrier.update(expired_foreign_clearance_details)
         if n10_ordinary_like_context:
             emergency_failover_gate = {
                 "enabled": False,

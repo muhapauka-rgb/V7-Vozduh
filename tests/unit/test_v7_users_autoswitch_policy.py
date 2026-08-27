@@ -1990,6 +1990,9 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         planner._verify_routes_for_apply = lambda ip, target: subprocess.CompletedProcess(
             ["verify"], 0, stdout="ok",
         )
+        planner._reuse_or_verify_emergency_required_services = lambda move: (
+            subprocess.CompletedProcess(["service-verify"], 0, stdout="ok")
+        )
         planner._bounded_cohort_checkpoint = lambda *_args, **_kwargs: {
             "checkpoint": {"state": "SUCCESS"},
         }

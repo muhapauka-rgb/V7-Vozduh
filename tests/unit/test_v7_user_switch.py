@@ -384,6 +384,74 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertIn("certification_user=1", row)
         self.assertIn("certification_group=polygon-l7-canary", row)
 
+    def test_core_primary_contract_rebuilds_current_membership_after_registry_commit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, _ip_log = self.fixture(root)
+            sync_log = root / "sync.log"
+            sync = root / "bin" / "v7-routing-sync"
+            sync.write_text(
+                "#!/bin/sh\n"
+                f"printf '%s\\n' \"$*\" >> '{sync_log}'\n"
+                "if [ \"$1\" = \"--core-primary-active\" ]; then\n"
+                "  printf '{\\\"status\\\": \\\"CORE_PRIMARY_ACTIVE\\\"}\\n'\n"
+                "  exit 0\n"
+                "fi\n"
+                "if [ \"$1\" = \"--core-primary-apply\" ]; then\n"
+                "  printf '{\\\"status\\\": \\\"CORE_PRIMARY_APPLY_PASS\\\"}\\n'\n"
+                "  exit 0\n"
+                "fi\n"
+                "exit 2\n",
+                encoding="utf-8",
+            )
+            sync.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_test",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-test",
+                "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",
+                "V7_EXECUTION_MAX_USERS": "1",
+            })
+            result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
+            calls = sync_log.read_text(encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("--core-primary-active --json", calls)
+        self.assertIn("--core-primary-apply --json", calls)
+        self.assertIn("V7_CORE_PRIMARY_SYNC=PASS", result.stdout)
+
+    def test_core_primary_sync_failure_is_returned_to_the_existing_caller(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, _ip_log = self.fixture(root)
+            sync = root / "bin" / "v7-routing-sync"
+            sync.write_text(
+                "#!/bin/sh\n"
+                "if [ \"$1\" = \"--core-primary-active\" ]; then\n"
+                "  printf '{\\\"status\\\": \\\"CORE_PRIMARY_ACTIVE\\\"}\\n'; exit 0\n"
+                "fi\n"
+                "printf '{\\\"status\\\": \\\"STOP_SAFE\\\"}\\n'; exit 2\n",
+                encoding="utf-8",
+            )
+            sync.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_test",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-test",
+                "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",
+                "V7_EXECUTION_MAX_USERS": "1",
+            })
+            result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
+            registry = (root / "state" / "users.registry").read_text(encoding="utf-8")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("V7_ROUTE_WRITE_FAILURE=ROUTE_CORE_PRIMARY_SYNC_FAILED_ROLLBACK_FAILED", result.stdout)
+        self.assertIn("current=1", registry)
+
     def test_uncertified_rollback_context_is_denied_before_validator_and_ip(self):
         with tempfile.TemporaryDirectory() as tmp:
             env, ip_log = self.fixture(Path(tmp))

@@ -21,6 +21,7 @@ class RoutingSyncCoreTests(unittest.TestCase):
         self.assertIn("result = core_primary_apply() if authority_ok else legacy_sync()", source)
         self.assertIn("def retire_legacy_primary_routes", source)
         self.assertIn('"legacy_fallback_ready": True', source)
+        self.assertIn("def core_primary_active", source)
 
     def test_script_parses(self):
         loader = importlib.machinery.SourceFileLoader("v7_routing_sync_core", str(SCRIPT))
@@ -28,6 +29,24 @@ class RoutingSyncCoreTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         loader.exec_module(module)
         self.assertEqual(module.NFT_TABLE, "v7_routing_core")
+
+    def test_core_primary_active_exposes_only_existing_contract_state(self):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_routing_sync_active", str(SCRIPT),
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        with mock.patch.object(
+            module, "exact_reset_authority", return_value=(True, {"contract_id": "rcpp-test"}),
+        ):
+            active = module.core_primary_active()
+        with mock.patch.object(module, "exact_reset_authority", return_value=(False, {})):
+            inactive = module.core_primary_active()
+        self.assertEqual(active["status"], "CORE_PRIMARY_ACTIVE")
+        self.assertEqual(active["authority_contract_id"], "rcpp-test")
+        self.assertFalse(active["runtime_mutation"])
+        self.assertEqual(inactive["status"], "CORE_PRIMARY_INACTIVE")
 
     def test_scoped_user_sync_repairs_only_exact_registry_identity(self):
         loader = importlib.machinery.SourceFileLoader(

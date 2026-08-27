@@ -154,6 +154,47 @@ if [ "$CONTROL_HASH_REUSED" != "1" ]; then
 fi
 V7_ROUTE_TIMING_BOOTSTRAP_AND_CONTROL_VALIDATED="$(v7_route_timing_now)"
 
+# The Core-primary owner is the authoritative projection for every compatible
+# registry assignment when its approved contract is active.  Ask that owner
+# rather than duplicating policy parsing here.  Legacy installs retain their
+# existing per-user path unchanged.
+CORE_PRIMARY_ACTIVE=0
+if command -v v7-routing-sync >/dev/null 2>&1; then
+  core_primary_status="$(v7-routing-sync --core-primary-active --json 2>/dev/null || true)"
+  if printf '%s\n' "$core_primary_status" | grep -Fq '"status": "CORE_PRIMARY_ACTIVE"'; then
+    CORE_PRIMARY_ACTIVE=1
+  fi
+fi
+
+# A Core-primary rebuild derives from the registry.  Keep a narrowly scoped
+# preimage only for the duration of this one governed operation so a failed
+# rebuild cannot leave the canonical assignment ahead of the live map.
+CORE_REGISTRY_BACKUP=""
+CORE_ASSIGNMENT_BACKUP=""
+CORE_ASSIGNMENT_EXISTED=0
+ASSIGNMENT_FILE="$STATE_DIR/user-${USER_IP}.assign"
+cleanup_core_primary_preimage() {
+  [ -z "${CORE_REGISTRY_BACKUP:-}" ] || rm -f "$CORE_REGISTRY_BACKUP" || true
+  [ -z "${CORE_ASSIGNMENT_BACKUP:-}" ] || rm -f "$CORE_ASSIGNMENT_BACKUP" || true
+}
+trap cleanup_core_primary_preimage EXIT
+if [ "$CORE_PRIMARY_ACTIVE" = "1" ]; then
+  CORE_REGISTRY_BACKUP="${REG}.core-primary-rollback.$$"
+  if ! cp "$REG" "$CORE_REGISTRY_BACKUP"; then
+    echo "V7_ROUTE_WRITE_FAILURE=ROUTE_CORE_PRIMARY_PREIMAGE_FAILED"
+    exit 1
+  fi
+  if [ -e "$ASSIGNMENT_FILE" ]; then
+    CORE_ASSIGNMENT_EXISTED=1
+    CORE_ASSIGNMENT_BACKUP="${ASSIGNMENT_FILE}.core-primary-rollback.$$"
+    if ! cp "$ASSIGNMENT_FILE" "$CORE_ASSIGNMENT_BACKUP"; then
+      rm -f "$CORE_REGISTRY_BACKUP" || true
+      echo "V7_ROUTE_WRITE_FAILURE=ROUTE_CORE_PRIMARY_PREIMAGE_FAILED"
+      exit 1
+    fi
+  fi
+fi
+
 echo "[V7] user $USER_IP -> $EGRESS / table $table / dev $dev"
 if [ -r /proc/uptime ]; then
   read -r V7_ROUTE_WRITE_STARTED _ < /proc/uptime
@@ -207,7 +248,7 @@ echo "V7_TIMING_ROUTE_WRITE_CLOCK=$V7_ROUTE_WRITE_CLOCK"
 echo "V7_TIMING_ROUTE_WRITE_MS=$V7_ROUTE_WRITE_MS"
 
 now=$(date +%s)
-if ! cat > "$STATE_DIR/user-${USER_IP}.assign" <<STATE
+if ! cat > "$ASSIGNMENT_FILE" <<STATE
 egress=$EGRESS
 last_switch=$now
 fail_count=0
@@ -242,6 +283,43 @@ if ! mv "$tmp" "$REG"; then
   exit 1
 fi
 V7_ROUTE_TIMING_REGISTRY_COMMITTED="$(v7_route_timing_now)"
+
+# Rebuild the existing Core-primary projection immediately from the just
+# committed canonical registry.  Without this hand-off a successful governed
+# user switch can leave the nft membership map temporarily pointed at the old
+# egress class.  This is not another route writer or state source: it invokes
+# the current registry-wide owner and fails closed if that owner cannot commit.
+if [ "$CORE_PRIMARY_ACTIVE" = "1" ]; then
+  if ! core_primary_apply_output="$(v7-routing-sync --core-primary-apply --json 2>&1)"; then
+    core_primary_apply_output=""
+  fi
+  if ! printf '%s\n' "$core_primary_apply_output" | grep -Fq '"status": "CORE_PRIMARY_APPLY_PASS"'; then
+    rollback_ok=1
+    if ! mv "$CORE_REGISTRY_BACKUP" "$REG"; then
+      rollback_ok=0
+    fi
+    if [ "$CORE_ASSIGNMENT_EXISTED" = "1" ]; then
+      if ! mv "$CORE_ASSIGNMENT_BACKUP" "$ASSIGNMENT_FILE"; then
+        rollback_ok=0
+      fi
+    else
+      rm -f "$ASSIGNMENT_FILE" || rollback_ok=0
+    fi
+    rollback_apply_output="$(v7-routing-sync --core-primary-apply --json 2>&1 || true)"
+    if ! printf '%s\n' "$rollback_apply_output" | grep -Fq '"status": "CORE_PRIMARY_APPLY_PASS"'; then
+      rollback_ok=0
+    fi
+    cleanup_core_primary_preimage
+    if [ "$rollback_ok" = "1" ]; then
+      echo "V7_ROUTE_WRITE_FAILURE=ROUTE_CORE_PRIMARY_SYNC_FAILED_ROLLBACK_RESTORED"
+    else
+      echo "V7_ROUTE_WRITE_FAILURE=ROUTE_CORE_PRIMARY_SYNC_FAILED_ROLLBACK_FAILED"
+    fi
+    exit 1
+  fi
+  cleanup_core_primary_preimage
+  echo "V7_CORE_PRIMARY_SYNC=PASS"
+fi
 
 if command -v v7-audit-log >/dev/null 2>&1; then
   v7-audit-log "user_switch" "users" "ip=$USER_IP from=$FROM_EGRESS to=$EGRESS table=$table dev=$dev breaker_generation=$CONTROL_GENERATION" >/dev/null 2>&1 || true

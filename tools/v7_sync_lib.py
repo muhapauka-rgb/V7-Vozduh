@@ -26047,6 +26047,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-user-route-check",
+        "local_path": "tools/runtime-support/v7-user-route-check",
+        "remote_path": "/usr/local/bin/v7-user-route-check",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-state-merge",
         "local_path": "tools/runtime-support/v7-state-merge",
         "remote_path": "/usr/local/bin/v7-state-merge",

@@ -221,6 +221,29 @@ def core_primary_fallback() -> dict:
     return {"status": "CORE_PRIMARY_FALLBACK_PASS", "legacy": legacy, "core_table_present": False}
 
 
+def nft_map_elements(payload: object, name: str) -> tuple[set[tuple[str, str]], bool]:
+    """Return the exact live nft map contents without making them a new state source."""
+    if not isinstance(payload, dict):
+        return set(), False
+    entries = payload.get("nftables")
+    if not isinstance(entries, list):
+        return set(), False
+    for entry in entries:
+        mapping = entry.get("map") if isinstance(entry, dict) else None
+        if not isinstance(mapping, dict) or str(mapping.get("name") or "") != name:
+            continue
+        elements = mapping.get("elem")
+        if not isinstance(elements, list):
+            return set(), False
+        normalized: set[tuple[str, str]] = set()
+        for element in elements:
+            if not isinstance(element, list) or len(element) != 2:
+                return set(), False
+            normalized.add((str(element[0]), str(element[1])))
+        return normalized, True
+    return set(), False
+
+
 def verify() -> dict:
     authority_ok, authority = exact_reset_authority(POLICY)
     users, classes = derived_classes()
@@ -229,7 +252,55 @@ def verify() -> dict:
     rule_rows = json.loads(rules.stdout or "[]") if rules.returncode == 0 else []
     marks = {str(row.get("fwmark") or "") for row in rule_rows}
     missing = [hex(row["mark"]) for row in classes if hex(row["mark"]) not in marks]
-    return {"status": "CORE_PRIMARY_VERIFY_PASS" if authority_ok and nft.returncode == 0 and not missing else "STOP_SAFE", "authority_contract_id": authority.get("contract_id", ""), "users": len(users), "classes": len(classes), "nft_table_present": nft.returncode == 0, "missing_mark_rules": missing, "legacy_primary_rules_present": any(str(row.get("priority") or "") in {str(user.get("table") or "") for user in users} for row in rule_rows), "legacy_fallback_ready": all(str(user.get("table") or "") and str(user.get("ip") or "") for user in users)}
+    try:
+        nft_payload = json.loads(nft.stdout or "{}") if nft.returncode == 0 else {}
+    except json.JSONDecodeError:
+        nft_payload = {}
+    actual_user_class, user_class_readable = nft_map_elements(
+        nft_payload, "user_class",
+    )
+    actual_class_egress, class_egress_readable = nft_map_elements(
+        nft_payload, "class_egress",
+    )
+    expected_user_class = {
+        (str(member), str(row["mark"]))
+        for row in classes for member in row["members"]
+    }
+    expected_class_egress = {
+        (str(row["mark"]), str(row["mark"])) for row in classes
+    }
+    user_class_missing = expected_user_class - actual_user_class
+    user_class_unexpected = actual_user_class - expected_user_class
+    class_egress_missing = expected_class_egress - actual_class_egress
+    class_egress_unexpected = actual_class_egress - expected_class_egress
+    maps_ok = (
+        user_class_readable
+        and class_egress_readable
+        and not user_class_missing
+        and not user_class_unexpected
+        and not class_egress_missing
+        and not class_egress_unexpected
+    )
+    return {
+        "status": "CORE_PRIMARY_VERIFY_PASS" if authority_ok and nft.returncode == 0 and not missing and maps_ok else "STOP_SAFE",
+        "authority_contract_id": authority.get("contract_id", ""),
+        "users": len(users),
+        "classes": len(classes),
+        "nft_table_present": nft.returncode == 0,
+        "missing_mark_rules": missing,
+        "user_class_map_readable": user_class_readable,
+        "user_class_expected_count": len(expected_user_class),
+        "user_class_actual_count": len(actual_user_class),
+        "user_class_missing_count": len(user_class_missing),
+        "user_class_unexpected_count": len(user_class_unexpected),
+        "class_egress_map_readable": class_egress_readable,
+        "class_egress_expected_count": len(expected_class_egress),
+        "class_egress_actual_count": len(actual_class_egress),
+        "class_egress_missing_count": len(class_egress_missing),
+        "class_egress_unexpected_count": len(class_egress_unexpected),
+        "legacy_primary_rules_present": any(str(row.get("priority") or "") in {str(user.get("table") or "") for user in users} for row in rule_rows),
+        "legacy_fallback_ready": all(str(user.get("table") or "") and str(user.get("ip") or "") for user in users),
+    }
 
 
 def main() -> int:

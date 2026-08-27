@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -u
+
+# Existing V7 route-reality verifier.  It has two lawful modes:
+# legacy per-user tables and the approved Core-primary class route owner.
+# Core-primary is authoritative when its own exact verification passes; a
+# retired per-user table must never be treated as a missing live route there.
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USERS_REG="$STATE_DIR/users.registry"
+LIB="${V7_EGRESS_LIB:-/usr/local/lib/v7-egress-lib}"
+[ -r "$LIB" ] && . "$LIB"
+FAIL=0
+WARN=0
+
+fail() { echo "FAIL: $*"; FAIL=1; }
+warn() { echo "WARN: $*"; WARN=1; }
+ok() { echo "OK: $*"; }
+
+expected_dev_for() {
+  if command -v v7_egress_interface >/dev/null 2>&1; then
+    v7_egress_interface "$1"
+  else
+    echo ""
+  fi
+}
+
+routing_mode="LEGACY_PER_USER"
+core_verify_status="UNAVAILABLE"
+core_legacy_primary=""
+if command -v v7-routing-sync >/dev/null 2>&1; then
+  core_verify_output="$(v7-routing-sync --core-primary-verify --json 2>&1 || true)"
+  core_verify_status="$(printf '%s\n' "$core_verify_output" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | tail -n1)"
+  core_legacy_primary="$(printf '%s\n' "$core_verify_output" | sed -n 's/.*"legacy_primary_rules_present"[[:space:]]*:[[:space:]]*\(true\|false\).*/\1/p' | tail -n1)"
+  if [ "$core_verify_status" = "CORE_PRIMARY_VERIFY_PASS" ]; then
+    routing_mode="CORE_PRIMARY_CLASS_ROUTING"
+  elif [ "$core_legacy_primary" = "true" ]; then
+    routing_mode="LEGACY_PER_USER"
+  else
+    routing_mode="CORE_PRIMARY_UNVERIFIED"
+  fi
+fi
+
+echo "===== V7 USER ROUTE REALITY CHECK ====="
+date -Is
+echo "routing_mode=$routing_mode"
+echo "core_verify_status=${core_verify_status:-UNKNOWN}"
+
+[ -s "$USERS_REG" ] || { echo "FAIL: users registry missing"; exit 1; }
+
+if [ "$routing_mode" = "CORE_PRIMARY_UNVERIFIED" ]; then
+  fail "core-primary route owner is not independently verified"
+fi
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  case "$line" in \#*) continue ;; esac
+  ip="$(v7_kv_get "$line" ip)"
+  current="$(v7_kv_get "$line" current)"
+  table="$(v7_kv_get "$line" table)"
+  enabled="$(v7_kv_get "$line" enabled)"
+  [ "${enabled:-0}" != "1" ] && continue
+  v7_safe_ip "$ip" || { fail "unsafe ip in registry: $line"; continue; }
+  [[ "$table" =~ ^[0-9]+$ ]] || { fail "unsafe table for user=$ip table=$table"; continue; }
+
+  assign="$STATE_DIR/user-${ip}.assign"
+  assign_egress="$(grep '^egress=' "$assign" 2>/dev/null | cut -d= -f2 || true)"
+  expected_dev="$(expected_dev_for "$current")"
+
+  echo
+  echo "USER=$ip TABLE=$table REGISTRY_EGRESS=$current ASSIGN_EGRESS=${assign_egress:-missing} EXPECTED_DEV=${expected_dev:-unknown}"
+
+  if [ -z "$expected_dev" ]; then
+    fail "user=$ip unknown egress=$current"
+    continue
+  fi
+
+  if [ "$assign_egress" != "$current" ]; then
+    warn "user=$ip registry/assign mismatch registry=$current assign=${assign_egress:-missing}"
+  else
+    ok "user=$ip registry matches assignment"
+  fi
+
+  if [ "$routing_mode" = "CORE_PRIMARY_CLASS_ROUTING" ]; then
+    # v7-routing-sync verifies every enabled registry identity is present in
+    # the live nft user_class map and every class has its fwmark route.  An
+    # individual `ip route get` before ingress marking deliberately observes
+    # the host default and is not a valid probe of this data-plane owner.
+    ok "user=$ip is covered by verified Core-primary class routing"
+    continue
+  fi
+
+  [ "$routing_mode" = "LEGACY_PER_USER" ] || continue
+  table_route="$(ip route show table "$table" 2>/dev/null || true)"
+  echo "table_route=$table_route"
+  if echo "$table_route" | grep -q "default dev $expected_dev"; then
+    ok "user=$ip table=$table default dev $expected_dev"
+  else
+    fail "user=$ip table=$table does not default to $expected_dev"
+  fi
+
+  route_get="$(ip route get 8.8.8.8 from "$ip" iif wg0 2>/dev/null || true)"
+  echo "route_get=$route_get"
+  if echo "$route_get" | grep -q "dev $expected_dev"; then
+    ok "user=$ip route_get uses $expected_dev"
+  elif echo "$route_get" | grep -q 'dev ens3'; then
+    fail "user=$ip route_get leaks to public ens3"
+  else
+    fail "user=$ip route_get unexpected"
+  fi
+done < "$USERS_REG"
+
+echo
+echo "===== RESULT ====="
+if [ "$FAIL" -eq 1 ]; then
+  echo "V7_USER_ROUTE_CHECK=FAIL"
+  exit 1
+elif [ "$WARN" -eq 1 ]; then
+  echo "V7_USER_ROUTE_CHECK=WARN"
+  exit 0
+else
+  echo "V7_USER_ROUTE_CHECK=OK"
+  exit 0
+fi

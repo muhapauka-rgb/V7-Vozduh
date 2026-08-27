@@ -292,7 +292,10 @@ def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> di
     proc = run([
         "nft", "-f", "-",
     ], input_text=(
-        f"replace element {NFT_FAMILY} {NFT_TABLE} user_class {{ {element_text} }}\n"
+        # The deployed nft parser accepts the established map-update grammar
+        # as ``add element``.  A map key is replaced atomically by this one
+        # batch; no delete/recreate or per-user full projection is introduced.
+        f"add element {NFT_FAMILY} {NFT_TABLE} user_class {{ {element_text} }}\n"
     ))
     if proc.returncode:
         return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_nft_atomic_commit_failed", proc.stdout[-1000:]], "runtime_mutation": False}

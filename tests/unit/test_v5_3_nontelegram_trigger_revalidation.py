@@ -61,16 +61,17 @@ class V53NonTelegramTriggerRevalidationTest(unittest.TestCase):
         diagnose = self.read("tools/v7-egress-diagnose")
         autoswitch = self.read("tools/v7-users-autoswitch")
         health = self.read("systemd/v7-health.service")
-        caller = self.read("systemd/v7-users-autoswitch.service")
-        timer = self.read("systemd/v7-users-autoswitch.timer")
 
         self.assertIn("interface_down_or_missing", diagnose)
         health_loop = self.read("tools/runtime-support/v7-health-loop")
         self.assertIn("v7-health-loop", health)
         self.assertIn("v7-egress-diagnose", health_loop)
         self.assertIn("v7-state-merge", health_loop)
-        self.assertIn("--execute-l3-production-validation", caller)
-        self.assertIn("v7-users-autoswitch.service", timer)
+        # The health owner is the only automatic caller.  The governed
+        # autoswitch service remains a manual recovery fallback, not a timer.
+        installer = self.read("tools/v7-autoswitch-install-systemd")
+        self.assertIn("disable --now v7-users-autoswitch.timer", installer)
+        self.assertNotIn("enable --now v7-users-autoswitch.timer", installer)
         self.assertIn('reason == "interface_down_or_missing"', autoswitch)
         self.assertIn('"confirmed_current_channel_failure"', autoswitch)
         self.assertIn('"source_object": "v7-state.json:egress[].diagnose_severity/diagnose_reason + users.registry assignment"', autoswitch)
@@ -79,10 +80,8 @@ class V53NonTelegramTriggerRevalidationTest(unittest.TestCase):
         self.assertIn("TUNNEL_UP_INTERNET_DEAD", diagnose)
 
     def test_generic_service_and_quality_surfaces_have_no_early_trigger(self):
-        matrix_timer = self.read("systemd/v7-service-matrix-refresh.timer")
         matrix_service = self.read("systemd/v7-service-matrix-refresh.service")
         quality = self.read("tools/v7-egress-quality-compact")
-        self.assertIn("OnUnitActiveSec=15min", matrix_timer)
         self.assertIn("v7-service-matrix-refresh-all", matrix_service)
         self.assertNotIn("--services", matrix_service)
         self.assertNotIn("systemctl start", quality)

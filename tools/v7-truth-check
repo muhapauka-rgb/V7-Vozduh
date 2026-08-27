@@ -78,12 +78,10 @@ RUNTIME_READONLY_COMMANDS = [
     ["sha256sum", "/usr/local/bin/v7-service-matrix-test"],
     ["sha256sum", "/usr/local/bin/v7-egress-quality-compact"],
     ["systemctl", "status", "v7-users-autoswitch.service", "--no-pager"],
-    ["systemctl", "status", "v7-users-autoswitch.timer", "--no-pager"],
-    # The Service Matrix (rather than the deliberately inactive legacy
-    # autoswitch timer) is the production consumer named by a Matrix-owned
-    # controlled-certification successor.  Keep its caller status observable
-    # in the same read-only runtime snapshot as the successor itself.
-    ["systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager"],
+    # The single health owner loads the Matrix consumer.  Historical
+    # standalone Matrix/autoswitch timers are intentionally not a Runtime
+    # dependency and therefore do not belong to this snapshot contract.
+    ["systemctl", "status", "v7-health.service", "--no-pager"],
     ["systemctl", "status", "v7-admin-api.service", "--no-pager"],
     ["systemctl", "status", "v7-intelligence-snapshot-refresh.service", "--no-pager"],
     ["systemctl", "status", "v7-intelligence-snapshot-refresh.timer", "--no-pager"],
@@ -311,21 +309,21 @@ def current_matrix_owned_service_failure_successor(root: Path) -> dict[str, Any]
     }
 
 
-def read_live_matrix_timer_status(
+def read_live_matrix_owner_status(
     manifest: dict[str, Any], *, runner: CommandRunner = run_command,
 ) -> dict[str, Any]:
-    """Read the CPS-named Matrix caller without changing Runtime state.
+    """Read the CPS-named Matrix owner without changing Runtime state.
 
     The runtime snapshot is intentionally compact and can predate an added
     read-only probe.  A Matrix-owned successor therefore obtains this one
     static systemd status directly from the already configured production
-    target.  It never invokes Matrix, starts a unit, or changes a timer.
+    target.  It never invokes Matrix or starts a unit.
     """
     target = str(manifest.get("production_ssh_target") or "").strip()
     if not re.fullmatch(r"[A-Za-z0-9._-]+", target):
         return {"ok": False, "error": "production_ssh_target_invalid"}
     static_remote_command = shlex.join([
-        "systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager",
+        "systemctl", "status", "v7-health.service", "--no-pager",
     ])
     result = runner(["ssh", target, static_remote_command], ROOT_DIR, 30)
     return {
@@ -334,7 +332,7 @@ def read_live_matrix_timer_status(
         "rc": int(result.get("returncode", result.get("rc", 1)) or 0),
         "stdout": str(result.get("stdout") or ""),
         "stderr": str(result.get("stderr") or ""),
-        "source": "v7-truth-check-live-readonly-matrix-timer",
+        "source": "v7-truth-check-live-readonly-v7-health-matrix-owner",
     }
 
 
@@ -645,17 +643,17 @@ def runtime_readonly_check(
     matrix_successor = current_matrix_owned_service_failure_successor(
         Path(str(manifest.get("canonical_workspace") or ""))
     )
-    matrix_timer_command = command_key(
-        ["systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager"]
+    matrix_owner_command = command_key(
+        ["systemctl", "status", "v7-health.service", "--no-pager"]
     )
     if (
         matrix_successor.get("matrix_owned")
-        and matrix_timer_command not in command_results
+        and matrix_owner_command not in command_results
     ):
         # Fill only the exact missing caller-status cell from the existing
         # production read-only access path.  This is an observation, not a
         # snapshot write or a substitute for the Matrix consumer.
-        command_results[matrix_timer_command] = read_live_matrix_timer_status(
+        command_results[matrix_owner_command] = read_live_matrix_owner_status(
             manifest, runner=runner,
         )
     observed_keys = set(command_results)
@@ -703,38 +701,34 @@ def runtime_readonly_check(
         if derived.get("service_inactive_explained") is not True:
             blockers.append("autoswitch_service_inactive_unexplained")
 
-    # CPS may name the Matrix as the sole next consumer even though the
-    # historical autoswitch service is intentionally inactive.  Previously
-    # runtime truth accepted that projection without checking whether the
-    # named Matrix timer was actually able to deliver a wake.  That creates a
-    # durable successor with no provable live caller.  The check is strictly
-    # observational: it neither starts the timer nor invokes Matrix manually.
-    matrix_timer_result = command_results.get(matrix_timer_command)
-    matrix_timer_output = str(
-        (matrix_timer_result or {}).get("stdout") or ""
+    # CPS may name Matrix as the sole successor consumer while historical
+    # standalone timers are absent.  Prove its real health owner instead.
+    matrix_owner_result = command_results.get(matrix_owner_command)
+    matrix_owner_output = str(
+        (matrix_owner_result or {}).get("stdout") or ""
     ).lower()
-    matrix_timer_active = bool(
-        isinstance(matrix_timer_result, dict)
-        and int(matrix_timer_result.get("rc", 1)) == 0
-        and "active: active" in matrix_timer_output
+    matrix_owner_active = bool(
+        isinstance(matrix_owner_result, dict)
+        and int(matrix_owner_result.get("rc", 1)) == 0
+        and "active: active" in matrix_owner_output
     )
     matrix_runtime_consumer = {
         "required_by_current_cps": bool(matrix_successor.get("matrix_owned")),
         "frontier": str(matrix_successor.get("frontier") or ""),
         "consumer": str(matrix_successor.get("consumer") or ""),
-        "timer_status_known": isinstance(matrix_timer_result, dict),
-        "timer_active": matrix_timer_active,
-        "timer_status_source": str(
-            (matrix_timer_result or {}).get("source") or "runtime_snapshot"
+        "owner_status_known": isinstance(matrix_owner_result, dict),
+        "owner_active": matrix_owner_active,
+        "owner_status_source": str(
+            (matrix_owner_result or {}).get("source") or "runtime_snapshot"
         ),
         "status": (
-            "LIVE_MATRIX_TIMER_PROVEN"
-            if not matrix_successor.get("matrix_owned") or matrix_timer_active
-            else "MATRIX_SUCCESSOR_WITHOUT_LIVE_TIMER_CALLER"
+            "LIVE_V7_HEALTH_MATRIX_OWNER_PROVEN"
+            if not matrix_successor.get("matrix_owned") or matrix_owner_active
+            else "MATRIX_SUCCESSOR_WITHOUT_LIVE_HEALTH_OWNER"
         ),
     }
-    if matrix_successor.get("matrix_owned") and not matrix_timer_active:
-        blockers.append("matrix_owned_successor_without_live_timer_caller")
+    if matrix_successor.get("matrix_owned") and not matrix_owner_active:
+        blockers.append("matrix_owned_successor_without_live_health_owner")
     for key in (
         "binary_hashes_known",
         "binary_hashes_match_authoritative",

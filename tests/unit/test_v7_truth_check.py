@@ -480,7 +480,7 @@ class V7TruthCheckTest(unittest.TestCase):
             self.assertEqual(result["final_verdict"], "PASS")
             self.assertEqual(result["runtime_access_status"], "READY")
 
-    def test_matrix_owned_successor_requires_live_matrix_timer(self):
+    def test_matrix_owned_successor_requires_live_health_matrix_owner(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
@@ -499,10 +499,10 @@ class V7TruthCheckTest(unittest.TestCase):
             manifest = self.manifest(workspace=tmp)
             manifest["runtime_snapshot_path"] = str(root / "runtime-snapshot.json")
             snapshot = self.runtime_snapshot()
-            timer_command = self.tool.command_key([
-                "systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager",
+            owner_command = self.tool.command_key([
+                "systemctl", "status", "v7-health.service", "--no-pager",
             ])
-            snapshot["command_results"][timer_command] = {
+            snapshot["command_results"][owner_command] = {
                 "rc": 3, "stdout": "Active: inactive (dead)", "stderr": "",
             }
             Path(manifest["runtime_snapshot_path"]).write_text(
@@ -513,15 +513,15 @@ class V7TruthCheckTest(unittest.TestCase):
             )
         self.assertEqual(result["final_verdict"], "NO-GO")
         self.assertIn(
-            "matrix_owned_successor_without_live_timer_caller",
+            "matrix_owned_successor_without_live_health_owner",
             result["blockers"],
         )
         self.assertEqual(
             result["runtime"]["matrix_runtime_consumer"]["status"],
-            "MATRIX_SUCCESSOR_WITHOUT_LIVE_TIMER_CALLER",
+            "MATRIX_SUCCESSOR_WITHOUT_LIVE_HEALTH_OWNER",
         )
 
-    def test_matrix_owned_successor_accepts_live_matrix_timer(self):
+    def test_matrix_owned_successor_accepts_live_health_matrix_owner(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
@@ -540,11 +540,11 @@ class V7TruthCheckTest(unittest.TestCase):
             manifest = self.manifest(workspace=tmp)
             manifest["runtime_snapshot_path"] = str(root / "runtime-snapshot.json")
             snapshot = self.runtime_snapshot()
-            timer_command = self.tool.command_key([
-                "systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager",
+            owner_command = self.tool.command_key([
+                "systemctl", "status", "v7-health.service", "--no-pager",
             ])
-            snapshot["command_results"][timer_command] = {
-                "rc": 0, "stdout": "Active: active (waiting)", "stderr": "",
+            snapshot["command_results"][owner_command] = {
+                "rc": 0, "stdout": "Active: active (running)", "stderr": "",
             }
             Path(manifest["runtime_snapshot_path"]).write_text(
                 json.dumps(snapshot), encoding="utf-8"
@@ -555,7 +555,7 @@ class V7TruthCheckTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(
             result["runtime"]["matrix_runtime_consumer"]["status"],
-            "LIVE_MATRIX_TIMER_PROVEN",
+            "LIVE_V7_HEALTH_MATRIX_OWNER_PROVEN",
         )
 
     def test_deploy_metadata_runtime_identity_remains_fail_closed_on_mismatch(self):

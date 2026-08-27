@@ -8372,7 +8372,7 @@ def consume_service_failure_automation_frontier(
                 # observation/revalidation.  Source CPS records that
                 # existing consumer explicitly; it is not a new scheduler.
                 "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": "`tools/v7-service-matrix-refresh-all`",
-                "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": "`enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor`",
+                "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": "`active v7-health.service loads the existing Matrix consumer for fresh observation and durable active-incident successor consumption`",
                 "CURRENT_SERVICE_FAILURE_LAST_OUTCOME_POINTER": f"`{scope_projection.get('outcome_id') or ''}`",
                 "CURRENT_SERVICE_FAILURE_LEARNING_POINTER": f"`{scope_projection.get('learning_id') or ''}`",
             }
@@ -9424,7 +9424,7 @@ def heartbeat_program_reentry(
                     expected_generation=current_generation,
                     section0_field_overrides={
                         "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": "`tools/v7-service-matrix-refresh-all`",
-                        "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": "`enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor`",
+                        "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": "`active v7-health.service loads the existing Matrix consumer for fresh observation and durable active-incident successor consumption`",
                     },
                 )
                 return {
@@ -9770,8 +9770,8 @@ def heartbeat_program_reentry(
                         {
                             "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": "`tools/v7-service-matrix-refresh-all`",
                             "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": (
-                                "`enabled v7-service-matrix-refresh.timer performs fresh observation "
-                                "and consumes the durable Service Failure successor`"
+                                "`active v7-health.service loads the existing Matrix consumer for fresh observation "
+                                "and durable Service Failure successor consumption`"
                             ),
                         }
                         if matrix_owned_incident_drain else None
@@ -22151,7 +22151,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 "the active contract and supersedes the one-off topology "
                 "request before fresh topology revalidation`"
                 if pending_controlled_topology_policy else
-                "`enabled v7-service-matrix-refresh.timer performs a fresh "
+                "`active v7-health.service loads the existing Matrix consumer for a fresh "
                 "target health/capacity observation and consumes the same "
                 "approved campaign stage through existing live gates`"
                 if m9_campaign_active else
@@ -22403,7 +22403,7 @@ def reconcile_rs6_stale_frontier_to_existing_successor(
         "PRIMARY_ENGINEERING_NEXT_ACTION": f"`{next_action}`",
         "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": f"`{matrix_consumer}`",
         "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": (
-            "`enabled v7-service-matrix-refresh.timer performs fresh observation and consumes "
+            "`active v7-health.service loads the existing Matrix consumer for fresh observation and consumes "
             "the durable active-incident successor`"
         ),
         "INCIDENT_FRONTIER": f"`{next_action}`",
@@ -24688,12 +24688,12 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
             ).strip("`") == "tools/v7-service-matrix-refresh-all",
             matrix_reentry_condition in {
                 (
-                    "enabled v7-service-matrix-refresh.timer performs fresh observation "
-                    "and consumes the durable active-incident successor"
+                    "active v7-health.service loads the existing Matrix consumer for fresh observation "
+                    "and durable active-incident successor consumption"
                 ),
                 (
-                    "enabled v7-service-matrix-refresh.timer performs fresh observation "
-                    "and consumes the durable Service Failure successor"
+                    "active v7-health.service loads the existing Matrix consumer for fresh observation "
+                    "and durable Service Failure successor consumption"
                 ),
             },
         ))
@@ -26842,7 +26842,6 @@ def build_runtime_fingerprint(*, branch: str, commit: str, deploy_id: str) -> di
             "v7-autoswitch-planner.service",
             "v7-autoswitch-planner.timer",
             "v7-users-autoswitch.service",
-            "v7-users-autoswitch.timer",
             "v7-admin-api.service",
             "v7-client-speed-api.service",
             *SNAPSHOT_SYSTEMD_UNITS,

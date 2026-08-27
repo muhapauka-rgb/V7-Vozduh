@@ -41,6 +41,68 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(next(reader), latest)
             reader.close()
 
+    def test_l3_capability_projection_excludes_only_authority_proven_n10_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            audit = root / "operator-execution-audit.jsonl"
+            n10_operation = "runtime_n10_product"
+            l3_operation = "runtime_real_l3"
+            audit.write_text(
+                "\n".join([
+                    json.dumps({
+                        "record_type": "current_action_class_contract_request_emitted",
+                        "authority_request_id": "n10-request",
+                        "request": {
+                            "request_id": "n10-request",
+                            "action_class": operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                        },
+                    }),
+                    json.dumps({
+                        "record_type": "current_action_class_contract_consumed",
+                        "authority_request_id": "n10-request",
+                        "operation_id": n10_operation,
+                    }),
+                ]) + "\n",
+                encoding="utf-8",
+            )
+            (state / "execution-events.jsonl").write_text(
+                "\n".join([
+                    json.dumps({
+                        "schema_version": "v7.execution-outcome-feedback.v1",
+                        "operation_id": n10_operation,
+                        "outcome_status": "success",
+                        "l3_incident_key": "must-not-count",
+                    }),
+                    json.dumps({
+                        "schema_version": "v7.execution-outcome-feedback.v1",
+                        "operation_id": l3_operation,
+                        "outcome_status": "success",
+                        "l3_incident_key": "real-l3",
+                    }),
+                ]) + "\n",
+                encoding="utf-8",
+            )
+            (state / "closure-records.jsonl").write_text(
+                json.dumps({
+                    "schema_version": "v7.execution-feedback-closure.v1",
+                    "operation_id": l3_operation,
+                }) + "\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.tool.AutoswitchPlanner)
+            planner.args = SimpleNamespace(action_class_audit_store=str(audit))
+            planner.state_dir = state
+            planner.emergency_failover_policy = {"enabled": False}
+            result = planner._refresh_l3_capability_projection({})
+            self.assertEqual(result["success_outcomes"], 1)
+            self.assertEqual(result["last_operation_id"], l3_operation)
+            self.assertEqual(
+                result["excluded_n10_product_operation_ids"], [n10_operation]
+            )
+            self.assertEqual(result["excluded_n10_product_feedback_count"], 1)
+
     @classmethod
     def setUpClass(cls):
         cls.tool = load_tool_module()

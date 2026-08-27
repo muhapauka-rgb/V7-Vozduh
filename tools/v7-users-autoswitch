@@ -7170,6 +7170,129 @@ class AutoswitchPlanner:
             return binding
         return binding
 
+    def _n10_product_operation_ids_from_authority_audit(self) -> set[str]:
+        """Return only operations proven by the existing Authority audit as N10.
+
+        Older N10 releases accidentally produced L3 feedback records before
+        the finalizer learned that a governed product migration has its own
+        closure owner.  The immutable records stay intact; this compact
+        reader reconstructs their product identity from the existing
+        request->consumption lineage so L3 never consumes them as emergency
+        evidence.  Missing or malformed lineage deliberately remains L3
+        evidence rather than being guessed away.
+        """
+        audit_store = Path(getattr(
+            getattr(self, "args", argparse.Namespace()),
+            "action_class_audit_store",
+            str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+        ))
+        request_classes: dict[str, str] = {}
+        for row in operator_execution.read_audit_records(audit_store):
+            if str(row.get("record_type") or "") != "current_action_class_contract_request_emitted":
+                continue
+            request = row.get("request") if isinstance(row.get("request"), dict) else {}
+            request_id = str(row.get("authority_request_id") or request.get("request_id") or "")
+            action_class = str(request.get("action_class") or "").upper()
+            if request_id and action_class in {
+                operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+                operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            }:
+                request_classes[request_id] = action_class
+        return {
+            str(row.get("operation_id") or "")
+            for row in operator_execution.read_audit_records(audit_store)
+            if str(row.get("record_type") or "") == "current_action_class_contract_consumed"
+            and str(row.get("authority_request_id") or "") in request_classes
+            and str(row.get("operation_id") or "")
+        }
+
+    def _l3_feedback_rows_excluding_n10_products(self) -> dict[str, Any]:
+        """Read L3 feedback while preserving exact historical N10 evidence.
+
+        This is a read-model correction, not an append/delete path.  It makes
+        the capability projection truthful without introducing another state
+        owner or treating a route result as proof of product intent.
+        """
+        excluded_operations = self._n10_product_operation_ids_from_authority_audit()
+
+        def retain(row: dict[str, Any]) -> bool:
+            return str(row.get("operation_id") or "") not in excluded_operations
+
+        execution_rows = [
+            row for row in read_jsonl(self.state_dir / "execution-events.jsonl")
+            if "execution-" in str(row.get("schema_version") or "") and retain(row)
+        ]
+        closure_rows = [
+            row for row in read_jsonl(self.state_dir / "closure-records.jsonl")
+            if "execution-feedback-closure" in str(row.get("schema_version") or "")
+            and retain(row)
+        ]
+        return {
+            "execution_rows": execution_rows,
+            "closure_rows": closure_rows,
+            "excluded_n10_product_operation_ids": sorted(excluded_operations),
+            "excluded_n10_product_feedback_count": sum(
+                1
+                for row in read_jsonl(self.state_dir / "execution-events.jsonl")
+                if "execution-" in str(row.get("schema_version") or "")
+                and str(row.get("operation_id") or "") in excluded_operations
+            ),
+        }
+
+    def _refresh_l3_capability_projection(self, state: dict[str, Any]) -> dict[str, Any]:
+        """Repair the existing L3 read projection from its exact evidence."""
+        feedback = self._l3_feedback_rows_excluding_n10_products()
+        outcome_rows = [
+            row for row in feedback["execution_rows"]
+            if "execution-outcome" in str(row.get("schema_version") or "")
+        ]
+        success_count = sum(
+            1 for row in outcome_rows
+            if str(row.get("outcome_status") or "") == "success"
+        )
+        rollback_count = sum(
+            1 for row in outcome_rows
+            if str(row.get("outcome_status") or "") == "rollback_required"
+        )
+        failure_count = sum(
+            1 for row in outcome_rows
+            if str(row.get("outcome_status") or "") in {"failure", "no_execution"}
+        )
+        capability_state = "IMPLEMENTED"
+        if outcome_rows:
+            capability_state = "VALIDATED"
+        if success_count or rollback_count:
+            capability_state = "PRODUCTION_PROVEN"
+        if success_count and feedback["closure_rows"]:
+            capability_state = "CERTIFIED"
+        if capability_state == "CERTIFIED" and bool_value(self.emergency_failover_policy.get("enabled")):
+            capability_state = "ACTIVE_CAPABILITY"
+        latest = outcome_rows[-1] if outcome_rows else {}
+        capability = {
+            "schema_version": "v7.l3-capability-state.v1",
+            "capability": "L3_EMERGENCY_AUTONOMOUS_FAILOVER",
+            "state": capability_state,
+            "implemented": True,
+            "validated": bool(outcome_rows),
+            "production_proven": bool(success_count or rollback_count),
+            "certified": bool(success_count and feedback["closure_rows"]),
+            "active_capability": capability_state == "ACTIVE_CAPABILITY",
+            "success_outcomes": success_count,
+            "rollback_outcomes": rollback_count,
+            "failure_or_no_execution_outcomes": failure_count,
+            "closure_records": len(feedback["closure_rows"]),
+            "last_operation_id": str(latest.get("operation_id") or ""),
+            "last_incident_key": str(latest.get("l3_incident_key") or ""),
+            "runtime_ready_for_next_incident": True,
+            "omp_consumable": True,
+        }
+        previous = state.get("capability") if isinstance(state.get("capability"), dict) else {}
+        semantic_previous = {key: value for key, value in previous.items() if key != "updated"}
+        changed = semantic_previous != capability
+        capability["updated"] = now_iso() if changed else str(previous.get("updated") or "")
+        state["capability"] = capability
+        return {**capability, "changed": changed, **feedback}
+
     def _reconcile_incident_scope_accounting(
         self,
         *,
@@ -8320,6 +8443,14 @@ class AutoswitchPlanner:
             state,
         )
         changed += int(recovery_reconciliation.get("changed") or 0)
+        capability_projection: dict[str, Any] = {}
+        # Passive reconciliation must not manufacture a capability projection
+        # in a minimal/no-L3 deployment.  When the existing L3 owner has
+        # already materialized one, refresh it from its immutable evidence.
+        if isinstance(state.get("capability"), dict):
+            capability_projection = self._refresh_l3_capability_projection(state)
+            if capability_projection.get("changed"):
+                changed += 1
         # Older L3 records were created before passive service-failure
         # receipts became the normal recovery carrier.  They can therefore
         # remain OPEN forever even after the Matrix has freshly proved every
@@ -8438,6 +8569,16 @@ class AutoswitchPlanner:
             "rejected_records": sorted(set(rejected)),
             "ignored_non_l3_binding_count": ignored_non_l3_binding_count,
             "ignored_non_l3_binding_kinds": sorted(ignored_non_l3_binding_kinds),
+            "l3_capability_projection": {
+                key: capability_projection.get(key)
+                for key in (
+                    "state", "success_outcomes", "rollback_outcomes",
+                    "failure_or_no_execution_outcomes", "closure_records",
+                    "last_operation_id", "last_incident_key",
+                    "excluded_n10_product_operation_ids",
+                    "excluded_n10_product_feedback_count", "changed",
+                )
+            },
             "recovery_terminal_reconciliation": recovery_reconciliation,
             "historical_l3_recovery_reconciliation": {
                 "changed": len(l3_recovered),
@@ -20290,12 +20431,13 @@ class AutoswitchPlanner:
         processed.update(str(item) for item in (((safety.get("l3_wake") or {}).get("consumed_event_ids") or [])) if str(item))
         state["processed_event_ids"] = sorted(processed)[-500:]
 
-        rows = [row for row in read_jsonl(self.state_dir / "execution-events.jsonl") if "execution-" in str(row.get("schema_version") or "")]
+        feedback_projection = self._l3_feedback_rows_excluding_n10_products()
+        rows = feedback_projection["execution_rows"]
         outcome_rows = [row for row in rows if "execution-outcome" in str(row.get("schema_version") or "")]
         success_count = sum(1 for row in outcome_rows if str(row.get("outcome_status") or "") == "success")
         rollback_count = sum(1 for row in outcome_rows if str(row.get("outcome_status") or "") == "rollback_required")
         failure_count = sum(1 for row in outcome_rows if str(row.get("outcome_status") or "") in {"failure", "no_execution"})
-        closure_count = len([row for row in read_jsonl(self.state_dir / "closure-records.jsonl") if "execution-feedback-closure" in str(row.get("schema_version") or "")])
+        closure_count = len(feedback_projection["closure_rows"])
         capability_state = "IMPLEMENTED"
         if outcome_rows:
             capability_state = "VALIDATED"

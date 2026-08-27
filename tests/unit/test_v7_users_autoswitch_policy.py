@@ -294,6 +294,19 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 args, "10.7.0.5", "wireguard-source",
             )
             self.assertEqual(before, envelope_only)
+            # A completed historical episode may be retained in the Matrix
+            # while the service is currently healthy.  It is not a new source
+            # condition and must not make a just-issued N10 contract stale.
+            matrix["items"]["wireguard-source"]["services"]["google"].update({
+                "source_incident_id": "historical-episode-rewritten",
+                "previous_failure_family": "TIMEOUT",
+                "recovery_from_episode_id": "historical-recovery",
+            })
+            (state / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+            historical_only = self.tool.n10_ordinary_like_source_generation(
+                args, "10.7.0.5", "wireguard-source",
+            )
+            self.assertEqual(before, historical_only)
             matrix["items"]["wireguard-source"]["services"]["google"]["status"] = "DOWN"
             matrix["items"]["wireguard-source"]["services"]["google"]["failure_state"] = "CONFIRMED_FAILURE"
             (state / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")

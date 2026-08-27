@@ -2552,21 +2552,41 @@ def n10_ordinary_like_matrix_semantic_generation(
     source = items.get(source_egress) if isinstance(items, dict) else {}
     source = source if isinstance(source, dict) else {}
     services = source.get("services") if isinstance(source.get("services"), dict) else {}
-    service_projection = {
-        str(name): {
+    service_projection = {}
+    for name, service in sorted(services.items()):
+        if not isinstance(service, dict):
+            continue
+        failure_state = str(service.get("failure_state") or "").upper()
+        failure_family = str(service.get("failure_family") or "").upper()
+        # A completed episode can remain attached to a healthy service as
+        # historical provenance.  It is useful for diagnosis, but it is not
+        # a current source condition and must not invalidate an otherwise
+        # exact N10 one-use contract between issuance and consumption.  Keep
+        # the active lifecycle identity only while the service is actually
+        # non-healthy; status/failure state/family still invalidate on every
+        # real present-tense degradation or recovery transition.
+        active_failure_lifecycle = (
+            failure_state not in {"", "HEALTHY", "OK", "RECOVERED"}
+            or failure_family not in {"", "NONE", "HEALTHY", "OK"}
+        )
+        projection = {
             key: service.get(key)
             for key in (
                 "ok", "status", "severity", "failure_state",
-                "failure_family", "previous_failure_family",
-                "source_incident_id", "recovery_from_episode_id",
-                "recovery_from_event_id", "recovery_event_id",
-                "episode_terminal", "egress_identity_generation",
+                "failure_family", "egress_identity_generation",
                 "egress_config_generation",
             )
         }
-        for name, service in sorted(services.items())
-        if isinstance(service, dict)
-    }
+        if active_failure_lifecycle:
+            projection.update({
+                key: service.get(key)
+                for key in (
+                    "source_incident_id", "recovery_from_episode_id",
+                    "recovery_from_event_id", "recovery_event_id",
+                    "episode_terminal",
+                )
+            })
+        service_projection[str(name)] = projection
     fitness = source.get("route_class_fitness")
     fitness = fitness if isinstance(fitness, dict) else {}
     fitness_projection = {

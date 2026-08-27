@@ -64,14 +64,16 @@ and moved zero users.  No ordinary user was exposed to the stale cohort.
 
 The first post-deploy rebuild produced three current classes and excluded the
 stale source slice.  It found no lawful unambiguous 2--4 member N10 class, so
-the Authority request remained unregistered.  The response is being narrowed
-to this root condition only; a missing class must not be presented as a
-spurious member or generation mismatch.
+the Authority request remained unregistered.  The diagnostic narrowing was
+published as `8b193808aa1aeb0538a395c84e081cd1b3be09a9` and deployed as
+`deploy-z8-14-Updatesystem-8b19380-20260827T132300`; local, GitHub and Runtime
+truth all passed.  The final owner response is exactly
+`n10_small_cohort_prepared_class_missing`.
 
 ## Exact next step
 
-Safely deploy the final diagnostic narrowing, rebuild through the existing
-Matrix owner once, and re-enter the existing Authority owner.  It may create
-the N10 request only if it finds one fresh, unambiguous 2--4 member class.
-Otherwise the correct terminal is `STOP_SAFE` with no user movement; an
-ordinary production cohort must not be manufactured from stale history.
+The current state is `WAITING_CURRENT_N10_COHORT`.  Re-enter the existing
+Matrix and Authority owners only when they naturally expose one fresh,
+unambiguous 2--4 member live-source class.  Until then the correct terminal is
+`STOP_SAFE` with no user movement; an ordinary production cohort must not be
+manufactured from stale history.

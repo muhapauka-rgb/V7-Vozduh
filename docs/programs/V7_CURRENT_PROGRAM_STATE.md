@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-27T10:46:46+03:00
+State captured: 2026-08-27T13:23:00+03:00
 Latest terminal Mission: `V7_N10_SMALL_COHORT_PRODUCTION_ADOPTION`
 Latest terminal Mission state: `N10_SMALL_COHORT_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
@@ -21,7 +21,7 @@ This section is the single live volatile current-state surface. Older production
 | --- | --- |
 | `ACTIVE_PROGRAM` | `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
 | `PRIMARY_ENGINEERING_FRONTIER` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `PRIMARY_ENGINEERING_NEXT_ACTION` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
+| `PRIMARY_ENGINEERING_NEXT_ACTION` | `N10_FRESH_LAWFUL_COHORT_REENTRY_REQUIRED` |
 | `LEGACY_V7_ROUTING_HOT_PATH` | `FROZEN_FOR_CAPABILITY_GROWTH; PROGRAM_LEVEL_ENGINEERING_RULE_ONLY; RUNTIME_UNCHANGED` |
 | `SYSTEM_RESET_PROGRAM_CONTRACT` | `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` |
 | `SYSTEM_RESET_PROGRAM_STATE` | `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE` |
@@ -39,17 +39,17 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
-| `STATE_CAPTURED` | `2026-08-27T10:46:46+03:00` |
+| `CURRENT_STOP_CONDITION` | `WAITING_CURRENT_N10_COHORT` |
+| `STATE_CAPTURED` | `2026-08-27T13:23:00+03:00` |
 | `LATEST_SUPPORTING_LIFECYCLE_RECONCILIATION` | `EXPIRED_CT_M0F_CERTIFICATION_SOURCE_RESERVATION_RECONCILED: exact identity 10.7.0.108 returned to awg0 through the existing governed chain; source restored to exact owner backup with zero occupants; reservation ctres_d899f66f641229141922acc7 invalidated as cstopinv_a32b6ddde10fe43fb8563bc7; ordinary-user delta=0. This closes supporting lifecycle state only and does not alter the N10 frontier. Report: docs/reports/engineering/2026-08-26_v5_3_telegram_critical_latency_root_cause_and_safe_reduction.md` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED: owner-approved Core-primary cohort commit is deployed at b8400c480143f5529ee7bf2a718153b7d900aeb5 and Runtime revalidation passes (125/125 memberships; 4/4 classes; v7-health active; legacy standalone Matrix/Telegram timers inactive). The extension stages only a 2–4 member N10 cohort, atomically publishes only its map delta, then verifies affected routes plus the whole system and rolls back on failure. No new ordinary movement is authorized until Product/Authority issues one fresh exact bounded cohort contract with members, source/target scope, maximum, rollback and observation terms.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `N10_FRESH_LAWFUL_COHORT_REENTRY_REQUIRED: live-source reconciliation is deployed at 8b193808aa1aeb0538a395c84e081cd1b3be09a9 (deploy-z8-14-Updatesystem-8b19380-20260827T132300). Matrix rebuilt its projection from current owners (3 classes; 4 target contracts) and correctly found no fresh unambiguous 2–4 ordinary-member class. User consent is retained, but no contract, route or user movement may be manufactured. Re-enter only when the existing Matrix owner emits a current live-source cohort; then the existing Authority owner may create one exact one-use contract.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_20260827` |
-| `CURRENT_TRANSITION_ID` | `V5_3_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_N10_LIVE_SOURCE_COHORT_RECONCILED_20260827` |
+| `CURRENT_TRANSITION_ID` | `V5_3_N10_LIVE_SOURCE_COHORT_RECONCILIATION_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `N10_FRESH_LAWFUL_COHORT_REENTRY_REQUIRED` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_CURRENT_STATE:N10_FRESH_LAWFUL_COHORT_REENTRY_REQUIRED` |
 | `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1,NOT_REQUIRED_ALREADY_CONSUMED; N2,CONTROLLED_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_CONSUMED; N3,NOT_REQUIRED_ALREADY_CONSUMED; N4,NOT_REQUIRED_ALREADY_CONSUMED; N5,NOT_REQUIRED_ALREADY_CONSUMED; N6,NOT_REQUIRED_ALREADY_CONSUMED; N7,TELEGRAM_CLASS_FAILURE_TO_T0_CAUSAL_RECONCILIATION; N8,CONTROLLED_AUTOMATIC_TELEGRAM_S11_FUNCTIONAL_PROOF_REQUIRED_SCOPE_CONSUMED_PERFORMANCE_FAIL; N9,NOT_REQUIRED_ALREADY_CONSUMED; N10,ORDINARY_LIKE_ONE_DEVICE_AND_SMALL_COHORT_CONSUMED_CORE_PRIMARY_COHORT_COMMIT_DEPLOYED_AWAITING_NEW_EXACT_PRODUCT_AUTHORITY; N11,READ_ONLY_DISCOVERY_PARTIAL_ROUTE_SCOPE_RECONCILED_REMAINDER_OPEN` |
 | `HARD_PATH_RUNTIME_SLO` | `FINAL_FINGERPRINT=993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418; frozen valid distribution 2661.051, 2887.710, 6520.639, 2144.202, 3840.331 ms (P95=6520.639 ms; one sample >5 s). Historical 3 s/5 s objective remains unmet. OWNER_ACCEPTED_CURRENT_2VCPU_ROLLOUT_CONTRACT=P95<=7000 ms,max<=8000 ms; exact S11 and all safety semantics unchanged.` |
 | `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN_PERFORMANCE_LOGIC; bounded lifecycle-consumer repairs are deployed at 63bc020f7db75b7421b4383bd443e9509c8c0fdb (deploy-z8-14-Updatesystem-63bc020-20260826T145345). No further HARD-path micro-optimization is admitted.` |
@@ -59,7 +59,7 @@ This section is the single live volatile current-state surface. Older production
 | `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `FUNCTIONAL_S11_PROVEN_PERFORMANCE_FAIL; FAST_SIGNAL_WRITER_CONTENTION_CORRECTION_DEPLOYED_AT_e1d04fa remains live: healthy Telegram observations complete in approximately 0.25--0.50 s without a Matrix writer lock. Diagnostics-only commit 5ac5dd4 is deployed. Its first exact cause was temporary service_preferences changed after the snapshot; corrected ordering yielded valid sample ctm0fsample_f428b96f42e835ff5f4614e2: full automatic S11 passed at 25,354.419 ms, exceeding the current 8 s ceiling. Source, client route and profile reset passed; ordinary-user delta=0.` |
 | `V5_3_TELEGRAM_CONTROLLED_COLD_SAMPLE` | `FUNCTIONALLY_VALID_PERFORMANCE_FAIL; transaction=ctm0ftx_7b76fcada1c0e0999885c3c8; sample=ctm0fsample_a5b05102cbd5111f139d1144; prepared-decision reused; failure-detection=13,566.293 ms; failure-to-decision=14,755.000 ms; decision-to-Apply-admission=276.174 ms; assignment=836.763 ms; kernel visibility=33.211 ms; route-bound required-service verification=1,183.018 ms; onset-to-S11=17,759.208 ms; source restored; ordinary-user delta=0.` |
 | `V5_3_TELEGRAM_CONTROLLED_FRESH_SAMPLE` | `FUNCTIONALLY_VALID_PERFORMANCE_FAIL; contract=ctm0fsdpc_208482a67dc4103e5f0ef7b6; sample=ctm0fsample_f428b96f42e835ff5f4614e2; existing owners selected the target automatically; failure-to-decision=18,163.325 ms; decision-to-Apply=240.232 ms; assignment=685.845 ms; kernel visibility=17.853 ms; required-service S11 tail=6,247.165 ms; onset-to-S11=25,354.419 ms. It remains in evidence and fails the current 8 s ceiling. Terminal reset restored 10.7.0.124 to awg0 and removed its temporary profile; ordinary-user delta=0.` |
-| `V5_3_N10_CURRENT_STATUS` | `N10_SMALL_COHORT_CONSUMED: exact two-member one-use Authority acc_fe89f57530e7069ba80e9a5f completed fresh Planner -> Candidate/Packet/Lease/Barrier -> sole writer -> route/kernel -> required-service S11 on Planner-selected awg3. Per-member Apply->S11 was 1,132.873 ms and 1,070.531 ms, both <=8,000 ms; circuit breaker stayed clear and rollback was not needed. The contract is consumed. Next bounded production requires a new exact product/Authority scope and must not reuse or widen this cohort.` |
+| `V5_3_N10_CURRENT_STATUS` | `N10_SMALL_COHORT_CONSUMED: exact two-member one-use Authority acc_fe89f57530e7069ba80e9a5f completed fresh Planner -> Candidate/Packet/Lease/Barrier -> sole writer -> route/kernel -> required-service S11 on Planner-selected awg3. Per-member Apply->S11 was 1,132.873 ms and 1,070.531 ms, both <=8,000 ms; circuit breaker stayed clear and rollback was not needed. The contract is consumed. The subsequent owner-approved re-entry found a stale prepared source and deployed live-source reconciliation at 8b193808; current Matrix rebuild has no lawful unambiguous 2–4 ordinary-member class, so no new contract is registered and no user moves. Re-enter only on a fresh owner-backed class.` |
 | `CT_M0F_SHARED_TARGET_COLD_SAMPLE` | `VALID_FUNCTIONAL_COLD_SAMPLE; contract=sdpc_1cc223801f69992ac18f6e2e; Matrix/Planner selected awg3 (not manually); onset-to-control-plane-and-kernel cutover=4768.462 ms; failure-to-decision=3299.169 ms; decision-to-apply=263.808 ms; assignment=735.131 ms; kernel visibility=15.995 ms; target route-bound payload=454.359 ms; 3 s performance target failed, but the 5 s per-sample ceiling passed. Reset returned 10.7.0.124 to the isolated source; ordinary-user delta=0.` |
 | `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_PARTIAL; broad route checker is reconciled as a whole-system Core-primary verifier and exact governed verification remains per admitted scope. Current Core-primary exact verification passes 125/125 memberships and 4/4 classes. N11 owner/caller/unit/state-surface replacement closure remains open; no deletion is admitted by this result.` |
 | `V5_3_RUNTIME_LIVE_HEALTH` | `v7-health.service active; legacy standalone Matrix/Telegram timers disabled; role-based health loop is current producer` |
@@ -69,14 +69,14 @@ This section is the single live volatile current-state surface. Older production
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_WAITING_INPUT_N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
+| `CONTINUATION_DECISION` | `PROGRAM_WAITING_CURRENT_STATE_N10_FRESH_LAWFUL_COHORT_REENTRY_REQUIRED` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `EXTERNAL_OWNER_REQUIRED_N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED` |
+| `PROGRAM_TERMINAL_STATE` | `WAITING_CURRENT_N10_COHORT` |
 | `OMP_CONTINUATION_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED: the Core-primary cohort-commit owner extension is deployed and verified. Product/Authority must now issue one fresh non-reusable bounded-production contract defining the exact 2–4 ordinary identities or class slice, source/target scope, maximum simultaneous movement, rollback, observation and stop conditions. No client may move merely to demonstrate the new implementation.` |
+| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_TYPE` | `NONE: owner consent is already recorded. Re-entry requires a naturally current owner-backed 2–4 ordinary-member source class; no client or source may be manufactured solely to demonstrate N10.` |
 | `TRANSACTION_TERMINAL_CLASS` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED` |
-| `PROGRAM_TERMINAL_CLASS` | `EXTERNAL_OWNER_REQUIRED` |
+| `PROGRAM_TERMINAL_CLASS` | `WAITING_CURRENT_STATE` |
 | `NEXT_MISSION_FORMED` | `FALSE` |
 | `NEXT_MISSION_ID` | `NONE_PROGRAM_TRACK_ONLY` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |

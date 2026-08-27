@@ -21226,6 +21226,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--force-prepared-class-projection-rebuild",
+        action="store_true",
+        help=(
+            "For the existing Matrix projection owner only: rebuild a legacy "
+            "prepared projection before returning it. It is observation-only "
+            "and cannot create execution objects or route changes."
+        ),
+    )
+    parser.add_argument(
         "--matrix-comparative-preflight",
         action="store_true",
         help=(
@@ -29011,7 +29020,7 @@ def main() -> int:
         return 0 if result.get("status") == "PASS" else 2
     if args.prepared_class_projection_only:
         reuse = reuse_current_prepared_class_projection(args)
-        if reuse.get("ok"):
+        if reuse.get("ok") and not args.force_prepared_class_projection_rebuild:
             result = {
                 "schema_version": "v7.prepared-class-projection-only.v1",
                 "status": "PASS",

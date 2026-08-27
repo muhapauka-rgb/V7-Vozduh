@@ -4778,6 +4778,24 @@ def refresh_prepared_class_projection(
         "--state-dir", str(state_dir),
         "--event-dir", str(state_dir.parent / "events"),
     ]
+    existing_summary = read_json(summary_file, {})
+    existing_projection = (
+        existing_summary.get("prepared_class_decisions")
+        if isinstance(existing_summary, dict)
+        and isinstance(existing_summary.get("prepared_class_decisions"), dict)
+        else {}
+    )
+    legacy_cohort_projection = any(
+        not isinstance(row.get("ordinary_member_slice"), list)
+        or not str(row.get("ordinary_member_slice_fingerprint") or "")
+        for row in (existing_projection.get("classes") or [])
+        if isinstance(row, dict)
+    )
+    if legacy_cohort_projection:
+        # The same Matrix/Planner owner performs the one-time rebuild.  This
+        # is background preparation, never an incident-time member scan and
+        # never a route/user mutation.
+        command.append("--force-prepared-class-projection-rebuild")
     started_ns = time.monotonic_ns()
     try:
         proc = subprocess.run(

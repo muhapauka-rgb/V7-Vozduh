@@ -478,6 +478,41 @@ tests, report, deploy or Polygon alone never advances a phase.
 | `N10` | Bounded ordinary rollout only after N8/N9: controlled -> one ordinary-like case -> small cohort -> bounded production, with rollback and no manufactured ordinary failure. Before consuming the one-use Authority, the existing Core-primary owner must read-only prove that the exact 2–4 member move leaves every non-member class and class-egress mapping unchanged. After canonical cohort assignments, that owner must publish one atomic affected-cohort projection commit, retire only the cohort's superseded per-user primary rules, prove exact affected scope and whole-system verification, and require each member's current-profile service/path S11. A per-user full-population rebuild is not an N10 admission. |
 | `N11` | `WHOLE_SYSTEM_ZERO_RESIDUE_RECONCILIATION`: final consumer-verified repository reconciliation, not the first cleanup stage. It proves that earlier safe responsibility-scoped replacement closure removed obsolete timer-only critical behavior, duplicate persistence, universal Full-before-action, superseded shadow branches and expired compatibility code. |
 
+#### Current-assignment failure continuity rule
+
+An identity assigned to a channel while that channel was eligible is not
+permanently bound to a failed source.  The existing `users.registry` current
+assignment remains the canonical link; no second per-client tracker or config
+history store is introduced.  The rule is:
+
+```text
+config issued or updated on eligible source
+-> current assignment remains in users.registry
+-> fresh Matrix/diagnosis proves that same source is no longer usable
+-> existing service-failure owner correlates the source with its enabled users
+-> existing Planner selects a safe target automatically
+-> Candidate -> Packet -> Lease -> Barrier -> Apply
+-> exact assignment/route/required-service verification
+```
+
+The correlation is made against the current source at the time of the failure,
+not against a stale historical cohort.  Only users currently assigned to the
+failed source and covered by the same fresh failure/profile evidence may enter
+the affected scope.  The normal eligibility, capacity, policy, freshness,
+anti-flap, Authority, rollback and final-`OPEN` gates remain mandatory.  A
+failure observed after the assignment therefore produces a governed failover
+opportunity; it does not require recreating the client or waiting for a new
+configuration issuance.
+
+The rule is fail-closed.  Stale, unknown, conflicting or administrative-only
+states (`maintenance`, intentional `disabled`, or a controlled certification
+reservation) do not authorize ordinary-user movement.  A controlled
+certification identity remains under its certification owner when the channel
+policy explicitly forbids production autoswitch.  If no fresh safe target or
+required gate exists, the existing consumer records `STOP_SAFE` and leaves the
+assignment unchanged.  Repeated signals collapse into the existing incident
+generation and cannot create duplicate moves.
+
 #### Per-phase replacement closure
 
 An N phase that replaces a Runtime responsibility cannot claim replacement

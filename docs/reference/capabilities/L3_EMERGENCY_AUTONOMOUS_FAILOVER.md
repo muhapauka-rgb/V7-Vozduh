@@ -35,6 +35,16 @@ L3 is an emergency failover capability.
 
 It is not rebalance, optimization, preference movement, cleanup, pool optimization, or capacity balancing.
 
+An identity assigned while its source was eligible remains eligible for this
+recovery path if that same source later becomes a fresh, confirmed failure.
+The existing `users.registry` assignment is the canonical correlation; no
+separate client watcher or assignment-history store is used. The existing
+Matrix -> Planner -> Candidate/Packet/Lease/Barrier -> Apply owners may move
+only users still assigned to that failed source, subject to the normal
+freshness, target, capacity, Authority, verification and rollback gates.
+Stale, unknown or conflicting evidence, and administrative maintenance or
+intentional disablement, remain `STOP_SAFE`.
+
 ## 2. Capability Boundary
 
 Allowed:

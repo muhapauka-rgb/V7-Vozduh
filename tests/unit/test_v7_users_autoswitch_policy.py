@@ -130,6 +130,48 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             [],
         )
 
+    def test_failed_assigned_channel_remains_recoverable_after_owner_marks_it_down(self):
+        """A post-assignment channel failure must reach the existing L3 owner.
+
+        The health owner may mark the source ``down`` before the failover
+        consumer runs.  The affected user must remain in the source scope and
+        the fresh hard-failure evidence must be accepted; no new watcher or
+        route writer is involved.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=1, egress_1_state="down")
+            state_path = root / "state" / "v7-state.json"
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            state["egress"]["1"].update({
+                "diagnose_severity": "FAIL",
+                "diagnose_reason": "curl_failed_and_handshake_stale",
+            })
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            scope = planner._l3_failed_source_scope("1")
+            evidence = planner._current_channel_failure_evidence(
+                {
+                    "egress": "1",
+                    "eligible": False,
+                    "severity_classification": {
+                        "severity": "FAIL",
+                        "hard_block": True,
+                        "reason": "curl_failed_and_handshake_stale",
+                    },
+                    "users": 1,
+                    "enabled": True,
+                    "state": "down",
+                },
+                user_ip="10.0.0.2",
+            )
+
+        self.assertEqual(scope["affected_users"], ["10.0.0.2"])
+        self.assertTrue(scope["source_failed"])
+        self.assertTrue(scope["current_channel_failure"])
+        self.assertTrue(evidence["confirmed"])
+
     def test_n10_authority_request_is_exact_source_bound_and_target_unbound(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

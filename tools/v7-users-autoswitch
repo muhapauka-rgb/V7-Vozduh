@@ -167,6 +167,15 @@ RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES = (
 )
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
+# Reasons emitted by the existing channel diagnosis owner that represent a
+# hard source failure.  Administrative ``egress_disabled`` is intentionally
+# not included: it is a planned/control state, not proof that an assigned
+# client's channel failed.
+CURRENT_CHANNEL_FAILURE_REASONS = {
+    "interface_down_or_missing",
+    "curl_failed_and_handshake_unsupported",
+    "curl_failed_and_handshake_stale",
+}
 DEFAULT_SWITCH_POLICY = {
     "autoswitch_enabled": True,
     "autoswitch_mode": "guarded",
@@ -8783,11 +8792,24 @@ class AutoswitchPlanner:
         affected_users = self._l3_enabled_users_on_source(source, excluding_users=excluding_users)
         severity = str((egress.severity if egress else "") or "").upper()
         diagnose_reason = str((egress.diagnose_reason if egress else "") or "")
-        enabled = bool(egress and egress.enabled and str(egress.state).lower() not in {"disabled", "down"})
+        # A source that has just failed may already be marked ``down`` (or
+        # have its enabled bit cleared) by the existing health owner. That
+        # state is precisely what should trigger recovery for users assigned
+        # while the source was healthy. Requiring ``enabled`` here discarded
+        # the affected scope before the existing L3 consumer could evaluate
+        # its fresh evidence. Administrative ``disabled`` and ``maintenance``
+        # remain excluded unless a separate explicit certification owner
+        # handles them.
+        egress_state = str((egress.state if egress else "") or "").lower()
+        enabled = bool(egress and egress.enabled and egress_state not in {"disabled", "down"})
         controlled_failure = self._controlled_certification_failure_context(source)
-        channel_failed = enabled and severity == "FAIL" and bool(affected_users)
+        channel_failed = bool(egress and severity == "FAIL" and affected_users)
         service_failures = self._l3_required_service_failures_for_source(source, required_services=required_services)
-        service_failed = enabled and bool(service_failures) and bool(affected_users)
+        service_failed = (
+            bool(service_failures)
+            and bool(affected_users)
+            and egress_state not in {"disabled", "maintenance"}
+        )
         controlled_channel_failed = bool_value(controlled_failure.get("confirmed"))
         return {
             "schema_version": "v7.l3-incident-source-scope.v1",
@@ -9817,12 +9839,18 @@ class AutoswitchPlanner:
         reason = str(severity.get("reason") or "")
         hard_block = bool_value(severity.get("hard_block"))
         severity_value = str(severity.get("severity") or "").upper()
+        channel_state = str(current.get("state") or "").lower()
         affected_users = to_int(current.get("users"), 0)
         freshness = self._state_file_freshness()
+        hard_channel_reason = (
+            reason == "interface_down_or_missing"
+            or reason in CURRENT_CHANNEL_FAILURE_REASONS
+            or (severity_value == "FAIL" and channel_state == "down")
+        )
         confirmed = (
             hard_block
             and severity_value == "FAIL"
-            and reason == "interface_down_or_missing"
+            and hard_channel_reason
             and affected_users > 0
             and str(freshness.get("state") or "") in {"FRESH", "AGING"}
         )

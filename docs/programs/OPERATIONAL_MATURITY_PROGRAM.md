@@ -8171,8 +8171,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
-Resolved current next action: `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED`
-Resolved contract state: CPS retains the accepted frozen HARD-path evidence and historical Telegram performance limitation. The exact N10 one-device and two-member small-cohort Authorities are consumed and non-reusable. The existing Core-primary owner now has a deployed, Runtime-verified atomic 2–4 member cohort commit at `b8400c48`; it uses canonical assignments, affected-scope and whole-system verification, and existing rollback without a global rebuild per member. No further ordinary movement is admitted until Product/Authority issues a new exact bounded cohort scope. This is a CPS-derived pointer only; Authority, receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `N10_LAWFUL_CURRENT_COHORT_BOUNDARY`
+Resolved contract state: CPS retains the accepted frozen HARD-path evidence and historical Telegram performance limitation. The exact historical N10 Authorities are non-reusable. The existing Core-primary owner now has a deployed, Runtime-verified 2–4 member cohort preflight and one atomic affected-scope map commit; mandatory service/path S11 is required after every member route verification. The last fresh exact four-member request drifted to two members at Packet materialization and was denied before movement. No ordinary movement is admitted until Matrix emits another exact current cohort and the existing Authority owner issues a new one-use scope. This is a CPS-derived pointer only; Authority, receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9159,9 +9159,9 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
-Resolved current next action: `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT_REQUIRED`
-Current terminal report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
-Latest consumed report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
+Resolved current next action: `N10_LAWFUL_CURRENT_COHORT_BOUNDARY`
+Current terminal report: `docs/reports/engineering/2026-08-27_n10_bounded_production_and_n11_core_route_closure.md`
+Latest consumed report: `docs/reports/engineering/2026-08-27_n10_bounded_production_and_n11_core_route_closure.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md`

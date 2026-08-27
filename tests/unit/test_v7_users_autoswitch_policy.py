@@ -155,6 +155,27 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(request["scope"]["target_egress"], "")
             self.assertEqual(request["scope"]["max_users"], 3)
 
+    def test_n10_small_cohort_missing_class_reports_only_root_precondition(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            policy = root / "policy.json"
+            policy.write_text(json.dumps({"authority_budget": {}}), encoding="utf-8")
+            args = SimpleNamespace(
+                user="", apply=False, target_egress="", source_egress="",
+                state_dir=str(state), policy_file=str(policy),
+                org_policy_file=str(root / "org-policy.json"),
+                safety_file=str(root / "safety.json"),
+                action_class_audit_store=str(root / "audit.jsonl"),
+            )
+            with mock.patch.object(self.tool, "reuse_current_prepared_class_projection", return_value={
+                "ok": True, "prepared_class_decisions": {"classes": []}, "blockers": [],
+            }):
+                result = self.tool.n10_small_cohort_authority_request_only(args)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["blockers"], ["n10_small_cohort_prepared_class_missing"])
+
     def test_prepared_cohort_slice_excludes_certification_identity(self):
         base = {
             "current_egress": "source", "recommended_egress": "target",

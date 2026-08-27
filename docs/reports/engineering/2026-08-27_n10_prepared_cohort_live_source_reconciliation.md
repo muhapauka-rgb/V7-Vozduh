@@ -56,16 +56,22 @@ Planner decision + canonical users.registry disagree
 
 ## Runtime and production effect
 
-At report time this correction is local and awaiting the standard safe-deploy
-gate.  The remote diagnostic and Matrix observation-only rebuild performed
-zero route mutations and moved zero users.  No ordinary user was exposed to
-the stale cohort.
+The correction was published as `a1e50a343e815277e096de29251d105fd7c5b088`
+and safely deployed as `deploy-z8-14-Updatesystem-a1e50a3-20260827T132111`.
+The aligned local, GitHub, and Runtime fingerprint checks passed.  The remote
+diagnostic and Matrix observation-only rebuild performed zero route mutations
+and moved zero users.  No ordinary user was exposed to the stale cohort.
+
+The first post-deploy rebuild produced three current classes and excluded the
+stale source slice.  It found no lawful unambiguous 2--4 member N10 class, so
+the Authority request remained unregistered.  The response is being narrowed
+to this root condition only; a missing class must not be presented as a
+spurious member or generation mismatch.
 
 ## Exact next step
 
-Publish and safely deploy this bounded correction, then request the existing
-Matrix owner to rebuild the prepared projection once.  The existing Authority
-owner may create the N10 request only if it finds one fresh, unambiguous 2--4
-member class.  Otherwise the correct terminal is `STOP_SAFE` with no user
-movement; an ordinary production cohort must not be manufactured from stale
-history.
+Safely deploy the final diagnostic narrowing, rebuild through the existing
+Matrix owner once, and re-enter the existing Authority owner.  It may create
+the N10 request only if it finds one fresh, unambiguous 2--4 member class.
+Otherwise the correct terminal is `STOP_SAFE` with no user movement; an
+ordinary production cohort must not be manufactured from stale history.

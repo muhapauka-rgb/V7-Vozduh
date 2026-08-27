@@ -27993,16 +27993,18 @@ def n10_small_cohort_authority_request_only(args: argparse.Namespace) -> dict[st
     members = sorted({str(item) for item in (selected.get("ordinary_member_slice") or []) if str(item)})
     source = str(selected.get("source_channel") or "")
     users = {str(row.get("ip") or ""): row for row in parse_registry(Path(args.state_dir) / "users.registry")}
-    if len(members) not in range(2, 5) or any(
-        not users.get(ip)
-        or bool_value(users[ip].get("certification_user"))
-        or str(users[ip].get("current") or "") != source
-        for ip in members
-    ):
-        blockers.append("n10_small_cohort_member_source_truth_changed")
-    generation = n10_small_cohort_source_generation(args, members, source) if not blockers else {}
-    if not all(str(generation.get(key) or "") for key in ("planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash")):
-        blockers.append("n10_small_cohort_owner_generation_missing")
+    generation: dict[str, Any] = {}
+    if selected:
+        if len(members) not in range(2, 5) or any(
+            not users.get(ip)
+            or bool_value(users[ip].get("certification_user"))
+            or str(users[ip].get("current") or "") != source
+            for ip in members
+        ):
+            blockers.append("n10_small_cohort_member_source_truth_changed")
+        generation = n10_small_cohort_source_generation(args, members, source) if not blockers else {}
+        if not all(str(generation.get(key) or "") for key in ("planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash")):
+            blockers.append("n10_small_cohort_owner_generation_missing")
     authority_class = normalize_authority_class(raw_budget.get("certified_authority_class") or raw_budget.get("authority_class") or "CANARY")
     template = {
         "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",

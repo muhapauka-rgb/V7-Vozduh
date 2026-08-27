@@ -17861,6 +17861,30 @@ class AutoswitchPlanner:
                 "unsafe_blocker": ",".join(str(item) for item in (l3_eligibility.get("blockers") or [])),
                 "l3_execution_eligibility": l3_eligibility,
             }
+        # A bounded N10 move must prove that its one Core-primary map commit
+        # can remain truly affected-cohort-only before its one-use Authority is
+        # consumed. If a source class would vanish or a neighbouring class
+        # would be renumbered, the existing full projection owner would be
+        # required; stopping here avoids staging any ordinary assignment.
+        core_primary_cohort_projection = (
+            action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+            and 2 <= len(plan.get("selected_moves") or []) <= 4
+        )
+        if core_primary_cohort_projection:
+            admissibility = self._core_primary_cohort_admissible(
+                list(plan.get("selected_moves") or []),
+            )
+            plan.setdefault("safety", {})[
+                "core_primary_cohort_admissibility"
+            ] = admissibility
+            if not admissibility.get("ok"):
+                return {
+                    "applied": False,
+                    "reason": "core_primary_cohort_not_admissible_before_authority_consumption",
+                    "core_primary_cohort_admissibility": admissibility,
+                    "runtime_mutation": False,
+                    "user_movement": 0,
+                }
         action_contract = ((safety.get("authority_budget_gate") or {}).get("current_action_class_contract") or {})
         strict_contract = ((action_contract.get("provenance") or {}).get("strict_provenance_contract") is True)
         if strict_contract:
@@ -17992,10 +18016,6 @@ class AutoswitchPlanner:
         # publication boundary.  Reusing the existing writer one member at a
         # time remains necessary for its low-level table/assignment work, but
         # the Core-primary projection must not be rebuilt for every member.
-        core_primary_cohort_projection = (
-            action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
-            and 2 <= len(selected_moves) <= 4
-        )
         if core_primary_cohort_projection:
             if not self.args.verify:
                 return {
@@ -20532,6 +20552,43 @@ class AutoswitchPlanner:
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             return subprocess.CompletedProcess(argv, 2, stdout=f"STOP_SAFE: core-primary cohort commit unavailable: {exc}\n")
+
+    def _core_primary_cohort_admissible(
+        self, selected_moves: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Ask the existing Core-primary owner before consuming N10 Authority."""
+        members = sorted({str(row.get("user_ip") or "") for row in selected_moves})
+        targets = {str(row.get("recommended_egress") or "") for row in selected_moves}
+        if len(targets) != 1 or not all(members):
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "blockers": ["core_primary_cohort_exact_one_target_required"],
+                "runtime_mutation": False,
+            }
+        argv = [
+            "v7-routing-sync", "--core-primary-cohort-admissible",
+            "--cohort-target", next(iter(targets)), "--json",
+        ]
+        for member in members:
+            argv.extend(["--cohort-user", member])
+        try:
+            proc = subprocess.run(
+                argv, text=True, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, check=False, timeout=15,
+            )
+            payload = json.loads(proc.stdout or "{}")
+        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            payload = {}
+            proc = subprocess.CompletedProcess(argv, 2)
+        return {
+            **payload,
+            "ok": (
+                proc.returncode == 0
+                and payload.get("status") == "CORE_PRIMARY_COHORT_ADMISSIBLE"
+            ),
+            "owner": "existing v7-routing-sync Core-primary owner",
+        }
 
     def _cohort_rollback_to_preimage(
         self, *, rows: list[dict[str, Any]], entry_control: dict[str, Any],

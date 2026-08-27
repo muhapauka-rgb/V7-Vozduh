@@ -79,9 +79,10 @@ def exact_reset_authority(policy_path: Path) -> tuple[bool, dict]:
     return ok, promotion
 
 
-def derived_classes() -> tuple[list[dict], list[dict]]:
-    users = [row for row in rows(USERS) if row.get("enabled", "0") == "1"]
-    egress = {row.get("id", ""): row for row in rows(EGRESS) if row.get("enabled", "0") == "1"}
+def classes_for_users(
+    users: list[dict[str, str]], egress: dict[str, dict[str, str]],
+) -> list[dict]:
+    """Derive the existing Core-primary classes for an in-memory registry view."""
     classes = []
     for index, name in enumerate(sorted({row.get("current", "") for row in users})):
         target = egress.get(name)
@@ -95,7 +96,17 @@ def derived_classes() -> tuple[list[dict], list[dict]]:
             "table": TABLE_BASE + index,
             "members": sorted(row["ip"] for row in users if row.get("current") == name),
         })
-    return users, classes
+    return classes
+
+
+def derived_classes() -> tuple[list[dict], list[dict]]:
+    users = [row for row in rows(USERS) if row.get("enabled", "0") == "1"]
+    egress = {
+        row.get("id", ""): row
+        for row in rows(EGRESS)
+        if row.get("enabled", "0") == "1"
+    }
+    return users, classes_for_users(users, egress)
 
 
 def legacy_sync() -> dict:
@@ -307,6 +318,92 @@ def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> di
     }
 
 
+def core_primary_cohort_admissible(members: list[str], target_egress: str) -> dict:
+    """Prove that a proposed cohort can use the bounded Core-primary commit.
+
+    This is deliberately read-only and is called before an N10 contract is
+    consumed. A bounded map replacement is lawful only when moving the exact
+    members leaves every non-member's class mark and the class-egress map
+    untouched. Otherwise the existing full projection owner would be needed,
+    so the bounded production transaction must stop before it stages a user.
+    """
+    authority_ok, authority = exact_reset_authority(POLICY)
+    try:
+        normalized = sorted({str(ipaddress.ip_address(value)) for value in members})
+    except ValueError:
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_member_invalid"], "runtime_mutation": False}
+    target = str(target_egress or "").strip()
+    if not authority_ok:
+        return {"status": "STOP_SAFE", "blockers": ["exact_reset_core_primary_promotion_contract_required"], "runtime_mutation": False}
+    if not 2 <= len(normalized) <= 4:
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_scope_must_be_2_to_4"], "runtime_mutation": False}
+    users, classes = derived_classes()
+    users_by_ip = {str(row.get("ip") or ""): row for row in users}
+    if any(ip not in users_by_ip for ip in normalized):
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_registry_member_not_enabled"], "runtime_mutation": False}
+    egress = {
+        row.get("id", ""): row
+        for row in rows(EGRESS)
+        if row.get("enabled", "0") == "1"
+    }
+    if target not in egress or not egress[target].get("interface"):
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_target_not_enabled"], "runtime_mutation": False}
+    nft = run(["nft", "-j", "list", "table", NFT_FAMILY, NFT_TABLE])
+    try:
+        nft_payload = json.loads(nft.stdout or "{}") if nft.returncode == 0 else {}
+    except json.JSONDecodeError:
+        nft_payload = {}
+    actual_user_class, user_class_readable = nft_map_elements(nft_payload, "user_class")
+    actual_class_egress, class_egress_readable = nft_map_elements(nft_payload, "class_egress")
+    expected_current_user_class = {
+        (str(member), str(row["mark"]))
+        for row in classes for member in row["members"]
+    }
+    expected_current_class_egress = {
+        (str(row["mark"]), str(row["mark"])) for row in classes
+    }
+    if (
+        not user_class_readable
+        or not class_egress_readable
+        or actual_user_class != expected_current_user_class
+        or actual_class_egress != expected_current_class_egress
+    ):
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_baseline_not_exact"], "runtime_mutation": False}
+    selected = set(normalized)
+    prospective_users = [
+        {**row, "current": target} if str(row.get("ip") or "") in selected else dict(row)
+        for row in users
+    ]
+    prospective_classes = classes_for_users(prospective_users, egress)
+    prospective_user_class = {
+        (str(member), str(row["mark"]))
+        for row in prospective_classes for member in row["members"]
+    }
+    prospective_class_egress = {
+        (str(row["mark"]), str(row["mark"])) for row in prospective_classes
+    }
+    current_outside = {
+        entry for entry in expected_current_user_class if entry[0] not in selected
+    }
+    prospective_outside = {
+        entry for entry in prospective_user_class if entry[0] not in selected
+    }
+    if (
+        current_outside != prospective_outside
+        or actual_class_egress != prospective_class_egress
+        or len([entry for entry in prospective_user_class if entry[0] in selected]) != len(normalized)
+    ):
+        return {"status": "CORE_PRIMARY_COHORT_NOT_ADMISSIBLE", "blockers": ["core_primary_cohort_changes_nonmember_class_or_class_egress"], "runtime_mutation": False}
+    return {
+        "status": "CORE_PRIMARY_COHORT_ADMISSIBLE",
+        "affected_users": len(normalized),
+        "affected_user_fingerprint": canonical_hash(normalized),
+        "target_egress": target,
+        "authority_contract_id": authority.get("contract_id", ""),
+        "runtime_mutation": False,
+    }
+
+
 def nft_map_elements(payload: object, name: str) -> tuple[set[tuple[str, str]], bool]:
     """Return the exact live nft map contents without making them a new state source."""
     if not isinstance(payload, dict):
@@ -403,11 +500,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--core-primary-apply", action="store_true")
     parser.add_argument("--core-primary-cohort-commit", action="store_true")
+    parser.add_argument("--core-primary-cohort-admissible", action="store_true")
     parser.add_argument("--core-primary-fallback", action="store_true")
     parser.add_argument("--core-primary-verify", action="store_true")
     parser.add_argument("--core-primary-active", action="store_true")
     parser.add_argument("--user", default="")
     parser.add_argument("--cohort-user", action="append", default=[])
+    parser.add_argument("--cohort-target", default="")
     parser.add_argument("--operation-id", default="")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -418,6 +517,8 @@ def main() -> int:
             result = scoped_user_sync(args.user)
         elif args.core_primary_cohort_commit:
             result = core_primary_cohort_commit(args.cohort_user, args.operation_id)
+        elif args.core_primary_cohort_admissible:
+            result = core_primary_cohort_admissible(args.cohort_user, args.cohort_target)
         elif args.core_primary_apply:
             result = core_primary_apply()
         elif args.core_primary_fallback:

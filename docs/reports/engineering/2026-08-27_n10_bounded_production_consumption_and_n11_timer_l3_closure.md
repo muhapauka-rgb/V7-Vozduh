@@ -128,3 +128,19 @@ closed for this generation.  The existing OMP now waits for a qualifying
 natural production outcome or a new owner-backed obligation; synthetic events
 must not be manufactured.  This is a lane-local boundary, not a claim that the
 overall V7 Service Failure Program is complete.
+
+## Publication and Runtime evidence for the reconciliation fix
+
+The lifecycle correction and its regression were committed as
+`3a1a8b431b4ac68b2e6fc283766c65634b1e7428` (`fix(omp): reconcile consumed
+product frontier`) and independently confirmed on GitHub branch `Updatesystem`.
+Safe deploy completed with
+`deploy-z8-14-Updatesystem-3a1a8b4-20260827T161951`.
+
+Post-deploy Runtime truth is `PASS/KNOWN`: local, GitHub and deployed commit
+are equal; binary hashes match the authoritative manifest; `v7-health.service`
+is the active Matrix owner; the retired standalone autoswitch/Matrix/Telegram
+timers remain inactive/not-found; and no ordinary-user route or assignment
+changed.  The existing Core-primary and broad route proofs remain valid from
+the preceding N10/N11 block.  No new owner, timer, registry, queue, or state
+source was introduced.

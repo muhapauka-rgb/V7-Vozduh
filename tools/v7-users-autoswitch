@@ -14784,13 +14784,18 @@ class AutoswitchPlanner:
         # mismatch in the current transaction.
         if expired_foreign_clearance_details:
             restore_barrier.update(expired_foreign_clearance_details)
-        if n10_ordinary_like_context:
+        if n10_ordinary_like_context or ordinary_service_failure_context:
             emergency_failover_gate = {
                 "enabled": False,
                 "ok": True,
-                "decision": "n10_ordinary_like_product_contract_uses_existing_governed_apply_not_emergency_incident_authority",
+                "decision": (
+                    "n10_ordinary_like_product_contract_uses_existing_governed_apply_not_emergency_incident_authority"
+                    if n10_ordinary_like_context
+                    else "ordinary_service_failure_uses_existing_standing_delegated_apply_not_emergency_incident_authority"
+                ),
                 "blockers": [],
-                "ordinary_like_coexistence": True,
+                "ordinary_like_coexistence": bool(n10_ordinary_like_context),
+                "ordinary_service_failure_context": bool(ordinary_service_failure_context),
             }
         else:
             selected, emergency_failover_gate = self._emergency_failover_authority_gate(

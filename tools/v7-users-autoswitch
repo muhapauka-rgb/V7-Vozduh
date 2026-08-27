@@ -27954,7 +27954,10 @@ def n10_small_cohort_authority_request_only(args: argparse.Namespace) -> dict[st
 
     No source, target or user may be named by the caller.  The only eligible
     cohort is a 2--4 member slice already emitted by the Matrix-owned Planner
-    projection.  This is preparation, never an execution or a target choice.
+    projection.  A larger coherent source class may supply that bounded slice:
+    the existing owner deterministically selects the uniquely smallest lawful
+    class, never an operator-selected member list.  This is preparation,
+    never an execution or a target choice.
     """
     forbidden = []
     for name in ("user", "source_egress", "target_egress"):
@@ -27976,19 +27979,26 @@ def n10_small_cohort_authority_request_only(args: argparse.Namespace) -> dict[st
     classes = [
         row for row in (projection.get("classes") or [])
         if isinstance(row, dict)
-        and 2 <= to_int(row.get("member_count"), 0) <= 4
+        and to_int(row.get("member_count"), 0) >= 2
         and 2 <= len([item for item in (row.get("ordinary_member_slice") or []) if str(item)]) <= 4
         and str(row.get("source_channel") or "")
         and str(row.get("target_channel") or "")
         and str(row.get("source_channel") or "") != str(row.get("target_channel") or "")
     ]
-    # Require exactly one top-ranked compatible source class.  Ambiguity is a
-    # STOP_SAFE, rather than an implicit policy decision hidden in this adapter.
-    classes.sort(key=lambda row: (-to_int(row.get("member_count"), 0), str(row.get("class_id") or "")))
-    selected = classes[0] if len(classes) == 1 else {}
+    # A bounded N10 no-failure migration may use a deterministic 2--4 member
+    # slice from a larger current semantic class.  Select the uniquely
+    # smallest such class to minimise blast radius; a tie remains STOP_SAFE
+    # rather than being resolved by a hidden lexical or operator choice.
+    classes.sort(key=lambda row: (to_int(row.get("member_count"), 0), str(row.get("class_id") or "")))
+    smallest_count = to_int(classes[0].get("member_count"), 0) if classes else 0
+    smallest = [
+        row for row in classes
+        if to_int(row.get("member_count"), 0) == smallest_count
+    ]
+    selected = smallest[0] if len(smallest) == 1 else {}
     if not classes:
         blockers.append("n10_small_cohort_prepared_class_missing")
-    elif len(classes) > 1:
+    elif len(smallest) > 1:
         blockers.append("n10_small_cohort_prepared_class_ambiguous")
     members = sorted({str(item) for item in (selected.get("ordinary_member_slice") or []) if str(item)})
     source = str(selected.get("source_channel") or "")

@@ -136,7 +136,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             )
             projection = {
                 "classes": [{
-                    "class_id": "pcd_test", "member_count": 3,
+                    "class_id": "pcd_test", "member_count": 13,
                     "ordinary_member_slice": members,
                     "ordinary_member_slice_fingerprint": "slice-test",
                     "membership_fingerprint": "members-test",
@@ -154,6 +154,35 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(request["scope"]["source_egress"], "openvpn-source")
             self.assertEqual(request["scope"]["target_egress"], "")
             self.assertEqual(request["scope"]["max_users"], 3)
+
+    def test_n10_small_cohort_refuses_equal_smallest_semantic_classes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            policy = root / "policy.json"
+            policy.write_text(json.dumps({"authority_budget": {}}), encoding="utf-8")
+            args = SimpleNamespace(
+                user="", apply=False, target_egress="", source_egress="",
+                state_dir=str(state), policy_file=str(policy),
+                org_policy_file=str(root / "org-policy.json"),
+                safety_file=str(root / "safety.json"),
+                action_class_audit_store=str(root / "audit.jsonl"),
+            )
+            classes = [
+                {"class_id": "pcd_a", "member_count": 7,
+                 "ordinary_member_slice": ["10.7.0.2", "10.7.0.3"],
+                 "source_channel": "source-a", "target_channel": "target-a"},
+                {"class_id": "pcd_b", "member_count": 7,
+                 "ordinary_member_slice": ["10.7.0.4", "10.7.0.5"],
+                 "source_channel": "source-b", "target_channel": "target-b"},
+            ]
+            with mock.patch.object(self.tool, "reuse_current_prepared_class_projection", return_value={
+                "ok": True, "prepared_class_decisions": {"classes": classes}, "blockers": [],
+            }):
+                result = self.tool.n10_small_cohort_authority_request_only(args)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["blockers"], ["n10_small_cohort_prepared_class_ambiguous"])
 
     def test_n10_small_cohort_missing_class_reports_only_root_precondition(self):
         with tempfile.TemporaryDirectory() as tmp:

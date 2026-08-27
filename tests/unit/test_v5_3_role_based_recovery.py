@@ -38,6 +38,82 @@ def load_matrix():
 
 
 class V53RoleBasedRecoveryTest(unittest.TestCase):
+    def test_service_matrix_majority_failure_wakes_existing_health_consumer(self):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_health_loop_matrix_majority", str(ROOT / "tools/runtime-support/v7-health-loop")
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        health = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        sys.modules[loader.name] = health
+        spec.loader.exec_module(health)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            matrix_path = root / "service-matrix.json"
+            users_path = root / "users.registry"
+            checked = datetime.now(timezone.utc).isoformat()
+            failed = {
+                "ok": False,
+                "status": "FAIL",
+                "source_incident_id": "sfinc_current",
+                "failure_event_id": "sfe_current",
+                "confirmed_hard_failure_monotonic_ns": 123456789,
+            }
+            matrix_path.write_text(json.dumps({
+                "items": {"vless": {
+                    "updated": checked,
+                    "services": {
+                        "google": failed,
+                        "youtube": dict(failed),
+                        "telegram": {"ok": True, "status": "OK"},
+                        "__channel_liveness__": {"ok": True, "status": "OK"},
+                    },
+                }},
+            }), encoding="utf-8")
+            users_path.write_text(
+                "ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                health.canonical_service_failure_t0_ns(matrix_path, users_path),
+                123456789,
+            )
+
+    def test_service_matrix_majority_failure_remains_fail_closed_when_stale(self):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_health_loop_matrix_stale", str(ROOT / "tools/runtime-support/v7-health-loop")
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        health = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        sys.modules[loader.name] = health
+        spec.loader.exec_module(health)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            matrix_path = root / "service-matrix.json"
+            users_path = root / "users.registry"
+            stale = (datetime.now(timezone.utc) - timedelta(seconds=1801)).isoformat()
+            matrix_path.write_text(json.dumps({
+                "items": {"vless": {
+                    "updated": stale,
+                    "services": {
+                        "google": {
+                            "ok": False, "status": "FAIL",
+                            "source_incident_id": "sfinc_old",
+                            "failure_event_id": "sfe_old",
+                            "confirmed_hard_failure_monotonic_ns": 123,
+                        },
+                        "youtube": {"ok": True, "status": "OK"},
+                    },
+                }},
+            }), encoding="utf-8")
+            users_path.write_text(
+                "ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                health.canonical_service_failure_t0_ns(matrix_path, users_path),
+                0,
+            )
+
     def test_hard_failure_keeps_fast_consumer_in_same_priority_window(self):
         diagnose = DIAGNOSE_TOOL.read_text(encoding="utf-8")
         service = (

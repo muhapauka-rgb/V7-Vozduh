@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+from datetime import datetime
 import importlib.machinery
 import importlib.util
 import json
@@ -234,6 +235,68 @@ def canonical_service_failure_t0_ns(
             # Matrix-owned monotonic T0 is required for this exact transaction.
             if t0_ns > 0:
                 failed_sources[str(source_id)] = t0_ns
+    # A channel can remain locally UP while its application path is unusable
+    # (for example a proxy process accepts the interface but every ordinary
+    # service probe fails).  The existing Matrix owner already records that
+    # evidence, and ``tools/v7-users-autoswitch`` applies the same majority
+    # predicate when building the affected scope.  Feed that exact current
+    # Matrix generation into the already-existing persistent consumer; do not
+    # create a second probe, event store, timer or health owner here.
+    if not failed_sources and service_id == "__channel_liveness__":
+        now = time.time()
+        for source_id, source in items.items():
+            if not isinstance(source, dict):
+                continue
+            checked_at = str(source.get("checked_at") or source.get("updated") or "")
+            try:
+                checked_epoch = datetime.fromisoformat(
+                    checked_at.replace("Z", "+00:00")
+                ).timestamp()
+            except (TypeError, ValueError, OverflowError):
+                continue
+            age = now - checked_epoch
+            if age < 0 or age > 1800:
+                continue
+            services = source.get("services")
+            if not isinstance(services, dict):
+                continue
+            service_rows = [
+                row for key, row in services.items()
+                if key != "__channel_liveness__" and isinstance(row, dict)
+            ]
+            if not service_rows:
+                continue
+            failed_rows = [
+                row for row in service_rows
+                if row.get("ok") is False
+                or str(row.get("status") or "").upper() in {"FAIL", "DOWN", "ERROR"}
+            ]
+            threshold = max(2, (len(service_rows) + 1) // 2)
+            if len(failed_rows) < threshold:
+                continue
+            # Every credited failure must carry Matrix's immutable incident
+            # identity.  Missing identity means stale/ambiguous evidence and
+            # therefore remains fail-closed.
+            if any(
+                not str(row.get("source_incident_id") or "")
+                or not str(row.get("failure_event_id") or "")
+                for row in failed_rows[:threshold]
+            ):
+                continue
+            t0_values = []
+            for row in failed_rows:
+                try:
+                    value = int(str(
+                        row.get("confirmed_hard_failure_monotonic_ns")
+                        or row.get("observation_monotonic_ns")
+                        or "0"
+                    ))
+                except (TypeError, ValueError):
+                    value = 0
+                if value > 0:
+                    t0_values.append(value)
+            if t0_values:
+                failed_sources[str(source_id)] = max(t0_values)
     if not failed_sources:
         return 0
 

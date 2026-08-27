@@ -8171,8 +8171,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
-Resolved current next action: `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT`
-Resolved contract state: CPS retains the accepted frozen HARD-path evidence and the historical Telegram performance limitation. The exact N10 one-device and two-member small-cohort product Authorities have now been consumed: the fresh existing Planner selected the common target, the governed route applied through the sole writer, and exact route/kernel plus required-service S11 passed below the current 8 s ceiling. The cohort contract cannot be widened or reused. A new exact bounded-production product/Authority scope is required before further ordinary movement, so the current stop remains `EXTERNAL_OWNER_REQUIRED`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED`
+Resolved contract state: CPS retains the accepted frozen HARD-path evidence and historical Telegram performance limitation. The exact N10 one-device and two-member small-cohort Authorities are consumed and non-reusable. Fresh current-owner inspection proves Core-primary routing is presently exact but the owner has no once-per-governed-cohort affected-scope projection commit: it can only rebuild the full compatible population or perform legacy per-user repair. No further ordinary movement is admitted until an owner decision defines the smallest atomic existing-owner cohort hand-off; the separate bounded-production product/Authority scope remains required afterward. This is a CPS-derived pointer only; Authority, receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9159,7 +9159,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
-Resolved current next action: `N10_BOUNDED_PRODUCTION_AUTHORITY_CONTRACT`
+Resolved current next action: `CORE_PRIMARY_COHORT_COMMIT_ARCHITECTURE_DECISION_REQUIRED`
 Current terminal report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
 Latest consumed report: `docs/reports/engineering/2026-08-27_n10_small_cohort_production_adoption.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`

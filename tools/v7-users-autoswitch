@@ -8120,42 +8120,97 @@ class AutoswitchPlanner:
                 "recovery_evidence_pointers": recovery_pointers,
                 "current_matrix_relation": terminal_scope["current_matrix_relation"],
             })
-            incidents[key] = {
-                **record,
-                "status": "CLOSED",
-                "incident_state": "INTENT_CLOSED",
-                "channel_incident_state": "RECOVERED",
-                "attempt_terminal": (
-                    "RECOVERY_OBSERVED_NO_ACTION"
-                    if not subsequent_failure_epoch
-                    else "RECOVERY_OBSERVED_NEW_FAILURE_GENERATION_SEPARATE"
-                ),
-                "closed_at": recovered_at,
-                "next_required_consumer": "",
-                "reentry_condition": "new owner-backed failure generation",
-                "current_source_scope": terminal_scope,
-                "scope_accounting": terminal_scope,
-                "affected_scope_count": affected,
-                "protected_scope_count": protected,
-                "unresolved_scope_count": 0,
-                "causal_lineage": lineage,
-                "causal_invariant": {
-                    "name": "INTENT_CLOSED_BY_RECOVERY_REQUIRES_FRESH_NEW_GENERATION",
-                    "valid": True,
-                },
-                "execution_performed": False,
-                "runtime_mutation_performed": False,
-                "routing_mutation_performed": False,
-                "users_moved": 0,
-                "apply_executed": False,
-                "authority_expanded": False,
-                "production_maturity_changed": False,
-                "consumer": (
-                    "tools/v7-users-autoswitch."
-                    "_reconcile_recovered_service_failure_intents"
-                ),
-                "updated_at": now_iso(),
-            }
+            if subsequent_failure_epoch:
+                # A later Matrix failure on the same source identity is a new
+                # live recovery opportunity, not a reason to freeze the old
+                # incident forever.  Reopen the existing L3 projection while
+                # preserving protected members and all immutable recovery
+                # evidence; the normal advisory/executor owners still decide
+                # whether a governed move is legal.
+                reopened_scope = {
+                    **terminal_scope,
+                    "status": "ACCOUNTED",
+                    "unresolved_scope_count": max(0, affected - protected),
+                    "explicitly_excluded_or_recovered_scope_count": protected,
+                    "scope_membership_law": (
+                        "CURRENT_MATRIX_FAILURE_AFTER_RECOVERY_REQUIRES_REENTRY"
+                    ),
+                    "terminal_scope_frozen": False,
+                    "current_matrix_relation": "SUBSEQUENT_FAILURE_EPOCH",
+                }
+                incidents[key] = {
+                    **record,
+                    "status": "OPEN",
+                    "incident_state": "OPEN",
+                    "channel_incident_state": "OPEN",
+                    "attempt_terminal": "RECOVERY_OBSERVED_NEW_FAILURE_GENERATION_REOPENED",
+                    "closed_at": "",
+                    "last_observed_at": max(
+                        str(row.get("observed_at") or "")
+                        for row in current_service_rows.values()
+                    ),
+                    "next_required_consumer": (
+                        "tools/v7-users-autoswitch.materialize_service_failure_automation_advisory"
+                    ),
+                    "reentry_condition": (
+                        "current Matrix failure remains active; existing advisory and governed executor revalidate before action"
+                    ),
+                    "current_source_scope": reopened_scope,
+                    "scope_accounting": reopened_scope,
+                    "affected_scope_count": affected,
+                    "protected_scope_count": protected,
+                    "unresolved_scope_count": reopened_scope["unresolved_scope_count"],
+                    "causal_lineage": lineage,
+                    "causal_invariant": {
+                        "name": "CURRENT_FAILURE_AFTER_RECOVERY_REOPENS_EXISTING_INCIDENT",
+                        "valid": True,
+                    },
+                    "execution_performed": False,
+                    "runtime_mutation_performed": False,
+                    "routing_mutation_performed": False,
+                    "users_moved": 0,
+                    "apply_executed": False,
+                    "authority_expanded": False,
+                    "production_maturity_changed": False,
+                    "consumer": (
+                        "tools/v7-users-autoswitch."
+                        "_reconcile_recovered_service_failure_intents"
+                    ),
+                    "updated_at": now_iso(),
+                }
+            else:
+                incidents[key] = {
+                    **record,
+                    "status": "CLOSED",
+                    "incident_state": "INTENT_CLOSED",
+                    "channel_incident_state": "RECOVERED",
+                    "attempt_terminal": "RECOVERY_OBSERVED_NO_ACTION",
+                    "closed_at": recovered_at,
+                    "next_required_consumer": "",
+                    "reentry_condition": "new owner-backed failure generation",
+                    "current_source_scope": terminal_scope,
+                    "scope_accounting": terminal_scope,
+                    "affected_scope_count": affected,
+                    "protected_scope_count": protected,
+                    "unresolved_scope_count": 0,
+                    "causal_lineage": lineage,
+                    "causal_invariant": {
+                        "name": "INTENT_CLOSED_BY_RECOVERY_REQUIRES_FRESH_NEW_GENERATION",
+                        "valid": True,
+                    },
+                    "execution_performed": False,
+                    "runtime_mutation_performed": False,
+                    "routing_mutation_performed": False,
+                    "users_moved": 0,
+                    "apply_executed": False,
+                    "authority_expanded": False,
+                    "production_maturity_changed": False,
+                    "consumer": (
+                        "tools/v7-users-autoswitch."
+                        "_reconcile_recovered_service_failure_intents"
+                    ),
+                    "updated_at": now_iso(),
+                }
             changed += 1
             closed_incident_ids.append(str(record.get("incident_id") or ""))
         return {

@@ -4004,6 +4004,80 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertIn("sxe_late_expiry", closure["terminal_resolution"]["superseded_terminal_event_ids"])
 
+    def test_current_failure_after_recovery_reopens_existing_incident(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            incident_id = "sfinc_reopened_after_recovery"
+            incident_key = "passive_reopened_after_recovery"
+            (state_dir / "l3-runtime-state.json").write_text(
+                json.dumps({
+                    "incidents": {
+                        incident_key: {
+                            "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                            "incident_state": "OPEN",
+                            "status": "OPEN",
+                            "incident_id": incident_id,
+                            "channel": "vless",
+                            "services": ["youtube"],
+                            "last_observed_at": "2026-07-27T10:00:00+00:00",
+                            "current_source_scope": {
+                                "affected_scope_count": 1,
+                                "protected_scope_count": 0,
+                                "unresolved_scope_count": 1,
+                                "affected_scope_fingerprint": "scope-live",
+                            },
+                        }
+                    }
+                }),
+                encoding="utf-8",
+            )
+            (state_dir / "closure-records.jsonl").write_text(
+                json.dumps({
+                    "object_type": "passive_production_event",
+                    "event_id": "sre_youtube",
+                    "source_incident_id": incident_id,
+                    "channel": "vless",
+                    "services": ["youtube"],
+                    "terminal_outcome_classification": "RECOVERY_OBSERVED_NO_ACTION",
+                    "observed_at": "2026-07-27T10:01:00+00:00",
+                    "recovered_at": "2026-07-27T10:01:00+00:00",
+                    "egress_identity_generation": "egid_same",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            (state_dir / "service-matrix.json").write_text(
+                json.dumps({
+                    "items": {
+                        "vless": {
+                            "services": {
+                                "youtube": {
+                                    "ok": False,
+                                    "failure_started_at": "2026-07-27T10:02:00+00:00",
+                                    "source_incident_id": incident_id,
+                                }
+                            }
+                        }
+                    }
+                }),
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text())
+            result = planner._reconcile_recovered_service_failure_intents(state)
+            record = state["incidents"][incident_key]
+        self.assertEqual(result["changed"], 1)
+        self.assertEqual(record["incident_state"], "OPEN")
+        self.assertEqual(record["status"], "OPEN")
+        self.assertEqual(record["channel_incident_state"], "OPEN")
+        self.assertEqual(
+            record["attempt_terminal"],
+            "RECOVERY_OBSERVED_NEW_FAILURE_GENERATION_REOPENED",
+        )
+        self.assertEqual(record["current_source_scope"]["unresolved_scope_count"], 1)
+
     def test_runtime_readiness_copy_never_claims_service_availability(self):
         source = ADMIN_API.read_text(encoding="utf-8")
         self.assertIn("Runtime/config readiness: конфиг и runtime подтверждены текущим снимком; доступность сервисов этим не подтверждается.", source)

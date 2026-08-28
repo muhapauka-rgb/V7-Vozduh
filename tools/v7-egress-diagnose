@@ -579,6 +579,56 @@ profile_rows_for_source() {
   awk -F '\t' -v source="$source_id" '$1 == source {print $2 "\t" $3}' "$PROFILE_CONTRACTS_FILE"
 }
 
+matrix_failed_services_for_source() {
+  source_id="$1"
+  services="$2"
+  python3 - "$STATE_DIR/service-matrix.json" "$source_id" "$services" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+try:
+    payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+except (OSError, ValueError, TypeError):
+    payload = {}
+items = payload.get("items") if isinstance(payload, dict) else {}
+source = items.get(str(sys.argv[2] or "")) if isinstance(items, dict) else {}
+rows = source.get("services") if isinstance(source, dict) else {}
+expected = [item.strip() for item in str(sys.argv[3] or "").split(",") if item.strip()]
+now = datetime.now(timezone.utc)
+failed = []
+for service in expected:
+    row = rows.get(service) if isinstance(rows, dict) else None
+    if not isinstance(row, dict):
+        continue
+    observed = str(row.get("observed_at") or row.get("tested_at") or "")
+    try:
+        at = datetime.fromisoformat(observed.replace("Z", "+00:00"))
+        if at.tzinfo is None:
+            at = at.replace(tzinfo=timezone.utc)
+        age = (now - at).total_seconds()
+    except (TypeError, ValueError):
+        continue
+    # Matrix is the canonical failure owner.  Only a recent, explicitly
+    # observed failure may unblock a probe-budget timeout; stale/unknown
+    # evidence remains fail-closed in profile_service_trigger().
+    if age < 0 or age > 120:
+        continue
+    status = str(row.get("status") or "").upper()
+    severity = str(row.get("severity") or "").upper()
+    failure_state = str(row.get("failure_state") or "").upper()
+    incident = str(row.get("source_incident_id") or "")
+    if incident and (
+        status == "FAIL"
+        or severity == "FAIL"
+        or failure_state.startswith("OBSERVED_")
+    ):
+        failed.append(service + ":MATRIX_CONFIRMED_FAILURE")
+print(",".join(sorted(set(failed))))
+PY
+}
+
 required_service_ids() {
   python3 - "$STATE_DIR/service-preferences.json" <<'PY'
 import json
@@ -836,6 +886,20 @@ EOF
   if [ -n "$completion_ns" ] && [ "$completion_ns" -ge "$FAST_PRODUCER_STARTED_NS" ] 2>/dev/null; then
     completion_ms=$(( (completion_ns - FAST_PRODUCER_STARTED_NS) / 1000000 ))
     FAST_PRODUCER_COMPLETION_MS+=("$completion_ms")
+  fi
+  if [ -n "$unknown_services" ] && [ -z "$failed_services" ]; then
+    # The bounded batch sentinel may legitimately return no per-service result
+    # when its deadline is exhausted.  Do not treat that as a fresh failure,
+    # but do consume a recent canonical Matrix failure as the exact evidence
+    # for waking the existing failure consumer.  The consumer revalidates
+    # source, scope, target, authority and Packet/Lease gates before any move.
+    matrix_failed_services="$(matrix_failed_services_for_source "$source_id" "$services")"
+    if [ -n "$matrix_failed_services" ]; then
+      failed_services="$matrix_failed_services"
+      failure_count="1"
+      unknown_services=""
+      printf '%s_profile_matrix_failure_fallback=USED\n' "${state_key:-${source_id}_profile}" >> "$TMP"
+    fi
   fi
   if [ -n "$dns_services" ]; then
     dns_suspicion_producer "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services" "$state_key"

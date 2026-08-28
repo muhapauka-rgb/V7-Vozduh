@@ -362,6 +362,71 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             args = checker_args.read_text(encoding="utf-8")
             self.assertIn("vless all --services google,google_auth,instagram,telegram,youtube", args)
 
+    def test_fresh_matrix_failure_unblocks_batch_budget_unknown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(
+                root,
+                "id=vless protocol=vless interface=v7tun enabled=1\n",
+            )
+            (state / "users.registry").write_text(
+                "ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8"
+            )
+            (state / "service-preferences.json").write_text(
+                json.dumps({"enabled": True, "users": {}}), encoding="utf-8"
+            )
+            observed = time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime())
+            (state / "service-matrix.json").write_text(
+                json.dumps({"items": {"vless": {"services": {
+                    "youtube": {
+                        "status": "FAIL", "severity": "FAIL",
+                        "failure_state": "OBSERVED_CONTINUING",
+                        "source_incident_id": "sfinc-current",
+                        "observed_at": observed,
+                    }
+                }}}}),
+                encoding="utf-8",
+            )
+            self.write_command(
+                bin_dir,
+                "ip",
+                "echo '1: v7tun: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n",
+            )
+            self.write_command(
+                bin_dir,
+                "batch-checker",
+                "printf '%s\\n' '{\"status\":\"PASS\",\"ok\":true,\"probe_count\":1,\"contracts\":[{\"source\":\"vless\",\"profile\":\"__GLOBAL__\",\"services\":[\"youtube\"],\"state_key\":\"vless-profile\",\"failure_count\":0,\"blockers\":[\"fast_service_budget_exceeded\"]}]}'\n",
+            )
+            receiver_log = root / "receiver.args"
+            self.write_command(
+                bin_dir,
+                "receiver",
+                "printf '%s\\n' \"$*\" > \"$RECEIVER_LOG\"\n",
+            )
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["RECEIVER_LOG"] = str(receiver_log)
+            proc = subprocess.run(
+                [
+                    str(TOOL), "--state-dir", str(state), "--output", str(state / "fast.state"),
+                    "--fast-producer-only", "--lightweight-batch-producer",
+                    "--profile-service-suspicion-command", str(bin_dir / "batch-checker"),
+                    "--shadow-trigger-command", str(bin_dir / "receiver"),
+                    "--profile-service-failure-samples", "1",
+                    "--profile-service-cooldown-sec", "0",
+                ],
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                env=env, check=False,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = (state / "fast.state").read_text(encoding="utf-8")
+            self.assertIn("profile_matrix_failure_fallback=USED", state_text)
+            self.assertIn("profile_trigger_status=PASS", state_text)
+            self.assertTrue(receiver_log.exists())
+            self.assertIn("--shadow-trigger-source vless", receiver_log.read_text(encoding="utf-8"))
+
     def test_profile_service_subset_reaches_real_matrix_writer(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

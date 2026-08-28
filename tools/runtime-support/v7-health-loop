@@ -894,6 +894,14 @@ class RoleHealthLoop:
                 role.name in RECOVERY_CRITICAL_ROLE_NAMES
                 or role.name not in SLOW_ROLE_NAMES
                 or role.process is None
+                or (
+                    role.name == "hot_target_other"
+                    and any(
+                        active.name == "other_required"
+                        and active.process is not None
+                        for active in self.roles
+                    )
+                )
             ):
                 continue
             duration = elapsed_ms(role.started_ns, now_ns)

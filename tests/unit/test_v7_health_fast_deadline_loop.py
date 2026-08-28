@@ -643,6 +643,29 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             " ".join(str(call) for call in printed.call_args_list),
         )
 
+    def test_other_target_probe_survives_other_required_detector(self):
+        """Target application services may refresh alongside the detector."""
+        detector = HEALTH_LOOP_MODULE.ManagedRole(
+            name="other_required", cadence_ns=5_000_000_000,
+            command=("/bin/true",), next_due_ns=0,
+            process=mock.Mock(), started_ns=1_000,
+        )
+        target_probe = HEALTH_LOOP_MODULE.ManagedRole(
+            name="hot_target_other", cadence_ns=5_000_000_000,
+            command=("/bin/true",), next_due_ns=0,
+            process=mock.Mock(), started_ns=1_000,
+        )
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(
+            roles=(detector, target_probe),
+        )
+        with mock.patch.object(
+            HEALTH_LOOP_MODULE, "terminate_process_group"
+        ) as terminate:
+            loop._recovery_critical_takeover(5_000)
+
+        terminate.assert_not_called()
+        self.assertIsNotNone(target_probe.process)
+
     def test_service_failure_detector_preempts_projection_and_is_not_preempted(self):
         """The recovery detector must get the shared Matrix lock first."""
         projection_process = mock.Mock()

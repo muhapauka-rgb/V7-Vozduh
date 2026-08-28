@@ -4854,22 +4854,24 @@ def expand_prepared_other_service_scope(
     items = items if isinstance(items, dict) else {}
     expanded: list[dict[str, str]] = []
     for row in rows:
-        if str(row.get("_prepared_services") or "").strip():
-            expanded.append(row)
-            continue
+        declared = {
+            str(service_id).strip()
+            for service_id in str(row.get("_prepared_services") or "").split(",")
+            if str(service_id).strip()
+        }
         observed = items.get(str(row.get("id") or ""))
         services = observed.get("services") if isinstance(observed, dict) else {}
-        service_ids = sorted(
+        current_ids = {
             str(service_id)
             for service_id in (services or {})
             if str(service_id)
             and str(service_id).lower() not in {"telegram", "__channel_liveness__"}
-        )
-        expanded.append({
-            **row,
-            "_prepared_services": ",".join(service_ids),
-            "_prepared_services_source": "CURRENT_MATRIX_SERVICE_IDS",
-        })
+        }
+        service_ids = sorted(declared | current_ids)
+        expanded_row = {**row, "_prepared_services": ",".join(service_ids)}
+        if current_ids - declared:
+            expanded_row["_prepared_services_source"] = "CURRENT_MATRIX_SERVICE_IDS"
+        expanded.append(expanded_row)
     return expanded
 
 

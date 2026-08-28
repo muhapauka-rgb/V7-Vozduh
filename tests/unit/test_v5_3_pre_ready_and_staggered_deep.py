@@ -322,8 +322,11 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
                 rows, state_dir=state,
             )
 
-        self.assertEqual(expanded[0]["_prepared_services"], "telegram")
-        self.assertNotIn("_prepared_services_source", expanded[0])
+        self.assertEqual(expanded[0]["_prepared_services"], "google,telegram")
+        self.assertEqual(
+            expanded[0]["_prepared_services_source"],
+            "CURRENT_MATRIX_SERVICE_IDS",
+        )
 
     def test_n10_path_role_refreshes_generation_aligned_projection_same_cycle(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -932,7 +932,18 @@ EOF
     if [ -n "$stale_matrix_failed_services" ]; then
       now_epoch="$(date +%s)"
       previous_revalidation_epoch="$(previous_value "${state_key}_profile_targeted_revalidation_epoch")"
-      if [ -z "$previous_revalidation_epoch" ] || [ "$previous_revalidation_epoch" -lt $((now_epoch - 30)) ] 2>/dev/null; then
+      # The existing FAST role runs this producer every five seconds.  Keep
+      # the targeted confirmation cadence aligned with that owner instead of
+      # leaving a 30-second hole in which the next bounded batch writes
+      # UNKNOWN and erases the first valid confirmation before the required
+      # repeat can arrive.  This is still one bounded revalidation per source
+      # and producer cycle; stale Matrix evidence only authorizes the fresh
+      # probe and never authorizes a move by itself.
+      targeted_revalidation_cooldown_sec="${PROFILE_SERVICE_COOLDOWN_SEC:-5}"
+      if [ "$targeted_revalidation_cooldown_sec" -lt 1 ] 2>/dev/null; then
+        targeted_revalidation_cooldown_sec=1
+      fi
+      if [ -z "$previous_revalidation_epoch" ] || [ "$previous_revalidation_epoch" -lt $((now_epoch - targeted_revalidation_cooldown_sec)) ] 2>/dev/null; then
         targeted_probe="$(run_profile_service_probe "$source_id" "$services")"
         IFS='|' read -r targeted_status targeted_failure_count targeted_dns_services targeted_degraded_services targeted_failed_services targeted_unknown_services targeted_completion_ns <<EOF
 $targeted_probe

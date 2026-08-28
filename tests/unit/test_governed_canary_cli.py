@@ -8859,6 +8859,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         command = run.call_args.args[0]
         self.assertIn("--ordinary-service-failure-context", command)
         self.assertEqual(command[command.index("--source-egress") + 1], "vless")
+        self.assertNotIn("--pre-planner-refresh", command)
 
     def test_governed_transaction_stops_before_apply_when_no_gap_directed_candidate_is_available(self):
         module = load_cli_module()

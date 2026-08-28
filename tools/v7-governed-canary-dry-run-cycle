@@ -7843,7 +7843,18 @@ def _execute_governed_transaction_with_guards_inner(
             event_dir,
             snapshot_root,
             1,
-            refresh_snapshots=delegated_mode,
+            # Ordinary service-failure handling already has the fresh
+            # canonical Matrix incident and must not start a competing
+            # snapshot refresh in the same critical section.  That refresh
+            # races the Matrix writer and invalidates every snapshot family
+            # between Planner selection and Packet validation.  The existing
+            # ordinary context consumes current Matrix evidence directly;
+            # controlled/certification transactions retain their established
+            # delegated refresh behavior.
+            refresh_snapshots=(
+                delegated_mode
+                and not bool(getattr(args, "ordinary_service_failure_only", False))
+            ),
             ordinary_service_failure_only=bool(
                 getattr(args, "ordinary_service_failure_only", False)
             ),

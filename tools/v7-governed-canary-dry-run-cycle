@@ -806,6 +806,8 @@ def run_planner_observe(
     max_users: int,
     *,
     refresh_snapshots: bool = False,
+    ordinary_service_failure_only: bool = False,
+    source_egress: str = "",
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
@@ -821,6 +823,15 @@ def run_planner_observe(
         str(snapshot_root),
         "--pretty",
     ]
+    if ordinary_service_failure_only:
+        # The ordinary service-failure consumer must carry its existing
+        # incident context into every Planner read.  Without this flag the
+        # generic observe subprocess treats the fresh L7 failure as an
+        # unscoped/stale intelligence view, returns no move, and the governed
+        # Matrix consumer clears the otherwise valid Candidate before Packet.
+        command.append("--ordinary-service-failure-context")
+    if source_egress:
+        command.extend(["--source-egress", source_egress])
     if refresh_snapshots:
         command.extend([
             "--pre-planner-refresh",
@@ -7833,6 +7844,10 @@ def _execute_governed_transaction_with_guards_inner(
             snapshot_root,
             1,
             refresh_snapshots=delegated_mode,
+            ordinary_service_failure_only=bool(
+                getattr(args, "ordinary_service_failure_only", False)
+            ),
+            source_egress=str(getattr(args, "approved_source", "") or ""),
         )
         if delegated_mode and planner_observe.get("ok"):
             # The existing autoswitch owner refreshes intelligence snapshots

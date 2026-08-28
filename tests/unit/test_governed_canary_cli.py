@@ -8839,6 +8839,27 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertTrue(refreshed["batch_preview"]["planner_observe_authoritative"])
         self.assertFalse(refreshed["batch_preview"]["stale_snapshot_candidates_retained"])
 
+    def test_planner_observe_preserves_ordinary_service_failure_context(self):
+        module = load_cli_module()
+        with mock.patch.object(
+            module.subprocess,
+            "run",
+            return_value=mock.Mock(returncode=0, stdout="{}", stderr=""),
+        ) as run:
+            result = module.run_planner_observe(
+                Path("/state"),
+                Path("/events"),
+                Path("/snapshots"),
+                1,
+                ordinary_service_failure_only=True,
+                source_egress="vless",
+            )
+
+        self.assertTrue(result["ok"])
+        command = run.call_args.args[0]
+        self.assertIn("--ordinary-service-failure-context", command)
+        self.assertEqual(command[command.index("--source-egress") + 1], "vless")
+
     def test_governed_transaction_stops_before_apply_when_no_gap_directed_candidate_is_available(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

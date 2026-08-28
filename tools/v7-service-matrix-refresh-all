@@ -5074,6 +5074,30 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         hard_stop_blockers = safety_gates.get("hard_stop_blockers") if isinstance(safety_gates, dict) else []
         if hard_stop_blockers:
             compact_result["cycle_hard_stop_blockers"] = list(hard_stop_blockers)
+    # The governed transaction CLI already emits the exact pre-Packet owner
+    # diagnosis.  Preserve that bounded receipt in Matrix as well; otherwise
+    # the service-failure consumer collapses every lawful STOP_SAFE into the
+    # opaque ``packet_not_ready`` wrapper and the automatic recovery owner
+    # cannot distinguish a missing candidate, a binding mismatch, or an
+    # Authority gate.  This is projection-only: the full lifecycle remains
+    # owned by the governed executor and no new state source is introduced.
+    packet_preparation_diagnostic = result.get("packet_preparation_diagnostic")
+    packet_preparation_diagnostic = (
+        packet_preparation_diagnostic
+        if isinstance(packet_preparation_diagnostic, dict)
+        else {}
+    )
+    if packet_preparation_diagnostic:
+        compact_result["packet_preparation_diagnostic"] = {
+            key: packet_preparation_diagnostic.get(key)
+            for key in (
+                "cycle_stop_reason", "cycle_stop_detail",
+                "candidate_user", "candidate_source", "candidate_target",
+                "packet_preview_status", "packet_binding_blockers",
+                "safety_hard_stop", "safety_blockers",
+            )
+            if packet_preparation_diagnostic.get(key) not in (None, "", [], {})
+        }
     prepared = result.get("prepared_class_decisions") or value.get("prepared_class_decisions")
     if isinstance(prepared, dict) and prepared:
         compact_result["prepared_class_decisions"] = prepared

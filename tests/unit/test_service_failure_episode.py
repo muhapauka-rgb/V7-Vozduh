@@ -5334,6 +5334,38 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             ["snapshot_mismatch:service-scores"],
         )
 
+    def test_consumer_projection_keeps_packet_preparation_diagnostic(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+                "transaction_status": "STOP_SAFE",
+                "stop_reason": "packet_not_ready",
+                "packet_preparation_diagnostic": {
+                    "cycle_stop_reason": "MISSING_STATE_TRANSITION",
+                    "cycle_stop_detail": "snapshot_mismatch:service-scores",
+                    "candidate_user": "10.7.0.125",
+                    "candidate_source": "vless",
+                    "candidate_target": "awg0",
+                    "packet_preview_status": "PACKET_PREVIEW_BLOCKED",
+                    "packet_binding_blockers": ["snapshot_mismatch:service-scores"],
+                    "safety_hard_stop": True,
+                    "safety_blockers": ["snapshot_mismatch:service-scores"],
+                },
+            }
+        })["consumer_result"]
+        self.assertEqual(
+            projected["packet_preparation_diagnostic"]["candidate_user"],
+            "10.7.0.125",
+        )
+        self.assertEqual(
+            projected["packet_preparation_diagnostic"]["candidate_target"],
+            "awg0",
+        )
+        self.assertEqual(
+            projected["packet_preparation_diagnostic"]["safety_blockers"],
+            ["snapshot_mismatch:service-scores"],
+        )
+
     def test_advisory_timing_projection_retains_only_compact_advisory_spans(self):
         projected = self.refresh._consumer_projection({
             "consumer_result": {

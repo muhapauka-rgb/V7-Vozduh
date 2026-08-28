@@ -357,11 +357,12 @@ wake_existing_failure_consumer() {
     return 0
   fi
   if [ "$(basename "$CONSUMER_WAKE_COMMAND")" = "systemctl" ]; then
-    # Keep the triggering FAST role alive until the already-existing consumer
-    # reaches its bounded terminal.  The health owner can then preserve HARD
-    # recovery precedence for the complete causal path instead of restarting
-    # background probes while a detached Nice=10 consumer is still applying.
-    "$CONSUMER_WAKE_COMMAND" start v7-autoswitch-planner.service >/dev/null 2>&1
+    # The existing FAST role has a five-second deadline, while the governed
+    # oneshot consumer may legitimately take longer to complete its Packet /
+    # Lease / Apply gates.  Start that same systemd owner asynchronously so
+    # this producer can durably publish the confirmed Matrix event before its
+    # deadline; systemd still provides the single-flight unit semantics.
+    "$CONSUMER_WAKE_COMMAND" start --no-block v7-autoswitch-planner.service >/dev/null 2>&1
   elif [ "$(basename "$CONSUMER_WAKE_COMMAND")" = "v7-service-matrix-refresh-all" ]; then
     # The production HARD role is already a single, deadline-isolated child
     # of the existing v7-health owner. Invoke the exact ExecStart consumer

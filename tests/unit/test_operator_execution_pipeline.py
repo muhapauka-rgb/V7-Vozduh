@@ -1216,6 +1216,62 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
 
+    def test_ordinary_service_failure_uses_operational_gates_only(self):
+        decision_surface = {
+            "controlled_execution_gate_profile": "ORDINARY_SERVICE_FAILURE",
+            "users_by_ip": {
+                "10.7.0.125": {
+                    "current_channel": "vless",
+                    "recommended_channel": "awg0",
+                    "confidence": 0.1,
+                    "trust": 0.0,
+                    "prediction": {"confidence": 0.0},
+                    "risk": 1.0,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.7.0.125", "from": "vless", "to": "awg0"},
+                ],
+            },
+            "snapshot_statuses": {
+                name: {
+                    "status": "OK",
+                    "validation_ok": True,
+                    "freshness_state": "FRESH",
+                    "stop_required": False,
+                }
+                for name in (
+                    "service-scores", "channel-service-scores", "risk-summaries",
+                    "trust-summaries", "blast-radius-summaries",
+                )
+            } | {
+                "prediction-summaries": {"status": "EXPIRED", "validation_ok": False},
+                "trust-evolution-summaries": {"status": "EXPIRED", "validation_ok": False},
+                "user-service-scores": {"status": "EXPIRED", "validation_ok": False},
+                "overview-summary": {"status": "EXPIRED", "validation_ok": False},
+            },
+        }
+
+        model = pipeline.autonomous_dry_run_model(
+            decision_surface=decision_surface,
+            max_users=1,
+        )
+        blockers = model["safety_gates"]["hard_stop_blockers"]
+        self.assertNotIn("confidence_too_low", blockers)
+        self.assertNotIn("trust_too_low", blockers)
+        self.assertNotIn("unknown_trust", blockers)
+        self.assertNotIn("prediction_confidence_too_low", blockers)
+        self.assertFalse(model["safety_gates"]["identity_learning_gates_applicable"])
+        self.assertNotIn("snapshot_mismatch:prediction-summaries", blockers)
+        self.assertNotIn("snapshot_mismatch:trust-evolution-summaries", blockers)
+
+        del decision_surface["snapshot_statuses"]["trust-summaries"]
+        self.assertIn(
+            "snapshot_mismatch:trust-summaries",
+            pipeline._snapshot_gate_blockers(decision_surface),
+        )
+
     def test_risk_tier_review_does_not_allow_operator_canary_past_absolute_blockers(self):
         review = pipeline.autonomy_risk_tier_review(
             candidate_floor_evaluation=[{

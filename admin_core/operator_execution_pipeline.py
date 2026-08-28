@@ -1589,9 +1589,23 @@ def _snapshot_gate_blockers(decision_surface: dict[str, Any]) -> list[str]:
     snapshots = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
     blockers = []
     gate_profile = str(decision_surface.get("controlled_execution_gate_profile") or "DEFAULT")
+    ordinary_service_failure_profile = gate_profile == "ORDINARY_SERVICE_FAILURE"
     required = (
         CONTROLLED_CERTIFICATION_CURRENT_STATE_SNAPSHOTS
         if gate_profile == "CONTROLLED_CERTIFICATION_TOPOLOGY"
+        # A fresh Matrix service-failure incident is already the primary
+        # failure evidence.  Keep the operational safety families mandatory,
+        # but do not let advisory learning projections (prediction,
+        # trust-evolution, user-service and admin overview) strand a client on
+        # a failed source when their independent refresh is late.
+        else {
+            "service-scores",
+            "channel-service-scores",
+            "risk-summaries",
+            "trust-summaries",
+            "blast-radius-summaries",
+        }
+        if ordinary_service_failure_profile
         else None
     )
     rows = (
@@ -1628,6 +1642,7 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
     certification_topology_profile = (
         gate_profile == "CONTROLLED_CERTIFICATION_TOPOLOGY"
     )
+    ordinary_service_failure_profile = gate_profile == "ORDINARY_SERVICE_FAILURE"
     candidate_floor_evaluation = []
     if not candidates:
         blockers.append("no_canary_candidate_available")
@@ -1643,9 +1658,13 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
         prediction_confidence = _score_0_100(prediction.get("confidence"), 0.0)
         rollback_plan = candidate.get("rollback_plan") if isinstance(candidate.get("rollback_plan"), dict) else {}
         rollback_confidence = _score_0_100(rollback_plan.get("rollback_confidence"), 0.0)
-        if confidence < AUTONOMY_CANARY_CONFIDENCE_FLOOR:
+        if (
+            confidence < AUTONOMY_CANARY_CONFIDENCE_FLOOR
+            and not certification_topology_profile
+            and not ordinary_service_failure_profile
+        ):
             blockers.append("confidence_too_low")
-        if not certification_topology_profile:
+        if not certification_topology_profile and not ordinary_service_failure_profile:
             if trust <= 0:
                 blockers.append("unknown_trust")
             elif trust < AUTONOMY_CANARY_TRUST_FLOOR:
@@ -1678,11 +1697,15 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
         "controlled_execution_gate_profile": gate_profile,
         "identity_learning_gates_applicable": (
             not certification_topology_profile
+            and not ordinary_service_failure_profile
         ),
         "identity_learning_gate_reason": (
             "exact standing-policy certification topology action uses "
             "target health, stability, capacity, identity and rollback gates"
             if certification_topology_profile
+            else "fresh Matrix service-failure evidence uses operational gates; "
+            "advisory learning projections remain non-blocking"
+            if ordinary_service_failure_profile
             else "ordinary governed candidate learning gates apply"
         ),
         "defined_gates": AUTONOMOUS_DRY_RUN_SAFETY_GATES,

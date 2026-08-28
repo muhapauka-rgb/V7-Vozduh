@@ -5055,6 +5055,25 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         # latency sample can be attributed without replaying an apply or
         # creating another metrics/state owner.
         compact_result["execution_timing"] = execution_timing
+    # A governed transaction can stop before Packet materialization when the
+    # read-only cycle finds a non-authority owner gap.  Keep that exact cycle
+    # verdict in the existing Matrix receipt; otherwise every such failure is
+    # flattened to the unhelpful wrapper value ``packet_not_ready`` and the
+    # recovery owner cannot distinguish stale snapshots, missing fields or a
+    # real Authority boundary.
+    cycle = result.get("cycle") if isinstance(result.get("cycle"), dict) else {}
+    if cycle:
+        for source_key, receipt_key in (
+            ("stop_reason", "cycle_stop_reason"),
+            ("stop_detail", "cycle_stop_detail"),
+            ("next_action", "cycle_next_action"),
+        ):
+            if cycle.get(source_key) not in (None, "", [], {}):
+                compact_result[receipt_key] = cycle.get(source_key)
+        safety_gates = cycle.get("dry_run", {}).get("safety_gates", {}) if isinstance(cycle.get("dry_run"), dict) else {}
+        hard_stop_blockers = safety_gates.get("hard_stop_blockers") if isinstance(safety_gates, dict) else []
+        if hard_stop_blockers:
+            compact_result["cycle_hard_stop_blockers"] = list(hard_stop_blockers)
     prepared = result.get("prepared_class_decisions") or value.get("prepared_class_decisions")
     if isinstance(prepared, dict) and prepared:
         compact_result["prepared_class_decisions"] = prepared

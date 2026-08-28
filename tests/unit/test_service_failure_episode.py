@@ -5307,6 +5307,33 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(projected["campaign_stage"], 0)
         self.assertEqual(len(projected["cohort_execution_timings"]), 1)
 
+    def test_consumer_projection_keeps_cycle_stop_diagnostic(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+                "transaction_status": "STOP_SAFE",
+                "stop_reason": "packet_not_ready",
+                "cycle": {
+                    "stop_reason": "MISSING_STATE_TRANSITION",
+                    "stop_detail": "snapshot_mismatch:service-scores",
+                    "next_action": "FIX_EXISTING_OWNER_GAP_AND_RERUN",
+                    "dry_run": {
+                        "safety_gates": {
+                            "hard_stop_blockers": [
+                                "snapshot_mismatch:service-scores"
+                            ]
+                        }
+                    },
+                },
+            }
+        })["consumer_result"]
+        self.assertEqual(projected["cycle_stop_reason"], "MISSING_STATE_TRANSITION")
+        self.assertEqual(projected["cycle_stop_detail"], "snapshot_mismatch:service-scores")
+        self.assertEqual(
+            projected["cycle_hard_stop_blockers"],
+            ["snapshot_mismatch:service-scores"],
+        )
+
     def test_advisory_timing_projection_retains_only_compact_advisory_spans(self):
         projected = self.refresh._consumer_projection({
             "consumer_result": {

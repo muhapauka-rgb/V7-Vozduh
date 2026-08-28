@@ -2644,6 +2644,27 @@ class GovernedCanaryCliTest(unittest.TestCase):
             topology["candidate_floor_evaluation"][0]["trust"],
             0.0,
         )
+        service_failure = (
+            module.operator_execution_pipeline.autonomous_safety_gates(
+                {
+                    "controlled_execution_gate_profile": (
+                        "ORDINARY_SERVICE_FAILURE_RECOVERY"
+                    ),
+                },
+                [candidate],
+            )
+        )
+        self.assertNotIn(
+            "confidence_too_low", service_failure["hard_stop_blockers"]
+        )
+        self.assertNotIn(
+            "trust_too_low", service_failure["hard_stop_blockers"]
+        )
+        self.assertNotIn(
+            "prediction_confidence_too_low",
+            service_failure["hard_stop_blockers"],
+        )
+        self.assertFalse(service_failure["identity_learning_gates_applicable"])
 
     def test_controlled_topology_refreshes_existing_snapshot_owner_after_reservation(self):
         module = load_cli_module()

@@ -1628,6 +1628,7 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
     certification_topology_profile = (
         gate_profile == "CONTROLLED_CERTIFICATION_TOPOLOGY"
     )
+    service_failure_profile = gate_profile == "ORDINARY_SERVICE_FAILURE_RECOVERY"
     candidate_floor_evaluation = []
     if not candidates:
         blockers.append("no_canary_candidate_available")
@@ -1645,7 +1646,7 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
         rollback_confidence = _score_0_100(rollback_plan.get("rollback_confidence"), 0.0)
         if confidence < AUTONOMY_CANARY_CONFIDENCE_FLOOR:
             blockers.append("confidence_too_low")
-        if not certification_topology_profile:
+        if not (certification_topology_profile or service_failure_profile):
             if trust <= 0:
                 blockers.append("unknown_trust")
             elif trust < AUTONOMY_CANARY_TRUST_FLOOR:
@@ -1677,7 +1678,7 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
         "schema_version": "v7.autonomous-dry-run-safety-gates.v1",
         "controlled_execution_gate_profile": gate_profile,
         "identity_learning_gates_applicable": (
-            not certification_topology_profile
+            not (certification_topology_profile or service_failure_profile)
         ),
         "identity_learning_gate_reason": (
             "exact standing-policy certification topology action uses "

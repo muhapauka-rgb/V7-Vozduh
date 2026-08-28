@@ -7854,6 +7854,15 @@ def _execute_governed_transaction_with_guards_inner(
         surface["controlled_execution_gate_profile"] = (
             "CONTROLLED_CERTIFICATION_TOPOLOGY"
         )
+    elif bool(getattr(args, "ordinary_service_failure_only", False)):
+        # A current Matrix-confirmed service failure is an operational health
+        # signal, not a learned canary recommendation.  Keep all live target,
+        # capacity, rollback, Packet, lease, Barrier and route checks, while
+        # preventing stale confidence/trust/prediction floors from blocking
+        # the existing one-user delegated recovery owner.
+        surface["controlled_execution_gate_profile"] = (
+            "ORDINARY_SERVICE_FAILURE_RECOVERY"
+        )
     planner_observe = {"skipped": True}
     if not args.skip_planner_observe and not support_mode:
         planner_observe = run_planner_observe(

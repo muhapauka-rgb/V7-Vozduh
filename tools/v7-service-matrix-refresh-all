@@ -18,6 +18,7 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1918,6 +1919,119 @@ def run_bounded_delegated_service_failure_action(
                 "RECOMMENDATION_RECONCILIATION"
             ),
         }
+    # Keep the existing intelligence owner in front of the governed action
+    # whenever one of its advisory inputs has expired.  A Matrix generation
+    # changes the source hash of candidate suitability; without this bounded
+    # refresh the next Packet check sees a deterministic
+    # ``snapshot_mismatch:candidate-suitability-summary`` even though the
+    # source failure and Planner target are current.  This is an invocation of
+    # the canonical snapshot writer only: it adds no timer, cache, owner or
+    # execution path and never mutates routes or users.
+    snapshot_root = state_dir / "intelligence"
+    snapshot_refresh: dict[str, Any] = {
+        "attempted": False,
+        "required": False,
+        "status": "NOT_REQUIRED",
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+    }
+    advisory_snapshot_names = (
+        "candidate-suitability-summary",
+        "best-available-pool",
+        "prediction-summaries",
+        "trust-evolution-summaries",
+        "user-service-scores",
+    )
+    refresh_required = False
+    now = datetime.now(timezone.utc)
+    for name in advisory_snapshot_names:
+        payload = read_json(snapshot_root / f"{name}.json", {})
+        expires_at = str(payload.get("expires_at") or "") if isinstance(payload, dict) else ""
+        try:
+            expires = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if expires <= now:
+                refresh_required = True
+                break
+        except (TypeError, ValueError):
+            refresh_required = True
+            break
+    if refresh_required:
+        snapshot_command = [
+            "v7-intelligence-snapshot-refresh",
+            "--state-dir", str(state_dir),
+            "--event-dir", str(event_dir),
+            "--out-dir", str(snapshot_root),
+            "--service-matrix-file", str(state_dir / "service-matrix.json"),
+            "--quality-summary-file", str(state_dir / "egress-quality-summary.json"),
+            "--service-preferences-file", str(state_dir / "service-preferences.json"),
+            "--audit-dir", str(state_dir.parent / "audit"),
+            "--audit-log", str(operator_execution_audit_store),
+            "--switch-history-file", str(event_dir / "switch-history.jsonl"),
+            "--rollback-history-file", str(state_dir / "rollback-history.jsonl"),
+            "--feedback-log", str(state_dir / "execution-events.jsonl"),
+            "--execution-events-file", str(state_dir / "execution-events.jsonl"),
+            "--runtime-trust-file", str(state_dir / "runtime-trust.jsonl"),
+            "--proposal-records-file", str(state_dir / "proposal-records.jsonl"),
+            "--closure-records-file", str(state_dir / "closure-records.jsonl"),
+            "--stable-matrix-generation-handoff",
+        ]
+        snapshot_refresh.update({
+            "attempted": True,
+            "required": True,
+            "command": snapshot_command,
+        })
+        # Unit/Polygon fixtures may intentionally provide only the governed
+        # executor.  Preserve their existing fail-closed behavior when the
+        # canonical snapshot owner is not installed; production has the
+        # allowlisted binary and will take the refresh path below.
+        if shutil.which(snapshot_command[0]) is None:
+            snapshot_refresh.update({
+                "attempted": False,
+                "status": "NOT_AVAILABLE",
+                "error": "canonical_snapshot_owner_not_installed",
+            })
+        else:
+            try:
+                refresh_proc = subprocess.run(
+                    snapshot_command,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                    timeout=90,
+                )
+                try:
+                    refresh_payload = json.loads(refresh_proc.stdout or "")
+                except json.JSONDecodeError:
+                    refresh_payload = {}
+                snapshot_refresh.update({
+                    "returncode": refresh_proc.returncode,
+                    "status": "PASS" if refresh_proc.returncode == 0 and refresh_payload.get("source_stable") is not False else "FAILED",
+                    "source_stable": refresh_payload.get("source_stable"),
+                    "generation": refresh_payload.get("stable_matrix_generation_handoff"),
+                    "elapsed_ms": (refresh_payload.get("metrics") or {}).get("elapsed_ms"),
+                })
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                snapshot_refresh.update({
+                    "status": "FAILED",
+                    "error": f"{type(exc).__name__}:{exc}",
+                })
+        if snapshot_refresh.get("status") == "FAILED":
+            return {
+                "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+                "status": "STOP_SAFE_SNAPSHOT_REFRESH_FAILED",
+                "ok": True,
+                "action_attempted": False,
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+                "snapshot_refresh": snapshot_refresh,
+                "source": source,
+                "source_incident_id": incident_id,
+                "automation_obligation_id": obligation_id,
+                "contract_id": str(contract.get("contract_id") or ""),
+            }
     requested_max_users = (
         int(campaign_binding.get("next_stage") or 0)
         if campaign_binding.get("active")
@@ -2025,6 +2139,7 @@ def run_bounded_delegated_service_failure_action(
         "automation_obligation_id": obligation_id,
         "controlled_certification_campaign": campaign_binding,
         "controlled_certification_stage_consumption": {},
+        "snapshot_refresh": snapshot_refresh,
         "output_tail": (proc.stdout or "")[-2000:] if not (completed or stop_safe) else "",
     }
 

@@ -3,6 +3,7 @@ import importlib.util
 import json
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -62,6 +63,36 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("liveOperationalTruthTimer = window.setInterval", page)
         self.assertIn("refreshLiveOperationalTruth('timer'), 500", page)
         self.assertIn("mergeLiveOperationalTruthIntoOverview", page)
+
+    def test_new_profile_uses_existing_planner_admission_not_registry_order(self):
+        planner_result = {
+            "status": "ADMITTED",
+            "ok": True,
+            "selected_egress": "awg0",
+            "candidates": [
+                {"egress": "vless", "eligible": False, "blocked": ["severity_FAIL"]},
+                {"egress": "awg0", "eligible": True, "blocked": []},
+            ],
+        }
+        with mock.patch.object(self.admin, "run_json_command", return_value={
+            "rc": 0, "json": planner_result, "parse_error": "",
+        }) as command:
+            admission = self.admin.identity_egress_admission("vless")
+
+        self.assertTrue(admission["ok"])
+        self.assertEqual(admission["selected_egress"], "awg0")
+        self.assertFalse(admission["requested_egress_admitted"])
+        self.assertEqual(admission["requested_egress_blockers"], ["severity_FAIL"])
+        self.assertEqual(command.call_args.args[0], ["v7-users-autoswitch", "--new-user-admission"])
+
+    def test_profile_issue_paths_use_admission_before_provisioning(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+        quick = source[source.index("def identity_issue_config_quick"):source.index("def pending_profile_public_key")]
+        device = source[source.index("def identity_issue_device"):source.index("def identity_issue_config_quick")]
+        self.assertIn("admission = identity_egress_admission(requested_egress)", quick)
+        self.assertIn("admission = identity_egress_admission(requested_egress)", device)
+        self.assertNotIn("or default_egress_id()", quick)
+        self.assertNotIn("or default_egress_id()", device)
 
 
 if __name__ == "__main__":

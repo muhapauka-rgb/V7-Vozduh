@@ -22305,6 +22305,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Existing admin egress-draft owner root used by read-only topology feasibility.",
     )
     parser.add_argument("--mode", choices=("observe", "guarded", "active"), default="")
+    parser.add_argument(
+        "--new-user-admission",
+        action="store_true",
+        help=(
+            "Read-only admission for one not-yet-provisioned ordinary user. "
+            "Uses the existing Planner and current users.registry/Matrix truth; "
+            "it never creates an identity, Packet, lease or route change."
+        ),
+    )
+    parser.add_argument(
+        "--new-user-group",
+        default="",
+        help="Existing organization group for --new-user-admission; empty uses the current default group.",
+    )
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
     parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")
     parser.add_argument("--source-egress", "--current-egress", dest="source_egress", default="", help="Limit selected autoswitch moves to users currently on this egress.")
@@ -30216,6 +30230,76 @@ def ct_m0f_target_diagnostic_subprocess(
     return result
 
 
+def ordinary_new_user_admission_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Select one ordinary onboarding egress through the existing Planner.
+
+    An identity does not yet have an IP while its profile is being issued, so
+    this adapter supplies an in-memory representative only.  Membership and
+    load are nevertheless read exclusively from the live ``users.registry``;
+    a historical v7-state row must never make a healthy target look full or
+    make an old target look empty.  This is a read-only Planner consumption,
+    not a second selector or a new source of truth.
+    """
+    planner = AutoswitchPlanner(args)
+    planner.users = planner._load_runtime_registry_users()
+    planner._sync_egress_user_counts()
+    planner.group_usage = planner._group_usage()
+    planner.dynamic_load = planner._dynamic_load_summary()
+
+    group = str(getattr(args, "new_user_group", "") or "").strip()
+    if not group:
+        group = str(planner.org_policy.get("default_group") or "default")
+    representative = User(
+        # This is deliberately never persisted or used as a route key.
+        ip="10.7.255.254",
+        current="",
+        enabled=True,
+        group=group,
+        raw={"onboarding_admission": True},
+    )
+    services = planner._important_services(representative)
+    route_class = planner._route_class_for_services(services)
+    candidates = [
+        planner._candidate(
+            representative,
+            egress,
+            services,
+            route_class,
+            purpose="planned",
+        )
+        for egress in planner.egress.values()
+    ]
+    eligible = sorted(
+        (candidate for candidate in candidates if candidate.eligible),
+        key=lambda candidate: (-candidate.score, candidate.egress.id),
+    )
+    selected = eligible[0] if eligible else None
+    return {
+        "schema_version": "v7.ordinary-new-user-egress-admission.v1",
+        "status": "ADMITTED" if selected else "NO_ADMITTED_EGRESS",
+        "ok": bool(selected),
+        "owner": "existing tools/v7-users-autoswitch.AutoswitchPlanner",
+        "read_only": True,
+        "selection_inputs": {
+            "assignment_owner": "users.registry",
+            "health_owner": "service-matrix.json",
+            "group": group,
+            "important_services": services,
+            "route_class": route_class,
+        },
+        "selected_egress": selected.egress.id if selected else "",
+        "selected_score": round(selected.score, 3) if selected else None,
+        "candidates": [planner._candidate_json(candidate) for candidate in sorted(candidates, key=lambda candidate: candidate.egress.id)],
+        "forbidden_effects": {
+            "identity_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "routing_mutation": False,
+            "users_moved": 0,
+        },
+    }
+
+
 def ct_m0f_precomputed_target_diagnostic_from_file(
     path_value: str,
 ) -> dict[str, Any]:
@@ -30238,6 +30322,10 @@ def main() -> int:
     main_entered_ns = time.monotonic_ns()
     usage_before = resource.getrusage(resource.RUSAGE_SELF)
     args = build_arg_parser().parse_args()
+    if args.new_user_admission:
+        result = ordinary_new_user_admission_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("ok") else 2
     if args.ct_m0f_standing_source_selection:
         result = ct_m0f_standing_source_selection_only(
             args,

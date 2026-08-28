@@ -3133,14 +3133,22 @@ def identity_issue_device(data, actor):
     device_type = safe_device_type(data.get("device_type") or data.get("device") or "")
     if not device_type:
         return None, {"error": "device_type_required", "message": "Выберите тип устройства вручную.", "supported": DEVICE_TYPE_OPTIONS}, 400
-    egress = safe_egress_id(data.get("egress", "")) or default_egress_id()
+    requested_egress = safe_egress_id(data.get("egress", ""))
     dry_run = bool(data.get("dry_run", True))
     if not adapter:
         return None, {"error": "invalid_smart_adapter", "supported": sorted(SUPPORTED_SMART_ADAPTERS)}, 400
     if not mode:
         return None, {"error": "invalid_smart_mode", "supported": sorted(SUPPORTED_SMART_MODES)}, 400
+    admission = identity_egress_admission(requested_egress)
+    if not admission.get("ok"):
+        return None, {
+            "error": "no_admitted_egress",
+            "message": "Сейчас нет канала, который штатный выборщик может безопасно назначить новому профилю.",
+            "admission": admission,
+        }, 409
+    egress = safe_egress_id(admission.get("selected_egress", ""))
     if not egress_exists(egress, enabled_only=True):
-        return None, {"error": "invalid_egress"}, 400
+        return None, {"error": "admitted_egress_no_longer_enabled", "admission": admission}, 409
     active_devices = identity_active_device_count(user["id"])
     max_devices = int(user.get("max_devices") or 3)
     if active_devices >= max_devices:
@@ -3156,6 +3164,7 @@ def identity_issue_device(data, actor):
         "mode": mode,
         "device_type": device_type,
         "egress": egress,
+        "egress_admission": admission,
         "active_devices": active_devices,
         "max_devices": max_devices,
     }
@@ -3284,12 +3293,20 @@ def identity_issue_config_quick(data, actor):
         operator_status = "no_data"
     vpn_client = safe_connect_client(data.get("vpn_client") or data.get("client") or "karing")
     mode = safe_smart_mode(data.get("mode") or "RU_LOCAL") or "RU_LOCAL"
-    egress = safe_egress_id(data.get("egress", "")) or default_egress_id()
+    requested_egress = safe_egress_id(data.get("egress", ""))
     dry_run = bool(data.get("dry_run", False))
     if not vpn_client or not connect_client_supported(vpn_client):
         return None, {"error": "unsupported_vpn_client", "supported": sorted(SUPPORTED_CONNECT_CLIENTS)}, 400
+    admission = identity_egress_admission(requested_egress)
+    if not admission.get("ok"):
+        return None, {
+            "error": "no_admitted_egress",
+            "message": "Новый профиль не создан: сейчас штатный выборщик не подтвердил ни одного безопасного канала.",
+            "admission": admission,
+        }, 409
+    egress = safe_egress_id(admission.get("selected_egress", ""))
     if not egress_exists(egress, enabled_only=True):
-        return None, {"error": "invalid_egress"}, 400
+        return None, {"error": "admitted_egress_no_longer_enabled", "admission": admission}, 409
     if dry_run:
         client_meta = CONNECT_CLIENTS.get(vpn_client, CONNECT_CLIENTS["karing"])
         adapter = safe_smart_adapter(client_meta.get("adapter") or vpn_client)
@@ -3327,6 +3344,7 @@ def identity_issue_config_quick(data, actor):
             "mode": mode,
             "device_type": device_type,
             "egress": egress,
+            "egress_admission": admission,
             "active_devices": active_devices,
             "max_devices": int((user or {}).get("max_devices") or settings.get("default_max_devices") or 3),
             "person_exists": bool(user),
@@ -16144,6 +16162,47 @@ def run_json_command(cmd, timeout=40, max_output=5_000_000):
         "output_truncated": len(output) > len(display_output),
         "json": redact(parsed),
         "parse_error": parse_error,
+    }
+
+
+def identity_egress_admission(requested_egress=""):
+    """Consume the existing Planner before a new profile receives an egress.
+
+    ``egress.registry`` answers whether a channel is configured, not whether
+    it is currently a safe destination.  New profiles must use the same
+    Matrix/capacity/policy owner that evaluates ordinary destinations, rather
+    than inheriting the first enabled registry row.
+    """
+    requested_egress = safe_egress_id(requested_egress)
+    result = run_json_command(
+        ["v7-users-autoswitch", "--new-user-admission"],
+        timeout=45,
+    )
+    raw = result.get("json") if isinstance(result.get("json"), dict) else {}
+    candidates = {
+        safe_egress_id(row.get("egress", "")): row
+        for row in (raw.get("candidates") or [])
+        if isinstance(row, dict) and safe_egress_id(row.get("egress", ""))
+    }
+    selected_egress = safe_egress_id(raw.get("selected_egress", ""))
+    requested = candidates.get(requested_egress, {}) if requested_egress else {}
+    requested_admitted = bool(requested.get("eligible")) if requested_egress else None
+    if requested_egress and requested_admitted:
+        selected_egress = requested_egress
+    ok = bool(result.get("rc") == 0 and raw.get("ok") and selected_egress)
+    return {
+        "status": "ADMITTED" if ok else "NO_ADMITTED_EGRESS",
+        "ok": ok,
+        "owner": "existing tools/v7-users-autoswitch.AutoswitchPlanner",
+        "requested_egress": requested_egress,
+        "requested_egress_admitted": requested_admitted,
+        "requested_egress_blockers": list(requested.get("blocked") or []) if requested_egress else [],
+        "selected_egress": selected_egress if ok else "",
+        "planner_status": raw.get("status", ""),
+        "planner_candidates": candidates,
+        "planner_command_rc": result.get("rc"),
+        "planner_parse_error": result.get("parse_error", ""),
+        "read_only": True,
     }
 
 

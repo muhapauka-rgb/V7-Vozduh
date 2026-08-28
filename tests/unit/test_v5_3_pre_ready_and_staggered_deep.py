@@ -283,6 +283,48 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
         self.assertEqual(scope["selected_targets"], ["target-a"])
         self.assertEqual(selected[0]["_prepared_services"], "")
 
+    def test_prepared_other_scope_uses_current_matrix_service_inventory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            state.mkdir()
+            (state / "service-matrix.json").write_text(json.dumps({
+                "items": {
+                    "target-a": {
+                        "services": {
+                            "telegram": {"status": "OK"},
+                            "google": {"status": "OK"},
+                            "instagram": {"status": "OK"},
+                            "__channel_liveness__": {"status": "OK"},
+                        },
+                    },
+                },
+            }), encoding="utf-8")
+            rows = [{"id": "target-a", "_prepared_services": ""}]
+            expanded = self.refresh.expand_prepared_other_service_scope(
+                rows, state_dir=state,
+            )
+
+        self.assertEqual(expanded[0]["_prepared_services"], "google,instagram")
+        self.assertEqual(
+            expanded[0]["_prepared_services_source"],
+            "CURRENT_MATRIX_SERVICE_IDS",
+        )
+
+    def test_prepared_other_scope_preserves_explicit_service_contract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            state.mkdir()
+            (state / "service-matrix.json").write_text(json.dumps({
+                "items": {"target-a": {"services": {"google": {}}}},
+            }), encoding="utf-8")
+            rows = [{"id": "target-a", "_prepared_services": "telegram"}]
+            expanded = self.refresh.expand_prepared_other_service_scope(
+                rows, state_dir=state,
+            )
+
+        self.assertEqual(expanded[0]["_prepared_services"], "telegram")
+        self.assertNotIn("_prepared_services_source", expanded[0])
+
     def test_n10_path_role_refreshes_generation_aligned_projection_same_cycle(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

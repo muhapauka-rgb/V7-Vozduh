@@ -4837,6 +4837,42 @@ def select_prepared_hot_target_rows(
     }
 
 
+def expand_prepared_other_service_scope(
+    rows: list[dict[str, str]],
+    *,
+    state_dir: Path,
+) -> list[dict[str, str]]:
+    """Fill an empty prepared service set from the current Matrix schema.
+
+    A prepared target with no route-specific critical services still has to
+    prove every application service before it can receive an ordinary user.
+    The existing Matrix row is the canonical service-id inventory; this
+    adapter only expands probe scope and never selects or ranks a target.
+    """
+    matrix = read_json(state_dir / "service-matrix.json", {})
+    items = matrix.get("items") if isinstance(matrix, dict) else {}
+    items = items if isinstance(items, dict) else {}
+    expanded: list[dict[str, str]] = []
+    for row in rows:
+        if str(row.get("_prepared_services") or "").strip():
+            expanded.append(row)
+            continue
+        observed = items.get(str(row.get("id") or ""))
+        services = observed.get("services") if isinstance(observed, dict) else {}
+        service_ids = sorted(
+            str(service_id)
+            for service_id in (services or {})
+            if str(service_id)
+            and str(service_id).lower() not in {"telegram", "__channel_liveness__"}
+        )
+        expanded.append({
+            **row,
+            "_prepared_services": ",".join(service_ids),
+            "_prepared_services_source": "CURRENT_MATRIX_SERVICE_IDS",
+        })
+    return expanded
+
+
 def run_service_failure_automation_advisory(
     consumer: str,
     *,
@@ -6744,6 +6780,7 @@ def main() -> int:
         if service_class == "path":
             rows = [{**row, "_prepared_services": ""} for row in rows]
         elif service_class == "other":
+            rows = expand_prepared_other_service_scope(rows, state_dir=state_dir)
             filtered_rows = []
             for row in rows:
                 services = [

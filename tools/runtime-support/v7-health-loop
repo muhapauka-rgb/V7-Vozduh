@@ -959,7 +959,10 @@ class RoleHealthLoop:
                     ),
                     "",
                 )
-                if running_slow:
+                if running_slow and not (
+                    role.name == "hot_target_other"
+                    and running_slow == "other_required"
+                ):
                     print(
                         f"V7_HEALTH_ROLE_DEFERRED role={role.name} "
                         f"reason=SLOW_ROLE_ALREADY_RUNNING running_role={running_slow}",

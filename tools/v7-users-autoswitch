@@ -22536,6 +22536,13 @@ def consume_passive_events_only(args: argparse.Namespace) -> dict[str, Any]:
     planner.state_dir = Path(args.state_dir)
     planner.event_dir = Path(args.event_dir)
     planner.l3_runtime_state_file = planner.state_dir / "l3-runtime-state.json"
+    # The passive entrypoint intentionally skips the full Planner constructor,
+    # but its existing L3 reconciliation owner still evaluates the current
+    # emergency-policy projection.  Initialise the same immutable inputs that
+    # ``__init__`` would provide; this is not a second policy source and does
+    # not grant execution authority.
+    planner._standing_policy_audit_records_cache = None
+    planner._standing_policy_lineage_reuse_diagnostic = {}
     planner._passive_performance_recorder = record_passive_span
     l3_load_started_ns = time.monotonic_ns()
     planner.l3_runtime_state = planner._load_l3_runtime_state()
@@ -22544,6 +22551,7 @@ def consume_passive_events_only(args: argparse.Namespace) -> dict[str, Any]:
     planner.policy = read_json(Path(args.policy_file), {})
     planner.org_policy = read_json(Path(args.org_policy_file), {})
     planner.service_signal_policy = planner._service_signal_policy()
+    planner.emergency_failover_policy = planner._emergency_failover_policy()
     record_passive_span("passive_policy_and_signal_inputs", policy_load_started_ns)
     consumption_started_ns = time.monotonic_ns()
     result = planner._consume_passive_production_events()

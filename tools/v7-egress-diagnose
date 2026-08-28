@@ -629,6 +629,42 @@ print(",".join(sorted(set(failed))))
 PY
 }
 
+matrix_stale_failed_services_for_source() {
+  source_id="$1"
+  services="$2"
+  python3 - "$STATE_DIR/service-matrix.json" "$source_id" "$services" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+try:
+    payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+except Exception:
+    payload = {}
+items = payload.get("items") if isinstance(payload, dict) else {}
+row = items.get(sys.argv[2]) if isinstance(items, dict) else {}
+service_rows = row.get("services") if isinstance(row, dict) else {}
+requested = [item.strip() for item in str(sys.argv[3] or "").split(",") if item.strip()]
+failed = []
+for service in requested:
+    item = service_rows.get(service) if isinstance(service_rows, dict) else None
+    if not isinstance(item, dict):
+        continue
+    status = str(item.get("status") or "").upper()
+    severity = str(item.get("severity") or "").upper()
+    failure_state = str(item.get("failure_state") or "").upper()
+    incident = str(item.get("source_incident_id") or "")
+    if incident and (
+        status == "FAIL"
+        or severity == "FAIL"
+        or failure_state.startswith("OBSERVED_")
+    ):
+        failed.append(service)
+print(",".join(sorted(set(failed))))
+PY
+}
+
 required_service_ids() {
   python3 - "$STATE_DIR/service-preferences.json" <<'PY'
 import json
@@ -886,6 +922,34 @@ EOF
   if [ -n "$completion_ns" ] && [ "$completion_ns" -ge "$FAST_PRODUCER_STARTED_NS" ] 2>/dev/null; then
     completion_ms=$(( (completion_ns - FAST_PRODUCER_STARTED_NS) / 1000000 ))
     FAST_PRODUCER_COMPLETION_MS+=("$completion_ms")
+  fi
+  if [ -n "$unknown_services" ] && [ -z "$failed_services" ]; then
+    # A stale Matrix failure is never sufficient evidence for a move.  It is
+    # only a bounded hint that the existing Matrix probe owner should refresh
+    # the exact profile services now.  This repairs the no-timer lifecycle
+    # without weakening freshness or creating a second state owner.
+    stale_matrix_failed_services="$(matrix_stale_failed_services_for_source "$source_id" "$services")"
+    if [ -n "$stale_matrix_failed_services" ]; then
+      now_epoch="$(date +%s)"
+      previous_revalidation_epoch="$(previous_value "${state_key}_profile_targeted_revalidation_epoch")"
+      if [ -z "$previous_revalidation_epoch" ] || [ "$previous_revalidation_epoch" -lt $((now_epoch - 30)) ] 2>/dev/null; then
+        targeted_probe="$(run_profile_service_probe "$source_id" "$services")"
+        IFS='|' read -r targeted_status targeted_failure_count targeted_dns_services targeted_degraded_services targeted_failed_services targeted_unknown_services targeted_completion_ns <<EOF
+$targeted_probe
+EOF
+        if [ -z "$targeted_unknown_services" ]; then
+          failure_count="$targeted_failure_count"
+          dns_services="$targeted_dns_services"
+          degraded_services="$targeted_degraded_services"
+          failed_services="$targeted_failed_services"
+          unknown_services=""
+          printf '%s_profile_targeted_revalidation=USED\n' "$state_key" >> "$TMP"
+        fi
+        printf '%s_profile_targeted_revalidation_epoch=%s\n' "$state_key" "$now_epoch" >> "$TMP"
+      else
+        printf '%s_profile_targeted_revalidation=COOLDOWN\n' "$state_key" >> "$TMP"
+      fi
+    fi
   fi
   if [ -n "$unknown_services" ] && [ -z "$failed_services" ]; then
     # The bounded batch sentinel may legitimately return no per-service result

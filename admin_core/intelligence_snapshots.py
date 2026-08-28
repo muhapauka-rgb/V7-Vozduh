@@ -16,7 +16,18 @@ from typing import Any
 
 CANONICAL_SNAPSHOT_ROOT = Path("/opt/v7/egress/state/intelligence")
 SNAPSHOT_SCHEMA_VERSION = "v7.intelligence-snapshot-envelope.v1"
+# Candidate suitability is the one intentionally user-scoped snapshot: its
+# bounded rows include the current service evidence for every eligible user.
+# At the current production cohort this canonical payload is ~1.08 MB.  Keep
+# the historical 1 MB safety cap for all other families, but give this family
+# a small, explicit headroom budget rather than letting a valid snapshot be
+# classified as corrupt solely because the cohort grew.  This is still a
+# hard local file-size limit; it does not change freshness, confidence or
+# execution gates.
 MAX_SNAPSHOT_BYTES = 1_000_000
+SNAPSHOT_MAX_BYTES_BY_FAMILY = {
+    "candidate-suitability-summary": 2_000_000,
+}
 FRESHNESS_STATES = ("FRESH", "STALE", "EXPIRED", "UNKNOWN")
 RUNTIME_BEHAVIORS = ("ALLOW", "WARN", "IGNORE", "STOP")
 
@@ -271,6 +282,7 @@ def snapshot_envelope_schema() -> dict[str, Any]:
         "confidence_range": [0.0, 1.0],
         "freshness_states": list(FRESHNESS_STATES),
         "max_snapshot_bytes": MAX_SNAPSHOT_BYTES,
+        "max_snapshot_bytes_by_family": dict(SNAPSHOT_MAX_BYTES_BY_FAMILY),
     }
 
 
@@ -558,7 +570,7 @@ def read_snapshot(
     family_name: str,
     *,
     now: datetime | None = None,
-    max_bytes: int = MAX_SNAPSHOT_BYTES,
+    max_bytes: int | None = None,
 ) -> SnapshotReadResult:
     path_obj = Path(path)
     if family_name not in SNAPSHOT_FAMILIES:
@@ -568,7 +580,12 @@ def read_snapshot(
         validation = SnapshotValidation(False, ["missing_snapshot"], [])
         return SnapshotReadResult(family_name, str(path_obj), False, {}, validation, "UNKNOWN", 0.0, "STOP", True)
     try:
-        if path_obj.stat().st_size > max_bytes:
+        size_limit = (
+            int(max_bytes)
+            if max_bytes is not None
+            else int(SNAPSHOT_MAX_BYTES_BY_FAMILY.get(family_name, MAX_SNAPSHOT_BYTES))
+        )
+        if path_obj.stat().st_size > size_limit:
             validation = SnapshotValidation(False, ["snapshot_too_large"], [])
             return SnapshotReadResult(family_name, str(path_obj), True, {}, validation, "UNKNOWN", 0.0, "STOP", True)
         payload = json.loads(path_obj.read_text(encoding="utf-8"))
@@ -597,7 +614,7 @@ def read_snapshot_family(
     family_name: str,
     *,
     now: datetime | None = None,
-    max_bytes: int = MAX_SNAPSHOT_BYTES,
+    max_bytes: int | None = None,
 ) -> SnapshotReadResult:
     return read_snapshot(snapshot_path(root, family_name), family_name, now=now, max_bytes=max_bytes)
 
@@ -607,6 +624,7 @@ def read_snapshot_bundle(
     family_names: list[str] | None = None,
     *,
     now: datetime | None = None,
+    max_bytes: int | None = None,
 ) -> dict[str, SnapshotReadResult]:
     names = family_names or list(SNAPSHOT_FAMILIES)
-    return {name: read_snapshot_family(root, name, now=now) for name in names}
+    return {name: read_snapshot_family(root, name, now=now, max_bytes=max_bytes) for name in names}

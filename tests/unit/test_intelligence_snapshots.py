@@ -167,6 +167,23 @@ class IntelligenceSnapshotsTest(unittest.TestCase):
         self.assertEqual(list(bundle), ["overview-summary"])
         self.assertEqual(bundle["overview-summary"].freshness_state, "FRESH")
 
+    def test_candidate_suitability_uses_its_explicit_cohort_size_budget(self):
+        # The candidate snapshot is user-scoped and can legitimately exceed
+        # the 1 MB default as the current cohort grows.  It still remains
+        # bounded by the family-specific 2 MB cap.
+        payload = self.base_payload(
+            "candidate-suitability-summary",
+            content=[{"user": "10.7.0.125", "evidence": "x" * 1_050_000}],
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_snapshot(root, "candidate-suitability-summary", payload)
+            result = snapshots.read_snapshot_family(root, "candidate-suitability-summary", now=NOW)
+            self.assertGreater(Path(result.path).stat().st_size, snapshots.MAX_SNAPSHOT_BYTES)
+        self.assertTrue(result.validation.ok)
+        self.assertEqual(result.runtime_behavior, "ALLOW")
+        self.assertFalse(result.stop_required)
+
     def test_contracts_expose_runtime_stop_matrix_and_perf3_workers(self):
         runtime_contract = snapshots.runtime_read_contract()
         self.assertIn("raw history", runtime_contract["planner_must_never_read"])

@@ -1408,6 +1408,12 @@ def selected_moves_from_planner_payload(payload: dict[str, Any]) -> list[dict[st
                 "from": current,
                 "to": target,
                 "confidence": row.get("confidence", row.get("score", 0.0)),
+                "trust": row.get("trust", 0.0),
+                "prediction": (
+                    copy.deepcopy(row.get("prediction"))
+                    if isinstance(row.get("prediction"), dict)
+                    else {}
+                ),
                 "risk": row.get("risk", 0.0),
                 "recommendation_hash": row.get("recommendation_hash", ""),
             }
@@ -1463,19 +1469,62 @@ def bind_ordinary_service_failure_selection(
         }
 
     bound = copy.deepcopy(plan)
-    bound["selected_moves"] = [
-        {
+    selected_moves = []
+    routing_brain = plan.get("routing_brain") if isinstance(plan.get("routing_brain"), dict) else {}
+    prediction_advice = routing_brain.get("prediction_advice") if isinstance(routing_brain.get("prediction_advice"), dict) else {}
+    trust_forecast = prediction_advice.get("trust_forecast") if isinstance(prediction_advice.get("trust_forecast"), dict) else {}
+    default_trust = trust_forecast.get("current_trust", 0.0)
+    default_prediction_confidence = (
+        routing_brain.get("trust_evolution_advice", {}).get("prediction_confidence", 0.0)
+        if isinstance(routing_brain.get("trust_evolution_advice"), dict)
+        else 0.0
+    )
+    for row in selected:
+        target_row = next(
+            (
+                candidate
+                for candidate in (plan.get("decisions") or [])
+                if isinstance(candidate, dict)
+                and str(candidate.get("user_ip") or candidate.get("user") or "") == str(row.get("user") or "")
+            ),
+            {},
+        )
+        target_candidate = next(
+            (
+                candidate
+                for candidate in (target_row.get("candidates") or [])
+                if isinstance(candidate, dict)
+                and str(candidate.get("egress") or "") == str(row.get("to") or "")
+            ),
+            {},
+        )
+        suitability = target_candidate.get("service_suitability") if isinstance(target_candidate.get("service_suitability"), dict) else {}
+        live_confidence = suitability.get("confidence", 0.0)
+        try:
+            live_confidence = float(live_confidence)
+        except (TypeError, ValueError):
+            live_confidence = 0.0
+        selected_moves.append({
             "user_ip": str(row.get("user") or ""),
             "current_egress": str(row.get("from") or ""),
             "recommended_egress": str(row.get("to") or ""),
             "action": "switch",
             "move_type": "failover",
-            "confidence": row.get("confidence", 0.0),
+            # Use the current Matrix-backed suitability result when the
+            # Planner did not carry a learned snapshot score. This preserves
+            # the normal floor gate while preventing a lost field from being
+            # interpreted as zero evidence.
+            "confidence": max(float(row.get("confidence", 0.0) or 0.0), live_confidence),
+            "trust": row.get("trust", default_trust),
+            "prediction": (
+                copy.deepcopy(row.get("prediction"))
+                if isinstance(row.get("prediction"), dict) and row.get("prediction")
+                else {"confidence": default_prediction_confidence}
+            ),
             "risk": row.get("risk", 0.0),
             "recommendation_hash": row.get("recommendation_hash", ""),
-        }
-        for row in selected
-    ]
+        })
+    bound["selected_moves"] = selected_moves
     summary = bound.get("summary") if isinstance(bound.get("summary"), dict) else {}
     summary.update({
         "selected_moves": len(selected),
@@ -1521,8 +1570,12 @@ def merge_planner_moves_into_surface(
             "current_channel": move.get("from", ""),
             "recommended_channel": move.get("to", ""),
             "confidence": move.get("confidence", existing.get("confidence", 0.0)),
-            "trust": existing.get("trust", 0.0),
-            "prediction": existing.get("prediction", {}),
+            "trust": move.get("trust", existing.get("trust", 0.0)),
+            "prediction": (
+                copy.deepcopy(move.get("prediction"))
+                if isinstance(move.get("prediction"), dict)
+                else existing.get("prediction", {})
+            ),
             "risk": move.get("risk", existing.get("risk", 0.0)),
             "recommendation_hash": move.get("recommendation_hash") or existing.get("recommendation_hash", ""),
             "reasons": existing.get("reasons") or ["planner observe selected governed canary candidate"],

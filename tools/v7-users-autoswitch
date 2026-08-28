@@ -9709,24 +9709,13 @@ class AutoswitchPlanner:
             "autonomy_certified": False,
         }
 
-    def _emergency_failover_move_evidence(
-        self,
-        move: dict[str, Any],
-        *,
-        ordinary_service_failure_context: bool = False,
-    ) -> dict[str, Any]:
+    def _emergency_failover_move_evidence(self, move: dict[str, Any]) -> dict[str, Any]:
         blockers: list[str] = []
         user_ip = str(move.get("user_ip") or "")
         reasons = [str(reason) for reason in (move.get("reason") or [])]
-        if (
-            str(move.get("move_type") or "") != "failover"
-            and not ordinary_service_failure_context
-        ):
+        if str(move.get("move_type") or "") != "failover":
             blockers.append("emergency_allows_failover_only")
-        if (
-            "current_egress_not_eligible" not in reasons
-            and not ordinary_service_failure_context
-        ):
+        if "current_egress_not_eligible" not in reasons:
             blockers.append("current_egress_not_eligible_required")
 
         current_id = str(move.get("current_egress") or "")
@@ -9806,6 +9795,79 @@ class AutoswitchPlanner:
                 }
                 for row in current_failures
             ],
+        }
+
+    def _ordinary_service_failure_execution_eligibility(
+        self,
+        plan: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Validate one Matrix-confirmed ordinary failure before apply.
+
+        Ordinary service-failure recovery is not an emergency-authority
+        transaction, so it must not be forced through the emergency incident
+        readiness gate.  This narrow owner check retains the independent
+        mutable checks needed by the existing route writer: one ordinary live
+        identity, unchanged failed source, eligible target, fresh failure and
+        target service evidence, and no certification identity.
+        """
+        selected = [
+            move for move in (plan.get("selected_moves") or [])
+            if isinstance(move, dict)
+        ]
+        operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+        blockers: list[str] = []
+        if not bool_value(getattr(self.args, "ordinary_service_failure_context", False)):
+            blockers.append("ordinary_service_failure_context_required")
+        if len(selected) != 1:
+            blockers.append("ordinary_service_failure_requires_exactly_one_move")
+        if not str(operation.get("selected_move_hash") or ""):
+            blockers.append("selected_move_hash_missing")
+        checked_moves: list[dict[str, Any]] = []
+        live_users = {
+            user.ip: user
+            for user in self._load_runtime_registry_users()
+        }
+        live_egress = self._load_egress()
+        for move in selected:
+            user_ip = str(move.get("user_ip") or "")
+            source_id = str(move.get("current_egress") or "")
+            target_id = str(move.get("recommended_egress") or "")
+            move_blockers: list[str] = []
+            user = live_users.get(user_ip)
+            source = live_egress.get(source_id)
+            target = live_egress.get(target_id)
+            if not user or not user.enabled:
+                move_blockers.append("user_not_live_or_disabled")
+            elif bool_value((user.raw or {}).get("certification_user")):
+                move_blockers.append("certification_identity_not_allowed")
+            elif user.current != source_id:
+                move_blockers.append("source_user_state_changed_before_apply")
+            if not source:
+                move_blockers.append("source_channel_missing_before_apply")
+            if not target or not target.enabled or str(target.state).lower() in {"disabled", "down"}:
+                move_blockers.append("target_not_eligible_before_apply")
+            if source_id == target_id:
+                move_blockers.append("source_target_same_before_apply")
+            evidence = self._emergency_failover_move_evidence(move)
+            move_blockers.extend(str(item) for item in (evidence.get("blockers") or []))
+            checked_moves.append({
+                "user_ip": user_ip,
+                "source": source_id,
+                "target": target_id,
+                "blockers": sorted(set(move_blockers)),
+                "current_channel_failure": evidence.get("current_channel_failure") or {},
+                "target_service": evidence.get("current_failures") or [],
+            })
+            blockers.extend(move_blockers)
+        return {
+            "schema_version": "v7.ordinary-service-failure-execution-eligibility.v1",
+            "active": True,
+            "ok": not blockers,
+            "decision": "EXECUTE_ORDINARY_SERVICE_FAILURE" if not blockers else "STOP_SAFE",
+            "blockers": sorted(set(blockers)),
+            "checked_moves": checked_moves,
+            "owner": "tools/v7-users-autoswitch existing service-failure consumer",
+            "runtime_mutation": False,
         }
 
     def _state_file_freshness(self) -> dict[str, Any]:
@@ -15953,14 +16015,7 @@ class AutoswitchPlanner:
         summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
         safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
         gate = safety.get("emergency_failover_autonomy") if isinstance(safety.get("emergency_failover_autonomy"), dict) else {}
-        ordinary_service_failure_context = bool_value(
-            getattr(self.args, "ordinary_service_failure_context", False)
-        )
-        active = (
-            str(summary.get("execution_mode") or "") == "emergency_failover"
-            or bool_value(gate.get("enabled"))
-            or ordinary_service_failure_context
-        )
+        active = str(summary.get("execution_mode") or "") == "emergency_failover" or bool_value(gate.get("enabled"))
         if not active:
             return {"schema_version": "v7.l3-execution-eligibility.v1", "active": False, "ok": True, "blockers": []}
 
@@ -16027,7 +16082,6 @@ class AutoswitchPlanner:
             != "READY_FOR_EXECUTION"
             and not approved_validation_scope
             and not controlled_recovery_authorized
-            and not ordinary_service_failure_context
         ):
             blockers.append("l3_incident_not_ready")
         if len(selected) < 1:
@@ -16051,13 +16105,9 @@ class AutoswitchPlanner:
             source = live_egress.get(current_id)
             if (
                 str(move.get("execution_mode") or "") != "emergency_failover"
-                and not ordinary_service_failure_context
             ):
                 move_blockers.append("l3_execution_mode_not_emergency_failover")
-            if (
-                str(move.get("move_type") or "") != "failover"
-                and not ordinary_service_failure_context
-            ):
+            if str(move.get("move_type") or "") != "failover":
                 move_blockers.append("l3_allows_failover_only")
             if str(move.get("operation_id") or "") != operation_id:
                 move_blockers.append("operation_id_mismatch")
@@ -16092,10 +16142,7 @@ class AutoswitchPlanner:
                     ),
                 }
             else:
-                live_evidence = self._emergency_failover_move_evidence(
-                    move,
-                    ordinary_service_failure_context=ordinary_service_failure_context,
-                )
+                live_evidence = self._emergency_failover_move_evidence(move)
             if "required_service_failure_required" in (live_evidence.get("blockers") or []):
                 move_blockers.append("source_recovered_before_apply")
             if "target_required_services_not_ready" in (live_evidence.get("blockers") or []):
@@ -18337,7 +18384,11 @@ class AutoswitchPlanner:
                 "runtime_mutation": False,
             }
             if n10_product_contract
-            else self._l3_execution_eligibility(plan)
+            else (
+                self._ordinary_service_failure_execution_eligibility(plan)
+                if ordinary_service_failure_context
+                else self._l3_execution_eligibility(plan)
+            )
         )
         if l3_eligibility.get("active"):
             plan.setdefault("safety", {})["l3_execution_eligibility"] = l3_eligibility

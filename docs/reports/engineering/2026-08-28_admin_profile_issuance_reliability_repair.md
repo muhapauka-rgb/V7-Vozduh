@@ -172,14 +172,44 @@ so the one-second goal can be checked from the actual UI path.
   fail-closed; the new profile-update action uses the existing operation
   control plus the existing writer for one explicitly confirmed device.
 
+### Publication and independent Runtime verification
+
+- Published commit: `df9d428579793a586c314a2ec0114d642ce91f02` on
+  `Updatesystem`.
+- The guarded deployment completed successfully.  An independent read of the
+  running server reports Admin executable SHA-256
+  `288f5d7ca77a49f812a1468031dd275d7603e405a6d83e0db6b79e3e371f6a27`,
+  equal to the local published Admin artifact.
+- `v7-admin-api.service`, `v7-health.service` and the public VLESS inbound are
+  active after deployment.  The old standalone Matrix and Telegram timer units
+  are absent, as intended; no timer was created or enabled by this repair.
+- The safe-deploy tool's older local deployment snapshot still predates this
+  Admin binary.  It is not used as Runtime proof: the server-side executable
+  hash above is the independent evidence.
+
+### Live timing evidence boundary
+
+- A read-only search of the current Karing bindings found no certification-only
+  identity whose existing inbound configuration, binding and running source
+  could be reused unchanged.  No user, route or shared inbound was changed to
+  manufacture a timing sample.
+- Consequently, the earlier 727.5 ms issuance-preview result remains valid for
+  the no-health issuance decision, while a live profile-plus-link result is
+  deliberately not claimed until a real current update runs.  The deployed UI
+  now exposes the separate profile and link durations for that measurement.
+
 ## Next step
 
-Deploy this bounded Admin repair, then measure the actual existing-device
-profile-and-link response on a safe current identity. The fast reissue target
-is one second; an operator-selected move is reported separately because it
-includes real route application and verification. In parallel, run a controlled
-Matrix/Polygon recovery proof through the existing owners: it must show that a
-newly issued identity on a confirmed failed source reaches governed recovery
-without an operator action. Repair the existing consumer only if that proof
-shows a concrete liveness defect; the current `awg0`/`awg3` STOP_SAFE
-recommendation gap remains separate from issuance.
+Run one real existing-device update through the refreshed Admin page.  If the
+operator chooses a different enabled channel, the new explicit confirmation
+performs the exact one-user governed rebind before generating the QR/link.  If
+the selected channel is already assigned, the fast reissue path avoids the
+shared inbound restart.  Measure the two displayed response intervals; the
+one-second target applies to this unchanged profile/link issuance, not to a
+real channel move that includes route application and verification.
+
+Separately, run a controlled Matrix/Polygon recovery proof through the existing
+owners.  It must show that a newly issued identity on a confirmed failed source
+reaches governed recovery without an operator action.  Repair the existing
+consumer only if that proof shows a concrete liveness defect; the current
+`awg0`/`awg3` STOP_SAFE recommendation gap remains separate from issuance.

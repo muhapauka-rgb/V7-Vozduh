@@ -618,6 +618,33 @@ def docs_only_runtime_commit_mismatch(
     }
 
 
+def read_live_runtime_hashes(
+    manifest: dict[str, Any], *, runner: CommandRunner = run_command,
+) -> dict[str, str]:
+    """Read all approved runtime file hashes without mutating production."""
+    host = str(manifest.get("production_ssh_target") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._@:-]+", host):
+        return {}
+    paths = [str(item.get("remote_path") or "") for item in sync_lib.deploy_file_records()]
+    paths = [path for path in paths if path.startswith("/")]
+    if not paths:
+        return {}
+    command = [
+        "ssh", host,
+        "sha256sum " + " ".join(shlex.quote(path) for path in paths),
+    ]
+    result = runner(command, None, 60)
+    if not result.get("ok"):
+        return {}
+    expected = set(paths)
+    hashes: dict[str, str] = {}
+    for line in str(result.get("stdout") or "").splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and re.fullmatch(r"[0-9a-fA-F]{64}", parts[0]) and parts[1] in expected:
+            hashes[parts[1]] = parts[0].lower()
+    return hashes if len(hashes) == len(expected) else {}
+
+
 def runtime_readonly_check(
     manifest: dict[str, Any],
     local: Optional[dict[str, Any]] = None,
@@ -640,6 +667,18 @@ def runtime_readonly_check(
         if isinstance(snapshot.get("command_results"), dict)
         else {}
     )
+    # Always prefer a fresh read of the runtime-critical executable hashes.
+    # Snapshot hashes are historical evidence and cannot certify deploy
+    # provenance when a copied binary was changed out-of-band.
+    live_hashes = read_live_runtime_hashes(manifest, runner=runner)
+    if live_hashes:
+        for remote_path, digest in live_hashes.items():
+            command_results[command_key(["sha256sum", remote_path])] = {
+                "ok": True,
+                "rc": 0,
+                "stdout": f"{digest}  {remote_path}",
+                "source": "live_runtime_read_only",
+            }
     # A snapshot can predate the N11 removal of these units.  They are not
     # runtime evidence once the units have been retired; retaining their old
     # read-only status cells would falsely make a fresh snapshot invalid.
@@ -671,6 +710,16 @@ def runtime_readonly_check(
 
     blockers: list[str] = []
     warnings: list[str] = []
+    if runner is run_command and not live_hashes:
+        blockers.append("live_runtime_hashes_unavailable")
+    elif runner is run_command:
+        local_hashes = {
+            str(item.get("remote_path")): str(item.get("sha256"))
+            for item in sync_lib.deploy_file_records()
+            if item.get("remote_path") and item.get("exists")
+        }
+        if any(live_hashes.get(path) != digest for path, digest in local_hashes.items()):
+            blockers.append("live_runtime_hash_mismatch")
     if snapshot.get("schema") != RUNTIME_SNAPSHOT_SCHEMA:
         blockers.append("runtime_snapshot_schema_mismatch")
     unknown_commands = sorted(observed_keys - allowed_keys)
@@ -777,6 +826,7 @@ def runtime_readonly_check(
         "commit_mismatch_classification": commit_mismatch_classification,
         "blockers": blockers,
         "warnings": warnings,
+        "live_runtime_hashes": live_hashes,
         "convergence_status": "RUNTIME_ALIGNED" if verdict == "PASS" else "RUNTIME_NO_GO",
         "final_verdict": verdict,
     }

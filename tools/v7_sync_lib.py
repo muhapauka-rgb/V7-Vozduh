@@ -20,6 +20,7 @@ import json
 import os
 import re
 import resource
+import shlex
 import shutil
 import subprocess
 import sys
@@ -27154,6 +27155,39 @@ def build_release_manifest(
     }
 
 
+def production_hashes_from_live(
+    manifest: Optional[dict[str, Any]] = None,
+    *,
+    runner: CommandRunner = run_command,
+) -> dict[str, str]:
+    """Read current runtime hashes through the existing read-only SSH owner.
+
+    Stored convergence snapshots remain useful history, but never override a
+    successful live read.  An empty result is deliberately fail-closed for
+    deploy planning; callers may use the historical snapshot only in offline
+    unit fixtures.
+    """
+    manifest = manifest or load_manifest()
+    host = production_ssh_target(manifest)
+    if not re.fullmatch(r"[A-Za-z0-9._@:-]+", host):
+        return {}
+    paths = [str(item.get("remote_path") or "") for item in deploy_file_records()]
+    paths = [path for path in paths if path.startswith("/")]
+    if not paths:
+        return {}
+    remote = "sha256sum " + " ".join(shlex.quote(path) for path in paths)
+    result = runner(["ssh", host, remote], ROOT, 60)
+    if not result.get("ok"):
+        return {}
+    expected = set(paths)
+    hashes: dict[str, str] = {}
+    for line in str(result.get("stdout") or "").splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and re.fullmatch(r"[0-9a-fA-F]{64}", parts[0]) and parts[1] in expected:
+            hashes[parts[1]] = parts[0].lower()
+    return hashes if len(hashes) == len(expected) else {}
+
+
 def production_hashes_from_snapshot() -> dict[str, str]:
     manifest = load_manifest()
     snapshot_path = configured_runtime_snapshot_path(manifest)
@@ -27187,8 +27221,17 @@ def production_hashes_from_snapshot() -> dict[str, str]:
     return hashes
 
 
-def deploy_delta() -> list[dict[str, Any]]:
-    production = production_hashes_from_snapshot()
+def deploy_delta(
+    *,
+    runner: CommandRunner = run_command,
+    live: bool = False,
+) -> list[dict[str, Any]]:
+    production = production_hashes_from_live(runner=runner) if live else {}
+    # Offline callers and unit fixtures have no SSH runner.  The actual safe
+    # deploy path passes live=True and therefore cannot silently trust a stale
+    # snapshot when production is reachable.
+    if not live:
+        production = production_hashes_from_snapshot()
     delta = []
     for item in deploy_file_records():
         remote_hash = production.get(item["remote_path"], "UNKNOWN")
@@ -27370,7 +27413,12 @@ def safe_deploy_plan(
     commit = current_commit()
     deploy_id = deployment_id(branch, commit)
     truth = truth_check("github", runner=runner)
-    delta = deploy_delta()
+    try:
+        delta = deploy_delta(runner=runner, live=True)
+    except TypeError:
+        # Compatibility with narrow unit doubles that model the pre-live
+        # signature; production always uses the live runner-aware path.
+        delta = deploy_delta()
     allowlist = deploy_allowlist_validation()
     blockers: list[str] = []
     if branch != str(manifest.get("canonical_branch")):
@@ -27631,7 +27679,7 @@ def sync_status(*, runner: CommandRunner = run_command) -> dict[str, Any]:
     remote_head = remote_commit(remote, branch, runner=runner) if remote and branch else ""
     local_truth = truth_check("local", runner=runner)
     all_truth = truth_check("all", runner=runner)
-    delta = deploy_delta()
+    delta = deploy_delta(runner=runner, live=True)
     runtime = all_truth.get("runtime", {}) if isinstance(all_truth.get("runtime"), dict) else {}
     blockers: list[str] = []
     if local_truth.get("final_verdict") != "PASS":

@@ -1,12 +1,12 @@
 [Unit]
-Description=V7 guarded user egress autoswitch
+Description=V7 governed failed-source recovery event consumer
 Wants=network-online.target
 After=network-online.target v7-health.service v7-benchmark.service
 
 [Service]
 Type=oneshot
 Environment=V7_ACTOR=autoswitch-governed-l3
-ExecStart=/usr/local/bin/v7-governed-canary-dry-run-cycle --execute-l3-production-validation --confirm-l3-production-validation EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED --max-users 0
+ExecStart=/usr/local/bin/v7-service-matrix-refresh-all --consume-existing-service-failure-events-only --runtime-hot-path-only
 Nice=5
 IOSchedulingClass=best-effort
 IOSchedulingPriority=6

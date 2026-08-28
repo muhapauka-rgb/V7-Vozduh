@@ -154,13 +154,9 @@ class V7SyncToolsTest(unittest.TestCase):
 
     def test_autoswitch_timer_invokes_governed_l3_owner_not_direct_apply(self):
         service = (ROOT / "systemd" / "v7-users-autoswitch.service").read_text(encoding="utf-8")
-        self.assertIn("/usr/local/bin/v7-governed-canary-dry-run-cycle", service)
-        self.assertIn("--execute-l3-production-validation", service)
-        self.assertIn("--confirm-l3-production-validation EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED", service)
-        self.assertIn("--max-users 0", service)
-        self.assertIn("audited standing policy", (
-            ROOT / "tools" / "v7-governed-canary-dry-run-cycle"
-        ).read_text(encoding="utf-8"))
+        self.assertIn("/usr/local/bin/v7-service-matrix-refresh-all", service)
+        self.assertIn("--consume-existing-service-failure-events-only", service)
+        self.assertIn("--runtime-hot-path-only", service)
         self.assertNotIn("/usr/local/bin/v7-users-autoswitch --apply", service)
 
     def test_existing_planner_consumes_canonical_events_without_repeating_legacy_planner(self):

@@ -167,6 +167,22 @@ RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES = (
 )
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
+TARGET_BLOCKER_CLASSES = (
+    "HARD_UNUSABLE",
+    "SOFT_CAPACITY",
+    "SOFT_QUALITY",
+    "SOFT_STABILITY",
+    "SOFT_BALANCE",
+    "POLICY_SECURITY_HARD",
+    "CONFLICTING_OPERATION_HARD",
+    "UNKNOWN_FAIL_CLOSED",
+)
+EMERGENCY_SOFT_BLOCKER_CLASSES = {
+    "SOFT_CAPACITY",
+    "SOFT_QUALITY",
+    "SOFT_STABILITY",
+    "SOFT_BALANCE",
+}
 # Reasons emitted by the existing channel diagnosis owner that represent a
 # hard source failure.  Administrative ``egress_disabled`` is intentionally
 # not included: it is a planned/control state, not proof that an assigned
@@ -4211,9 +4227,12 @@ class Egress:
 class Candidate:
     egress: Egress
     eligible: bool
+    purpose: str = "planned"
     score: float = 0.0
     reasons: list[str] = field(default_factory=list)
     blocked: list[str] = field(default_factory=list)
+    blocker_classes: dict[str, str] = field(default_factory=dict)
+    emergency_soft_admission: bool = False
     score_parts: dict[str, float] = field(default_factory=dict)
     severity_classification: dict[str, Any] = field(default_factory=dict)
     service_suitability: dict[str, Any] = field(default_factory=dict)
@@ -17321,7 +17340,7 @@ class AutoswitchPlanner:
         *,
         include_scoring: bool = True,
     ) -> Candidate:
-        c = Candidate(egress=egress, eligible=True)
+        c = Candidate(egress=egress, eligible=True, purpose=purpose)
         c.severity_classification = self._severity_classification(egress)
         c.service_suitability = self._service_suitability(egress, services, route_class)
         if include_scoring:
@@ -17334,6 +17353,7 @@ class AutoswitchPlanner:
         self._gate_service(c, services, route_class, purpose)
         self._gate_load(c, purpose)
         self._gate_safety(user, c, purpose)
+        self._admit_emergency_soft_candidate(c, purpose)
         c.capacity_decision = self._capacity_decision(egress)
         if not c.eligible or not include_scoring:
             return c
@@ -17341,9 +17361,53 @@ class AutoswitchPlanner:
         c.score = sum(c.score_parts.values())
         return c
 
+    def _classify_blocker(self, reason: str) -> str:
+        normalized = str(reason or "").lower()
+        if normalized in {"planned_hard_full", "hard_full", "preferred_capacity_exceeded"}:
+            return "SOFT_CAPACITY"
+        if "avg_mbps" in normalized or "min_mbps" in normalized or "quality" in normalized:
+            return "SOFT_QUALITY"
+        if "stability" in normalized:
+            return "SOFT_STABILITY"
+        if "rebalance" in normalized or "load_balance" in normalized:
+            return "SOFT_BALANCE"
+        if normalized in {"failover_full", "capacity_absolute_hard", "physical_capacity_exceeded"}:
+            return "HARD_UNUSABLE"
+        if normalized.startswith("conflicting_") or "operation_conflict" in normalized:
+            return "CONFLICTING_OPERATION_HARD"
+        if normalized in {
+            "manual_only", "reserve_only", "canary_reserved_production_assignment_blocked",
+            "target_blocked_for_user", "pair_reversal_stability_window", "trusted_ru_required",
+            "egress_in_use_by_other_group", "not_in_group_allowed_pool", "excluded_by_group_policy",
+            "not_in_egress_group_acl", "egress_safety_quarantine", "egress_failed_verifications_limit",
+        } or normalized.startswith("exclusive_to_"):
+            return "POLICY_SECURITY_HARD"
+        if normalized.startswith(("service_", "telegram_required_", "route_class_")):
+            return "HARD_UNUSABLE"
+        if normalized in {"egress_disabled", "egress_state_maintenance", "egress_state_disabled", "egress_state_quarantine"}:
+            return "HARD_UNUSABLE"
+        if normalized.startswith("health_code_") or normalized.startswith("severity_"):
+            return "HARD_UNUSABLE"
+        return "UNKNOWN_FAIL_CLOSED"
+
     def _block(self, candidate: Candidate, reason: str) -> None:
         candidate.eligible = False
         candidate.blocked.append(reason)
+        candidate.blocker_classes[reason] = self._classify_blocker(reason)
+
+    def _admit_emergency_soft_candidate(self, candidate: Candidate, purpose: str) -> None:
+        """Emergency recovery may use operational-but-soft targets.
+
+        Hard, policy, conflict, and unknown blockers always remain fail-closed.
+        The original reasons stay visible for audit and operator presentation.
+        """
+        if purpose != "failover" or not candidate.blocked:
+            return
+        classes = set(candidate.blocker_classes.values())
+        if classes and classes.issubset(EMERGENCY_SOFT_BLOCKER_CLASSES):
+            candidate.eligible = True
+            candidate.emergency_soft_admission = True
+            candidate.reasons.append("emergency_recovery_soft_target_admitted")
 
     def _gate_basic(self, candidate: Candidate, purpose: str) -> None:
         egress = candidate.egress
@@ -17835,8 +17899,11 @@ class AutoswitchPlanner:
         return {
             "egress": egress.id,
             "eligible": candidate.eligible,
+            "purpose": candidate.purpose,
             "score": round(candidate.score, 2),
             "blocked": candidate.blocked,
+            "blocker_classes": candidate.blocker_classes,
+            "emergency_soft_admission": candidate.emergency_soft_admission,
             "reasons": candidate.reasons,
             "score_parts": {k: round(v, 2) for k, v in candidate.score_parts.items()},
             "severity_classification": candidate.severity_classification,
@@ -17962,6 +18029,8 @@ class AutoswitchPlanner:
             limits = self._load_limits_for_egress(self.egress[target])
             soft_limit = to_int(limits.get("soft_limit"), 1)
             hard_limit = to_int(limits.get("hard_limit"), 1)
+            if allow_over_soft:
+                hard_limit = to_int(limits.get("failover_hard_limit"), hard_limit)
             projected_target = projected.get(target, self.egress[target].users)
             if not allow_over_soft and projected_target >= soft_limit:
                 continue
@@ -18017,6 +18086,8 @@ class AutoswitchPlanner:
             limits = self._load_limits_for_egress(self.egress[target])
             soft_limit = to_int(limits.get("soft_limit"), 1)
             hard_limit = to_int(limits.get("hard_limit"), 1)
+            if allow_over_soft:
+                hard_limit = to_int(limits.get("failover_hard_limit"), hard_limit)
             projected_target = projected.get(target, self.egress[target].users)
             if not allow_over_soft and projected_target >= soft_limit:
                 continue

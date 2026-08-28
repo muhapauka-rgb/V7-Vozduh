@@ -110,10 +110,26 @@ The Program is therefore corrected with a strict separation:
   of fresh failures and recovered services. It cannot lawfully cause a
   switch until Matrix emits the exact current failure obligation.
 
+### Runtime result after deployment
+
+- Published/deployed implementation: `c07deba32d7d9b236a41fb454e6089d35bd40c09`.
+- Both `v7-admin-api.service` and `v7-health.service` are active and the
+  deployed Admin hash matches the committed artifact.
+- A full Admin quick-issue preview on a non-persistent test identity completed
+  in **727.5 ms**. It selected the requested `vless` registry entry,
+  recorded `health_checked=false`, created no profile and changed no route.
+  The prior two synchronous Planner calls alone had cost roughly 3.06 seconds.
+- One current governed Matrix consumption cycle was then run with no manually
+  supplied source, target or user. It made **zero** moves. Current actionable
+  Matrix scope belonged to unrelated `awg0`/`awg3` incidents, and the existing
+  owner stopped safely because there was no owner-backed actionable
+  recommendation. VLESS was not manufactured into that scope.
+
 ## Next step
 
-Deploy the issuance separation, then run a controlled Matrix/Polygon recovery
-proof through the existing owners. It must show that a newly issued identity
-on a confirmed failed source reaches the governed recovery chain without a
-manual route action; repair the existing consumer only if that proof exposes a
-concrete liveness defect.
+Run a controlled Matrix/Polygon recovery proof through the existing owners. It
+must show that a newly issued identity on a confirmed failed source reaches the
+governed recovery chain without a manual route action; repair the existing
+consumer only if that proof exposes a concrete liveness defect. Separately,
+the current `awg0`/`awg3` STOP_SAFE recommendation gap must be reconciled
+before it can be called a healthy automatic-recovery service.

@@ -641,6 +641,59 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
                 original,
             )
 
+    def test_expired_base_reservation_release_preserves_ordinary_assignment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = (
+                "id=vless protocol=vless type=proxy interface=tun0 enabled=1 "
+                "test=socks5://127.0.0.1:1080 role=GLOBAL_FAST\n"
+            )
+            reserved = (
+                "id=vless protocol=vless type=proxy interface=tun0 enabled=1 "
+                "test=socks5://127.0.0.1:1080 role=GLOBAL_FAST "
+                "controlled_certification_source=1 certification_group=t48-old "
+                "execution_reserved=1 canary_reserved=1 "
+                "reservation_owner=operator_execution_governance "
+                "autoswitch_allowed=false rebalance_allowed=false "
+                "production_assignment_allowed=false "
+                "controlled_source_reservation_id=csr_expired "
+                "controlled_source_reservation_expires_at=2020-01-01T00:00:00+00:00\n"
+            )
+            users = "ip=10.7.0.125 current=vless table=1123 enabled=1\n"
+            state = self.write_state(Path(tmp), reserved, users)
+            backup = state / "egress.registry.backup.v7-egress-set-state.base"
+            backup.write_text(base, encoding="utf-8")
+            fingerprint = hashlib.sha256(reserved.rstrip("\n").encode()).hexdigest()
+
+            dry_run = self.run_set_state(
+                state,
+                "vless",
+                "certification-release",
+                "--certification-group", "t48-old",
+                "--reservation-id", "csr_expired",
+                "--expected-egress-fingerprint", fingerprint,
+                "--restore-backup", str(backup),
+                "--release-to-base",
+            )
+            self.assertEqual(dry_run.returncode, 0, dry_run.stdout + dry_run.stderr)
+            self.assertIn("ordinary_assignments_retained=1", dry_run.stdout)
+
+            applied = self.run_set_state(
+                state,
+                "vless",
+                "certification-release",
+                "--certification-group", "t48-old",
+                "--reservation-id", "csr_expired",
+                "--expected-egress-fingerprint", fingerprint,
+                "--restore-backup", str(backup),
+                "--release-to-base",
+                "--apply",
+                "--confirm", "RELEASE_CONTROLLED_CERTIFICATION_SOURCE_TO_BASE",
+            )
+            self.assertEqual(applied.returncode, 0, applied.stdout + applied.stderr)
+            self.assertIn("ordinary_assignments_retained=1", applied.stdout)
+            self.assertEqual((state / "egress.registry").read_text(encoding="utf-8"), base)
+            self.assertEqual((state / "users.registry").read_text(encoding="utf-8"), users)
+
     def test_controlled_source_reserve_blocks_nonempty_or_changed_source(self):
         with tempfile.TemporaryDirectory() as tmp:
             original = (

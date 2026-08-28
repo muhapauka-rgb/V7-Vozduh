@@ -634,7 +634,11 @@ if [ "$STATE" = "certification-release" ]; then
       echo "reason=controlled_source_base_release_group_not_exact"
       exit 2
     }
-    for key in id protocol type interface config role route_table manual_only reserve_only canary_reserved execution_reserved reservation_owner autoswitch_allowed rebalance_allowed production_assignment_allowed service_tags exclude_route_classes; do
+    # Reservation-owned flags are expected to differ from the pre-reservation
+    # backup: certification-reserve deliberately sets them.  Compare only the
+    # immutable source identity and routing attributes here, then validate the
+    # live reservation flags below before allowing a base restore.
+    for key in id protocol type interface config role route_table manual_only reserve_only service_tags exclude_route_classes; do
       same_base_source_field "$key" "$(kv_get "$line" "$key")" "$(kv_get "$prior_line" "$key")" || {
         echo "ACTION=blocked"
         echo "reason=controlled_source_base_restore_identity_changed"
@@ -642,24 +646,63 @@ if [ "$STATE" = "certification-release" ]; then
         exit 2
       }
     done
+    for key in controlled_certification_source execution_reserved canary_reserved; do
+      [ "$(kv_get "$line" "$key")" = "1" ] || {
+        echo "ACTION=blocked"
+        echo "reason=controlled_source_base_restore_reservation_flags_not_exact"
+        echo "field=$key"
+        exit 2
+      }
+    done
+    [ "$(kv_get "$line" reservation_owner)" = "operator_execution_governance" ] || {
+      echo "ACTION=blocked"
+      echo "reason=controlled_source_base_restore_reservation_owner_not_exact"
+      exit 2
+    }
+    for key in autoswitch_allowed rebalance_allowed production_assignment_allowed; do
+      value="$(kv_get "$line" "$key")"
+      case "$value" in false|0|no) ;; *)
+        echo "ACTION=blocked"
+        echo "reason=controlled_source_base_restore_recovery_flags_not_exact"
+        echo "field=$key"
+        exit 2
+        ;;
+      esac
+    done
   fi
-  assigned_count="$(awk -v e="$EGRESS_ID" '
+  assigned_counts="$(awk -v e="$EGRESS_ID" '
     {
-      enabled="1"; current=""
+      enabled="1"; current=""; certification="0"; group=""
       for (i=1;i<=NF;i++) {
         if ($i ~ /^enabled=/) enabled=substr($i,9)
         if ($i ~ /^current=/) current=substr($i,9)
+        if ($i ~ /^certification_user=/) certification=substr($i,20)
+        if ($i ~ /^certification_group=/) group=substr($i,21)
       }
-      if (enabled == "1" && current == e) count++
+      if (enabled == "1" && current == e) {
+        count++
+        if (certification == "1" || group != "") cert++
+      }
     }
-    END {print count+0}
+    END {print (count+0) ":" (cert+0)}
   ' "$USERS_REG")"
-  [ "$assigned_count" -eq 0 ] || {
+  assigned_count="${assigned_counts%%:*}"
+  assigned_certification_count="${assigned_counts##*:}"
+  if [ "$assigned_count" -gt 0 ] && [ "$release_mode" = "base_restore" ] && [ "$assigned_certification_count" -eq 0 ]; then
+    [ -n "$(kv_get "$line" controlled_source_reservation_expires_at)" ] \
+      && ! future_iso8601 "$(kv_get "$line" controlled_source_reservation_expires_at)" || {
+        echo "ACTION=blocked"
+        echo "reason=controlled_source_base_restore_requires_expired_reservation"
+        exit 2
+      }
+    echo "ordinary_assignments_retained=$assigned_count"
+  elif [ "$assigned_count" -ne 0 ]; then
     echo "ACTION=blocked"
     echo "reason=controlled_source_release_requires_empty_source"
     echo "assigned_enabled_users=$assigned_count"
+    echo "assigned_certification_users=$assigned_certification_count"
     exit 2
-  }
+  fi
   echo "reservation_id=$RESERVATION_ID"
   echo "release_mode=$release_mode"
   echo "restore_backup=$RESTORE_BACKUP"

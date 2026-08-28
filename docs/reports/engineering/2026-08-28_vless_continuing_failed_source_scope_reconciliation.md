@@ -110,3 +110,41 @@ Do not fabricate a cohort, manually move a client, or promote the stale
 `v7-state` projection. If the product requirement is instead “move a client
 when any individual service fails,” that is a separate product-contract
 decision; it is not justified by this reconciliation.
+
+## 7. Follow-up live observation (2026-08-28 20:53–20:55 UTC)
+
+The owner-backed probe was rerun after the previous report because the
+operator expected VLESS to be unavailable. The new result is materially
+different from the earlier `11/14` observation:
+
+- first follow-up: `1/14`, `WARN`; only Telegram passed;
+- second follow-up: `1/14`, `WARN`; Telegram passed, while Google,
+  Google Auth, Instagram, YouTube, WhatsApp, Facebook, OpenAI Auth, Spotify,
+  SoundCloud, Claude, Anthropic and ChatGPT failed;
+- the failures are mostly TLS EOF or five-second connection timeouts to the
+  VLESS path. `sing-box` logs show intermittent successful and timed-out
+  connections to `77.110.103.131:443`, confirming instability rather than a
+  clean process shutdown.
+
+The label `WARN` is a presentation/aggregation weakness: the Matrix status
+code is computed as `WARN` whenever at least one service is reachable, even
+when `13/14` checks fail. The detailed service rows contain the failures,
+but the headline can look healthy in the admin view. The local interface and
+process are also still `UP`, which is not equivalent to end-to-end service
+availability.
+
+After the two observations, the existing autoswitch consumer still produced
+`selected_moves=0` and `NO_INCIDENT_DISABLED`. Its current production policy
+is explicitly bounded (`emergency_failover_enabled=false`, L3 execution
+disabled, `max-users=0`), and the intelligence snapshot refresh timed out,
+so it failed closed. No client or route changed.
+
+This follow-up identifies two separate issues, neither repaired in this
+diagnostic turn:
+
+1. VLESS is currently operationally unstable, but the Matrix headline should
+   expose `13/14` failure more clearly instead of saying only `WARN`.
+2. Automatic ordinary-user movement is currently disabled by the existing
+   L3 production policy and also has no admitted target in the present
+   planner inventory. Enabling or changing that policy is a separate
+   product/Authority decision, not a safe inference from this observation.

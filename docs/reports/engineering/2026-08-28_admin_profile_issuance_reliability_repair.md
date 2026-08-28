@@ -39,6 +39,20 @@ Matrix optimisation and does not move a user or change a route.
 - No new owner, timer, registry, routing writer, Matrix logic or automatic user
   movement was added.
 
+## Deployment and runtime evidence
+
+- Published commit: `022ca46968281eab0f10fb71756a3abd6477d8f3` on `Updatesystem`.
+- `tools/v7-safe-deploy --apply` — PASS.
+- Runtime hashes for `v7-admin-api` and `v7-users-autoswitch` match the
+  deployed local artifacts; `v7-admin-api.service` and `v7-health.service`
+  are active.
+- Fresh read-only admission remained correct: `awg0` selected; `vless`
+  rejected with `health_code_000`, `severity_FAIL`, and both throughput-floor
+  blockers.  No user or route was changed.
+- Admission response reduced from about 104 KB to 3.7 KB; measured read-only
+  selection time was 1.53 s.  The restarted Admin process was at about 111 MB
+  current / 133 MB peak memory at verification.
+
 ## Next step
 
 Publish and deploy through `tools/v7-safe-deploy`, then verify the deployed

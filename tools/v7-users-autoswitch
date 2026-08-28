@@ -7985,8 +7985,6 @@ class AutoswitchPlanner:
                 continue
             if str(record.get("authority_object") or "") != "PASSIVE_SERVICE_FAILURE_CAPTURE":
                 continue
-            if str(record.get("incident_state") or "") == "INTENT_CLOSED":
-                continue
             source = str(record.get("channel") or record.get("source_channel") or "")
             recoveries = recoveries_by_source.get(source) or []
             if not source or not recoveries:
@@ -8068,6 +8066,15 @@ class AutoswitchPlanner:
                     break
                 subsequent_failure_epoch = True
             if not current_services_valid:
+                continue
+            if (
+                not subsequent_failure_epoch
+                and str(record.get("incident_state") or "") == "INTENT_CLOSED"
+            ):
+                # A previously closed intent remains terminal while the
+                # current Matrix is healthy or ambiguous.  Closed records are
+                # intentionally inspected above so a later, timestamped
+                # failure epoch can reopen the same source incident safely.
                 continue
             scope = (
                 record.get("current_source_scope")

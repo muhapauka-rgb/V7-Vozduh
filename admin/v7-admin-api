@@ -522,6 +522,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/user-create",
     "/api/actions/user-create-from-ipam",
     "/api/actions/user-switch",
+    "/api/actions/operator-profile-egress-rebind",
     "/api/actions/user-disable",
     "/api/actions/user-delete-apply",
     "/api/actions/user-enable",
@@ -621,6 +622,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/user-create": "admin",
     "/api/actions/user-create-from-ipam": "admin",
     "/api/actions/user-switch": "operator",
+    "/api/actions/operator-profile-egress-rebind": "operator",
     "/api/actions/users-rebalance-dry-run": "viewer",
     "/api/actions/user-disable": "admin",
     "/api/actions/user-delete-preview": "admin",
@@ -10078,6 +10080,7 @@ def ensure_karing_vless_identity(ip, client_name, actor, dry_run=False):
     config = read_json(config_path, {})
     if not isinstance(config, dict) or not config.get("inbounds"):
         return {"rc": 1, "output": f"ERROR: proxy_public_config_missing path={config_path}"}
+    original_config = json.loads(json.dumps(config))
     inbound = next((row for row in config.get("inbounds", []) if isinstance(row, dict) and row.get("type") == "vless"), None)
     if not inbound:
         return {"rc": 1, "output": f"ERROR: vless_inbound_missing path={config_path}"}
@@ -10109,7 +10112,6 @@ def ensure_karing_vless_identity(ip, client_name, actor, dry_run=False):
         if not (isinstance(row, dict) and auth_user in [str(item) for item in (row.get("auth_user") or [])])
     ]
     rules.append({"auth_user": [auth_user], "outbound": egress_outbound["tag"]})
-    write_json_atomic(config_path, config)
     binding_data = {
         "schema": "v7-proxy-identity-binding/v1",
         "status": "binding_active",
@@ -10127,18 +10129,47 @@ def ensure_karing_vless_identity(ip, client_name, actor, dry_run=False):
     }
     existing_created = binding.get("created_at") if isinstance(binding, dict) else ""
     binding_data["created_at"] = existing_created or binding_data["updated_at"]
-    write_json_atomic(proxy_binding_path(ip), binding_data)
-    check = run_action(["sing-box", "check", "-c", str(config_path)], actor, timeout=10)
-    if check.get("rc") != 0:
-        return check
-    restarted = run_action(["systemctl", "restart", PROXY_PUBLIC_SERVICE], actor, timeout=15)
-    if restarted.get("rc") != 0:
-        return restarted
+    binding_compare = dict(binding) if isinstance(binding, dict) else {}
+    binding_compare.pop("updated_at", None)
+    desired_binding_compare = dict(binding_data)
+    desired_binding_compare.pop("updated_at", None)
+    config_changed = config != original_config
+    binding_changed = binding_compare != desired_binding_compare
+    runtime_restarted = False
+    if config_changed:
+        write_json_atomic(config_path, config)
+    if binding_changed:
+        write_json_atomic(proxy_binding_path(ip), binding_data)
+    if config_changed:
+        check = run_action(["sing-box", "check", "-c", str(config_path)], actor, timeout=10)
+        if check.get("rc") != 0:
+            write_json_atomic(config_path, original_config)
+            if binding_changed:
+                write_json_atomic(proxy_binding_path(ip), binding)
+            return check
+        restarted = run_action(["systemctl", "restart", PROXY_PUBLIC_SERVICE], actor, timeout=15)
+        if restarted.get("rc") != 0:
+            write_json_atomic(config_path, original_config)
+            if binding_changed:
+                write_json_atomic(proxy_binding_path(ip), binding)
+            run_action(["systemctl", "restart", PROXY_PUBLIC_SERVICE], actor, timeout=15)
+            return restarted
+        runtime_restarted = True
+    else:
+        active = run_action(["systemctl", "is-active", "--quiet", PROXY_PUBLIC_SERVICE], actor, timeout=5)
+        if active.get("rc") != 0:
+            restarted = run_action(["systemctl", "restart", PROXY_PUBLIC_SERVICE], actor, timeout=15)
+            if restarted.get("rc") != 0:
+                return restarted
+            runtime_restarted = True
     return {
         "rc": 0,
-        "output": f"inbound_id={PROXY_INBOUND_ID} auth_user={auth_user} uuid={proxy_uuid} public={public_profile_host()}:{PROXY_PUBLIC_PORT} egress={runtime_egress['egress_id'] or 'default'} egress_bind={runtime_egress['interface'] or 'default'}",
+        "output": f"inbound_id={PROXY_INBOUND_ID} auth_user={auth_user} uuid={proxy_uuid} public={public_profile_host()}:{PROXY_PUBLIC_PORT} egress={runtime_egress['egress_id'] or 'default'} egress_bind={runtime_egress['interface'] or 'default'} config_changed={str(config_changed).lower()} binding_changed={str(binding_changed).lower()} runtime_restarted={str(runtime_restarted).lower()}",
         "proxy_uuid": proxy_uuid,
         "auth_user": auth_user,
+        "config_changed": config_changed,
+        "binding_changed": binding_changed,
+        "runtime_restarted": runtime_restarted,
     }
 
 
@@ -16197,6 +16228,173 @@ def identity_egress_issuance_binding(requested_egress=""):
     }
 
 
+def operator_profile_egress_rebind(data, actor):
+    """Apply one explicit operator-selected channel change before reissuing a profile.
+
+    This is deliberately separate from profile issuance.  Issuance remains a
+    fast local action and never waits for Matrix/Planner health work.  When an
+    operator explicitly selects another enabled channel for an existing device,
+    the existing operation-scoped execution-control owner opens one exact
+    USER_SWITCH window and ``v7-user-switch`` remains the only route writer.
+    No automatic target selection, health interpretation, or source/target
+    substitution is performed here.
+    """
+    if admin_safe_mode_enabled():
+        return None, {"error": "safe_mode_enabled", "message": "Safe mode allows diagnostics only."}, 423
+    if str(data.get("confirm") or "") != "OPERATOR_PROFILE_EGRESS_REBIND":
+        return None, {"error": "operator_profile_egress_rebind_requires_confirm"}, 400
+    user_ip = safe_user_ip(data.get("ip") or data.get("user") or "")
+    requested = safe_egress_id(data.get("egress") or data.get("target_egress") or "")
+    if not user_ip or not requested:
+        return None, {"error": "operator_profile_egress_rebind_scope_invalid"}, 400
+    binding = identity_egress_issuance_binding(requested)
+    if not binding.get("ok"):
+        return None, {"error": "configured_egress_required", "egress_binding": binding}, 409
+    users = [row for row in parse_registry(STATE_DIR / "users.registry") if safe_user_ip(row.get("ip") or "") == user_ip]
+    targets = [row for row in parse_registry(STATE_DIR / "egress.registry") if safe_egress_id(row.get("id") or "") == requested]
+    user = users[0] if len(users) == 1 else {}
+    target = targets[0] if len(targets) == 1 else {}
+    source = safe_egress_id(user.get("current") or "")
+    blockers = []
+    if len(users) != 1 or str(user.get("enabled") or "1").lower() not in {"1", "true", "yes"}:
+        blockers.append("operator_profile_user_not_exact_or_enabled")
+    if len(targets) != 1 or not str(target.get("interface") or ""):
+        blockers.append("operator_profile_target_not_exact")
+    if str(target.get("enabled") or "1").lower() not in {"1", "true", "yes"}:
+        blockers.append("operator_profile_target_not_enabled")
+    if not source:
+        blockers.append("operator_profile_source_missing")
+    if blockers:
+        return None, {"error": "operator_profile_egress_rebind_blocked", "blockers": sorted(set(blockers)), "egress_binding": binding}, 409
+    if source == requested:
+        return {
+            "action": "operator_profile_egress_rebind",
+            "status": "ALREADY_BOUND",
+            "user": user_ip,
+            "source_egress": source,
+            "target_egress": requested,
+            "health_checked": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }, None, 200
+
+    exact = {
+        "user": user_ip,
+        "source_egress": source,
+        "target_egress": requested,
+        "user_registry_fingerprint": operator_execution.sha256_json(user),
+        "target_registry_fingerprint": operator_execution.sha256_json(target),
+    }
+    operation_id = "oprbind_" + operator_execution.sha256_json(exact)[:24]
+    selected_move_hash = operator_execution.sha256_json({**exact, "transition": "OPERATOR_PROFILE_EGRESS_REBIND"})
+    source_bundle_hash = operator_execution.sha256_json({"operator_profile_rebind": exact})
+    snapshot_bundle_hash = operator_execution.sha256_json({"operator_profile_rebind": exact, "state_dir": str(STATE_DIR)})
+    control_before = operator_execution.autonomous_execution_control_state(SAFE_MODE_FILE)
+    if not control_before.get("valid") or control_before.get("state") != "OPEN" or control_before.get("scope") != "global":
+        return None, {"error": "operator_profile_execution_control_unavailable", "blockers": control_before.get("blockers") or ["active_or_invalid_execution_control"]}, 409
+    control = operator_execution.build_autonomous_execution_control_state(
+        False,
+        actor=actor or "admin",
+        reason="operator_profile_egress_rebind",
+        operation_id=operation_id,
+        selected_move_hash=selected_move_hash,
+        action_class="USER_SWITCH",
+        source_bundle_hash=source_bundle_hash,
+        snapshot_bundle_hash=snapshot_bundle_hash,
+        max_users=1,
+    )
+    operator_execution.write_json_atomic(SAFE_MODE_FILE, control)
+    writer = {"rc": 127, "output": "writer_not_started"}
+    verification = {"ok": False, "reason": "not_run"}
+    started_ns = time.monotonic_ns()
+    try:
+        decision = operator_execution.autonomous_execution_control_decision(
+            SAFE_MODE_FILE,
+            mutation_kind="forward",
+            action_class="USER_SWITCH",
+            expected_generation=str(control.get("generation") or ""),
+            operation_id=operation_id,
+            selected_move_hash=selected_move_hash,
+            source_bundle_hash=source_bundle_hash,
+            snapshot_bundle_hash=snapshot_bundle_hash,
+            max_users=1,
+        )
+        if not decision.get("allowed_forward_mutation"):
+            return None, {"error": "operator_profile_execution_control_denied", "blockers": decision.get("blockers") or []}, 409
+        fresh_users = [row for row in parse_registry(STATE_DIR / "users.registry") if safe_user_ip(row.get("ip") or "") == user_ip]
+        fresh_targets = [row for row in parse_registry(STATE_DIR / "egress.registry") if safe_egress_id(row.get("id") or "") == requested]
+        if len(fresh_users) != 1 or len(fresh_targets) != 1 or operator_execution.sha256_json(fresh_users[0]) != exact["user_registry_fingerprint"] or operator_execution.sha256_json(fresh_targets[0]) != exact["target_registry_fingerprint"]:
+            return None, {"error": "operator_profile_rebind_truth_changed"}, 409
+        env = dict(os.environ)
+        env.update({
+            "V7_SWITCH_REASON": "operator_profile_egress_rebind",
+            "V7_EXECUTION_CONTROL_GENERATION": str(control.get("generation") or ""),
+            "V7_EXECUTION_MUTATION_KIND": "forward",
+            "V7_EXECUTION_OPERATION_ID": operation_id,
+            "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+            "V7_EXECUTION_SELECTED_MOVE_HASH": selected_move_hash,
+            "V7_EXECUTION_SOURCE_BUNDLE_HASH": source_bundle_hash,
+            "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": snapshot_bundle_hash,
+            "V7_EXECUTION_MAX_USERS": "1",
+            "V7_ADMIN_SAFE_MODE_FILE": str(SAFE_MODE_FILE),
+            "V7_EXECUTION_CONTROL_FILE_HASH": operator_execution.sha256_file(SAFE_MODE_FILE),
+        })
+        try:
+            proc = subprocess.run(["v7-user-switch", user_ip, requested], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=35, check=False, env=env)
+            writer = {"rc": proc.returncode, "output": redact((proc.stdout or "")[-4000:])}
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            writer = {"rc": 127, "output": f"writer_failed:{type(exc).__name__}"}
+        current_rows = [row for row in parse_registry(STATE_DIR / "users.registry") if safe_user_ip(row.get("ip") or "") == user_ip]
+        assign = read_text(STATE_DIR / f"user-{user_ip}.assign", "")
+        expected_dev = str(target.get("interface") or "")
+        writer_output = str(writer.get("output") or "")
+        verification = {
+            "ok": bool(writer.get("rc") == 0 and len(current_rows) == 1 and safe_egress_id(current_rows[0].get("current") or "") == requested and f"egress={requested}" in assign and f"dev {expected_dev}" in writer_output),
+            "registry_assignment": safe_egress_id((current_rows[0] if current_rows else {}).get("current") or "") == requested,
+            "assignment_state": f"egress={requested}" in assign,
+            "kernel_route_observed": f"dev {expected_dev}" in writer_output,
+            "expected_interface": expected_dev,
+        }
+        if not verification["ok"]:
+            rollback = {"attempted": False}
+            if writer.get("rc") == 0:
+                rollback_env = dict(env)
+                rollback_env.update({
+                    "V7_EXECUTION_MUTATION_KIND": "rollback",
+                    "V7_EXECUTION_ROLLBACK_CERTIFIED": "1",
+                    "V7_SWITCH_REASON": "operator_profile_egress_rebind_rollback",
+                })
+                try:
+                    rollback_proc = subprocess.run(["v7-user-switch", user_ip, source], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=35, check=False, env=rollback_env)
+                    rollback = {"attempted": True, "rc": rollback_proc.returncode, "output": redact((rollback_proc.stdout or "")[-2000:])}
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    rollback = {"attempted": True, "rc": 127, "output": f"rollback_failed:{type(exc).__name__}"}
+            audit_admin(actor, "admin_action_operator_profile_egress_rebind", f"ip={user_ip} source={source} target={requested} verification=fail rollback_attempted={str(rollback.get('attempted')).lower()}", object_type="user", object_id=user_ip, result="FAIL", severity="warning")
+            return None, {"error": "operator_profile_rebind_verification_failed", "writer": writer, "verification": verification, "rollback": rollback}, 409
+        audit_admin(actor, "admin_action_operator_profile_egress_rebind", f"ip={user_ip} source={source} target={requested} health_checked=false", object_type="user", object_id=user_ip, result="OK")
+        return {
+            "action": "operator_profile_egress_rebind",
+            "status": "APPLIED_AND_VERIFIED",
+            "user": user_ip,
+            "source_egress": source,
+            "target_egress": requested,
+            "health_checked": False,
+            "writer": writer,
+            "verification": verification,
+            "elapsed_ms": round((time.monotonic_ns() - started_ns) / 1_000_000, 3),
+            "routing_mutation_performed": True,
+            "users_moved": 1,
+        }, None, 200
+    finally:
+        operator_execution.finalize_autonomous_execution_control_window(
+            SAFE_MODE_FILE,
+            expected_generation=str(control.get("generation") or ""),
+            operation_id=operation_id,
+            actor="admin/v7-admin-api:operator-profile-egress-rebind",
+            reason="operator_profile_egress_rebind_terminal",
+        )
+
+
 def autoswitch_read_only_plan_command(target_egress="", source_egress=""):
     cmd = [
         "v7-users-autoswitch",
@@ -21997,8 +22195,8 @@ def html_page_v2():
           </div>
           <div class="wizard-card">
             <h3>2. Профиль</h3>
-            <label class="field">Предпочтительный канал<select id="v2IssueEgress"></select></label>
-            <p class="muted">Это предпочтение, а не принудительное назначение: перед выдачей V7 сам проверит канал. Если он неисправен или небезопасен, V7 выберет подходящий либо честно остановит выдачу.</p>
+            <label class="field">Канал для выдачи<select id="v2IssueEgress"></select></label>
+            <p class="muted">При выдаче ключа V7 проверяет только, что канал включён в реестре: QR не ждёт проверки здоровья. Для существующего устройства выбор другого канала после подтверждения оператора сначала переводит его именно на выбранный канал через действующий безопасный маршрут, а затем выдаёт QR.</p>
             <label class="field">Приложение клиента<select id="v2IssueClient" onchange="updateV2IssueGuidance()"><option value="karing" selected>Karing / VLESS</option><option value="karing_wg">Karing / WireGuard + RU routes</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
             <div class="wizard-actions"><button class="ghost" onclick="setV2IssueOperation('1');runV2IssueProfile()">Проверить</button><button class="primary" onclick="setV2IssueOperation('0');runV2IssueProfile()">Выдать профиль</button></div>
             <p class="muted" id="v2IssueRunHint">Проверка ничего не меняет. Выдача создаёт профиль и одноразовую ссылку для скачивания.</p>
@@ -34905,7 +35103,12 @@ PersistentKeepalive = 25
     function issueSummaryPlainHtml(result={}, profile={}, deliveryLink='', refreshNeeded=false) {
       const planned = result.identityResult?.planned || result.planned || {};
       const binding = planned.egress_binding || {};
-      const selected = planned.egress || binding.selected_egress || '';
+      const rebind = result.rebindResult || {};
+      const selected = rebind.target_egress || planned.egress || binding.selected_egress || '';
+      const profileMs = Number(result.profileResult?.elapsed_ms || 0);
+      const deliveryMs = Number(result.deliveryResult?.elapsed_ms || 0);
+      const rebindMs = Number(rebind.elapsed_ms || 0);
+      const profileLatency = profileMs && deliveryMs ? `${Math.round(profileMs + deliveryMs)} мс` : '';
       const rows = [
         ['Клиент', result.adapter || ''],
         ['Режим', humanCode(result.mode || '')],
@@ -34914,6 +35117,8 @@ PersistentKeepalive = 25
         ['Профиль', profile.ready ? 'готов' : (result.previewOnly ? 'не создаётся при проверке' : 'не готов')],
         ['Ссылка', deliveryLink ? 'создана' : 'не создана'],
         ['Публичный вход', refreshNeeded ? 'нужно обновить' : 'актуален'],
+        ...(rebind.status === 'APPLIED_AND_VERIFIED' ? [['Перевод на канал', `выполнен и проверен${rebindMs ? ` · ${Math.round(rebindMs)} мс` : ''}`]] : []),
+        ...(profileLatency ? [['Выдача QR', profileLatency]] : []),
       ];
       const wgActions = wireguardArtifactActions(profile);
       return `<div class="issue-summary-plain"><h3>Сводка</h3>${rows.map(([k,v]) => `<p><span>${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}${wgActions ? `<div class="detail-actions">${wgActions}</div>` : ''}</div>`;
@@ -35627,7 +35832,7 @@ PersistentKeepalive = 25
     function v2IssueSourceText(source, scenario='') {
       const map = {
         quick: 'Быстрый ключ: телефон обязателен, имя и фирму можно заполнить позже. Если телефона нет, V7 создаст обычного нового пользователя.',
-        existing: 'Обновить конфиг: V7 сам найдёт существующее устройство пользователя. Если устройства ещё нет, создаст новое.',
+        existing: 'Обновить конфиг: V7 найдёт устройство. Если выбран другой включённый канал, подтверждённое действие оператора сначала переведёт устройство именно туда, затем выдаст новый QR.',
         additional: 'Дополнительный конфиг: ещё одно устройство для того же пользователя.',
         test: 'Тестовый конфиг: создаётся обычный пользователь V7 со статусом “Тестовый пользователь”.',
         identity: 'Пользователь V7 выбран из списка. Действие останется привязанным к этому человеку.',
@@ -35660,7 +35865,7 @@ PersistentKeepalive = 25
       if (modeHint) modeHint.textContent = `${v2IssueModeText(mode)} Клиент: ${adapter}.`;
       if (runHint) runHint.textContent = dryRun
         ? 'Проверка ничего не меняет: можно спокойно проверить пользователя, канал и будущий профиль.'
-        : 'V7 создаёт профиль и одноразовую ссылку. Если пользователь не активирует ссылку в течение суток или отвлечётся, оператор выдаёт новую.';
+        : 'V7 создаёт профиль и одноразовую ссылку. При обычной выдаче здоровье канала не проверяется: последующее восстановление остаётся за автоматикой. При обновлении существующего устройства выбор другого канала — отдельное подтверждённое действие оператора.';
     }
     function setV2IssueResult(content) {
       const el = document.getElementById('v2IssueResult');
@@ -35684,6 +35889,7 @@ PersistentKeepalive = 25
       let ip = document.getElementById('v2IssueExistingIp')?.value || '';
       let createResult = null;
       let identityResult = null;
+      let rebindResult = null;
       let profileResult = null;
       let deliveryResult = null;
       if (['quick','existing','additional','test'].includes(scenario)) {
@@ -35748,7 +35954,22 @@ PersistentKeepalive = 25
           return;
         }
         if (!ip) return setV2IssueResult(drawerSection('Блокер', '<p>Не нашёл пользователя или устройство по телефону. Проверьте номер или используйте “Быстрый ключ”.</p>'));
-        if (!confirm(`${dryRun ? 'Проверить' : 'Обновить'} профиль ${adapter} ${mode} для найденного устройства?`)) return;
+        const currentEgress = String(userRowByIp(ip)?.current || '');
+        const moveRequired = !!egress && !!currentEgress && egress !== currentEgress;
+        const action = moveRequired
+          ? `${dryRun ? 'Проверить' : 'Перевести устройство на канал ' + egress + ' и обновить'}`
+          : `${dryRun ? 'Проверить' : 'Обновить'}`;
+        if (!confirm(`${action} профиль ${adapter} ${mode} для найденного устройства?`)) return;
+        if (moveRequired && !dryRun) {
+          setV2IssueResult(`Перевожу устройство на ${esc(egress)} через подтверждённое действие оператора...`);
+          rebindResult = await postJson('/api/actions/operator-profile-egress-rebind', {
+            ip, egress, confirm:'OPERATOR_PROFILE_EGRESS_REBIND'
+          });
+          if (rebindResult.error) {
+            return setV2IssueResult({ip, adapter, mode, rebindResult});
+          }
+          setUserSwitchOptimistic(ip, egress, currentEgress);
+        }
       }
       setV2IssueResult(dryRun ? 'Проверяю умный профиль...' : 'Генерирую умный профиль...');
       profileResult = await postJson('/api/actions/smart-client-profile-generate', {ip, adapter, mode, dry_run: dryRun});
@@ -35759,11 +35980,11 @@ PersistentKeepalive = 25
         deliveryResult = await postJson('/api/actions/profile-delivery-create', {ip, adapter, mode});
       }
       if (profileResult.overview) overview = profileResult.overview;
-      setV2IssueResult({ip, adapter, mode, createResult, profileResult, deliveryResult, previewOnly: dryRun});
+      setV2IssueResult({ip, adapter, mode, createResult, rebindResult, profileResult, deliveryResult, previewOnly: dryRun});
       renderAll();
     }
     function renderV2IssueResult(result) {
-      const failed = result.identityResult || result.profileResult || result.deliveryResult || {};
+      const failed = result.identityResult || result.rebindResult || result.profileResult || result.deliveryResult || {};
       if (failed.error) {
         return [
           '<h3>Профиль не выдан</h3>',
@@ -39219,6 +39440,19 @@ class Handler(BaseHTTPRequestHandler):
                 return
             actor = session.get("sub", "admin")
             self.send_json(governed_user_switch_blocker_response(ip, egress, actor), status=409)
+        elif path == "/api/actions/operator-profile-egress-rebind":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            payload, error, status = operator_profile_egress_rebind(data, actor)
+            if error:
+                self.send_json({"action": "operator_profile_egress_rebind", **error}, status=status)
+                return
+            self.send_json(payload, status=status)
         elif path == "/api/actions/users-rebalance-dry-run":
             session = self.require_auth(api=True)
             if not session:
@@ -39369,6 +39603,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_csrf(session):
                 return
             data = read_request_data(self)
+            started_ns = time.monotonic_ns()
             ip = safe_user_ip(data.get("ip", ""))
             adapter = safe_smart_adapter(data.get("adapter", "karing"))
             mode = safe_smart_mode(data.get("mode", "RU_LOCAL"))
@@ -39466,6 +39701,7 @@ class Handler(BaseHTTPRequestHandler):
                 },
                 "proxy_identity": proxy_identity,
                 "user_detail": user_detail(ip),
+                "elapsed_ms": round((time.monotonic_ns() - started_ns) / 1_000_000, 3),
             }
             self.send_json(payload, status=status)
         elif path == "/api/actions/smart-client-profile-select":
@@ -39508,6 +39744,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_csrf(session):
                 return
             data = read_request_data(self)
+            started_ns = time.monotonic_ns()
             ip = safe_user_ip(data.get("ip", ""))
             adapter = safe_smart_adapter(data.get("adapter", "karing"))
             mode = safe_smart_mode(data.get("mode", "RU_LOCAL"))
@@ -39530,6 +39767,7 @@ class Handler(BaseHTTPRequestHandler):
                 "action": "profile_delivery_create",
                 "delivery": delivery,
                 "message": "One-time delivery link created. It expires after TTL and works once.",
+                "elapsed_ms": round((time.monotonic_ns() - started_ns) / 1_000_000, 3),
             })
         elif path == "/api/actions/profile-delivery-revoke":
             session = self.require_auth(api=True)

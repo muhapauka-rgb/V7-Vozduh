@@ -6861,10 +6861,10 @@ target-selection transaction.
    Candidate, Packet, Lease, Barrier, Apply and required-service verification —
    must autonomously handle the newly issued ordinary identity under the same
    current policy and safety gates as every other user.
-4. No Admin request may call a route writer, move a user, manufacture a target
-   or bypass stale/unknown/conflicting-data gates. A failed recovery attempt is
-   retained as a visible fail-closed operational result, never concealed by the
-   issuance result.
+4. Ordinary issuance does not call a route writer, move a user, manufacture a
+   target or bypass stale/unknown/conflicting-data gates. A failed recovery
+   attempt is retained as a visible fail-closed operational result, never
+   concealed by the issuance result.
 5. “Immediate” means no issuance-time health round trip and no unrelated
    history/overview work ahead of QR delivery. Recovery starts on the existing
    fast health/Matrix confirmation path; its actual cutover remains subject to
@@ -6875,6 +6875,27 @@ The obsolete synchronous `new-user admission` Planner adapter is not a
 compatibility path and must not be restored. The existing egress registry is
 the only issuance-time channel reader; the existing Matrix/Autoswitch chain is
 the only health/recovery owner.
+
+### V5.1 — Operator-selected rebind before an existing-device reissue
+
+An operator may explicitly choose a different **enabled configured** channel
+while updating an already existing device. This is not health recovery and not
+an issuance-time Planner decision. It is a distinct, one-user,
+operator-confirmed rebind, consumed only as follows:
+
+`explicit operator confirmation -> exact user/source/target re-read -> existing operation-scoped execution control -> existing v7-user-switch -> exact assignment + kernel-route observation -> profile/link/QR`.
+
+The selection is never silently substituted by Matrix or Planner. The rebind
+checks configuration, exact scope and route-write prerequisites, but does not
+wait for a health probe; Matrix remains responsible for later automatic
+failure recovery. It must use no new owner or route writer, bind the exact
+user/source/target fingerprints immediately before apply, limit the control
+window to one user, verify the written assignment and the expected interface,
+attempt the existing certified rollback path if that verification fails, and
+return the window to fail-closed `OPEN` state in all terminal cases. The
+profile is generated only after a successful rebind. Any drift, disabled
+target, active/conflicting operation, unavailable control contract or failed
+verification stops the action visibly without a substitute target.
 
 This capability plan reaches its program terminal only when all current
 criteria are owner-backed and consumed:

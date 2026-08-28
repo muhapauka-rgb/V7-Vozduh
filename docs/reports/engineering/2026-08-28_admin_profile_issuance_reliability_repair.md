@@ -125,11 +125,61 @@ The Program is therefore corrected with a strict separation:
   owner stopped safely because there was no owner-backed actionable
   recommendation. VLESS was not manufactured into that scope.
 
+## Follow-up: manual existing-device channel selection and QR latency
+
+The Admin update form exposed a channel selector but, for an already existing
+device, it did not pass that choice to any movement path. The operation only
+regenerated a profile and delivery link. Therefore an operator selecting
+another enabled channel could reasonably expect a move while the device stayed
+on its previous assignment.
+
+The behaviour is now explicit and bounded:
+
+- new-profile issuance remains local and does not wait for a health check;
+- choosing a different channel while updating an existing device is an
+  operator-confirmed, exact one-user rebind, not an automatic health decision;
+- the existing operation-scoped control and the sole existing route writer,
+  `v7-user-switch`, perform the change; the API does not write routes itself;
+- the user and selected channel are re-read by exact fingerprint immediately
+  before the writer; registry assignment, assignment state and the writer's
+  observed kernel interface must agree afterwards;
+- a failed verification attempts the existing certified rollback invocation
+  and always finalizes the operation control window; no substitute target is
+  selected.
+
+The Profile section now describes that distinction plainly. It no longer says
+that the selected channel is merely a preference or that profile issuance will
+run a synchronous health check.
+
+The repeat-issue slow path was also narrowed. A Karing/VLESS reissue previously
+rewrote an unchanged inbound configuration, validated it and restarted the
+shared public inbound on every QR refresh. The binding now compares the desired
+configuration and existing binding first. If both are already current and the
+service is active, it only regenerates the profile and one-time link; no shared
+inbound restart occurs. A changed assignment still validates and restarts the
+runtime, with configuration/binding restoration on validation or restart
+failure. The API response now reports separate profile and one-time-link timing
+so the one-second goal can be checked from the actual UI path.
+
+### Focused verification before deploy
+
+- `python3 -m py_compile admin/v7-admin-api` — PASS.
+- `python3 -m unittest tests.unit.test_admin_realtime_truth tests.unit.test_operator_execution_pipeline` — **62 PASS**.
+- New focused fixture proves an unchanged Karing/VLESS reissue performs only an
+  active-service check and does not restart the public runtime.
+- No Matrix, Planner, timer, registry, route writer or parallel state source
+  was added. The existing `/api/actions/user-switch` direct endpoint remains
+  fail-closed; the new profile-update action uses the existing operation
+  control plus the existing writer for one explicitly confirmed device.
+
 ## Next step
 
-Run a controlled Matrix/Polygon recovery proof through the existing owners. It
-must show that a newly issued identity on a confirmed failed source reaches the
-governed recovery chain without a manual route action; repair the existing
-consumer only if that proof exposes a concrete liveness defect. Separately,
-the current `awg0`/`awg3` STOP_SAFE recommendation gap must be reconciled
-before it can be called a healthy automatic-recovery service.
+Deploy this bounded Admin repair, then measure the actual existing-device
+profile-and-link response on a safe current identity. The fast reissue target
+is one second; an operator-selected move is reported separately because it
+includes real route application and verification. In parallel, run a controlled
+Matrix/Polygon recovery proof through the existing owners: it must show that a
+newly issued identity on a confirmed failed source reaches governed recovery
+without an operator action. Repair the existing consumer only if that proof
+shows a concrete liveness defect; the current `awg0`/`awg3` STOP_SAFE
+recommendation gap remains separate from issuance.

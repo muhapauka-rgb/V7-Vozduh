@@ -99,6 +99,72 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("Его здоровье не проверяется в момент выдачи", page)
         self.assertIn("Профиль не выдан", page)
 
+    def test_existing_profile_selected_channel_uses_exact_operator_rebind_not_health_admission(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+        operation = source[
+            source.index("def operator_profile_egress_rebind"):
+            source.index("def autoswitch_read_only_plan_command")
+        ]
+        page = self.admin.html_page_v2()
+
+        self.assertIn('action_class="USER_SWITCH"', operation)
+        self.assertIn('["v7-user-switch", user_ip, requested]', operation)
+        self.assertIn('"health_checked": False', operation)
+        self.assertNotIn("AutoswitchPlanner", operation)
+        self.assertIn('/api/actions/operator-profile-egress-rebind', page)
+        self.assertIn('OPERATOR_PROFILE_EGRESS_REBIND', page)
+
+    def test_unchanged_karing_reissue_does_not_restart_public_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ip = "10.7.0.9"
+            name = "known-device"
+            auth_user = self.admin.proxy_auth_user(ip, name, "karing")
+            proxy_uuid = "11111111-1111-4111-8111-111111111111"
+            config_path = root / "config.json"
+            binding_path = root / "binding.json"
+            config = {
+                "inbounds": [{"type": "vless", "users": [{"uuid": proxy_uuid, "name": auth_user}]}],
+                "outbounds": [{"type": "direct", "tag": "v7-egress-vless", "bind_interface": "vless"}],
+                "route": {"rules": [{"auth_user": [auth_user], "outbound": "v7-egress-vless"}]},
+            }
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            binding_path.write_text(json.dumps({
+                "schema": "v7-proxy-identity-binding/v1",
+                "status": "binding_active",
+                "inbound_id": self.admin.PROXY_INBOUND_ID,
+                "client": "karing",
+                "user_ip": ip,
+                "label": name,
+                "proxy_protocol": "vless",
+                "proxy_uuid": proxy_uuid,
+                "auth_user": auth_user,
+                "public_host": "profile.test",
+                "public_port": self.admin.PROXY_PUBLIC_PORT,
+                "included_in_runtime_config": True,
+                "created_at": "2026-08-28T00:00:00+00:00",
+                "updated_at": "2026-08-28T00:00:00+00:00",
+            }), encoding="utf-8")
+            calls = []
+
+            def fake_action(command, actor, timeout=0):
+                calls.append(command)
+                return {"rc": 0, "output": "active"}
+
+            with mock.patch.object(self.admin, "ensure_public_proxy_reply_route", return_value={"rc": 0}), \
+                 mock.patch.object(self.admin, "proxy_public_config_path", return_value=config_path), \
+                 mock.patch.object(self.admin, "proxy_binding_path", return_value=binding_path), \
+                 mock.patch.object(self.admin, "public_profile_host", return_value="profile.test"), \
+                 mock.patch.object(self.admin, "proxy_runtime_egress_for_user", return_value={"egress_id": "vless", "interface": "vless", "outbound_tag": "v7-egress-vless", "connect_timeout": ""}), \
+                 mock.patch.object(self.admin, "run_action", side_effect=fake_action):
+                result = self.admin.ensure_karing_vless_identity(ip, name, "test")
+
+            self.assertEqual(result["rc"], 0)
+            self.assertFalse(result["config_changed"])
+            self.assertFalse(result["binding_changed"])
+            self.assertFalse(result["runtime_restarted"])
+            self.assertEqual(calls, [["systemctl", "is-active", "--quiet", self.admin.PROXY_PUBLIC_SERVICE]])
+
     def test_completed_execution_control_does_not_freeze_profile_issuance(self):
         with tempfile.TemporaryDirectory() as tmp:
             safe_mode = Path(tmp) / "safe-mode.json"

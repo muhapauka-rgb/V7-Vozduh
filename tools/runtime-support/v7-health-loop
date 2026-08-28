@@ -863,6 +863,7 @@ class RoleHealthLoop:
             if (
                 role.name == "planner_projection"
                 or role.name not in SLOW_ROLE_NAMES
+                or role.name in RECOVERY_CRITICAL_ROLE_NAMES
                 or role.process is None
             ):
                 continue
@@ -874,6 +875,35 @@ class RoleHealthLoop:
                 f"V7_HEALTH_ROLE_PREEMPTED role={role.name} "
                 f"duration_ms={duration} "
                 "reason=PREPARED_PROJECTION_FRESHNESS_PRIORITY",
+                flush=True,
+            )
+
+    def _recovery_critical_takeover(self, now_ns: int) -> None:
+        """Release disposable slow work before a service-failure detector.
+
+        The service-failure producer is an existing recovery-critical role.
+        If a background Matrix projection already owns the shared Matrix lock,
+        allowing the detector to wait behind it can turn a five-second health
+        observation into a minute-long stale window.  Preempt only the
+        non-critical slow observations; Matrix/Planner ownership and cadence
+        remain unchanged, and each interrupted role returns on its own due
+        schedule.
+        """
+        for role in self.roles:
+            if (
+                role.name in RECOVERY_CRITICAL_ROLE_NAMES
+                or role.name not in SLOW_ROLE_NAMES
+                or role.process is None
+            ):
+                continue
+            duration = elapsed_ms(role.started_ns, now_ns)
+            terminate_process_group(role.process)
+            role.process = None
+            role.started_ns = 0
+            print(
+                f"V7_HEALTH_ROLE_PREEMPTED role={role.name} "
+                f"duration_ms={duration} "
+                "reason=RECOVERY_CRITICAL_FAILURE_DETECTION_PRIORITY",
                 flush=True,
             )
 
@@ -908,6 +938,8 @@ class RoleHealthLoop:
             # incident pays a multi-second synchronous rebuild.
             if role.name == "planner_projection" and self.serialize_slow_roles:
                 self._planner_projection_freshness_takeover(now_ns)
+            if role.name in RECOVERY_CRITICAL_ROLE_NAMES and self.serialize_slow_roles:
+                self._recovery_critical_takeover(now_ns)
             # HARD is the recovery deadline owner. It may run alongside an
             # observation child long enough to prove that a real incident is
             # underway; _hard_recovery_takeover then cancels that disposable

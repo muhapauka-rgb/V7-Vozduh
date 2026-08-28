@@ -643,6 +643,41 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             " ".join(str(call) for call in printed.call_args_list),
         )
 
+    def test_service_failure_detector_preempts_projection_and_is_not_preempted(self):
+        """The recovery detector must get the shared Matrix lock first."""
+        projection_process = mock.Mock()
+        projection = HEALTH_LOOP_MODULE.ManagedRole(
+            name="planner_projection",
+            cadence_ns=30_000_000_000,
+            command=("/bin/true",),
+            next_due_ns=10_000,
+            process=projection_process,
+            started_ns=1_000,
+        )
+        detector = HEALTH_LOOP_MODULE.ManagedRole(
+            name="other_required",
+            cadence_ns=5_000_000_000,
+            command=("/bin/true",),
+            next_due_ns=0,
+        )
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(
+            roles=(projection, detector),
+        )
+        with mock.patch.object(
+            HEALTH_LOOP_MODULE, "terminate_process_group"
+        ) as terminate, mock.patch.object(
+            HEALTH_LOOP_MODULE.subprocess, "Popen", return_value=mock.Mock()
+        ) as popen, mock.patch("builtins.print") as printed:
+            loop._start_due_roles(5_000)
+        terminate.assert_called_once_with(projection_process)
+        self.assertIsNone(projection.process)
+        self.assertIsNotNone(detector.process)
+        self.assertEqual(popen.call_count, 1)
+        self.assertIn(
+            "reason=RECOVERY_CRITICAL_FAILURE_DETECTION_PRIORITY",
+            " ".join(str(call) for call in printed.call_args_list),
+        )
+
     def test_persistent_handoff_uses_freshest_t0_across_active_assignments(self):
         """A stale source listed first cannot suppress a newer Matrix wake."""
         with tempfile.TemporaryDirectory() as td:

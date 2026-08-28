@@ -17039,6 +17039,12 @@ class AutoswitchPlanner:
         self._attach_ctr_score_simulation(candidates)
         current = self._candidate(user, self.egress[user.current], important, route_class, purpose="current") if user.current in self.egress else None
         best = next((c for c in candidates if c.eligible), None)
+        # The prepared Matrix projection is built from this returned candidate
+        # surface.  During failed-source recovery it must contain the
+        # failover-admission view (including operational soft targets), not
+        # the stricter normal-placement view; otherwise the hot owner can only
+        # project NO_3S_TARGET_CAPACITY and strand affected users.
+        decision_candidates = candidates
         action = "keep"
         reason: list[str] = []
         recommended = user.current
@@ -17069,6 +17075,7 @@ class AutoswitchPlanner:
                 failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in candidate_egress]
                 failover_candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
                 self._mark_best_available_pool(failover_candidates)
+                decision_candidates = failover_candidates
                 best_failover = next((c for c in failover_candidates if c.eligible), None)
                 if best_failover and best_failover.egress.id != user.current and l3_failover_cooldown_ok:
                     action = "switch"
@@ -17153,8 +17160,8 @@ class AutoswitchPlanner:
             "reason": reason,
             "current_score": round(current.score, 2) if current else None,
             "recommended_score": round(recommended_score, 2) if recommended_score is not None else None,
-            "candidates": [self._candidate_json(c) for c in candidates],
-            "explanation": self._explanation(user, recommended, action, move_type, current, candidates, reason),
+            "candidates": [self._candidate_json(c) for c in decision_candidates],
+            "explanation": self._explanation(user, recommended, action, move_type, current, decision_candidates, reason),
         }
 
     def _ctr_simulated_score(self, candidate: Candidate) -> float:

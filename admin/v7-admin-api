@@ -21982,7 +21982,8 @@ def html_page_v2():
           </div>
           <div class="wizard-card">
             <h3>2. Профиль</h3>
-            <label class="field">Первичный канал<select id="v2IssueEgress"></select></label>
+            <label class="field">Предпочтительный канал<select id="v2IssueEgress"></select></label>
+            <p class="muted">Это предпочтение, а не принудительное назначение: перед выдачей V7 сам проверит канал. Если он неисправен или небезопасен, V7 выберет подходящий либо честно остановит выдачу.</p>
             <label class="field">Приложение клиента<select id="v2IssueClient" onchange="updateV2IssueGuidance()"><option value="karing" selected>Karing / VLESS</option><option value="karing_wg">Karing / WireGuard + RU routes</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
             <div class="wizard-actions"><button class="ghost" onclick="setV2IssueOperation('1');runV2IssueProfile()">Проверить</button><button class="primary" onclick="setV2IssueOperation('0');runV2IssueProfile()">Выдать профиль</button></div>
             <p class="muted" id="v2IssueRunHint">Проверка ничего не меняет. Выдача создаёт профиль и одноразовую ссылку для скачивания.</p>
@@ -34887,9 +34888,16 @@ PersistentKeepalive = 25
       </div>`;
     }
     function issueSummaryPlainHtml(result={}, profile={}, deliveryLink='', refreshNeeded=false) {
+      const planned = result.identityResult?.planned || result.planned || {};
+      const admission = planned.egress_admission || {};
+      const requested = admission.requested_egress || '';
+      const selected = planned.egress || admission.selected_egress || '';
+      const requestedBlocked = requested && admission.requested_egress_admitted === false;
       const rows = [
         ['Клиент', result.adapter || ''],
         ['Режим', humanCode(result.mode || '')],
+        ['Канал', selected || 'проверяется'],
+        ...(requestedBlocked ? [['Выбранный вручную канал', `${requested} сейчас недоступен; V7 выбрал ${selected || 'безопасную альтернативу'}`]] : []),
         ['Профиль', profile.ready ? 'готов' : (result.previewOnly ? 'не создаётся при проверке' : 'не готов')],
         ['Ссылка', deliveryLink ? 'создана' : 'не создана'],
         ['Публичный вход', refreshNeeded ? 'нужно обновить' : 'актуален'],
@@ -35742,6 +35750,14 @@ PersistentKeepalive = 25
       renderAll();
     }
     function renderV2IssueResult(result) {
+      const failed = result.identityResult || result.profileResult || result.deliveryResult || {};
+      if (failed.error) {
+        return [
+          '<h3>Профиль не выдан</h3>',
+          `<p><strong>${esc(operatorText(failed.error))}</strong></p>`,
+          `<p>${esc(operatorText(failed.message || 'V7 не завершил выдачу. Причина сохранена в журнале; профиль и QR не считаются созданными.'))}</p>`,
+        ].join('');
+      }
       const profile = result.identityResult?.profile || result.profileResult?.profile || {};
       const delivery = result.deliveryResult?.delivery || {};
       const deliveryPath = delivery.url || profile.delivery_url || '';
@@ -38957,7 +38973,11 @@ class Handler(BaseHTTPRequestHandler):
             if error:
                 self.send_json({"action": "identity_device_issue", **(payload or {}), **error, "identity": identity_state()}, status=status)
                 return
-            self.send_json({**payload, "overview": overview()}, status=status)
+            # The issued profile, one-time link and QR are already in payload.
+            # Rebuilding the whole Admin overview here can be much heavier than
+            # the issuance itself and used to delay or interrupt that result.
+            # The browser schedules its normal refresh after a successful POST.
+            self.send_json(payload, status=status)
         elif path == "/api/actions/identity-config-issue-quick":
             session = self.require_auth(api=True)
             if not session:
@@ -38970,7 +38990,9 @@ class Handler(BaseHTTPRequestHandler):
             if error:
                 self.send_json({"action": "identity_config_issue_quick", **(payload or {}), **error, "identity": identity_state()}, status=status)
                 return
-            self.send_json({**payload, "overview": overview()}, status=status)
+            # Return the finished profile immediately; the normal post-action
+            # refresh updates the surrounding dashboard asynchronously.
+            self.send_json(payload, status=status)
         elif path == "/api/actions/pending-profile-create":
             session = self.require_auth(api=True)
             if not session:
@@ -39431,7 +39453,6 @@ class Handler(BaseHTTPRequestHandler):
                 },
                 "proxy_identity": proxy_identity,
                 "user_detail": user_detail(ip),
-                "overview": overview(),
             }
             self.send_json(payload, status=status)
         elif path == "/api/actions/smart-client-profile-select":

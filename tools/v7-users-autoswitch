@@ -30274,6 +30274,25 @@ def ordinary_new_user_admission_only(args: argparse.Namespace) -> dict[str, Any]
         key=lambda candidate: (-candidate.score, candidate.egress.id),
     )
     selected = eligible[0] if eligible else None
+    # Profile issuance needs an auditable decision, not the full Planner
+    # diagnostic world.  Returning every nested quality/history payload here
+    # makes a simple Admin action carry a large, stale-prone response and can
+    # delay the one-time-link/QR result.  Keep the canonical Planner decision
+    # intact, but project it to the small contract its consumer actually uses.
+    def admission_candidate(candidate: Candidate) -> dict[str, Any]:
+        egress = candidate.egress
+        return {
+            "egress": egress.id,
+            "eligible": bool(candidate.eligible),
+            "score": round(candidate.score, 2),
+            "blocked": list(candidate.blocked),
+            "reasons": list(candidate.reasons),
+            "state": egress.state,
+            "enabled": bool(egress.enabled),
+            "users": int(egress.users),
+            "capacity_users": int(egress.capacity_users),
+        }
+
     return {
         "schema_version": "v7.ordinary-new-user-egress-admission.v1",
         "status": "ADMITTED" if selected else "NO_ADMITTED_EGRESS",
@@ -30289,7 +30308,7 @@ def ordinary_new_user_admission_only(args: argparse.Namespace) -> dict[str, Any]
         },
         "selected_egress": selected.egress.id if selected else "",
         "selected_score": round(selected.score, 3) if selected else None,
-        "candidates": [planner._candidate_json(candidate) for candidate in sorted(candidates, key=lambda candidate: candidate.egress.id)],
+        "candidates": [admission_candidate(candidate) for candidate in sorted(candidates, key=lambda candidate: candidate.egress.id)],
         "forbidden_effects": {
             "identity_created": False,
             "packet_created": False,

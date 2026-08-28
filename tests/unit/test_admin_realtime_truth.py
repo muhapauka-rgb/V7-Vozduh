@@ -94,6 +94,27 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertNotIn("or default_egress_id()", quick)
         self.assertNotIn("or default_egress_id()", device)
 
+    def test_profile_issue_uses_compact_admission_and_returns_result_before_overview(self):
+        autoswitch = (ROOT / "tools" / "v7-users-autoswitch").read_text(encoding="utf-8")
+        admission = autoswitch[
+            autoswitch.index("def ordinary_new_user_admission_only"):
+            autoswitch.index("def ct_m0f_precomputed_target_diagnostic_from_file")
+        ]
+        self.assertIn("def admission_candidate", admission)
+        self.assertNotIn("planner._candidate_json(candidate)", admission)
+        self.assertIn('"blocked": list(candidate.blocked)', admission)
+
+        source = ADMIN_API.read_text(encoding="utf-8")
+        handler = source[
+            source.index('elif path == "/api/actions/identity-device-issue"'):
+            source.index('elif path == "/api/actions/pending-profile-create"')
+        ]
+        self.assertIn("self.send_json(payload, status=status)", handler)
+        self.assertNotIn('"overview": overview()', handler)
+        page = self.admin.html_page_v2()
+        self.assertIn("Это предпочтение, а не принудительное назначение", page)
+        self.assertIn("Профиль не выдан", page)
+
 
 if __name__ == "__main__":
     unittest.main()

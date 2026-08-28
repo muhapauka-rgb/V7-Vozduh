@@ -18087,7 +18087,12 @@ class AutoswitchPlanner:
             )
             or {}
         )
+        ordinary_service_failure_context = bool_value(
+            getattr(self.args, "ordinary_service_failure_context", False)
+        )
         n10_product_contract = (
+            not ordinary_service_failure_context
+            and
             str(action_contract.get("action_class") or "").upper()
             in {
                 operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
@@ -30317,7 +30322,9 @@ def main() -> int:
     # Its exact one-use Authority contract is consumed by ``apply``; before
     # that consumption, materialize the required existing Packet/Lease/Barrier
     # from the fresh Planner result and re-read the resulting immutable lock.
-    if args.apply:
+    if args.apply and not bool_value(
+        getattr(args, "ordinary_service_failure_context", False)
+    ):
         n10_materialization = planner._materialize_n10_packet_lease_barrier(plan)
         if not n10_materialization.get("ok"):
             plan["apply_result"] = {

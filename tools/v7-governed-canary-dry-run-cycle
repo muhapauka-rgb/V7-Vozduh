@@ -3680,6 +3680,7 @@ def run_autoswitch_apply(
     planner_runtime: Any = None,
     controlled_engineering_setup: bool = False,
     controlled_engineering_cleanup: bool = False,
+    ordinary_service_failure_only: bool = False,
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
@@ -3752,6 +3753,13 @@ def run_autoswitch_apply(
         command.insert(1, "--controlled-engineering-setup")
     if controlled_engineering_cleanup:
         command.insert(1, "--controlled-engineering-cleanup")
+    if ordinary_service_failure_only:
+        # Preserve the existing service-failure consumer context across the
+        # governed executor -> route-writer subprocess boundary.  Without
+        # this flag the child sees only emergency autonomy and re-enters the
+        # stale N10 product-contract materializer, which can reject a valid
+        # ordinary incident before the canonical writer is reached.
+        command.append("--ordinary-service-failure-context")
     if ct_m0f_kernel_cutover_validation:
         command.extend([
             "--ct-m0f-kernel-cutover-validation",
@@ -7086,6 +7094,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             getattr(args, "operator_execution_audit_store", "") or ""
         ),
         planner_runtime=planner_runtime,
+        ordinary_service_failure_only=bool(
+            getattr(args, "ordinary_service_failure_only", False)
+        ),
     )
     apply_completed_ns = time.monotonic_ns()
     deferred_lifecycle_records: dict[str, Any] = {}

@@ -6168,6 +6168,38 @@ class GovernedCanaryCliTest(unittest.TestCase):
             captured["command"],
         )
 
+    def test_autoswitch_apply_forwards_ordinary_service_failure_context(self):
+        module = load_cli_module()
+        captured = {}
+
+        class FakeProc:
+            returncode = 0
+            stdout = "{}"
+            stderr = ""
+
+        def fake_run(command, **kwargs):
+            captured["command"] = command
+            return FakeProc()
+
+        original_run = module.subprocess.run
+        try:
+            module.subprocess.run = fake_run
+            module.run_autoswitch_apply(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path("/state/autoswitch-restore-barrier.json"),
+                user="10.7.0.125",
+                source="vless",
+                target="awg0",
+                max_users=1,
+                ordinary_service_failure_only=True,
+            )
+        finally:
+            module.subprocess.run = original_run
+
+        self.assertIn("--ordinary-service-failure-context", captured["command"])
+
     def test_autoswitch_apply_exact_campaign_identity_remains_strict(self):
         module = load_cli_module()
         captured = {}

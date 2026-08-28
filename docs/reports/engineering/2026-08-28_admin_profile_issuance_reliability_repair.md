@@ -68,6 +68,18 @@ an explicit Admin-only freeze under `admin_safe_mode` in that same canonical
 record and refuses to change it while an operation-scoped control window is
 active.  The terminal `OPEN` state no longer blocks profile/QR issuance.
 
+### Verification after deploy
+
+- Published/deployed commit: `de9f67b82d16b5aba613231655c378fda6775a3c`.
+- Safe deploy passed; Admin and Health services are active.
+- The live shared execution control remains valid `OPEN`, while the explicit
+  Admin freeze is now `false`; therefore profile issuance is no longer blocked.
+- A fresh full VLESS Matrix run at 2026-08-28 15:09 UTC returned `WARN`, 8/14:
+  Telegram, Google, Apple, Google Auth and Facebook passed, while YouTube,
+  Instagram, WhatsApp, Spotify, SoundCloud and Anthropic had connection resets.
+  Accordingly, the existing Planner still lawfully selects `awg0` rather than
+  VLESS for a newly issued ordinary profile.
+
 ## Next step
 
 Publish and deploy through `tools/v7-safe-deploy`, then verify the deployed

@@ -173,7 +173,13 @@ SLOW_ROLE_NAMES = frozenset({
 # transaction. Keep the exact PATH and applicable Telegram target lanes alive
 # while HARD consumes the incident; only unrelated observation/analysis work
 # is disposable. This is the existing role set, not a new worker or owner.
-RECOVERY_CRITICAL_ROLE_NAMES = frozenset({"hard", "hot_target"})
+# The existing other_required producer is the service-failure detector that
+# can open an ordinary recovery episode.  It must not be deferred behind a
+# disposable slow projection, otherwise a failed source can remain assigned
+# indefinitely while the planner projection monopolizes the serialized slow
+# slot.  It remains the same role/owner; this set only governs scheduling
+# precedence inside the existing health loop.
+RECOVERY_CRITICAL_ROLE_NAMES = frozenset({"hard", "hot_target", "other_required"})
 DEFAULT_MATRIX_STATE_FILE = Path("/opt/v7/egress/state/service-matrix.json")
 DEFAULT_USERS_REGISTRY_FILE = Path("/opt/v7/egress/state/users.registry")
 
@@ -910,7 +916,7 @@ class RoleHealthLoop:
             if (
                 self.serialize_slow_roles
                 and role.name in SLOW_ROLE_NAMES
-                and role.name != "hard"
+                and role.name not in RECOVERY_CRITICAL_ROLE_NAMES
             ):
                 running_slow = next(
                     (

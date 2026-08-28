@@ -64,45 +64,29 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("refreshLiveOperationalTruth('timer'), 500", page)
         self.assertIn("mergeLiveOperationalTruthIntoOverview", page)
 
-    def test_new_profile_uses_existing_planner_admission_not_registry_order(self):
-        planner_result = {
-            "status": "ADMITTED",
-            "ok": True,
-            "selected_egress": "awg0",
-            "candidates": [
-                {"egress": "vless", "eligible": False, "blocked": ["severity_FAIL"]},
-                {"egress": "awg0", "eligible": True, "blocked": []},
-            ],
-        }
-        with mock.patch.object(self.admin, "run_json_command", return_value={
-            "rc": 0, "json": planner_result, "parse_error": "",
-        }) as command:
-            admission = self.admin.identity_egress_admission("vless")
+    def test_new_profile_binds_requested_configured_egress_without_health_query(self):
+        with mock.patch.object(self.admin, "egress_exists", return_value=True) as exists:
+            binding = self.admin.identity_egress_issuance_binding("vless")
 
-        self.assertTrue(admission["ok"])
-        self.assertEqual(admission["selected_egress"], "awg0")
-        self.assertFalse(admission["requested_egress_admitted"])
-        self.assertEqual(admission["requested_egress_blockers"], ["severity_FAIL"])
-        self.assertEqual(command.call_args.args[0], ["v7-users-autoswitch", "--new-user-admission"])
+        self.assertTrue(binding["ok"])
+        self.assertEqual(binding["selected_egress"], "vless")
+        self.assertFalse(binding["health_checked"])
+        self.assertEqual(binding["owner"], "existing egress.registry")
+        exists.assert_called_once_with("vless", enabled_only=True)
 
-    def test_profile_issue_paths_use_admission_before_provisioning(self):
+    def test_profile_issue_paths_do_not_run_health_admission_before_provisioning(self):
         source = ADMIN_API.read_text(encoding="utf-8")
         quick = source[source.index("def identity_issue_config_quick"):source.index("def pending_profile_public_key")]
         device = source[source.index("def identity_issue_device"):source.index("def identity_issue_config_quick")]
-        self.assertIn("admission = identity_egress_admission(requested_egress)", quick)
-        self.assertIn("admission = identity_egress_admission(requested_egress)", device)
-        self.assertNotIn("or default_egress_id()", quick)
-        self.assertNotIn("or default_egress_id()", device)
+        self.assertIn("binding = identity_egress_issuance_binding(requested_egress)", quick)
+        self.assertIn("binding = identity_egress_issuance_binding(requested_egress)", device)
+        self.assertNotIn("identity_egress_admission", quick)
+        self.assertNotIn("identity_egress_admission", device)
 
-    def test_profile_issue_uses_compact_admission_and_returns_result_before_overview(self):
+    def test_profile_issue_removes_obsolete_admission_and_returns_result_before_overview(self):
         autoswitch = (ROOT / "tools" / "v7-users-autoswitch").read_text(encoding="utf-8")
-        admission = autoswitch[
-            autoswitch.index("def ordinary_new_user_admission_only"):
-            autoswitch.index("def ct_m0f_precomputed_target_diagnostic_from_file")
-        ]
-        self.assertIn("def admission_candidate", admission)
-        self.assertNotIn("planner._candidate_json(candidate)", admission)
-        self.assertIn('"blocked": list(candidate.blocked)', admission)
+        self.assertNotIn("ordinary_new_user_admission_only", autoswitch)
+        self.assertNotIn("--new-user-admission", autoswitch)
 
         source = ADMIN_API.read_text(encoding="utf-8")
         handler = source[
@@ -112,7 +96,7 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("self.send_json(payload, status=status)", handler)
         self.assertNotIn('"overview": overview()', handler)
         page = self.admin.html_page_v2()
-        self.assertIn("Это предпочтение, а не принудительное назначение", page)
+        self.assertIn("Его здоровье не проверяется в момент выдачи", page)
         self.assertIn("Профиль не выдан", page)
 
     def test_completed_execution_control_does_not_freeze_profile_issuance(self):

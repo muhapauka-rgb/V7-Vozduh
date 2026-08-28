@@ -3139,16 +3139,16 @@ def identity_issue_device(data, actor):
         return None, {"error": "invalid_smart_adapter", "supported": sorted(SUPPORTED_SMART_ADAPTERS)}, 400
     if not mode:
         return None, {"error": "invalid_smart_mode", "supported": sorted(SUPPORTED_SMART_MODES)}, 400
-    admission = identity_egress_admission(requested_egress)
-    if not admission.get("ok"):
+    binding = identity_egress_issuance_binding(requested_egress)
+    if not binding.get("ok"):
         return None, {
-            "error": "no_admitted_egress",
-            "message": "Сейчас нет канала, который штатный выборщик может безопасно назначить новому профилю.",
-            "admission": admission,
+            "error": "configured_egress_required",
+            "message": "Для выдачи нужен включённый канал из текущего реестра.",
+            "egress_binding": binding,
         }, 409
-    egress = safe_egress_id(admission.get("selected_egress", ""))
+    egress = safe_egress_id(binding.get("selected_egress", ""))
     if not egress_exists(egress, enabled_only=True):
-        return None, {"error": "admitted_egress_no_longer_enabled", "admission": admission}, 409
+        return None, {"error": "configured_egress_no_longer_enabled", "egress_binding": binding}, 409
     active_devices = identity_active_device_count(user["id"])
     max_devices = int(user.get("max_devices") or 3)
     if active_devices >= max_devices:
@@ -3164,7 +3164,7 @@ def identity_issue_device(data, actor):
         "mode": mode,
         "device_type": device_type,
         "egress": egress,
-        "egress_admission": admission,
+        "egress_binding": binding,
         "active_devices": active_devices,
         "max_devices": max_devices,
     }
@@ -3297,16 +3297,16 @@ def identity_issue_config_quick(data, actor):
     dry_run = bool(data.get("dry_run", False))
     if not vpn_client or not connect_client_supported(vpn_client):
         return None, {"error": "unsupported_vpn_client", "supported": sorted(SUPPORTED_CONNECT_CLIENTS)}, 400
-    admission = identity_egress_admission(requested_egress)
-    if not admission.get("ok"):
+    binding = identity_egress_issuance_binding(requested_egress)
+    if not binding.get("ok"):
         return None, {
-            "error": "no_admitted_egress",
-            "message": "Новый профиль не создан: сейчас штатный выборщик не подтвердил ни одного безопасного канала.",
-            "admission": admission,
+            "error": "configured_egress_required",
+            "message": "Новый профиль не создан: выберите включённый канал из текущего реестра.",
+            "egress_binding": binding,
         }, 409
-    egress = safe_egress_id(admission.get("selected_egress", ""))
+    egress = safe_egress_id(binding.get("selected_egress", ""))
     if not egress_exists(egress, enabled_only=True):
-        return None, {"error": "admitted_egress_no_longer_enabled", "admission": admission}, 409
+        return None, {"error": "configured_egress_no_longer_enabled", "egress_binding": binding}, 409
     if dry_run:
         client_meta = CONNECT_CLIENTS.get(vpn_client, CONNECT_CLIENTS["karing"])
         adapter = safe_smart_adapter(client_meta.get("adapter") or vpn_client)
@@ -3344,7 +3344,7 @@ def identity_issue_config_quick(data, actor):
             "mode": mode,
             "device_type": device_type,
             "egress": egress,
-            "egress_admission": admission,
+            "egress_binding": binding,
             "active_devices": active_devices,
             "max_devices": int((user or {}).get("max_devices") or settings.get("default_max_devices") or 3),
             "person_exists": bool(user),
@@ -16165,44 +16165,35 @@ def run_json_command(cmd, timeout=40, max_output=5_000_000):
     }
 
 
-def identity_egress_admission(requested_egress=""):
-    """Consume the existing Planner before a new profile receives an egress.
+def identity_egress_issuance_binding(requested_egress=""):
+    """Bind issuance to a configured channel without synchronously judging health.
 
-    ``egress.registry`` answers whether a channel is configured, not whether
-    it is currently a safe destination.  New profiles must use the same
-    Matrix/capacity/policy owner that evaluates ordinary destinations, rather
-    than inheriting the first enabled registry row.
+    Profile issuance is a local provisioning action: it may validate only the
+    canonical registry fact that the requested channel is enabled. Matrix and
+    Autoswitch remain the sole health/recovery owners; they independently move
+    an affected user after a confirmed incident. This avoids a full
+    Planner/Matrix round trip before creating the one-time profile/QR.
     """
     requested_egress = safe_egress_id(requested_egress)
-    result = run_json_command(
-        ["v7-users-autoswitch", "--new-user-admission"],
-        timeout=45,
-    )
-    raw = result.get("json") if isinstance(result.get("json"), dict) else {}
-    candidates = {
-        safe_egress_id(row.get("egress", "")): row
-        for row in (raw.get("candidates") or [])
-        if isinstance(row, dict) and safe_egress_id(row.get("egress", ""))
-    }
-    selected_egress = safe_egress_id(raw.get("selected_egress", ""))
-    requested = candidates.get(requested_egress, {}) if requested_egress else {}
-    requested_admitted = bool(requested.get("eligible")) if requested_egress else None
-    if requested_egress and requested_admitted:
-        selected_egress = requested_egress
-    ok = bool(result.get("rc") == 0 and raw.get("ok") and selected_egress)
+    selected_egress = requested_egress or safe_egress_id(default_egress_id())
+    if not selected_egress:
+        return {
+            "status": "CONFIGURED_EGRESS_REQUIRED",
+            "ok": False,
+            "owner": "existing egress.registry",
+            "requested_egress": requested_egress,
+            "selected_egress": "",
+            "health_checked": False,
+        }
+    enabled = egress_exists(selected_egress, enabled_only=True)
     return {
-        "status": "ADMITTED" if ok else "NO_ADMITTED_EGRESS",
-        "ok": ok,
-        "owner": "existing tools/v7-users-autoswitch.AutoswitchPlanner",
+        "status": "CONFIGURED" if enabled else "CONFIGURED_EGRESS_NOT_ENABLED",
+        "ok": bool(enabled),
+        "owner": "existing egress.registry",
         "requested_egress": requested_egress,
-        "requested_egress_admitted": requested_admitted,
-        "requested_egress_blockers": list(requested.get("blocked") or []) if requested_egress else [],
-        "selected_egress": selected_egress if ok else "",
-        "planner_status": raw.get("status", ""),
-        "planner_candidates": candidates,
-        "planner_command_rc": result.get("rc"),
-        "planner_parse_error": result.get("parse_error", ""),
-        "read_only": True,
+        "selected_egress": selected_egress if enabled else "",
+        "health_checked": False,
+        "recovery_owner": "existing Service Matrix -> Autoswitch governed recovery path",
     }
 
 
@@ -34913,15 +34904,13 @@ PersistentKeepalive = 25
     }
     function issueSummaryPlainHtml(result={}, profile={}, deliveryLink='', refreshNeeded=false) {
       const planned = result.identityResult?.planned || result.planned || {};
-      const admission = planned.egress_admission || {};
-      const requested = admission.requested_egress || '';
-      const selected = planned.egress || admission.selected_egress || '';
-      const requestedBlocked = requested && admission.requested_egress_admitted === false;
+      const binding = planned.egress_binding || {};
+      const selected = planned.egress || binding.selected_egress || '';
       const rows = [
         ['Клиент', result.adapter || ''],
         ['Режим', humanCode(result.mode || '')],
-        ['Канал', selected || 'проверяется'],
-        ...(requestedBlocked ? [['Выбранный вручную канал', `${requested} сейчас недоступен; V7 выбрал ${selected || 'безопасную альтернативу'}`]] : []),
+        ['Канал', selected || 'не выбран'],
+        ['Проверка канала при выдаче', 'не выполняется'],
         ['Профиль', profile.ready ? 'готов' : (result.previewOnly ? 'не создаётся при проверке' : 'не готов')],
         ['Ссылка', deliveryLink ? 'создана' : 'не создана'],
         ['Публичный вход', refreshNeeded ? 'нужно обновить' : 'актуален'],
@@ -35100,7 +35089,7 @@ PersistentKeepalive = 25
       return `
         <div class="drawer-section quick-issue-card">
           <h3>Клиент и ключ</h3>
-          <p class="quick-issue-hint">Телефон нужен для поиска существующей карточки. При генерации V7 сразу создаёт или обновляет пользователя, добавляет устройство, выпускает профиль и одноразовую ссылку.</p>
+          <p class="quick-issue-hint">Телефон нужен для поиска существующей карточки. Ключ выдаётся сразу: V7 проверяет только, что выбранный канал включён. Его здоровье не проверяется в момент выдачи; подтверждённую неисправность дальше обрабатывает штатная автоматика переключения.</p>
           <div class="quick-issue-form">
             <label class="field">Телефон<input id="quickIssuePhone" placeholder="+7 999 123-45-67" autocomplete="tel"></label>
             <label class="field">Имя<input id="quickIssueName" placeholder="имя клиента"></label>
@@ -35108,7 +35097,7 @@ PersistentKeepalive = 25
             <label class="field">Устройство<select id="quickIssueDevice"><option value="iphone" selected>iPhone</option><option value="android">Android</option><option value="ipad">iPad</option><option value="windows">Windows</option><option value="macos">macOS</option><option value="other">Другое</option></select></label>
             <label class="field">Программа<select id="quickIssueClient"><option value="karing" selected>Karing / VLESS</option><option value="karing_wg">Karing / WireGuard + RU routes</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
             <label class="field">Тип подключения<select id="quickIssueMode"><option value="RU_LOCAL" selected>Стандартный конфиг</option><option value="ABROAD_RU_VIA_V7">Поездка</option></select></label>
-            <label class="field quick-issue-wide">Первичный канал<select id="quickIssueEgress">${enabledEgressOptionHtml(defaultEgressIdSafe())}</select></label>
+            <label class="field quick-issue-wide">Канал для выдачи<select id="quickIssueEgress">${enabledEgressOptionHtml(defaultEgressIdSafe())}</select></label>
           </div>
           <div class="detail-actions quick-issue-actions">
             <button class="ghost" onclick="runIssueConfigQuick('preview')">Проверить</button>

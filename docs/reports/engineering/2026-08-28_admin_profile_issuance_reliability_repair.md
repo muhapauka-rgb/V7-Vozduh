@@ -80,9 +80,40 @@ active.  The terminal `OPEN` state no longer blocks profile/QR issuance.
   Accordingly, the existing Planner still lawfully selects `awg0` rather than
   VLESS for a newly issued ordinary profile.
 
+## Follow-up: instant issuance / separate recovery law
+
+The former design still made issuance wait for the read-only full Planner
+twice: once in the quick issue handler and again immediately before device
+provisioning. Even the compacted result took about 1.53 seconds per Planner
+call, while its health decision was not the profile/QR operation the operator
+asked for.
+
+The Program is therefore corrected with a strict separation:
+
+- issuance reads only the existing enabled `egress.registry` entry and honours
+  the selected configured channel;
+- it makes no Matrix, Planner, capacity, remote probe or route-writer call;
+- Matrix and the governed Autoswitch chain remain the only owners of
+  health-based recovery after confirmed failure;
+- the obsolete `--new-user-admission` Planner adapter is removed rather than
+  retained as an unused compatibility branch.
+
+### Fresh runtime reconciliation
+
+- The existing `v7-health.service` is active.
+- `v7-users-autoswitch.service` last ended with exit status 2 on 2026-08-28
+  while trying to process an earlier VLESS incident; it made zero moves. This
+  is a real recovery-liveness defect, not proof of automatic recovery.
+- The currently active delegated policy permits a one-user ordinary
+  service-failure class, but the fresh VLESS Matrix row is not a new complete
+  channel-wide incident: it has a healthy channel-liveness row and a mixture
+  of fresh failures and recovered services. It cannot lawfully cause a
+  switch until Matrix emits the exact current failure obligation.
+
 ## Next step
 
-Publish and deploy through `tools/v7-safe-deploy`, then verify the deployed
-read-only admission output and the real Admin issue screen.  Entering Admin
-credentials in a separate browser session requires contemporaneous operator
-confirmation.
+Deploy the issuance separation, then run a controlled Matrix/Polygon recovery
+proof through the existing owners. It must show that a newly issued identity
+on a confirmed failed source reaches the governed recovery chain without a
+manual route action; repair the existing consumer only if that proof exposes a
+concrete liveness defect.

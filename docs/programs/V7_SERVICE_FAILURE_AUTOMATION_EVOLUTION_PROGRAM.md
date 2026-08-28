@@ -6844,6 +6844,38 @@ certification use and Production Maturity change.
 
 ### V4.5 Program completion contract
 
+### V5 — Profile issuance and automatic recovery are separate paths
+
+Profile issuance is a local provisioning path, not a synchronous health or
+target-selection transaction.
+
+1. The Admin issuance path validates only the existing canonical identity and
+   that the requested egress is currently configured and enabled. It creates
+   the profile, one-time link and QR immediately. It does not call Matrix,
+   Planner, capacity ranking, remote probes or a route writer before issuance.
+2. A requested configured egress is honoured at issuance even if its current
+   health is unknown, stale or failing. Issuance must never silently substitute
+   a different channel or make a routing decision on behalf of recovery.
+3. Matrix remains the sole health/T0 owner. After it confirms an affected
+   channel failure, the existing governed recovery chain — Matrix, Planner,
+   Candidate, Packet, Lease, Barrier, Apply and required-service verification —
+   must autonomously handle the newly issued ordinary identity under the same
+   current policy and safety gates as every other user.
+4. No Admin request may call a route writer, move a user, manufacture a target
+   or bypass stale/unknown/conflicting-data gates. A failed recovery attempt is
+   retained as a visible fail-closed operational result, never concealed by the
+   issuance result.
+5. “Immediate” means no issuance-time health round trip and no unrelated
+   history/overview work ahead of QR delivery. Recovery starts on the existing
+   fast health/Matrix confirmation path; its actual cutover remains subject to
+   the current one-user Authority, freshness, capacity, rollback and S11
+   requirements.
+
+The obsolete synchronous `new-user admission` Planner adapter is not a
+compatibility path and must not be restored. The existing egress registry is
+the only issuance-time channel reader; the existing Matrix/Autoswitch chain is
+the only health/recovery owner.
+
 This capability plan reaches its program terminal only when all current
 criteria are owner-backed and consumed:
 

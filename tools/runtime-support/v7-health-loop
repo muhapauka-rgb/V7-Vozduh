@@ -894,12 +894,13 @@ class RoleHealthLoop:
                 role.name in RECOVERY_CRITICAL_ROLE_NAMES
                 or role.name not in SLOW_ROLE_NAMES
                 or role.process is None
-                # This role supplies application-service evidence for the
-                # already selected hot targets.  It is intentionally allowed
-                # to overlap the detector: preempting it before the detector
-                # starts leaves every prepared target stale and makes an
-                # otherwise healthy failover target look ineligible.
-                or role.name == "hot_target_other"
+                # These existing observation roles supply target readiness
+                # evidence. They are intentionally allowed to overlap the
+                # detector: preempting them before the detector starts leaves
+                # every candidate stale and makes a healthy failover target
+                # look ineligible. Their own Matrix writers remain locked and
+                # serialized per invocation.
+                or role.name in {"hot_target_other", "deep"}
             ):
                 continue
             duration = elapsed_ms(role.started_ns, now_ns)
@@ -966,7 +967,7 @@ class RoleHealthLoop:
                     "",
                 )
                 if running_slow and not (
-                    role.name == "hot_target_other"
+                    role.name in {"hot_target_other", "deep"}
                     and running_slow == "other_required"
                 ):
                     print(

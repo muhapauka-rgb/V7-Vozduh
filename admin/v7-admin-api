@@ -19862,6 +19862,39 @@ def overview(session=None):
     }
 
 
+def live_operational_truth():
+    """Read the small operational surface directly from its current owners.
+
+    This is deliberately not an overview cache or another state source.  It is
+    the Admin read-model for values that must converge while an operator keeps
+    the page open: current user assignment, enabled state, current channel
+    health and the resulting per-channel user count.
+    """
+    users = parse_registry(STATE_DIR / "users.registry")
+    egress = parse_registry(STATE_DIR / "egress.registry")
+    matrix = service_matrix_state()
+    user_counts = {}
+    for row in users:
+        if str(row.get("enabled", "1")) != "1":
+            continue
+        channel = str(row.get("current") or "")
+        if channel:
+            user_counts[channel] = user_counts.get(channel, 0) + 1
+    return redact({
+        "schema": "v7.admin.live-operational-truth.v1",
+        "read_only": True,
+        "updated": now_iso(),
+        "canonical_sources": {
+            "assignment": "users.registry",
+            "channel_health": "service-matrix.json",
+            "channel_metadata": "egress.registry",
+        },
+        "registries": {"users": users, "egress": egress},
+        "service_matrix": matrix,
+        "channel_user_counts": user_counts,
+    })
+
+
 OVERVIEW_CACHE_TTL_SEC = 20
 OVERVIEW_CACHE = {"data": None, "ts": 0.0, "refreshing": False, "error": ""}
 OVERVIEW_CACHE_LOCK = threading.Lock()
@@ -22029,6 +22062,9 @@ def html_page_v2():
     let overviewRefreshInFlight = false;
     let overviewRefreshQueued = false;
     let overviewLiveTimer = null;
+    let liveOperationalTruthTimer = null;
+    let liveOperationalTruthInFlight = false;
+    let latestLiveOperationalTruth = null;
     let overviewLastSignature = '';
     let trafficSummaryCache = null;
     let v2UserFilter = 'all';
@@ -24684,6 +24720,7 @@ def html_page_v2():
     function applyOverviewData(next={}, options={}) {
       const previousTraffic = overview.traffic || trafficSummaryCache;
       overview = next || {};
+      mergeLiveOperationalTruthIntoOverview();
       if (!trafficSummaryHasRows(overview.traffic) && previousTraffic) {
         overview.traffic = previousTraffic;
       }
@@ -24694,6 +24731,42 @@ def html_page_v2():
       applyUiPrefs();
       if (options.render !== false) renderAll();
       if (options.traffic !== false) loadTrafficSummary();
+    }
+    function liveOperationalSignature(data={}) {
+      const usersRegistry = (data.registries?.users || []).map(u => [u.ip, u.current, u.enabled, u.table]).sort();
+      const matrixItems = Object.entries(data.service_matrix?.items || {}).map(([id,row]) => [id, JSON.stringify(row || {})]).sort();
+      return JSON.stringify({usersRegistry, matrixItems, counts:data.channel_user_counts || {}});
+    }
+    function mergeLiveOperationalTruthIntoOverview() {
+      const live = latestLiveOperationalTruth;
+      if (!live || typeof live !== 'object') return;
+      overview.registries = {...(overview.registries || {}), ...(live.registries || {})};
+      if (live.service_matrix) overview.service_matrix = live.service_matrix;
+      overview.live_operational_truth = live;
+      overview.updated = live.updated || overview.updated;
+    }
+    function renderOperationalTruth() {
+      renderOverview();
+      renderUsers();
+      renderChannels();
+      renderRouting();
+      bindDrawerRows();
+      translateDynamicText();
+    }
+    async function refreshLiveOperationalTruth(reason='live') {
+      if (liveOperationalTruthInFlight || (document.hidden && reason === 'timer')) return;
+      liveOperationalTruthInFlight = true;
+      try {
+        const previous = liveOperationalSignature(latestLiveOperationalTruth || {});
+        const next = await api('/api/live-status');
+        latestLiveOperationalTruth = next || latestLiveOperationalTruth;
+        mergeLiveOperationalTruthIntoOverview();
+        if (liveOperationalSignature(latestLiveOperationalTruth || {}) !== previous) renderOperationalTruth();
+      } catch (_) {
+        // The full overview remains available if this lightweight refresh is transiently unavailable.
+      } finally {
+        liveOperationalTruthInFlight = false;
+      }
     }
     function scheduleOverviewRefresh(delay=500, reason='change') {
       if (overviewRefreshQueued) return;
@@ -24715,6 +24788,7 @@ def html_page_v2():
           applyOverviewData(next, {render:true, traffic:true});
         } else {
           overview = next || overview;
+          mergeLiveOperationalTruthIntoOverview();
           loadTrafficSummary();
         }
       } catch (_) {
@@ -24726,8 +24800,13 @@ def html_page_v2():
     function startOverviewLiveRefresh() {
       if (overviewLiveTimer) return;
       overviewLiveTimer = window.setInterval(() => refreshOverviewLive('timer'), 8000);
+      refreshLiveOperationalTruth('initial');
+      liveOperationalTruthTimer = window.setInterval(() => refreshLiveOperationalTruth('timer'), 500);
       document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) scheduleOverviewRefresh(100, 'visible');
+        if (!document.hidden) {
+          refreshLiveOperationalTruth('visible');
+          scheduleOverviewRefresh(100, 'visible');
+        }
       });
     }
     function statCard(label, value, detail, cls='', action='') {
@@ -37343,6 +37422,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             force = (parse_qs(urlparse(self.path).query).get("force") or [""])[0] in ("1", "true", "yes")
             self.send_json(overview_cached(session, force=force))
+        elif path == "/api/live-status":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(live_operational_truth())
         elif path == "/api/omp/dashboard":
             if not self.require_auth(api=True):
                 return

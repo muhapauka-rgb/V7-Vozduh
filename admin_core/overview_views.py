@@ -15,8 +15,17 @@ class OverviewSnapshot:
 
     @property
     def users(self) -> list[dict[str, Any]]:
-        users = self.state.get("users")
-        return users if isinstance(users, list) else self.users_registry
+        """Return the current assignment population for operational reads.
+
+        ``v7-state`` may retain a useful historical/diagnostic projection, but
+        it is not allowed to replace the routing owner's current assignment.
+        When ``users.registry`` is present it therefore wins as a whole.  The
+        empty-registry fallback keeps the read-only overview usable during an
+        early bootstrap before the routing owner has materialised its file.
+        """
+        return self.users_registry if self.users_registry else (
+            self.state.get("users") if isinstance(self.state.get("users"), list) else []
+        )
 
     @property
     def active_users(self) -> list[dict[str, Any]]:

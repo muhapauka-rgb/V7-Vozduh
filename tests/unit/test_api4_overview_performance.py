@@ -5,7 +5,7 @@ from admin_core import overview_views, performance_summaries
 
 
 class Api4OverviewPerformanceTest(unittest.TestCase):
-    def test_overview_snapshot_reuses_registry_rows(self):
+    def test_overview_snapshot_prioritizes_current_registry_rows(self):
         state = {"users": [{"ip": "10.7.0.4", "enabled": "1"}], "egress": {"awg0": {"code": "200"}}}
         registry_users = [{"ip": "10.7.0.2", "enabled": "1"}]
         registry_egress = [{"id": "awg0"}]
@@ -15,11 +15,20 @@ class Api4OverviewPerformanceTest(unittest.TestCase):
             egress_registry=registry_egress,
             draft_evidence={"items": {}},
         )
-        self.assertEqual(snapshot.users, state["users"])
+        self.assertEqual(snapshot.users, registry_users)
         self.assertEqual(snapshot.users_registry, registry_users)
         self.assertEqual(snapshot.egress_registry, registry_egress)
-        self.assertEqual(snapshot.active_users, state["users"])
+        self.assertEqual(snapshot.active_users, registry_users)
         self.assertEqual(snapshot.egress_state, state["egress"])
+
+    def test_overview_snapshot_falls_back_to_state_only_before_registry_exists(self):
+        state = {"users": [{"ip": "10.7.0.4", "enabled": "1"}]}
+        snapshot = overview_views.create_snapshot(
+            state=state,
+            users_registry=[],
+            egress_registry=[],
+        )
+        self.assertEqual(snapshot.users, state["users"])
 
     def test_overview_summary_matches_legacy_shape(self):
         summary = overview_views.build_summary(

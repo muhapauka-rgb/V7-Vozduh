@@ -8407,6 +8407,9 @@ def _execute_governed_transaction_with_guards_inner(
         ),
         controlled_engineering_setup=bool(setup_mode),
         controlled_engineering_cleanup=bool(cleanup_mode),
+        ordinary_service_failure_only=bool(
+            getattr(args, "ordinary_service_failure_only", False)
+        ),
         **apply_options,
     )
     if topology_mode:

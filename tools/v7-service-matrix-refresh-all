@@ -1943,6 +1943,13 @@ def run_bounded_delegated_service_failure_action(
         "user-service-scores",
     )
     refresh_required = False
+    source_paths = {
+        "service_matrix": state_dir / "service-matrix.json",
+        "egress_registry": state_dir / "egress.registry",
+        "quality_summary": state_dir / "egress-quality-summary.json",
+        "service_preferences": state_dir / "service-preferences.json",
+        "users_registry": state_dir / "users.registry",
+    }
     now = datetime.now(timezone.utc)
     for name in advisory_snapshot_names:
         payload = read_json(snapshot_root / f"{name}.json", {})
@@ -1957,6 +1964,19 @@ def run_bounded_delegated_service_failure_action(
         except (TypeError, ValueError):
             refresh_required = True
             break
+        if isinstance(payload, dict):
+            declared_hashes = payload.get("source_hashes")
+            if isinstance(declared_hashes, dict):
+                for key, path in source_paths.items():
+                    declared = str(declared_hashes.get(key) or "")
+                    if not declared or not path.exists():
+                        continue
+                    current = operator_execution.sha256_json(read_json(path, {}))
+                    if current != declared:
+                        refresh_required = True
+                        break
+            if refresh_required:
+                break
     if refresh_required:
         snapshot_command = [
             "v7-intelligence-snapshot-refresh",
@@ -5212,6 +5232,16 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
                 "safety_hard_stop", "safety_blockers",
             )
             if packet_preparation_diagnostic.get(key) not in (None, "", [], {})
+        }
+    snapshot_refresh = result.get("snapshot_refresh")
+    if isinstance(snapshot_refresh, dict) and snapshot_refresh:
+        compact_result["snapshot_refresh"] = {
+            key: snapshot_refresh.get(key)
+            for key in (
+                "attempted", "required", "status", "returncode",
+                "source_stable", "elapsed_ms", "error",
+            )
+            if snapshot_refresh.get(key) not in (None, "", [], {})
         }
     prepared = result.get("prepared_class_decisions") or value.get("prepared_class_decisions")
     if isinstance(prepared, dict) and prepared:

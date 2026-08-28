@@ -7998,26 +7998,6 @@ def _execute_governed_transaction_with_guards_inner(
 
     attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
 
-    # A current Matrix service-failure obligation is a distinct governed
-    # execution context.  Its primary evidence is the fresh incident plus
-    # Planner's current target/service checks; delayed advisory learning
-    # snapshots must not strand an affected ordinary user.  The downstream
-    # causal-binding, packet, lease, rollback and verification owners still
-    # enforce every mutation safety check.
-    if (
-        bool(getattr(args, "ordinary_service_failure_only", False))
-        and all(
-            str(getattr(args, field, "") or "")
-            for field in (
-                "expected_service_failure_obligation_id",
-                "expected_service_failure_incident_id",
-                "expected_service_failure_scope_fingerprint",
-                "approved_source",
-            )
-        )
-    ):
-        surface["controlled_execution_gate_profile"] = "ORDINARY_SERVICE_FAILURE"
-
     cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
         events=events,
         decision_surface=surface,

@@ -16379,9 +16379,32 @@ def autoswitch_apply_guarded(actor, confirm="", target_egress="", source_egress=
 
 
 def admin_safe_mode_state():
+    """Return the Admin change-freeze without reinterpreting runtime control.
+
+    The shared file is owned by the existing execution-control owner.  Its
+    top-level ``OPEN`` state means that no governed routing transaction is
+    currently allowed to mutate; it is not an operator request to freeze
+    ordinary Admin work.  Keeping those meanings coupled made every completed
+    governed transaction permanently block profile issuance.
+    """
     data = operator_execution.autonomous_execution_control_state(SAFE_MODE_FILE)
+    raw = read_json(SAFE_MODE_FILE, {})
+    manual = raw.get("admin_safe_mode") if isinstance(raw, dict) else {}
+    manual = manual if isinstance(manual, dict) else {}
+    manual_enabled = manual.get("enabled")
+    manual_valid = isinstance(manual_enabled, bool)
     return redact({
         **data,
+        "execution_control_enabled": bool(data.get("enabled")),
+        "enabled": bool(manual_enabled) if manual_valid else False,
+        "admin_safe_mode": {
+            "enabled": bool(manual_enabled) if manual_valid else False,
+            "reason": str(manual.get("reason") or ""),
+            "updated_at": str(manual.get("updated_at") or ""),
+            "updated_by": str(manual.get("updated_by") or ""),
+            "generation": str(manual.get("generation") or ""),
+            "legacy_inferred_open_control": not manual_valid and data.get("state") == "OPEN",
+        },
         "updated": data.get("updated_at"),
         "blocked_actions": sorted(SAFE_MODE_BLOCKED_ACTIONS),
     })
@@ -16404,25 +16427,26 @@ def set_admin_safe_mode(
     snapshot_bundle_hash="",
     max_users=0,
 ):
-    if not enabled and not all([
-        str(operation_id or ""),
-        str(selected_move_hash or ""),
-        str(action_class or ""),
-        str(source_bundle_hash or ""),
-        str(snapshot_bundle_hash or ""),
-    ]):
-        raise operator_execution.PacketError("operation_scoped_controlled_window_bindings_required")
-    data = operator_execution.build_autonomous_execution_control_state(
-        enabled,
-        actor=actor or "admin",
-        reason=reason,
-        operation_id=operation_id,
-        selected_move_hash=selected_move_hash,
-        action_class=action_class,
-        source_bundle_hash=source_bundle_hash,
-        snapshot_bundle_hash=snapshot_bundle_hash,
-        max_users=max_users,
-    )
+    # Do not overwrite the shared execution-control contract.  It gates the
+    # governed route writer and may only be opened/closed by its existing
+    # operation-scoped lifecycle.  Admin Safe Mode is the explicit operator
+    # freeze nested in that same canonical file.
+    control = operator_execution.autonomous_execution_control_state(SAFE_MODE_FILE)
+    if not control.get("valid"):
+        raise operator_execution.PacketError("execution_control_invalid")
+    if control.get("state") != "OPEN" or control.get("scope") != "global":
+        raise operator_execution.PacketError("execution_control_active_operation")
+    data = read_json(SAFE_MODE_FILE, {})
+    if not isinstance(data, dict):
+        raise operator_execution.PacketError("execution_control_not_object")
+    now = datetime.now(timezone.utc).isoformat()
+    data["admin_safe_mode"] = {
+        "enabled": bool(enabled),
+        "reason": clean_identity_text(reason or "operator_control", 240) or "operator_control",
+        "updated_at": now,
+        "updated_by": str(actor or "admin").strip() or "admin",
+        "generation": f"admin_safe_{secrets.token_hex(12)}",
+    }
     SAFE_MODE_FILE.parent.mkdir(parents=True, exist_ok=True)
     if SAFE_MODE_FILE.exists():
         backup = SAFE_MODE_FILE.with_name(f"{SAFE_MODE_FILE.name}.backup.v7-safe-mode.{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
@@ -16430,7 +16454,7 @@ def set_admin_safe_mode(
         os.chmod(backup, 0o600)
     write_json_atomic(SAFE_MODE_FILE, data)
     os.chmod(SAFE_MODE_FILE, 0o600)
-    return redact(data)
+    return admin_safe_mode_state()
 
 
 def clamp_int(value, default, min_value, max_value):

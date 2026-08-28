@@ -39,7 +39,8 @@ class EndpointInventoryContractTest(unittest.TestCase):
     def test_admin_safe_mode_reuses_shared_fail_closed_owner_and_exposes_generation(self):
         source = ADMIN_API.read_text(encoding="utf-8")
         self.assertIn("operator_execution.autonomous_execution_control_state(SAFE_MODE_FILE)", source)
-        self.assertIn("operator_execution.build_autonomous_execution_control_state(", source)
+        self.assertIn('"admin_safe_mode"', source)
+        self.assertIn("execution_control_active_operation", source)
         self.assertIn('"admin_safe_mode": admin_safe_mode_state()', source)
         self.assertIn('audit_admin(actor, "admin_safe_mode_set"', source)
 

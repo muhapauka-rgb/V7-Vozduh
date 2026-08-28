@@ -53,6 +53,21 @@ Matrix optimisation and does not move a user or change a route.
   selection time was 1.53 s.  The restarted Admin process was at about 111 MB
   current / 133 MB peak memory at verification.
 
+## Follow-up: Safe Mode semantic repair
+
+The live error shown by the repaired UI was `safe_mode_enabled`.  Investigation
+showed the shared existing execution-control record in its valid terminal
+`OPEN` state, written by `governed-execution-finalizer` after a completed
+transaction.  `OPEN` correctly suspends automatic forward route mutation until
+a new operation-scoped window exists; it is not an operator request to freeze
+ordinary Admin work.  Admin had incorrectly treated the shared top-level flag
+as both concepts, permanently blocking profile issuance.
+
+The repair preserves the existing execution-control owner and file.  It stores
+an explicit Admin-only freeze under `admin_safe_mode` in that same canonical
+record and refuses to change it while an operation-scoped control window is
+active.  The terminal `OPEN` state no longer blocks profile/QR issuance.
+
 ## Next step
 
 Publish and deploy through `tools/v7-safe-deploy`, then verify the deployed

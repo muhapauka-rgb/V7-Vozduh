@@ -115,6 +115,29 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("Это предпочтение, а не принудительное назначение", page)
         self.assertIn("Профиль не выдан", page)
 
+    def test_completed_execution_control_does_not_freeze_profile_issuance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            safe_mode = Path(tmp) / "safe-mode.json"
+            control = self.admin.operator_execution.build_autonomous_execution_control_state(
+                True,
+                actor="governed-execution-finalizer",
+                reason="GOVERNED_TRANSACTION_COMPLETED",
+            )
+            self.admin.write_json_atomic(safe_mode, control)
+            previous = self.admin.SAFE_MODE_FILE
+            self.addCleanup(setattr, self.admin, "SAFE_MODE_FILE", previous)
+            self.admin.SAFE_MODE_FILE = safe_mode
+
+            state = self.admin.admin_safe_mode_state()
+            self.assertTrue(state["execution_control_enabled"])
+            self.assertFalse(state["enabled"])
+            self.assertFalse(self.admin.admin_safe_mode_enabled())
+
+            enabled = self.admin.set_admin_safe_mode("admin", True, "maintenance")
+            self.assertTrue(enabled["enabled"])
+            disabled = self.admin.set_admin_safe_mode("admin", False, "done")
+            self.assertFalse(disabled["enabled"])
+
 
 if __name__ == "__main__":
     unittest.main()

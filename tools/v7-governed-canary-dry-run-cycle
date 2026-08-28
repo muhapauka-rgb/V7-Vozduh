@@ -2929,6 +2929,24 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
     ):
         if key in result:
             receipt[key] = result.get(key)
+    cycle = result.get("cycle") if isinstance(result.get("cycle"), dict) else {}
+    if cycle:
+        # Preserve only the cycle's terminal diagnosis in the bounded receipt.
+        # The full read-only cycle remains with the existing audit owner, but
+        # ``packet_not_ready`` without its cause is not actionable for the
+        # Matrix recovery consumer.
+        cycle_receipt = {
+            key: cycle.get(key)
+            for key in ("stop_reason", "stop_detail", "next_action")
+            if cycle.get(key) not in (None, "", [], {})
+        }
+        dry_run = cycle.get("dry_run") if isinstance(cycle.get("dry_run"), dict) else {}
+        safety_gates = dry_run.get("safety_gates") if isinstance(dry_run.get("safety_gates"), dict) else {}
+        blockers = safety_gates.get("hard_stop_blockers") or []
+        if blockers:
+            cycle_receipt["hard_stop_blockers"] = list(blockers)
+        if cycle_receipt:
+            receipt["cycle_diagnostic"] = cycle_receipt
     planner_plan_availability = result.get("planner_plan_availability")
     planner_plan_availability = (
         planner_plan_availability

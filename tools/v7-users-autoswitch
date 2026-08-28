@@ -9848,7 +9848,7 @@ class AutoswitchPlanner:
                 move_blockers.append("target_not_eligible_before_apply")
             if source_id == target_id:
                 move_blockers.append("source_target_same_before_apply")
-            evidence = self._emergency_failover_move_evidence(move)
+            evidence = self._ordinary_service_failure_move_evidence(move)
             move_blockers.extend(str(item) for item in (evidence.get("blockers") or []))
             checked_moves.append({
                 "user_ip": user_ip,
@@ -9868,6 +9868,63 @@ class AutoswitchPlanner:
             "checked_moves": checked_moves,
             "owner": "tools/v7-users-autoswitch existing service-failure consumer",
             "runtime_mutation": False,
+        }
+
+    def _ordinary_service_failure_move_evidence(
+        self,
+        move: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Apply the existing live Matrix evidence gates to one failed source."""
+        blockers: list[str] = []
+        user_ip = str(move.get("user_ip") or "")
+        current_id = str(move.get("current_egress") or "")
+        target_id = str(move.get("recommended_egress") or "")
+        candidates = move.get("candidates") if isinstance(move.get("candidates"), list) else []
+        current = next((row for row in candidates if str(row.get("egress") or "") == current_id), {})
+        target = next((row for row in candidates if str(row.get("egress") or "") == target_id), {})
+        current_failure = self._current_channel_failure_evidence(current, user_ip=user_ip)
+        if not bool_value(current_failure.get("confirmed")) and current_id:
+            controlled_failure = self._controlled_certification_failure_context(current_id, user_ip=user_ip)
+            if bool_value(controlled_failure.get("confirmed")):
+                current_failure = controlled_failure
+        if not bool_value(current_failure.get("confirmed")):
+            blockers.append("fresh_channel_failure_evidence_required")
+        if current and bool_value(current.get("eligible")):
+            blockers.append("current_candidate_still_eligible")
+        if not target or not bool_value(target.get("eligible")):
+            blockers.append("safe_target_required")
+        target_load = target.get("load") if isinstance(target.get("load"), dict) else {}
+        if str(target_load.get("status") or "OK") in {"HARD_FULL", "FAILOVER_FULL"}:
+            blockers.append("target_load_gate_failed")
+        required_services = normalize_service_ids(move.get("important_services") or [])
+        current_service = current.get("service_suitability") if isinstance(current.get("service_suitability"), dict) else {}
+        target_service = target.get("service_suitability") if isinstance(target.get("service_suitability"), dict) else {}
+        current_failures: list[dict[str, Any]] = []
+        per_service = current_service.get("per_service") if isinstance(current_service.get("per_service"), dict) else {}
+        for service in required_services:
+            row = per_service.get(service) if isinstance(per_service.get(service), dict) else {}
+            status = str(row.get("status") or "").upper()
+            truth_class = str(row.get("truth_class") or "")
+            if row.get("available") is False or truth_class == "PERSISTENT_FAIL" or status in {"DOWN", "FAIL", "ERROR", "NOT_STARTED"}:
+                current_failures.append(row)
+        if not current_failures and not bool_value(current_failure.get("confirmed")):
+            blockers.append("required_service_failure_required")
+        stale_failures = [
+            row for row in current_failures
+            if str(((row.get("freshness") or {}).get("state") or "")) not in {"FRESH", "AGING"}
+        ]
+        if stale_failures and not bool_value(current_failure.get("confirmed")):
+            blockers.append("fresh_service_failure_evidence_required")
+        if target_service.get("required_missing") or target_service.get("required_low"):
+            blockers.append("target_required_services_not_ready")
+        return {
+            "ok": not blockers,
+            "blockers": sorted(set(blockers)),
+            "current_channel_failure": current_failure,
+            "current_failures": [
+                {"service": row.get("service"), "status": row.get("status"), "truth_class": row.get("truth_class"), "freshness": row.get("freshness")}
+                for row in current_failures
+            ],
         }
 
     def _state_file_freshness(self) -> dict[str, Any]:

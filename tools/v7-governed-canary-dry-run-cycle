@@ -7872,6 +7872,13 @@ def _execute_governed_transaction_with_guards_inner(
         runtime_state=runtime_state,
         decision_records=records,
     )
+    if bool(getattr(args, "ordinary_service_failure_only", False)):
+        # The current Matrix incident and governed target/route gates are the
+        # authority for emergency ordinary recovery.  Risk/trust/prediction
+        # snapshots remain advisory and must not strand users during a live
+        # failed-source event; all other transaction safety checks remain
+        # unchanged in the pipeline.
+        surface["controlled_execution_gate_profile"] = "ORDINARY_SERVICE_FAILURE"
     inventory = autonomy_trust_acceleration.build_acceleration_inventory(
         snapshot_root=snapshot_root,
         decision_surface=surface,
@@ -7963,6 +7970,8 @@ def _execute_governed_transaction_with_guards_inner(
             )
             surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
             surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
+            if bool(getattr(args, "ordinary_service_failure_only", False)):
+                surface["controlled_execution_gate_profile"] = "ORDINARY_SERVICE_FAILURE"
         moves = selected_moves_from_planner_payload(planner_observe.get("payload", {}))
         surface = merge_planner_moves_into_surface(surface, moves, replace_existing=True)
     a4_goal_directed_selection = {}

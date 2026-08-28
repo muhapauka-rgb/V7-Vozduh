@@ -1586,6 +1586,13 @@ def autonomy_engine_trace_model(
 
 
 def _snapshot_gate_blockers(decision_surface: dict[str, Any]) -> list[str]:
+    # Ordinary failed-source recovery is admitted from the current Matrix
+    # incident plus the governed candidate/target checks.  Intelligence
+    # snapshots are advisory projections and may legitimately lag while the
+    # hot recovery path is draining a real outage.  Controlled/certification
+    # and normal planning paths retain the original strict snapshot gate.
+    if str(decision_surface.get("controlled_execution_gate_profile") or "") == "ORDINARY_SERVICE_FAILURE":
+        return []
     snapshots = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
     blockers = []
     gate_profile = str(decision_surface.get("controlled_execution_gate_profile") or "DEFAULT")
@@ -1643,9 +1650,10 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
         prediction_confidence = _score_0_100(prediction.get("confidence"), 0.0)
         rollback_plan = candidate.get("rollback_plan") if isinstance(candidate.get("rollback_plan"), dict) else {}
         rollback_confidence = _score_0_100(rollback_plan.get("rollback_confidence"), 0.0)
-        if confidence < AUTONOMY_CANARY_CONFIDENCE_FLOOR:
+        ordinary_failure_profile = gate_profile == "ORDINARY_SERVICE_FAILURE"
+        if confidence < AUTONOMY_CANARY_CONFIDENCE_FLOOR and not ordinary_failure_profile:
             blockers.append("confidence_too_low")
-        if not certification_topology_profile:
+        if not certification_topology_profile and not ordinary_failure_profile:
             if trust <= 0:
                 blockers.append("unknown_trust")
             elif trust < AUTONOMY_CANARY_TRUST_FLOOR:

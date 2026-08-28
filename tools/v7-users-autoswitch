@@ -18896,6 +18896,12 @@ class AutoswitchPlanner:
         No Candidate, Packet, lease, routing mutation, Authority or L7/L8
         credit can result from this passive step.
         """
+        # Narrow Polygon/legacy-owner fixtures may construct the Planner
+        # without running ``__init__``.  Reuse the canonical Matrix file in
+        # that case so the same live-failure precedence rule is exercised
+        # without introducing a second state source.
+        if not hasattr(self, "matrix"):
+            self.matrix = read_json(self.state_dir / "service-matrix.json", {})
         recorder = getattr(self, "_passive_performance_recorder", None)
 
         def record_passive_substep(stage: str, started_ns: int) -> None:
@@ -19056,6 +19062,31 @@ class AutoswitchPlanner:
             grouped.setdefault(group_id, []).append(event)
         omp_frontiers: list[dict[str, Any]] = []
         event_projection_started_ns = time.monotonic_ns()
+
+        def matrix_still_confirms_failure(
+            source_incident_id: str,
+            channel: str,
+        ) -> bool:
+            """Do not close a live Matrix failure on a late terminal receipt."""
+            matrix = getattr(self, "matrix", {})
+            items = matrix.get("items") if isinstance(matrix, dict) else {}
+            source_row = items.get(channel) if isinstance(items, dict) else {}
+            services = (
+                source_row.get("services")
+                if isinstance(source_row, dict)
+                and isinstance(source_row.get("services"), dict)
+                else {}
+            )
+            return any(
+                isinstance(service, dict)
+                and str(service.get("source_incident_id") or "") == source_incident_id
+                and (
+                    service.get("ok") is False
+                    or str(service.get("failure_state") or "").startswith("OBSERVED")
+                )
+                for service in services.values()
+            )
+
         for group_id, group_events in sorted(grouped.items()):
             # A source incident may contain a terminal expiry/recovery and a
             # later revalidation in the same consumption batch.  Terminal
@@ -19073,7 +19104,8 @@ class AutoswitchPlanner:
                 return (parse_ts(observed), str(item.get("event_id") or ""))
 
             ordered_group_events = sorted(group_events, key=event_order)
-            event = ordered_group_events[-1]
+            event_index = len(ordered_group_events) - 1
+            event = ordered_group_events[event_index]
             source_event_ids = sorted(str(item["event_id"]) for item in group_events)
             event_id = group_id
             provenance_contract = passive_event_provenance_classification(event)
@@ -19081,6 +19113,51 @@ class AutoswitchPlanner:
             latest_evidence_class = str(event.get("evidence_class") or "")
             recovery_observed = latest_evidence_class == "PROBE_OBSERVED_RECOVERY_EVENT"
             expiry_observed = latest_evidence_class == "PROBE_OBSERVED_EPISODE_EXPIRY"
+            if (
+                (recovery_observed or expiry_observed)
+                and matrix_still_confirms_failure(
+                    group_id, str(event.get("channel") or "")
+                )
+            ):
+                replacement_index = next(
+                    (
+                        index
+                        for index in range(event_index - 1, -1, -1)
+                        if str(
+                            ordered_group_events[index].get("evidence_class") or ""
+                        )
+                        not in {
+                            "PROBE_OBSERVED_RECOVERY_EVENT",
+                            "PROBE_OBSERVED_EPISODE_EXPIRY",
+                        }
+                    ),
+                    -1,
+                )
+                if replacement_index >= 0:
+                    event_index = replacement_index
+                    event = ordered_group_events[event_index]
+                    latest_evidence_class = str(event.get("evidence_class") or "")
+                    recovery_observed = False
+                    expiry_observed = False
+                else:
+                    # Consume only the stale terminal receipt.  The current
+                    # Matrix failure and its existing L3 projection remain
+                    # untouched until the next non-terminal observation.
+                    for source_event_id in source_event_ids:
+                        consumed[source_event_id] = {
+                            "consumed_at": now_iso(),
+                            "source_incident_id": group_id,
+                            "terminal": "TERMINAL_OBSERVATION_SUPERSEDED_BY_CURRENT_MATRIX_FAILURE",
+                        }
+                    omp_frontiers.append({
+                        "frontier_id": "V7_SERVICE_FAILURE_INCIDENT_RECONCILIATION",
+                        "source_incident_id": group_id,
+                        "channel": str(event.get("channel") or ""),
+                        "action_class": "current Matrix failure supersedes terminal observation",
+                        "owner": "tools/v7-users-autoswitch._consume_passive_production_events",
+                        "execution_authority_granted": False,
+                    })
+                    continue
             event_provenance = str(provenance_contract["observation_provenance"])
             evidence_class = (
                 str(provenance_contract["evidence_class"])
@@ -19170,7 +19247,8 @@ class AutoswitchPlanner:
                     "latest_evidence_class": latest_evidence_class,
                     "superseded_terminal_event_ids": [
                         str(item.get("event_id") or "")
-                        for item in ordered_group_events[:-1]
+                        for index, item in enumerate(ordered_group_events)
+                        if index != event_index
                         if str(item.get("evidence_class") or "") in {
                             "PROBE_OBSERVED_RECOVERY_EVENT",
                             "PROBE_OBSERVED_EPISODE_EXPIRY",

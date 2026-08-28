@@ -3924,6 +3924,86 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(closure["terminal_resolution"]["latest_event_id"], "sfrev_new")
         self.assertEqual(closure["terminal_resolution"]["superseded_terminal_event_ids"], ["sxe_old"])
 
+    def test_current_matrix_failure_supersedes_late_expiry_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            event_dir = root / "events"
+            state_dir = root / "state"
+            event_dir.mkdir()
+            state_dir.mkdir()
+            incident = "sfinc_live_failure_after_expiry"
+            failure = {
+                "event_id": "sfe_live_failure",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+                "source_incident_id": incident,
+                "channel": "vless",
+                "service": "youtube",
+                "failure_samples": 3,
+                "bad_for_seconds": 180,
+                "observed_at": "2026-07-27T10:00:00+00:00",
+                "source_scope": {
+                    "source_channel": "vless",
+                    "affected_scope_count": 1,
+                    "affected_scope_fingerprint": "scope-live",
+                },
+            }
+            expiry = {
+                "event_id": "sxe_late_expiry",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "PROBE_OBSERVED_EPISODE_EXPIRY",
+                "source_incident_id": incident,
+                "channel": "vless",
+                "observed_at": "2026-07-27T10:01:00+00:00",
+            }
+            (event_dir / "service-failure-events.jsonl").write_text(
+                json.dumps(failure) + "\n" + json.dumps(expiry) + "\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.event_dir = event_dir
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.service_signal_policy = {
+                "service_failure_persistence_samples": 3,
+                "service_failure_persistence_window_seconds": 180,
+            }
+            planner.l3_runtime_state = {}
+            planner.matrix = {
+                "items": {
+                    "vless": {
+                        "services": {
+                            "youtube": {
+                                "ok": False,
+                                "failure_state": "OBSERVED_HARD_FAILURE",
+                                "source_incident_id": incident,
+                            },
+                        },
+                    },
+                },
+            }
+            result = planner._consume_passive_production_events()
+            rows = [
+                json.loads(line)
+                for line in (state_dir / "closure-records.jsonl").read_text(
+                    encoding="utf-8"
+                ).splitlines()
+            ]
+            closure = next(
+                row for row in rows if row.get("object_type") == "passive_production_event"
+            )
+        self.assertTrue(result["active"])
+        self.assertEqual(
+            closure["terminal_outcome_classification"], "STOP_SAFE_NO_ACTION"
+        )
+        self.assertEqual(
+            closure["terminal_resolution"]["latest_event_id"],
+            "sfe_live_failure",
+        )
+        self.assertIn("sxe_late_expiry", closure["terminal_resolution"]["superseded_terminal_event_ids"])
+
     def test_runtime_readiness_copy_never_claims_service_availability(self):
         source = ADMIN_API.read_text(encoding="utf-8")
         self.assertIn("Runtime/config readiness: конфиг и runtime подтверждены текущим снимком; доступность сервисов этим не подтверждается.", source)

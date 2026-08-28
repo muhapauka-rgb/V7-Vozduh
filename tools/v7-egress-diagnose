@@ -505,6 +505,10 @@ for line in registry_lines:
             str(fields.get("enabled", "1")).strip(),
         )
 users_prefs = prefs.get("users") if isinstance(prefs.get("users"), dict) else {}
+# Keep the fallback aligned with the existing autoswitch default priority
+# contract.  It is used only when a live user has no profile row at all; an
+# explicit empty profile remains an intentional opt-out.
+DEFAULT_PROFILE_SERVICES = ("youtube", "instagram", "telegram", "google", "google_auth")
 active_sources = {}
 for line in users_lines:
     line = line.strip()
@@ -528,11 +532,23 @@ global_services = tuple(sorted({str(item).strip() for item in global_values if s
 
 for source, identities in sorted(active_sources.items()):
     contracts = {}
+    missing_profile = False
     for identity in sorted(identities):
         row = users_prefs.get(identity) if identity else None
         if not isinstance(row, dict):
+            missing_profile = True
             continue
-        values = row.get("required_services") or row.get("services") or []
+        if "required_services" in row:
+            values = row.get("required_services")
+        elif "services" in row:
+            values = row.get("services")
+        else:
+            # A profile record without a service declaration is equivalent to
+            # no profile record for health observation purposes.  This does
+            # not override an explicitly declared empty list.
+            missing_profile = True
+            continue
+        values = values or []
         if isinstance(values, str):
             values = [item.strip() for item in values.split(",") if item.strip()]
         if not isinstance(values, list):
@@ -540,6 +556,8 @@ for source, identities in sorted(active_sources.items()):
         services = tuple(sorted({str(item).strip() for item in values if str(item).strip() and str(item).lower() != "all"}))
         if services:
             contracts.setdefault(services, set()).add(identity)
+    if missing_profile:
+        contracts.setdefault(tuple(sorted(DEFAULT_PROFILE_SERVICES)), set()).add("__GLOBAL__")
     if not contracts and global_services:
         contracts[global_services] = {"__GLOBAL__"}
     for services, profiles in sorted(contracts.items()):

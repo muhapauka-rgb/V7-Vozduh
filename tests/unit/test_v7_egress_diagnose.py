@@ -327,6 +327,41 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertEqual(proc.returncode, 2)
             self.assertIn("profile_service_subset_missing_or_empty", proc.stdout)
 
+    def test_missing_profile_uses_existing_default_priority_services(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=vless protocol=vless interface=vless enabled=1\n")
+            (state / "users.registry").write_text(
+                "ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8"
+            )
+            checker_args = root / "checker.args"
+            self.write_command(bin_dir, "ip", "echo '1: vless: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(
+                bin_dir,
+                "profile-checker",
+                "printf '%s\\n' \"$*\" > \"$CHECKER_ARGS\"\n"
+                "printf '%s\\n' '{\"status\":\"OK\",\"results\":{}}'\n",
+            )
+            output = root / "fast-observation.state"
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["CHECKER_ARGS"] = str(checker_args)
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--output", str(output),
+                "--fast-producer-only",
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "profile-checker"),
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = output.read_text(encoding="utf-8")
+            self.assertIn("fast_producer_active_source_count=1", state_text)
+            self.assertIn("fast_producer_distinct_contract_count=1", state_text)
+            self.assertIn("fast_producer_observation_count=1", state_text)
+            args = checker_args.read_text(encoding="utf-8")
+            self.assertIn("vless all --services google,google_auth,instagram,telegram,youtube", args)
+
     def test_profile_service_subset_reaches_real_matrix_writer(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -40,12 +40,13 @@ scope, admission, rollback and S11 checks.
 
 ## Production status and limitation
 
-This is not yet a production latency claim. At reconciliation the local commit
-was `a6a5ecb8`; the deployed Runtime reported
-`2b4e86896aab1a43b0399537b7f6c227e55fd26d`, and the safe-deploy gate is
-currently `NO-GO` because independent GitHub/Runtime provenance is unreadable.
-No route, assignment, Matrix cadence, timer or live Runtime was changed by
-this block.
+This is not yet a production latency claim. Commit
+`c5e284a34472eabf2184c96f27ea54ff962d2164` was independently confirmed on
+GitHub. The deployed Runtime still reports
+`2b4e86896aab1a43b0399537b7f6c227e55fd26d`, and its read-only convergence
+snapshot is stale: it contains an obsolete wider command set and cannot prove
+the exact deployment baseline. No route, assignment, Matrix cadence, timer or
+live Runtime was changed by this block.
 
 Once a safe deploy is admissible, the next proof is one controlled Matrix
 failure followed by the existing automatic ordinary consumer. Its receipt must

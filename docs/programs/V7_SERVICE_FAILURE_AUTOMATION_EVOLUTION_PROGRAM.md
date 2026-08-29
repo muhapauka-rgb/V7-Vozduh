@@ -220,6 +220,78 @@ or a claim that the historical target was met.  A functional/safety regression,
 Runtime-fingerprint change or explicitly admitted architecture change
 invalidates this rollout-contract reuse.
 
+#### Production recovery-latency rewrite: immutable incident clock and global scope
+
+The accepted seven-second recovery envelope is a product limit for the whole
+observable recovery path, not permission to spend an unbounded period before
+Matrix creates `T0`.  The following clocks are now binding for every current
+ordinary failed-source recovery and for its controlled proof:
+
+```text
+T_FIRST_VALID_FAILURE_OBSERVATION
+= the first fresh owner-backed failure observation in the incident lineage
+  that satisfies the existing Matrix failure-evidence predicate.  A transient
+  sample that does not satisfy that predicate is not a start event.  Once set,
+  this timestamp is immutable and later regenerated observations cannot reset
+  it.
+
+T0
+= Matrix's canonical ACTIONABLY_FAILED confirmation for the same incident
+  lineage.  Matrix remains the sole writer of this state.
+
+T_END
+= the last currently affected enabled ordinary identity reaches exact S11 on
+  a usable target.
+```
+
+The primary production KPI is:
+
+```text
+T_FIRST_VALID_FAILURE_OBSERVATION
+-> GLOBAL_ALL_AFFECTED_RECOVERED (T_END)
+P95 <= 7000 ms target
+absolute ceiling <= 8000 ms
+```
+
+The decomposition is also mandatory and may not be hidden inside a later
+event:
+
+```text
+T_FIRST_VALID_FAILURE_OBSERVATION -> T0 <= 1000 ms target
+T0 -> GLOBAL_ALL_AFFECTED_RECOVERED <= 6000 ms target
+```
+
+The absolute ceiling applies to the complete first-observation-to-last-user
+path.  A recovery that starts its clock at a later Matrix regeneration,
+per-user retry, Packet creation or operator rerun is invalid evidence.  The
+existing `T0 -> S11` measurements remain useful decomposition evidence, but
+they cannot make a first-observation recovery above eight seconds acceptable.
+
+For source `S`, the affected scope is evaluated from fresh current truth:
+
+```text
+CURRENT_AFFECTED_SCOPE(S)
+= every enabled ordinary identity currently assigned to S whose required
+  service contract is affected by the same confirmed incident lineage.
+
+GLOBAL_ALL_AFFECTED_RECOVERED(S)
+= every member of that scope has terminal assignment, kernel visibility and
+  profile-required S11; the clock stops at the last member.
+```
+
+The first recovered member is never the product terminal.  Compatible members
+must be handled as one bounded cohort operation through the existing owners;
+one-user serialization is permitted only when a proven safety conflict
+requires it.  The existing `AUTO_RECOVERY_COHORT_MAX` and concurrency limits
+remain safety bounds, not permission to run a complete recovery lifecycle per
+user.
+
+Any recurring hot-path interval above 100 ms must name its existing owner and
+be classified as mandatory current safety/health/capacity/Authority/route/S11,
+or be moved out of the synchronous recovery path.  Detailed audit, learning,
+analytics and historical projections may complete asynchronously after the
+minimum durable recovery receipt is written.
+
 | Class | Minimum causal path | Measured target | Explicit non-goal |
 | --- | --- | --- | --- |
 | `HARD_PATH` | definitive existing OS/systemd/interface/tunnel/peer/route evidence -> Matrix-owned provenance/freshness/generation validation and, only if the N1/N4 tournament admits it, direct canonical T0 without a redundant source network probe; cheap or ambiguous path liveness -> independent targeted Matrix corroboration -> T0 -> S11 | historical objective P95 `<=3 s`, max `<=5 s`; current two-vCPU rollout contract P95 `<=7 s`, max `<=8 s`; production observation clock retained separately | full deep sweep before an unambiguous failure or treating an ambiguous timeout as definitive evidence |
@@ -232,15 +304,17 @@ active serving profile declares Telegram required.  It is the only application
 service class eligible for the 1–3-second target; Google, Auth, DNS and all
 other profile-required services use `OTHER_REQUIRED_SERVICE`.
 
-Every class records two non-interchangeable clocks:
+Every class records three non-interchangeable clocks:
 
 ```text
 CONTROLLED / POLYGON
-CONTROLLED_FAILURE_OR_OUTAGE_ONSET -> S11
+T_FIRST_VALID_FAILURE_OBSERVATION -> T0 -> GLOBAL_ALL_AFFECTED_RECOVERED
 
 PRODUCTION
-FIRST_FAILED_SERVER_OBSERVATION -> S11
-AND LAST_SUCCESSFUL_OBSERVATION -> FIRST_FAILED_SERVER_OBSERVATION
+T_FIRST_VALID_FAILURE_OBSERVATION -> T0
+T0 -> GLOBAL_ALL_AFFECTED_RECOVERED
+T_FIRST_VALID_FAILURE_OBSERVATION -> GLOBAL_ALL_AFFECTED_RECOVERED
+AND LAST_SUCCESSFUL_OBSERVATION -> T_FIRST_VALID_FAILURE_OBSERVATION
 ```
 
 The controlled clock retains the historical target: HARD/PATH and applicable
@@ -258,9 +332,12 @@ Its acceptance is worst cadence phase plus probe timeout plus confirmation,
 not an average interval or an open `10–15 s` range.
 
 `<= 3 s` is a target to be proved in the exact failure class and cohort, not a
-configured promise.  Its initial budget envelope is: signal `<= 0.7 s`,
-confirmation/T0 `<= 0.6 s`, target decision `<= 0.2 s`, Packet/Lease `<= 0.2
-s`, apply `<= 0.6 s`, verification `<= 0.7 s`.  A failed budget remains
+configured promise.  Its initial budget envelope is: first valid observation
+to T0 `<= 1.0 s`, affected-scope/Authority `<= 0.5 s`, target decision `<= 1.0
+s`, Packet/Lease/Barrier `<= 0.5 s`, apply and kernel visibility `<= 1.5 s`,
+and required-service S11 `<= 1.5 s`.  These are cumulative budgets for the
+complete first-observation-to-last-member path; the current 7/8-second rollout
+contract is not a license to omit the observation-to-T0 interval.  A failed budget remains
 STOP_SAFE or falls back; it may not be hidden by averaging unrelated samples.
 It is also a failed performance sample, an open Engineering residual and a
 bar to the N terminal.  Every N1/N2/N4 confirmation and S11 verification must
@@ -464,7 +541,7 @@ tests, report, deploy or Polygon alone never advances a phase.
 
 | Phase | Required result and gate |
 | --- | --- |
-| `N0` | Record this product/SLO amendment in the existing Program; reconcile current callers, consumers, state and prior V5.3 evidence against the new roles. |
+| `N0` | Record and reconcile the immutable first-observation clock, `T0`, global affected scope and last-member terminal in this existing Program; reconcile current callers, consumers, state and prior V5.3 evidence against the new roles. |
 | `N0a` | **Runtime execution envelope prerequisite.** Profile and reduce the existing governed downstream executor until it completes one controlled causal path without unbounded materialisation, OOM or repeated automatic retries. It is mandatory before N8 controlled Runtime admission and before production activation of a new cadence; it does not block independent N1–N7/N9 Polygon, profiling, implementation or scale work. |
 | `N1` | `HARD_FAILURE_EVENT_DRIVEN_SIGNAL_INTEGRATION`: reuse existing local evidence, define exact definitive-versus-ambiguous predicates with provenance/freshness/identity/generation gates, and tournament cheap path liveness at `250 ms/500 ms/1 s/2 s`; choose only measured safe evidence classes and cadence. |
 | `N2` | `TELEGRAM_CRITICAL_FAST_HEALTH_V2`: tournament `250 ms/500 ms/1 s`, thresholds and independent evidence against persistent outage, transient loss/timeout, endpoint glitch, correlated failure, 1,000 egresses and hot-target readiness. |
@@ -472,10 +549,10 @@ tests, report, deploy or Polygon alone never advances a phase.
 | `N4` | Immediate Matrix-owned confirmation/direct-T0 tournament: compare `MODE A` repeat-source confirmation against `MODE B` direct canonical T0 for exact N1 definitive classes. Ambiguous signals always invoke current-source/service confirmation now; the relevant hot target is checked concurrently where safe; no wait for the next periodic Matrix cycle. |
 | `N5` | `PRE_READY_TARGET_AND_PREPARED_DATAPLANE`: pre-failure hot-target readiness for the bounded top-H set plus existing V4 constant-time prepared data-plane proof; include freshness, dedup, coverage, capacity, policy, generation, role and 1/10/100/1000 compatible-cohort readiness. |
 | `N6` | Transform Full Matrix from burst semantics to a measured staggered deep-refresh horizon under the existing Matrix writer; retain fallback for disagreement, stale/conflict and ambiguous cases, with FAST priority, fairness, bounded deep rate/concurrency and no catch-up storm. |
-| `N7` | Causal Polygon tournament from controlled failure/outage onset to S11: interface/tunnel/path/Telegram/DNS/other-required/multi-service/partial, including the required `MODE A` versus `MODE B` comparison, stale/wrong-generation/replay/restart falsification and proof that only admitted definitive classes skip a redundant source probe. Historical HARD/PATH and applicable Telegram objective remains P95 `<=3 s`, max `<=5 s`; the current two-vCPU rollout contract is P95 `<=7 s`, max `<=8 s`, with a separate exact Telegram series and no cross-credit. Test each cadence phase offset and correlated failure. |
-| `N8` | Controlled unattended Runtime proof: signal -> confirmation -> T0 -> selection -> governed apply -> S11 with real caller, consumer, idempotency, duplicate suppression, restart safety and no manual CLI seam. |
+| `N7` | Causal Polygon tournament from `T_FIRST_VALID_FAILURE_OBSERVATION` through T0 to `GLOBAL_ALL_AFFECTED_RECOVERED`: interface/tunnel/path/Telegram/DNS/other-required/multi-service/partial, including the required `MODE A` versus `MODE B` comparison, stale/wrong-generation/replay/restart falsification and proof that only admitted definitive classes skip a redundant source probe. Historical HARD/PATH and applicable Telegram objective remains P95 `<=3 s`, max `<=5 s`; the current production rewrite additionally requires first-observation-to-last-member P95 `<=7 s`, max `<=8 s`, with a separate exact Telegram series and no cross-credit. Test each cadence phase offset and correlated failure. |
+| `N8` | Controlled unattended Runtime proof: first valid observation -> T0 -> current affected scope -> automatic Authority -> bounded cohort selection -> governed apply -> all-member S11 with real caller, consumer, idempotency, duplicate suppression, restart safety and no manual CLI seam. |
 | `N9` | Full scale tournament using the mandatory egress/user/profile matrix and all resource/pressure measurements. |
-| `N10` | Bounded ordinary rollout only after N8/N9: controlled -> one ordinary-like case -> small cohort -> bounded production, with rollback and no manufactured ordinary failure. Before consuming the one-use Authority, the existing Core-primary owner must read-only prove that the exact 2–4 member move leaves every non-member class and class-egress mapping unchanged. After canonical cohort assignments, that owner must publish one atomic affected-cohort projection commit, retire only the cohort's superseded per-user primary rules, prove exact affected scope and whole-system verification, and require each member's current-profile service/path S11. A per-user full-population rebuild is not an N10 admission. |
+| `N10` | Bounded ordinary rollout only after N8/N9: controlled -> one ordinary-like case -> small cohort -> bounded production, with automatic incident Authority, continuing-failure scope reconciliation, rollback and no manufactured ordinary failure. Before consuming the Authority, the existing Core-primary owner must read-only prove that the exact 2–4 member move leaves every non-member class and class-egress mapping unchanged. After canonical cohort assignments, that owner must publish one atomic affected-cohort projection commit, retire only the cohort's superseded per-user primary rules, prove exact affected scope and whole-system verification, and require each member's current-profile service/path S11. The product terminal is the last affected member, not the first. A per-user full-population rebuild is not an N10 admission. |
 | `N11` | `WHOLE_SYSTEM_ZERO_RESIDUE_RECONCILIATION`: final consumer-verified repository reconciliation, not the first cleanup stage. It proves that earlier safe responsibility-scoped replacement closure removed obsolete timer-only critical behavior, duplicate persistence, universal Full-before-action, superseded shadow branches and expired compatibility code. |
 
 #### Current-assignment failure continuity rule
@@ -642,10 +719,13 @@ parallel health truth or unbounded work.
 1. HARD/PATH and applicable Telegram-critical classes meet the active accepted
    controlled contract: historical objective P95 `<=3 s`, max `<=5 s`, or the
    explicitly bounded current two-vCPU rollout contract P95 `<=7 s`, max
-   `<=8 s`, with separate class-specific evidence and phase-offset evidence;
-   production
-   first-failed-observation and last-success->first-failure clocks are stored
-   separately.  Other required services have one selected measured detection
+   `<=8 s`, with separate class-specific evidence and phase-offset evidence.
+   For ordinary failed-source recovery, the immutable
+   `T_FIRST_VALID_FAILURE_OBSERVATION -> GLOBAL_ALL_AFFECTED_RECOVERED` clock
+   also meets P95 `<=7 s` and max `<=8 s`; the decomposition
+   `observation -> T0` and `T0 -> last-member S11` is stored separately.
+   A later regenerated event, first-member time or operator rerun cannot reset
+   this clock.  Other required services have one selected measured detection
    SLO `<=15 s`, including cadence phase, timeout and confirmation.
 2. C8 is a proven backstop; Full Matrix is a proven bounded deep/fallback
    horizon and neither blocks decisive unambiguous recovery.

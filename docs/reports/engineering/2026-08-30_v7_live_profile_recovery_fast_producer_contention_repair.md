@@ -340,3 +340,34 @@ must cause V7 itself to select, govern, apply and verify the recovery. Record
 the real Matrix T0, automatic decision, operation, route visibility and S11;
 the seven-second requirement remains unproven until that complete automatic
 chain succeeds.
+
+## Tenth live observation after deployment
+
+The deployed Runtime hash matched the new ordinary-recovery control-window
+implementation and `v7-health.service` remained active. The normal Runtime,
+not Engineering, subsequently changed Chuck (`10.7.0.126`) from `vless` to
+`awg3`. Its immutable execution evidence records a successful route
+verification and a successful target-service outcome. No user-specific
+command, target injection, Candidate, Packet, Lease, Barrier, or route action
+was invoked by Engineering.
+
+This is evidence that the previously blocked final operation gate is now
+consumable by the live V7 caller. It is **not** valid seven-second S11 credit:
+the legacy feedback record omitted its Matrix T0 and the exact required-service
+verification duration. The pre-deployment VLESS incident also began before
+this repair, so it must not be scored as a homogeneous post-fix latency sample.
+
+The other checked manual placement (Lisa, `10.7.0.125`, on `awg0`) generated
+an ordinary Matrix failure and an automatic ready obligation. Before a route
+operation could lawfully start, the next Matrix observation showed that all of
+Lisa's required services had recovered on the existing source. V7 correctly
+kept her in place rather than moving a user away from a now-suitable channel.
+
+## Exact next step (current)
+
+The automatic path is live, but its seven-second proof is still open. The
+next fresh, still-current profile-required source failure must be observed
+without manual operational assistance. Record Matrix T0, automatic decision,
+operation-window admission, Apply, route/kernel visibility and exact
+required-service S11. If any one interval exceeds the budget, repair that
+generic Runtime stage and repeat only through the normal caller.

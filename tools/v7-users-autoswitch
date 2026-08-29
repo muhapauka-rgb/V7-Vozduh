@@ -20109,7 +20109,9 @@ class AutoswitchPlanner:
             "users_moved": 0,
         }
 
-    def materialize_service_failure_automation_advisory(self, plan: dict[str, Any]) -> dict[str, Any]:
+    def materialize_service_failure_automation_advisory(
+        self, plan: dict[str, Any], *, source_egress: str = "",
+    ) -> dict[str, Any]:
         """Turn existing passive terminals into one bounded OMP-ready obligation.
 
         This is deliberately advisory-only.  It reuses closure-records, the
@@ -20172,9 +20174,14 @@ class AutoswitchPlanner:
             if str(row.get("object_type") or "") != "service_failure_automation_obligation":
                 continue
             existing[str(row.get("automation_obligation_id") or "")] = row
+        requested_source = str(source_egress or "").strip()
         passive = [
             row for row in closures
             if str(row.get("object_type") or "") == "passive_production_event"
+            and (
+                not requested_source
+                or str(row.get("channel") or "") == requested_source
+            )
         ]
         candidate_selection_started_ns = time.monotonic_ns()
         candidates = []
@@ -23256,7 +23263,11 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
             parent="service_failure_advisory",
             status="PASS" if matrix_comparative_preflight.get("ok") else "STOP_SAFE",
         )
-    result = planner.materialize_service_failure_automation_advisory(plan)
+    requested_source = str(getattr(args, "source_egress", "") or "").strip()
+    result = planner.materialize_service_failure_automation_advisory(
+        plan,
+        source_egress=requested_source,
+    ) if requested_source else planner.materialize_service_failure_automation_advisory(plan)
     execution_outcome_reconciliation = (
         result.get("pre_obligation_scope_reconciliation")
         if isinstance(result, dict)

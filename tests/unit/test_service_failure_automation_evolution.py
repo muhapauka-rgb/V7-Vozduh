@@ -401,6 +401,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             apply=False,
             emergency_failover_autonomy=False,
             controlled_verifier_contention=False,
+            state_dir=".",
         )
         planner = mock.Mock()
         planner._performance_spans = []
@@ -425,6 +426,31 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         planner.reconcile_service_failure_execution_outcomes.assert_not_called()
         planner.materialize_service_failure_automation_advisory.assert_called_once_with({"decisions": []})
+
+    def test_advisory_entry_forwards_exact_matrix_source_to_existing_planner(self):
+        args = argparse.Namespace(
+            apply=False,
+            emergency_failover_autonomy=False,
+            controlled_verifier_contention=False,
+            source_egress="vless",
+            state_dir=".",
+        )
+        planner = mock.Mock()
+        planner._performance_spans = []
+        planner.reconcile_bounded_cohort_closure_obligations.return_value = {"status": "PASS"}
+        planner.plan.return_value = {"decisions": []}
+        planner.materialize_service_failure_automation_advisory.return_value = {
+            "active": False,
+            "pre_obligation_scope_reconciliation": {"final_verdict": "PASS"},
+        }
+        planner.performance_timeline.return_value = {"spans": []}
+        with mock.patch.object(self.autoswitch, "AutoswitchPlanner", return_value=planner), \
+             mock.patch.object(self.autoswitch, "build_prepared_class_decision_projection", return_value={}), \
+             mock.patch.object(self.autoswitch, "validate_prepared_class_decision_projection", return_value={}):
+            self.autoswitch.consume_service_failure_automation_only(args)
+        planner.materialize_service_failure_automation_advisory.assert_called_once_with(
+            {"decisions": []}, source_egress="vless",
+        )
 
     def test_existing_planner_selection_drives_subset_then_full_matrix_comparison(self):
         plan = {

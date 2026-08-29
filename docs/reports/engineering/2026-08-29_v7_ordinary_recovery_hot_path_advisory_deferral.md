@@ -63,3 +63,31 @@ the production safety contour and requires explicit owner confirmation after
 this risk is stated. The apply was not retried and no Runtime effect is
 claimed. This is an external deployment-authorization boundary, not a failed
 test or a bypassable technical error.
+
+## Consumed deployment and current Polygon boundary
+
+The owner confirmation was subsequently supplied. The existing safe deploy
+owner completed deployment `deploy-z8-14-Updatesystem-436303f-20260829T100148`
+and performed its required controlled restart of `v7-health.service`.
+Runtime provenance now identifies commit
+`436303f3a5b2bf9cee7a131e9ee7e7462c42250e`; the live Matrix owner is active.
+No customer assignment was changed by deployment.
+
+The existing controlled-certification preflight was then run read-only on the
+Runtime. It stopped safely because there is no current exact owner-backed
+Polygon transaction: the certification identity/source pair and engineering
+one-use Authority are incomplete or stale. The stop includes
+`certification_user_ip_invalid`,
+`controlled_certification_source_not_enabled`,
+`exact_initial_egress_not_ready`, and invalid/expired exact Authority lineage.
+This cannot lawfully be repaired by inventing a source, selecting a target
+manually, or replaying historical state. It prevents a new controlled
+end-to-end timing receipt, but does not prevent the deployed ordinary
+production recovery path from using its separate current Matrix and standing
+Authority contract.
+
+The residual owner action is to admit one fresh isolated certification-only
+source, identity and one-use Authority through the existing certification
+lifecycle. Only after that can Polygon produce a valid `T_FIRST_VALID_FAILURE`
+to last-member S11 measurement. Until then the seven-second target is a
+deployed binding requirement, not a certified observed result.

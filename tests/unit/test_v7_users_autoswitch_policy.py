@@ -3563,6 +3563,45 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(evidence["profile_required_services"], ["instagram"])
         self.assertFalse(evidence["current_channel_failure"].get("confirmed"))
 
+    def test_exact_matrix_mode_a_profile_failure_triggers_ordinary_recovery(self):
+        """A fresh Matrix hard event need not wait for generic persistence."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={
+                    "instagram": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "score": 0,
+                        "failure_state": "OBSERVED_NEW",
+                        "source_incident_id": "sfinc_unit_profile",
+                        "failure_event_id": "sfe_unit_profile",
+                        "confirmed_hard_failure_monotonic_ns": 123456789,
+                    },
+                },
+            )
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"]["services"]["instagram"]["tested_at"] = self.tool.now_iso()
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (root / "state" / "service-preferences.json").write_text(
+                json.dumps({"users": {"10.0.0.2": {"services": ["instagram"]}}}),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(
+                root, ["--ordinary-service-failure-context"],
+            ))
+            plan = planner.plan()
+            evidence = planner._ordinary_service_failure_move_evidence(
+                plan["selected_moves"][0]
+            )
+
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertEqual(plan["selected_moves"][0]["move_type"], "failover")
+        self.assertTrue(evidence["ok"], evidence)
+        self.assertTrue(evidence["exact_matrix_profile_failure"]["confirmed"])
+
     def test_ordinary_profile_failure_defers_advisory_snapshot_stop_to_governed_rechecks(self):
         """A stale advisory read cannot suppress a fresh Matrix failure move."""
         with tempfile.TemporaryDirectory() as tmp:

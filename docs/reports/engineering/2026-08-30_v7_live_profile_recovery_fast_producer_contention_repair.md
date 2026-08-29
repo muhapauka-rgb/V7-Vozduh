@@ -66,8 +66,52 @@ transition is permitted.  The measured first-valid-observation to
 all-affected-recovered interval must be at most seven seconds; over eight
 seconds is a failure.
 
+## Third live finding and repair
+
+The fresh VLESS Matrix contains exact failure events for services required by
+Chuck's profile, including a confirmed `youtube` timeout. The ordinary
+governed path nevertheless treated the source as eligible until the generic
+three-sample/persistence classifier completed. Its prior executor attempts
+therefore stopped with `fresh_profile_or_channel_failure_evidence_required`.
+This contradicts the product law for a fresh, unambiguous failure of a
+profile-required service.
+
+The repair does not make normal placement react to one uncertain probe. Only
+the existing ordinary service-failure path may use a Matrix row when all of
+the following are true: the service belongs to the user's declared profile,
+the row is currently failed, it has an `OBSERVED_*` state, an incident and
+event identity, a confirmed monotonic failure timestamp, and is no more than
+ten seconds old. That exact Matrix fact makes only the current source
+ineligible for this recovery transaction; Planner still selects the target,
+and Candidate/Packet/Lease/Barrier/Apply/S11 retain their existing gates.
+
+The source-bounded read-only advisory now explicitly enters that same ordinary
+recovery context. Without a fresh exact Matrix fact it produces no move.
+
+## Verification for the third repair
+
+- New regression: a fresh single Matrix MODE_A event for a profile-required
+  service creates an ordinary failover candidate.
+- Existing regression: an ordinary single ambiguous failure remains degraded
+  and does not create a failover.
+- Existing persistent-profile failure behavior remains unchanged.
+- Full focused policy suite: 223 PASS.
+- A broader combined run exposed only unrelated environment/history failures:
+  one sandbox-disallowed local HTTP bind and two fixtures with already-expired
+  standing contracts. They are not treated as regressions of this repair.
+
+## Current live state before deploy
+
+V7 has not moved Chuck by Codex action. Chuck remains assigned to VLESS;
+Lisa remains on `awg0` after the earlier V7-initiated recovery. The current
+Matrix reports one ordinary VLESS affected scope and a fresh failed required
+service. The prior health role spent 49–60 seconds in repeated governed
+attempts, so that observation is a failed SLO sample, not success evidence.
+
 ## Exact next step
 
-Publish and safely deploy the second generic repair, then observe the live Runtime
-until it either automatically completes the current two-client recovery with
-full timing evidence or exposes the next generic stopping point.
+Publish and safely deploy this third generic repair, then return control to
+the live V7 health caller. Observe whether V7 itself creates a fresh
+source-bounded recovery transaction, selects a ready target, and reaches
+required-service S11 inside the seven-second contract. No manual client or
+route action is allowed.

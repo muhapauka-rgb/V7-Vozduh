@@ -10009,6 +10009,19 @@ class AutoswitchPlanner:
             and str(((row.get("freshness") or {}).get("state") or "")) in {"FRESH", "AGING"}
             for row in current_failures
         )
+        # An ordinary recovery has a narrower admission law than ordinary
+        # placement: Matrix may already have emitted an exact, fresh MODE_A
+        # failure event for one service the current user explicitly requires.
+        # Waiting for the general three-sample degradation classifier would
+        # leave that user on a known-bad route for minutes.  This helper
+        # accepts neither a timeout without Matrix identity nor a stale row;
+        # it only consumes the existing Matrix hard-event evidence.
+        exact_matrix_profile_failure = self._exact_matrix_profile_failure(
+            current_id,
+            required_services,
+        )
+        if exact_matrix_profile_failure.get("confirmed"):
+            fresh_profile_failure = True
         source_failure_confirmed = (
             bool_value(current_failure.get("confirmed"))
             or fresh_profile_failure
@@ -10038,10 +10051,91 @@ class AutoswitchPlanner:
             "current_channel_failure": current_failure,
             "profile_required_services": required_services,
             "profile_service_failure_confirmed": fresh_profile_failure,
+            "exact_matrix_profile_failure": exact_matrix_profile_failure,
             "current_failures": [
                 {"service": row.get("service"), "status": row.get("status"), "truth_class": row.get("truth_class"), "freshness": row.get("freshness")}
                 for row in current_failures
             ],
+        }
+
+    def _exact_matrix_profile_failure(
+        self,
+        source: str,
+        required_services: list[str],
+    ) -> dict[str, Any]:
+        """Read one fresh, unambiguous Matrix failure for a required service.
+
+        This is not a second health classifier.  It is a bounded reader of
+        Matrix's already-confirmed MODE_A event fields, used only by the
+        existing ordinary service-failure consumer.  Ambiguous, stale and
+        non-profile evidence remains a normal degraded observation.
+        """
+        if not bool_value(
+            getattr(self.args, "ordinary_service_failure_context", False)
+        ):
+            return {"confirmed": False, "reason": "ordinary_context_required"}
+        source = str(source or "")
+        wanted = normalize_service_ids(required_services)
+        matrix_item = (
+            (self.matrix.get("items") or {}).get(source)
+            if isinstance(self.matrix, dict) else {}
+        )
+        services = (
+            matrix_item.get("services")
+            if isinstance(matrix_item, dict) else {}
+        )
+        if not source or not wanted or not isinstance(services, dict):
+            return {"confirmed": False, "reason": "required_matrix_scope_missing"}
+        maximum_age = 10.0
+        matches: list[dict[str, Any]] = []
+        for service in wanted:
+            row = services.get(service)
+            if not isinstance(row, dict):
+                continue
+            failed = (
+                row.get("ok") is False
+                or str(row.get("status") or "").upper()
+                in {"FAIL", "DOWN", "ERROR", "NOT_STARTED"}
+            )
+            failure_state = str(row.get("failure_state") or "").upper()
+            try:
+                observed_at = parse_ts(
+                    str(row.get("observed_at") or row.get("tested_at") or "")
+                )
+                age_seconds = max(0.0, time.time() - observed_at)
+            except (TypeError, ValueError):
+                age_seconds = float("inf")
+            confirmed_ns = to_int(
+                row.get("confirmed_hard_failure_monotonic_ns"), 0,
+            )
+            if not (
+                failed
+                and failure_state.startswith("OBSERVED")
+                and str(row.get("source_incident_id") or "")
+                and str(row.get("failure_event_id") or "")
+                and confirmed_ns > 0
+                and age_seconds <= maximum_age
+            ):
+                continue
+            matches.append({
+                "service": service,
+                "source_incident_id": str(row.get("source_incident_id") or ""),
+                "failure_event_id": str(row.get("failure_event_id") or ""),
+                "confirmed_hard_failure_monotonic_ns": confirmed_ns,
+                "age_seconds": round(age_seconds, 3),
+                "failure_family": str(row.get("failure_family") or ""),
+            })
+        return {
+            "confirmed": bool(matches),
+            "source": source,
+            "required_services": wanted,
+            "matches": matches,
+            "freshness_maximum_seconds": maximum_age,
+            "owner": "tools/v7-service-matrix-test.update_matrix",
+            "reason": (
+                "fresh_exact_matrix_profile_failure"
+                if matches else "no_fresh_exact_matrix_profile_failure"
+            ),
         }
 
     def _state_file_freshness(self) -> dict[str, Any]:
@@ -17298,10 +17392,32 @@ class AutoswitchPlanner:
                 if egress.id in exact_ids
             ]
         candidates = [self._candidate(user, egress, important, route_class, purpose="planned") for egress in candidate_egress]
+        exact_matrix_profile_failure = self._exact_matrix_profile_failure(
+            user.current,
+            profile_required,
+        )
+        if exact_matrix_profile_failure.get("confirmed"):
+            for candidate in candidates:
+                if candidate.egress.id == user.current:
+                    self._block(
+                        candidate,
+                        "profile_required_service_matrix_confirmed_failure",
+                    )
+                    candidate.reasons.append(
+                        "current_profile_required_service_matrix_confirmed_failure"
+                    )
         candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
         self._mark_best_available_pool(candidates)
         self._attach_ctr_score_simulation(candidates)
         current = self._candidate(user, self.egress[user.current], important, route_class, purpose="current") if user.current in self.egress else None
+        if current and exact_matrix_profile_failure.get("confirmed"):
+            self._block(
+                current,
+                "profile_required_service_matrix_confirmed_failure",
+            )
+            current.reasons.append(
+                "current_profile_required_service_matrix_confirmed_failure"
+            )
         best = next((c for c in candidates if c.eligible), None)
         # The prepared Matrix projection is built from this returned candidate
         # surface.  During failed-source recovery it must contain the
@@ -17337,6 +17453,16 @@ class AutoswitchPlanner:
                 reason.append("restore_stage_service_signal_failover_requires_approval")
             else:
                 failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in candidate_egress]
+                if exact_matrix_profile_failure.get("confirmed"):
+                    for candidate in failover_candidates:
+                        if candidate.egress.id == user.current:
+                            self._block(
+                                candidate,
+                                "profile_required_service_matrix_confirmed_failure",
+                            )
+                            candidate.reasons.append(
+                                "current_profile_required_service_matrix_confirmed_failure"
+                            )
                 failover_candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
                 self._mark_best_available_pool(failover_candidates)
                 decision_candidates = failover_candidates
@@ -23199,6 +23325,14 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
             "ok": False,
             "blockers": [f"automation_advisory_forbids_{name}" for name in forbidden],
         }
+    requested_source = str(getattr(args, "source_egress", "") or "").strip()
+    if requested_source:
+        # The health owner supplied one exact current failed source.  This is
+        # still only advisory planning: Matrix evidence below must prove a
+        # fresh profile-required failure before any decision can change.  The
+        # flag lets the existing Planner express that narrow recovery fact
+        # instead of applying the ordinary placement persistence delay.
+        args.ordinary_service_failure_context = True
     planner = AutoswitchPlanner(args)
     bounded_closure_reconciliation_started_ns = time.monotonic_ns()
     bounded_closure_reconciliation = planner.reconcile_bounded_cohort_closure_obligations()
@@ -23263,7 +23397,6 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
             parent="service_failure_advisory",
             status="PASS" if matrix_comparative_preflight.get("ok") else "STOP_SAFE",
         )
-    requested_source = str(getattr(args, "source_egress", "") or "").strip()
     result = planner.materialize_service_failure_automation_advisory(
         plan,
         source_egress=requested_source,

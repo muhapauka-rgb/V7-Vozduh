@@ -673,12 +673,20 @@ def runtime_readonly_check(
     live_hashes = read_live_runtime_hashes(manifest, runner=runner)
     if live_hashes:
         for remote_path, digest in live_hashes.items():
-            command_results[command_key(["sha256sum", remote_path])] = {
-                "ok": True,
-                "rc": 0,
-                "stdout": f"{digest}  {remote_path}",
-                "source": "live_runtime_read_only",
-            }
+            # The deployment manifest intentionally fingerprints more files
+            # than the compact runtime-snapshot contract exposes as command
+            # cells.  Keep those hashes for provenance comparison below, but
+            # only merge the snapshot-contract subset into command_results.
+            # Otherwise a fresh safe deploy makes this check manufacture its
+            # own non-allowlisted-command blocker.
+            key = command_key(["sha256sum", remote_path])
+            if key in allowed_keys:
+                command_results[key] = {
+                    "ok": True,
+                    "rc": 0,
+                    "stdout": f"{digest}  {remote_path}",
+                    "source": "live_runtime_read_only",
+                }
     # A snapshot can predate the N11 removal of these units.  They are not
     # runtime evidence once the units have been retired; retaining their old
     # read-only status cells would falsely make a fresh snapshot invalid.

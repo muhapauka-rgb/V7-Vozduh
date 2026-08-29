@@ -583,6 +583,33 @@ class V7TruthCheckTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(result["runtime"]["unknown_commands"], [])
 
+    def test_live_full_deploy_fingerprints_do_not_expand_snapshot_contract(self):
+        """Extra deploy hashes remain provenance, not unapproved snapshot commands."""
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.manifest(workspace=tmp)
+            manifest["runtime_snapshot_path"] = str(Path(tmp) / "runtime-snapshot.json")
+            snapshot = self.runtime_snapshot()
+            Path(manifest["runtime_snapshot_path"]).write_text(
+                json.dumps(snapshot), encoding="utf-8"
+            )
+            live_hashes = {
+                "/usr/local/bin/v7-users-autoswitch": "a" * 64,
+                "/usr/local/bin/admin_core/runtime_read_views.py": "b" * 64,
+            }
+            with mock.patch.object(
+                self.tool, "read_live_runtime_hashes", return_value=live_hashes
+            ):
+                result = self.tool.runtime_readonly_check(
+                    manifest, runner=self.runner()
+                )
+        self.assertNotIn(
+            "runtime_snapshot_contains_non_allowlisted_command", result["blockers"]
+        )
+        self.assertNotIn(
+            "sha256sum /usr/local/bin/admin_core/runtime_read_views.py",
+            result["unknown_commands"],
+        )
+
     def test_deploy_metadata_runtime_identity_remains_fail_closed_on_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:
             manifest = self.manifest(workspace=tmp)

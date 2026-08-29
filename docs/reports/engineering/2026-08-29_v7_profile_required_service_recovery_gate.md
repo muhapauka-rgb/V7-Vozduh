@@ -74,3 +74,19 @@ Polygon replay полного пути и только после успешно
   потеряло DNS (`Could not resolve host: github.com`) сразу после успешного
   `git push`. Это внешний provenance-блокер, поэтому Runtime, Matrix,
   Authority, маршруты и назначения пользователей не менялись.
+
+## Deployment reconciliation 2026-08-29, 17:30 MSK
+
+- Внешняя независимая проверка GitHub и штатный safe-deploy прошли; Runtime
+  получил commit `bd40e421cdc9b9545df6ba2e3222a96fc37bcd1f`, а
+  `v7-health.service` был штатно перезапущен.
+- После deploy обнаружен дефект только в read-only truth-check: он добавлял
+  все хеши полного deploy-манифеста в компактный список разрешённых команд и
+  тем самым сам создавал `runtime_snapshot_contains_non_allowlisted_command`.
+- Исправление сохраняет полный набор хешей для provenance-сверки, но в
+  компактный снимок добавляет лишь уже разрешённые команды. Это не меняет
+  Matrix, Planner, Authority, cadence, маршруты или назначения.
+- Проверки: `tests.unit.test_v7_truth_check` — 32 PASS;
+  `tests.unit.test_v7_sync_tools` — 30 PASS.
+- До публикации этого control-plane исправления не выполнено ни одного
+  ручного recovery-действия и не перемещён ни один пользователь.

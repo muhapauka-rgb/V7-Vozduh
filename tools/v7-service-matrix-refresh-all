@@ -4899,8 +4899,15 @@ def run_service_failure_automation_advisory(
     event_dir: Path,
     timeout_sec: int = 45,
     matrix_comparative_preflight: bool = False,
+    source_egress: str = "",
 ) -> dict[str, Any]:
-    """Invoke the existing autoswitch owner in bounded advisory-only mode."""
+    """Invoke the existing autoswitch owner in bounded advisory-only mode.
+
+    ``source_egress`` is supplied only by the Matrix-owned current-source
+    selector above.  It bounds an otherwise all-user advisory calculation to
+    the source whose current failed required service is affecting customers;
+    the Planner continues to derive every target and all execution objects.
+    """
     command = [
         consumer,
         "--consume-service-failure-automation-only",
@@ -4909,6 +4916,8 @@ def run_service_failure_automation_advisory(
         "--event-dir",
         str(event_dir),
     ]
+    if str(source_egress or "").strip():
+        command.extend(["--source-egress", str(source_egress).strip()])
     if matrix_comparative_preflight:
         command.append("--matrix-comparative-preflight")
     started_at = now_iso()
@@ -6109,6 +6118,113 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
     }
 
 
+def automatically_prioritized_failed_source(
+    *, state_dir: Path, active_sources: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Return one Matrix-failed source with live profile impact, if exact.
+
+    Several sources may be unhealthy at once.  The Matrix still owns their
+    failure evidence, but the recovery hot path must not turn that into an
+    all-user Planner rebuild just because an unrelated source is also down.
+    This reader intersects the existing Matrix, user assignment, and
+    per-user required-service owners.  It chooses nothing when no current
+    profile impact is provable or the leading evidence is tied.
+
+    It is selection of an *existing failed source* only.  It never names a
+    target, user, Candidate, Packet, Lease, or routing action.
+    """
+    if not active_sources:
+        return {}
+    if len(active_sources) == 1 and isinstance(active_sources[0], dict):
+        return dict(active_sources[0])
+    try:
+        users = [
+            parse_kv_line(line)
+            for line in (state_dir / "users.registry").read_text(
+                encoding="utf-8", errors="replace",
+            ).splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        matrix = read_json(state_dir / "service-matrix.json", {})
+        preferences = read_json(state_dir / "service-preferences.json", {})
+    except OSError:
+        return {}
+    matrix_items = (
+        matrix.get("items")
+        if isinstance(matrix, dict) and isinstance(matrix.get("items"), dict)
+        else {}
+    )
+    preference_users = (
+        preferences.get("users")
+        if isinstance(preferences, dict) and isinstance(preferences.get("users"), dict)
+        else {}
+    )
+    ranked: list[tuple[int, int, str, dict[str, Any]]] = []
+    for source_row in active_sources:
+        if not isinstance(source_row, dict):
+            continue
+        source = str(source_row.get("channel") or "")
+        source_matrix = matrix_items.get(source)
+        services = (
+            source_matrix.get("services")
+            if isinstance(source_matrix, dict)
+            and isinstance(source_matrix.get("services"), dict)
+            else {}
+        )
+        impacted_users = 0
+        newest_failure_ns = 0
+        for user in users:
+            if (
+                not bool_value(user.get("enabled"), default=True)
+                or bool_value(user.get("certification_user"), default=False)
+                or str(user.get("current") or "") != source
+            ):
+                continue
+            profile = preference_users.get(str(user.get("ip") or ""))
+            required = (
+                profile.get("services")
+                if isinstance(profile, dict) and isinstance(profile.get("services"), list)
+                else []
+            )
+            user_failed = False
+            for service_id in required:
+                observed = services.get(str(service_id) or "")
+                if not isinstance(observed, dict):
+                    continue
+                state = str(observed.get("failure_state") or "")
+                status = str(observed.get("status") or "").upper()
+                if observed.get("ok") is False and (
+                    state.startswith("OBSERVED") or status in {"FAIL", "DOWN", "ERROR"}
+                ):
+                    user_failed = True
+                    try:
+                        newest_failure_ns = max(
+                            newest_failure_ns,
+                            int(observed.get("confirmed_hard_failure_monotonic_ns") or 0),
+                            int(observed.get("first_failed_observation_monotonic_ns") or 0),
+                            int(observed.get("observation_monotonic_ns") or 0),
+                        )
+                    except (TypeError, ValueError):
+                        pass
+            if user_failed:
+                impacted_users += 1
+        if impacted_users:
+            ranked.append((impacted_users, newest_failure_ns, source, dict(source_row)))
+    if not ranked:
+        return {}
+    ranked.sort(reverse=True)
+    best = ranked[0]
+    # A lexical source-id must never resolve equal live customer impact.  The
+    # existing full advisory path retains that intentional STOP_SAFE case.
+    if len(ranked) > 1 and ranked[1][:2] == best[:2]:
+        return {}
+    selected = dict(best[3])
+    selected["profile_affected_count"] = best[0]
+    selected["profile_failure_monotonic_ns"] = best[1]
+    selected["source_selection"] = "CURRENT_MATRIX_PROFILE_REQUIRED_SERVICE_IMPACT"
+    return selected
+
+
 def direct_service_failure_handoff_for_scope(
     *, state_dir: Path, source_scope: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -6122,10 +6238,9 @@ def direct_service_failure_handoff_for_scope(
         if isinstance(source_scope.get("active_sources"), list)
         else []
     )
-    direct_source = (
-        active_sources[0]
-        if len(active_sources) == 1 and isinstance(active_sources[0], dict)
-        else {}
+    direct_source = automatically_prioritized_failed_source(
+        state_dir=state_dir,
+        active_sources=[row for row in active_sources if isinstance(row, dict)],
     )
     handoff = service_failure_direct_execution_handoff(
         state_dir=state_dir,
@@ -7219,6 +7334,13 @@ def main() -> int:
             "reason": "explicit_skip",
         }
     else:
+        priority_source = automatically_prioritized_failed_source(
+            state_dir=state_dir,
+            active_sources=[
+                row for row in (source_scope.get("active_sources") or [])
+                if isinstance(row, dict)
+            ],
+        )
         payload["service_failure_automation_advisory"] = run_service_failure_automation_advisory(
             str(args.passive_consumer),
             state_dir=state_dir,
@@ -7230,7 +7352,16 @@ def main() -> int:
             # receipt consumer.
             timeout_sec=max(90, int(args.passive_consumer_timeout_sec) + 15),
             matrix_comparative_preflight=bool(args.matrix_comparative_preflight),
+            source_egress=str(priority_source.get("channel") or ""),
         )
+        if priority_source:
+            payload["service_failure_automation_advisory"]["matrix_selected_source"] = {
+                key: priority_source.get(key)
+                for key in (
+                    "channel", "source_incident_id", "profile_affected_count",
+                    "profile_failure_monotonic_ns", "source_selection",
+                )
+            }
     advisory_result = (
         (payload.get("service_failure_automation_advisory") or {}).get("consumer_result") or {}
     )

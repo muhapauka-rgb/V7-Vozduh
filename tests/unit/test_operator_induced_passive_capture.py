@@ -269,6 +269,91 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
             ["current"],
         )
 
+    def test_multiple_failed_sources_selects_only_current_profile_impact(self):
+        """An unrelated failed source must not force an all-user advisory run."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.127 current=vless enabled=true\n"
+                "ip=10.7.0.5 current=awg0 enabled=true\n",
+                encoding="utf-8",
+            )
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {
+                    "10.7.0.127": {"services": ["google", "telegram"]},
+                    "10.7.0.5": {"services": ["youtube"]},
+                },
+            }), encoding="utf-8")
+            (state / "service-matrix.json").write_text(json.dumps({"items": {
+                "vless": {"services": {
+                    "google": {
+                        "ok": False, "status": "FAIL",
+                        "failure_state": "OBSERVED_CONTINUING",
+                        "confirmed_hard_failure_monotonic_ns": 200,
+                    },
+                }},
+                "awg0": {"services": {
+                    "telegram": {
+                        "ok": False, "status": "FAIL",
+                        "failure_state": "OBSERVED_CONTINUING",
+                        "confirmed_hard_failure_monotonic_ns": 100,
+                    },
+                }},
+            }}), encoding="utf-8")
+            source = tool.automatically_prioritized_failed_source(
+                state_dir=state,
+                active_sources=[
+                    {"channel": "awg0", "source_incident_id": "old"},
+                    {"channel": "vless", "source_incident_id": "new"},
+                ],
+            )
+
+        self.assertEqual(source["channel"], "vless")
+        self.assertEqual(source["profile_affected_count"], 1)
+        self.assertEqual(source["profile_failure_monotonic_ns"], 200)
+        self.assertEqual(
+            source["source_selection"],
+            "CURRENT_MATRIX_PROFILE_REQUIRED_SERVICE_IMPACT",
+        )
+
+    def test_direct_handoff_uses_matrix_profile_selected_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "users.registry").write_text(
+                "ip=10.7.0.127 current=vless enabled=true\n"
+                "ip=10.7.0.5 current=awg0 enabled=true\n",
+                encoding="utf-8",
+            )
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {"10.7.0.127": {"services": ["google"]}},
+            }), encoding="utf-8")
+            (state / "service-matrix.json").write_text(json.dumps({"items": {
+                "vless": {"services": {"google": {
+                    "ok": False, "failure_state": "OBSERVED_NEW",
+                    "confirmed_hard_failure_monotonic_ns": 20,
+                }}},
+                "awg0": {"services": {"telegram": {
+                    "ok": False, "failure_state": "OBSERVED_NEW",
+                    "confirmed_hard_failure_monotonic_ns": 10,
+                }}},
+            }}), encoding="utf-8")
+            with mock.patch.object(
+                tool, "service_failure_direct_execution_handoff",
+                return_value={"final_verdict": "NOT_READY"},
+            ) as handoff:
+                tool.direct_service_failure_handoff_for_scope(
+                    state_dir=state,
+                    source_scope={"active_sources": [
+                        {"channel": "awg0", "source_incident_id": "old", "source_scope_fingerprint": "a"},
+                        {"channel": "vless", "source_incident_id": "new", "source_scope_fingerprint": "v"},
+                    ]},
+                )
+
+        self.assertEqual(handoff.call_args.kwargs["source_incident_id"], "new")
+        self.assertEqual(handoff.call_args.kwargs["source_scope_fingerprint"], "v")
+
     def test_current_scope_does_not_fallback_to_history_after_exact_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -44,11 +44,43 @@ recovery path was added.
   those fail before this priority helper is reached and do not justify hiding
   or changing the new Runtime behavior.
 
-## Production safety and next action
+## Live Runtime result before the latency repair
 
-The repair is not deployed by this report.  After the standard safe deploy,
-the live `v7-health.service` remains the sole operational caller.  It must
-observe the current VLESS profile failure, select its owner-admitted target,
-and complete governed recovery plus required-service S11 without Codex moving
-Chuck2.  Capture the resulting Matrix T0, decision, Candidate/Packet/Lease/
-Barrier, S11 and total time against the seven-second law.
+The first repair was deployed as `54606ff5`.  The live Runtime—not Codex—then
+selected `wireguard-1779454504-c43409` for Chuck2 and completed the governed
+transaction.  The durable receipt records one user moved, terminal `SUCCESS`,
+and the required Google, Google Auth, Instagram and Telegram checks passed.
+
+This is valid functional recovery evidence, but it is not latency acceptance:
+the current VLESS revalidation was observed at `2026-08-29T21:06:47Z`, the
+governed action began at `21:09:13Z`, and required-service closure completed
+at `21:09:17Z`—about 150 seconds.  The 7-second law therefore remains unmet.
+
+## Residual root cause and second repair
+
+The governed route/apply portion was approximately four seconds.  The dominant
+delay was the pre-action all-user advisory rebuild: the live receipt exposes
+`prepared_validation_ms = 37931.327`, 129 planner rows scanned, and a stale
+prepared projection caused a full Planner fallback.  Multiple unrelated failed
+sources also prevented the direct source-specific handoff from being used.
+
+`tools/v7-service-matrix-refresh-all` now performs only a read-only selection
+among already Matrix-failed sources: it chooses a source only when its current
+failed service affects declared services of ordinary users, preferring the
+newest exact failure evidence; an equal tie remains STOP_SAFE.  That existing
+Matrix choice is passed to the existing advisory Planner as `--source-egress`.
+The Planner still selects the target and the existing Candidate, Packet, Lease,
+Barrier, route writer and S11 checks remain unchanged.  No route is written,
+no user is selected by Codex, and no new worker, timer, queue or state source
+is created.
+
+## Verification and next action
+
+- Focused unit tests: 17 PASS.
+- Syntax compilation and whitespace validation: PASS.
+- Existing function tests retain the one-source and certification-only
+  fail-closed behavior.
+- The second repair requires safe deployment and a future live automatic
+  profile-service failure to measure the full T0→S11 path.  Codex must not
+  recreate or manually advance that incident.  Acceptance remains `<=7s`;
+  `>8s` is a failure and requires further generic diagnosis.

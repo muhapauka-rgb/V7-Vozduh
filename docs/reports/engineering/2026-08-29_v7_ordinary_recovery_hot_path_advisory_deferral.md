@@ -53,3 +53,13 @@ failure followed by the existing automatic ordinary consumer. Its receipt must
 show first failure observation, T0, Candidate/Packet/Lease/Barrier, every
 member's S11 and the last-member completion time. Only then can the real
 reduction be measured against the 7-second cohort target.
+
+## Deployment gate
+
+The existing `v7-safe-deploy` gate passed with the published commit. Its
+production apply was then blocked by the execution safety control: the control
+classified deferring the advisory refresh as a possible permanent weakening of
+the production safety contour and requires explicit owner confirmation after
+this risk is stated. The apply was not retried and no Runtime effect is
+claimed. This is an external deployment-authorization boundary, not a failed
+test or a bypassable technical error.

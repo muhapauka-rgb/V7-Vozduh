@@ -75,3 +75,28 @@ action is only observation: the normal V7 health caller must itself see the
 current VLESS HTTP failure, obtain Matrix confirmation, select any lawful
 target and complete required-service S11 for Chuck2.  Any manual movement
 would be invalid acceptance evidence.
+
+## Live deployment observation
+
+GitHub and Runtime converged at `177c52e0`; the deployed Matrix and health-loop
+hashes match the published files and `v7-health.service` is active.
+
+The normal health caller then produced `failure_count=3` for Chuck2's VLESS
+profile, invoked the existing Matrix receiver once and woke the existing
+consumer once.  This proves that the HTTP-layer suspicion repair is consumed
+by the live Runtime, not by an engineering command.
+
+The resulting authoritative Matrix confirmation found the source recovered:
+Google, Google Auth, Instagram and Telegram were all current `OK` by
+`20:28:15Z`.  Consequently no source incident, Candidate, Packet, Lease,
+route change or user move was created; Chuck2 correctly remained on VLESS.
+Moving the client after that recovery would have been a false-positive switch.
+
+The observation also exposes the next independent latency frontier: the first
+fast-contract result was 3846 ms and individual `other_required` passes ranged
+from 2352 to 13475 ms.  The latter exceeds the seven-second end-to-end product
+target, but cannot be credited or tuned as a completed failover because this
+live incident recovered before T0.  The next bounded task is to reduce the
+generic ordinary-detector wall time while retaining the independent Matrix
+confirmation, then obtain a V7-originated full recovery measurement on a
+current genuine failure or an isolated Polygon scenario.

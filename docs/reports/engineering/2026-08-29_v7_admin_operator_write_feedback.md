@@ -5,10 +5,9 @@
 
 ## Finding
 
-The reported priority change was not lost.  The live audit records five successful
-writes for `10.7.0.127` on 2026-08-29 12:35-12:36 UTC; the last one persisted
-`google`, `google_auth`, `instagram`, and `telegram` in the canonical
-`service-preferences.json`.
+The reported priority change was not lost. The live audit records successful
+writes for the affected operator-selected identity; the last one persisted the
+chosen service groups in the canonical preference state.
 
 The UI nevertheless had a real operator-facing defect: `saveUserPriorities`
 announced success even when the API returned an error, and could redraw from an
@@ -56,10 +55,13 @@ was changed.
 
 - `python3 -m unittest tests.unit.test_admin_realtime_truth tests.unit.test_admin_service_preferences_lifecycle tests.contracts.endpoint_inventory_test` — 19 PASS.
 - Python syntax compilation with a writable temporary bytecode cache — PASS.
-- Live `v7-admin-api.service` — active before deployment.
+- Safe deployment — PASS; local, GitHub and Runtime are aligned.
+- Live `v7-admin-api.service` — active after deployment (16:02:09 MSK).
+- The running admin program exactly matches the deployed source.
 
 ## Next step
 
-Publish and deploy this narrow UI-feedback repair, then verify that the running
-admin API is aligned and that a priority save either displays the exact stored
-groups or a clear rejection reason.
+Refresh the browser once, then choose a channel from a user row. The selected
+channel must appear immediately; V7 confirms the actual route in the background
+within seven seconds or restores the previous displayed channel with a clear
+error.

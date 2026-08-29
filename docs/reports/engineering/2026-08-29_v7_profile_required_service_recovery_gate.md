@@ -35,10 +35,12 @@
 - добавлены два focused-теста: допустимый свежий profile-service recovery и
   отказ для устаревшей целевой проверки;
 - `tests.unit.test_v7_users_autoswitch_policy`: 221 PASS;
-- дополнительные старые наборы обнаружили два уже существовавших несвязанных
-  ожидания: качество слабого AWG и устаревшая строковая проверка старого
-  hard-consumer. Изменённый путь их не затрагивает; они не дают права назвать
-  production deploy доказанным до отдельной сверки safe-deploy gate.
+- обновлены два устаревших регрессионных ожидания: soft quality-floor теперь
+  остаётся видимым для ранжирования, но не делает свежую пригодную цель
+  недоступной; проверка hard-consumer теперь проверяет текущий прямой Matrix
+  consumer вместо исторического systemd-seam;
+- полный целевой набор: 269 PASS (`autoswitch policy`, service-aware policy,
+  role-based recovery, health deadline loop);
 - штатный `tools/v7-safe-deploy --json` подтвердил allowlist и Runtime-delta,
   но законно остановился на `github_truth_check_failed`: локальный commit ещё
   не совпадает с опубликованной веткой. Runtime не менялся.

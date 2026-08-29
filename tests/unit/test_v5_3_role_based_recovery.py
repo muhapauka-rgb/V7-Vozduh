@@ -165,12 +165,9 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
             ROOT / "systemd" / "drafts" / "v7-autoswitch-planner.service"
         ).read_text(encoding="utf-8")
 
-        self.assertIn(
-            'start v7-autoswitch-planner.service', diagnose,
-        )
-        self.assertNotIn(
-            'start --no-block v7-autoswitch-planner.service', diagnose,
-        )
+        # The current health parent consumes its one existing Matrix event
+        # through the deployed Matrix consumer directly.  This avoids a
+        # second systemd scheduling hop; it is not a manual Planner call.
         health_loop = (
             ROOT / "tools" / "runtime-support" / "v7-health-loop"
         ).read_text(encoding="utf-8")

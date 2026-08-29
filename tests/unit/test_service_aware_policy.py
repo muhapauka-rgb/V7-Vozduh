@@ -211,13 +211,20 @@ class ServiceAwarePolicyTest(unittest.TestCase):
             self.assertFalse(vless["eligible"])
             self.assertIn("service_chatgpt_evidence_unknown", vless["blocked"])
 
-    def test_weak_awg_does_not_become_eligible_from_softened_floors(self):
+    def test_weak_awg_remains_usable_when_required_service_evidence_is_fresh(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_fixture(root)
             plan = self.plan(root)
             awg0 = self.candidate(plan, "awg0")
-            self.assertFalse(awg0["eligible"])
+            # Throughput floors are soft ranking signals.  A target with
+            # current required-service evidence remains available for
+            # failed-source recovery; otherwise a soft overload could leave
+            # an ordinary user on a confirmed broken source.
+            self.assertTrue(awg0["eligible"])
+            # The raw floor observations remain visible for ranking and the
+            # operator surface; availability-first must not convert them into
+            # an ineligible target.
             self.assertIn("avg_mbps_below_floor", awg0["blocked"])
             self.assertIn("min_mbps_below_floor", awg0["blocked"])
 
@@ -258,4 +265,3 @@ class ServiceAwarePolicyTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

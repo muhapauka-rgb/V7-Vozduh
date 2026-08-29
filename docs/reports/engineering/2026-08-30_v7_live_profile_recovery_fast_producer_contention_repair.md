@@ -266,3 +266,34 @@ Safely deploy this reconciliation. The normal health caller must then either
 create a governed recovery from the fresh VLESS profile incident, or expose a
 new exact safety stop. No client is moved by Engineering; the first automatic
 operation and its T0-to-S11 timing are the acceptance evidence.
+
+## Eighth live finding and repair
+
+The seventh repair aligned the Planner with the registry, but live tracing
+showed an earlier issue in the passive Matrix consumer. Its intentionally
+small entrypoint skipped the full Planner constructor, yet it also skipped
+loading the current ordinary assignments and service preferences. The
+first-sample exact-profile predicate consequently evaluated every Matrix event
+against an empty user/profile set and fell back to the generic three-sample or
+180-second delay.
+
+The passive entrypoint now reads only the canonical inputs required by that
+predicate: `users.registry`, `service-matrix.json`, and
+`service-preferences.json`. It still cannot plan, issue Authority, create a
+Candidate/Packet/Lease, alter routes, or move users. This gives the existing
+live runtime enough current truth to create the established bounded recovery
+handoff when Matrix records a fresh required-service failure.
+
+## Verification for the eighth repair
+
+- New regression: one fresh Matrix failure of a service required by a current
+  ordinary user is consumed by the passive owner despite only one sample.
+- Existing capture-only no-route behavior remains unchanged.
+- Existing current-registry and exact-incident tests remain green.
+
+## Exact next step (current)
+
+Deploy this repair and return to the normal health caller. The next fresh
+Matrix confirmation of either user-operated incompatible placement must be
+captured immediately by the existing automatic chain; its own governed
+executor, not Engineering, must select and apply any safe replacement.

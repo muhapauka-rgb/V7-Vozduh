@@ -23444,6 +23444,20 @@ def consume_passive_events_only(args: argparse.Namespace) -> dict[str, Any]:
     planner.org_policy = read_json(Path(args.org_policy_file), {})
     planner.service_signal_policy = planner._service_signal_policy()
     planner.emergency_failover_policy = planner._emergency_failover_policy()
+    # The passive owner normally avoids the full Planner constructor, but the
+    # narrow first-sample profile-failure admission still has to answer one
+    # current question: does an ordinary identity *now* use this source and
+    # require the failed service?  Load only the canonical inputs that answer
+    # that question.  Without them, ``getattr(..., [])`` silently made every
+    # fresh profile failure look unrelated and forced it into the generic
+    # three-sample/180-second path.  These are the same registry, Matrix and
+    # service-preference owners consumed later by the governed executor; no
+    # Planner, state projection or new truth source is introduced here.
+    planner.matrix = read_json(planner.state_dir / "service-matrix.json", {})
+    planner.service_prefs = read_json(
+        planner.state_dir / "service-preferences.json", {}
+    )
+    planner.users = planner._load_runtime_registry_users()
     record_passive_span("passive_policy_and_signal_inputs", policy_load_started_ns)
     consumption_started_ns = time.monotonic_ns()
     result = planner._consume_passive_production_events()

@@ -4282,6 +4282,59 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertTrue((state_dir / "closure-records.jsonl").exists())
             self.assertTrue((state_dir / "runtime-trust.jsonl").exists())
 
+    def test_passive_entrypoint_admits_one_fresh_profile_failure_from_current_registry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            event_dir = root / "events"
+            state_dir.mkdir()
+            event_dir.mkdir()
+            observed_at = datetime.now(timezone.utc).isoformat()
+            incident_id = "sfinc_current_profile_failure"
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.16 current=vless table=1016 enabled=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "service-preferences.json").write_text(
+                json.dumps({"users": {"10.7.0.16": {"services": ["telegram"]}}}),
+                encoding="utf-8",
+            )
+            (state_dir / "service-matrix.json").write_text(
+                json.dumps({"items": {"vless": {"services": {"telegram": {
+                    "ok": False,
+                    "failure_state": "OBSERVED_NEW",
+                    "source_incident_id": incident_id,
+                    "observed_at": observed_at,
+                }}}}}),
+                encoding="utf-8",
+            )
+            event = {
+                "event_id": "sfe_current_profile_failure",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+                "channel": "vless",
+                "service": "telegram",
+                "source_incident_id": incident_id,
+                "failure_samples": 1,
+                "observed_at": observed_at,
+            }
+            (event_dir / "service-failure-events.jsonl").write_text(
+                json.dumps(event) + "\n", encoding="utf-8",
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--consume-passive-events-only",
+                "--state-dir", str(state_dir),
+                "--event-dir", str(event_dir),
+                "--policy-file", str(root / "missing-policy.json"),
+                "--org-policy-file", str(root / "missing-org-policy.json"),
+            ])
+            result = self.autoswitch.consume_passive_events_only(args)
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["result"]["reason"], "consumed")
+        self.assertEqual(result["result"]["records"]["closure"], 1)
+
     def test_capture_only_entrypoint_rejects_apply_or_authority_flags(self):
         args = self.autoswitch.build_arg_parser().parse_args([
             "--consume-passive-events-only",

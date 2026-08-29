@@ -427,7 +427,7 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertTrue(receiver_log.exists())
             self.assertIn("--shadow-trigger-source vless", receiver_log.read_text(encoding="utf-8"))
 
-    def test_stale_matrix_failure_triggers_bounded_targeted_revalidation(self):
+    def test_fast_producer_defers_stale_matrix_revalidation_without_trigger(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             bin_dir = root / "bin"
@@ -477,9 +477,9 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             state_text = (state / "fast.state").read_text(encoding="utf-8")
-            self.assertIn("profile_targeted_revalidation=USED", state_text)
-            self.assertIn("profile_trigger_status=PASS", state_text)
-            self.assertTrue(receiver_log.exists())
+            self.assertIn("profile_targeted_revalidation=DEFERRED_STALE_MATRIX", state_text)
+            self.assertNotIn("profile_trigger_status=PASS", state_text)
+            self.assertFalse(receiver_log.exists())
 
     def test_profile_service_subset_reaches_real_matrix_writer(self):
         with tempfile.TemporaryDirectory() as tmp:

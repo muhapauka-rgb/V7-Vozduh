@@ -105,13 +105,16 @@ existing controlled owner retains all Matrix visibility and responsibility.
 After the owner-only scope correction, production telemetry fell from four
 active sources/six observations plus a repeated receiver wake to three active
 ordinary sources/five observations and zero receiver wakes; first ordinary
-profile result was 607 ms. The remaining delayed branch was a stale-source
-revalidation that used the diagnostic five-second per-service timeout inside
-the FAST producer. It is narrowed to the existing exact one-second
-role-scoped Matrix confirmation. A timeout remains `UNKNOWN` and fails closed;
-the normal full/deep Matrix diagnostic timeout is unchanged.
+profile result was 607 ms. Initial live measurement after a one-second
+per-service cap still showed 7.4--24.2-second ordinary-detector runs: the
+batch finished in 0.3--0.7 seconds, but the parent then repeated several stale
+profile probes serially. This was duplicate work on historical evidence, not a
+fresh-failure confirmation. The FAST producer now records that stale evidence
+for the existing normal Matrix reconciliation and returns `UNKNOWN` without a
+synchronous repeat. It cannot authorize recovery or conceal a fresh failure;
+a current Matrix failure remains required for every downstream trigger.
+Full/deep diagnostic revalidation is unchanged.
 
-Next: deploy this measurement-only receipt, collect its live timing split, fix
-only the measured generic blocker, and return control to the normal V7 caller
-for the automatic Chuck2-equivalent seven-second proof. No manual user
-movement is admissible.
+Next: deploy this bounded detector correction, verify its ordinary-role timing
+in Runtime, then return control to the normal V7 caller for the automatic
+Chuck2-equivalent seven-second proof. No manual user movement is admissible.

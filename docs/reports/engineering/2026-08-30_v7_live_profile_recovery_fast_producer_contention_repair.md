@@ -193,3 +193,43 @@ step completely: a new fresh profile failure must bind to its matching current
 incident, use the prepared decision when valid, and either reach required
 service S11 within seven seconds or emit an honest STOP_SAFE/SLO failure. No
 manual route operation is permitted.
+
+## Sixth live finding and repair
+
+The user-operated assignment check then revealed the remaining blocker. The
+current Matrix and current users.registry correctly described VLESS (Chuck)
+and awg0 (Lisa) as profile-impacting, source-bound failures. Yet the passive
+consumer admitted only generic failures after three samples or 180 seconds.
+It therefore returned `no_passive_capture_event` for a fresh one-sample
+profile failure and never created the existing durable incident projection or
+its downstream recovery obligation. This was an incorrect generic delay on
+the ordinary recovery hot path, not a missing target or a reason to move a
+client manually.
+
+The repair leaves generic failure persistence unchanged. It admits a first
+sample only when all of the following existing facts agree at consumption
+time: the event is external Matrix evidence, the same exact source incident
+is still present in current Matrix, one currently assigned ordinary user's
+declared required service is failed, and the Matrix observation is no more
+than ten seconds old. A stale event, a recovered service, a changed incident,
+an unrelated service, a certification identity, or ambiguous evidence remains
+ineligible and cannot produce a recovery action.
+
+## Verification for the sixth repair
+
+- New regression: a one-sample current Matrix failure for a currently
+  assigned user's required service is admitted to the existing passive/L3
+  consumer.
+- New regression: an otherwise identical historical incident is rejected.
+- Existing generic transient-versus-persistent behavior and exact-Matrix
+  profile recovery behavior still pass.
+
+## Exact next step (current)
+
+Publish and safely deploy this generic consumer repair. Then return control
+only to the normal `v7-health.service` caller. It must itself turn a newly
+fresh profile-required failure into Matrix -> affected scope -> Authority ->
+Planner target selection -> governed Apply -> required-service S11. The two
+user-operated placements remain valid real-world checks, but no successful
+automatic movement or seven-second timing claim is made until that live chain
+has actually completed.

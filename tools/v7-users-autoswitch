@@ -2311,6 +2311,43 @@ def live_profile_failure_evidence(
     return affected_profiles, newest_t0_ns, incident_ids
 
 
+def current_profile_required_matrix_event(
+    *,
+    event: dict[str, Any],
+    users: list["User"],
+    matrix: dict[str, Any],
+    service_preferences: dict[str, Any],
+) -> bool:
+    """Return whether one capture event is still an exact live user failure.
+
+    Generic passive evidence intentionally keeps its longer persistence
+    threshold.  The Runtime health owner, however, may forward a fresh Matrix
+    observation for a service a currently assigned ordinary user explicitly
+    requires.  That fact is already independently bound to the source,
+    profile and Matrix incident; holding it for generic persistence would make
+    the ordinary recovery deadline impossible.  This is only an admission to
+    the existing passive/L3 owner, never an Authority grant or a route action.
+    """
+    if not isinstance(event, dict):
+        return False
+    if str(event.get("event_provenance") or event.get("provenance") or "") != "EXTERNAL_UNATTRIBUTED":
+        return False
+    if str(event.get("evidence_class") or "") != "PROBE_OBSERVED_PRODUCTION_EVENT":
+        return False
+    source = str(event.get("channel") or "").strip()
+    incident_id = str(event.get("source_incident_id") or "").strip()
+    if not source or not incident_id:
+        return False
+    affected, _t0_ns, current_incident_ids = live_profile_failure_evidence(
+        users=users,
+        matrix=matrix,
+        service_preferences=service_preferences,
+        source=source,
+        require_current_observation=True,
+    )
+    return affected > 0 and incident_id in current_incident_ids
+
+
 def live_profile_failure_priority(
     *,
     users: list["User"],
@@ -19657,8 +19694,33 @@ class AutoswitchPlanner:
                     or to_float(row.get("bad_for_seconds")) >= persistence_window
                 )
             )
+            # A current profile-required Matrix failure has already met the
+            # narrower source + user-profile + incident identity contract.
+            # It must not wait for the unrelated generic passive threshold:
+            # the health owner invokes this existing consumer on the normal
+            # ordinary-recovery path whose T0-to-recovery limit is seven
+            # seconds.  The predicate fails closed for stale, recovered,
+            # mismatched or non-profile evidence.
+            current_profile_required_failure = current_profile_required_matrix_event(
+                event=row,
+                users=list(getattr(self, "users", []) or []),
+                matrix=(
+                    getattr(self, "matrix", {})
+                    if isinstance(getattr(self, "matrix", {}), dict)
+                    else {}
+                ),
+                service_preferences=(
+                    getattr(self, "service_prefs", {})
+                    if isinstance(getattr(self, "service_prefs", {}), dict)
+                    else {}
+                ),
+            )
             if bool_value(row.get("capture_only")) and event_id and (
-                operator_event or recovery_event or expiry_event or persistent_failure
+                operator_event
+                or recovery_event
+                or expiry_event
+                or persistent_failure
+                or current_profile_required_failure
             ):
                 # Legacy producers could append the same deterministic event
                 # more than once. The existing immutable event owner remains

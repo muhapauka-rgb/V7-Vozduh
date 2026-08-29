@@ -3821,6 +3821,70 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(failures[0]["truth_class"], "PERSISTENT_FAIL")
         self.assertEqual(failures[0]["failure_episode_id"], "sfep_persistent")
 
+    def test_current_profile_required_matrix_event_admits_one_fresh_exact_failure(self):
+        """The ordinary recovery wake must not wait for generic persistence."""
+        incident = "sfinc_profile_now"
+        event = {
+            "capture_only": True,
+            "event_provenance": "EXTERNAL_UNATTRIBUTED",
+            "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+            "channel": "vless",
+            "service": "instagram",
+            "source_incident_id": incident,
+            "failure_samples": 1,
+            "bad_for_seconds": 0,
+        }
+        user = SimpleNamespace(
+            enabled=True, current="vless", ip="10.7.0.126", raw={},
+        )
+        matrix = {"items": {"vless": {"services": {
+            "instagram": {
+                "ok": False,
+                "status": "FAIL",
+                "failure_state": "OBSERVED_NEW",
+                "source_incident_id": incident,
+                "observed_at": self.autoswitch.now_iso(),
+                "confirmed_hard_failure_monotonic_ns": 42,
+            },
+        }}}}
+        preferences = {"users": {"10.7.0.126": {"services": ["instagram"]}}}
+
+        self.assertTrue(self.autoswitch.current_profile_required_matrix_event(
+            event=event,
+            users=[user],
+            matrix=matrix,
+            service_preferences=preferences,
+        ))
+
+    def test_current_profile_required_matrix_event_rejects_old_incident(self):
+        event = {
+            "capture_only": True,
+            "event_provenance": "EXTERNAL_UNATTRIBUTED",
+            "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+            "channel": "vless",
+            "source_incident_id": "sfinc_old",
+        }
+        user = SimpleNamespace(
+            enabled=True, current="vless", ip="10.7.0.126", raw={},
+        )
+        matrix = {"items": {"vless": {"services": {
+            "instagram": {
+                "ok": False,
+                "status": "FAIL",
+                "failure_state": "OBSERVED_NEW",
+                "source_incident_id": "sfinc_current",
+                "observed_at": self.autoswitch.now_iso(),
+            },
+        }}}}
+        preferences = {"users": {"10.7.0.126": {"services": ["instagram"]}}}
+
+        self.assertFalse(self.autoswitch.current_profile_required_matrix_event(
+            event=event,
+            users=[user],
+            matrix=matrix,
+            service_preferences=preferences,
+        ))
+
     def test_passive_consumer_captures_natural_candidate_without_l8_credit_or_execution(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -33,12 +33,27 @@ exception and not a target-selection decision.
 3. Do not change the Planner, Authority, route writer, user registry,
    service contract, Matrix owner, cadence, or target-selection rules.
 
+## Second live finding and repair
+
+After the first repair reached Runtime, the ordinary Matrix consumer correctly
+identified VLESS as failed, found Chuck as its sole affected ordinary user,
+and derived owner-selected healthy candidates.  It still stopped because all
+pre-warmed targets had been marked not ready.  Runtime process evidence showed
+that the advisory target-prewarming role expanded an empty/narrow profile into
+the whole current Matrix inventory (13 non-Telegram services) and ran it with
+16-way target fan-out every five seconds.  This competed with the live
+detector and caused target timeout observations.
+
+The second repair keeps that advisory role within its declared selected-profile
+services only and caps its target fan-out at two.  Empty prepared contracts no
+longer trigger an all-service probe.  Exact live target validation before
+governed apply remains mandatory and is unchanged.
+
 ## Verification before deploy
 
-- `tests.unit.test_v5_3_role_based_recovery`: 22 PASS
-- `tests.unit.test_v7_health_fast_deadline_loop`: 24 PASS
-- `tests.unit.test_v7_egress_diagnose`: 31 PASS
-- Total focused checks: 77 PASS.
+- First repair: 77 focused checks PASS.
+- Second repair: 61 focused checks PASS (`pre-ready`, health deadline, and
+  role-based recovery suites).
 
 ## Live acceptance status
 
@@ -53,6 +68,6 @@ seconds is a failure.
 
 ## Exact next step
 
-Publish and safely deploy this generic repair, then observe the live Runtime
+Publish and safely deploy the second generic repair, then observe the live Runtime
 until it either automatically completes the current two-client recovery with
 full timing evidence or exposes the next generic stopping point.

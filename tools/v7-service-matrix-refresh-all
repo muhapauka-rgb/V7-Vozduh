@@ -4859,35 +4859,29 @@ def expand_prepared_other_service_scope(
     *,
     state_dir: Path,
 ) -> list[dict[str, str]]:
-    """Fill an empty prepared service set from the current Matrix schema.
+    """Keep prepared non-Telegram probes to their declared profile contract.
 
-    A prepared target with no route-specific critical services still has to
-    prove every application service before it can receive an ordinary user.
-    The existing Matrix row is the canonical service-id inventory; this
-    adapter only expands probe scope and never selects or ranks a target.
+    Prepared target probing is advisory prewarming.  It must never expand an
+    empty or narrow selected-profile contract into every service ever seen in
+    Matrix: that broad background work competes with the live failed-source
+    detector, creates self-induced timeouts, and is not a safety prerequisite
+    for an exact current recovery.  Telegram stays with its existing sentinel
+    owner; the live Matrix consumer still revalidates the exact selected
+    target/profile before apply.
     """
-    matrix = read_json(state_dir / "service-matrix.json", {})
-    items = matrix.get("items") if isinstance(matrix, dict) else {}
-    items = items if isinstance(items, dict) else {}
     expanded: list[dict[str, str]] = []
     for row in rows:
         declared = {
             str(service_id).strip()
             for service_id in str(row.get("_prepared_services") or "").split(",")
             if str(service_id).strip()
+            and str(service_id).strip().lower() not in {
+                "telegram", "__channel_liveness__",
+            }
         }
-        observed = items.get(str(row.get("id") or ""))
-        services = observed.get("services") if isinstance(observed, dict) else {}
-        current_ids = {
-            str(service_id)
-            for service_id in (services or {})
-            if str(service_id)
-            and str(service_id).lower() not in {"telegram", "__channel_liveness__"}
-        }
-        service_ids = sorted(declared | current_ids)
+        service_ids = sorted(declared)
         expanded_row = {**row, "_prepared_services": ",".join(service_ids)}
-        if current_ids - declared:
-            expanded_row["_prepared_services_source"] = "CURRENT_MATRIX_SERVICE_IDS"
+        expanded_row["_prepared_services_source"] = "DECLARED_PREPARED_PROFILE_CONTRACT"
         expanded.append(expanded_row)
     return expanded
 

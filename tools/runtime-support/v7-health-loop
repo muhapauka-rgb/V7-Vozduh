@@ -91,7 +91,10 @@ DEFAULT_ROLE_COMMANDS = (
             "/usr/local/bin/v7-service-matrix-refresh-all",
             "--prepared-hot-targets",
             "--matrix-observation-only",
-            "--prepared-hot-target-concurrency", "16",
+            # This is advisory prewarming, not a synchronous admission gate.
+            # On the 2-vCPU Runtime it must leave headroom for the live
+            # failed-source detector and its one-user governed recovery.
+            "--prepared-hot-target-concurrency", "2",
             "--prepared-hot-target-timeout-sec", "1",
             "--lock-timeout-sec", "1",
             "--prepared-hot-target-service-class", "other",

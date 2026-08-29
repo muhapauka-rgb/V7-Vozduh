@@ -292,7 +292,7 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
         self.assertEqual(scope["selected_targets"], ["target-a"])
         self.assertEqual(selected[0]["_prepared_services"], "")
 
-    def test_prepared_other_scope_uses_current_matrix_service_inventory(self):
+    def test_prepared_other_scope_does_not_expand_empty_contract_to_matrix_inventory(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / "state"
             state.mkdir()
@@ -313,10 +313,10 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
                 rows, state_dir=state,
             )
 
-        self.assertEqual(expanded[0]["_prepared_services"], "google,instagram")
+        self.assertEqual(expanded[0]["_prepared_services"], "")
         self.assertEqual(
             expanded[0]["_prepared_services_source"],
-            "CURRENT_MATRIX_SERVICE_IDS",
+            "DECLARED_PREPARED_PROFILE_CONTRACT",
         )
 
     def test_prepared_other_scope_preserves_explicit_service_contract(self):
@@ -326,15 +326,15 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
             (state / "service-matrix.json").write_text(json.dumps({
                 "items": {"target-a": {"services": {"google": {}}}},
             }), encoding="utf-8")
-            rows = [{"id": "target-a", "_prepared_services": "telegram"}]
+            rows = [{"id": "target-a", "_prepared_services": "google,telegram"}]
             expanded = self.refresh.expand_prepared_other_service_scope(
                 rows, state_dir=state,
             )
 
-        self.assertEqual(expanded[0]["_prepared_services"], "google,telegram")
+        self.assertEqual(expanded[0]["_prepared_services"], "google")
         self.assertEqual(
             expanded[0]["_prepared_services_source"],
-            "CURRENT_MATRIX_SERVICE_IDS",
+            "DECLARED_PREPARED_PROFILE_CONTRACT",
         )
 
     def test_n10_path_role_defers_expired_projection_to_existing_background_owner(self):

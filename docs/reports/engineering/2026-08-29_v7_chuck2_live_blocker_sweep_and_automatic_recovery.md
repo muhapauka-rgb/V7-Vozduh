@@ -141,3 +141,24 @@ unchanged. `UNKNOWN` remains a no-move result.
 Next: deploy this bounded detector correction, verify its ordinary-role timing
 in Runtime, then return control to the normal V7 caller for the automatic
 Chuck2-equivalent seven-second proof. No manual user movement is admissible.
+
+## Latest Runtime result
+
+The deployed fingerprint is `9b88d7ab8a8fa3e9746f76d0f3745345ff52ac1d`.
+After a normal health-service restart, five consecutive ordinary-detector
+cycles completed in 3.392, 3.256, 2.280, 2.856 and 2.499 seconds. The exact
+parallel batch completed in 0.959--0.987 seconds, with zero synchronous
+Matrix receiver calls and zero consumer wakes for the observed healthy/unknown
+state. No user assignment or route changed.
+
+Chuck2 remains on `awg3`, but the fresh bounded observer currently reports no
+failure for Chuck2's required profile. It is therefore correct that the live
+Runtime has not moved that user.
+
+The existing controlled Polygon preflight was also read without mutation. It
+returned `STOP_SAFE`: its prior one-user certification lease is expired and
+there is no current uniquely admissible certification identity/source or fresh
+one-use Authority contract. Consequently it cannot lawfully supply the
+requested automatic proof until those existing lifecycle owners establish a
+new controlled baseline. This is a controlled-evidence readiness boundary,
+not a reason to manually move Chuck2 or any ordinary customer.

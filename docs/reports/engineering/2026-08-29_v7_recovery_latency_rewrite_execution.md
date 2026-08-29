@@ -110,7 +110,8 @@ does not enable emergency autonomy, alter target admission, change cadence, or
 perform a route mutation. Focused emergency-authority regression tests passed
 (2/2), and AST/diff checks passed.
 
-The safe-deploy gate was rerun after this slice. It remains `NO-GO` because
+The safe-deploy gate was rerun after this slice for local commit
+`2a50305d1f83c196dddad5133d7ef28ba327f0cd`. It remains `NO-GO` because
 independent GitHub truth is unreadable and the live Runtime is still on
 `2b4e86896aab1a43b0399537b7f6c227e55fd26d`, while the local branch contains
 pre-existing runtime-relevant changes. The slice is therefore committed for

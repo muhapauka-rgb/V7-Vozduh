@@ -463,6 +463,28 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertFalse(shadow_log.exists())
             self.assertTrue(wake_log.exists())
 
+    def test_fast_batch_uses_one_second_parallel_sentinel_budget(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=vless protocol=vless interface=v7tun enabled=1\n")
+            (state / "users.registry").write_text("ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8")
+            args_log = root / "batch.args"
+            self.write_command(bin_dir, "ip", "echo '1: v7tun: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "batch-checker", "printf '%s\\n' \"$*\" > \"$BATCH_ARGS\"; printf '%s\\n' '{\"status\":\"PASS\",\"ok\":true,\"probe_count\":1,\"contracts\":[]}'\n")
+            self.write_command(bin_dir, "shadow", "exit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["BATCH_ARGS"] = str(args_log)
+            proc = subprocess.run([str(TOOL), "--state-dir", str(state), "--output", str(state / "fast.state"),
+                "--fast-producer-only", "--lightweight-batch-producer",
+                "--profile-service-suspicion-command", str(bin_dir / "batch-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow")],
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertIn("--sentinel-timeout-ms 1000", args_log.read_text(encoding="utf-8"))
+
     def test_fast_producer_ignores_stale_matrix_revalidation_without_trigger(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

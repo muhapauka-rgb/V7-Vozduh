@@ -1309,11 +1309,14 @@ run_lightweight_batch_profile_suspicion_cycle() {
     return 0
   fi
   build_fast_matrix_fresh_failure_index
+  # The ordinary recovery detector must distinguish an actual failure from an
+  # overloaded half-second observation. One second remains bounded and runs
+  # in parallel, while UNKNOWN is still fail-closed.
   if ! "$PROFILE_SERVICE_SUSPICION_COMMAND" __batch__ all \
       --state-dir "$STATE_DIR" \
       --batch-lightweight-contracts "$work_file" \
       --batch-concurrency "$FAST_PRODUCER_CONCURRENCY" \
-      --sentinel-timeout-ms 500 > "$result_file" 2>/dev/null; then
+      --sentinel-timeout-ms 1000 > "$result_file" 2>/dev/null; then
     printf 'fast_producer_batch_status=STOP_SAFE_BATCH_OWNER_FAILED\n' >> "$TMP"
     rm -rf "$work_dir"
     return 0

@@ -132,6 +132,12 @@ of fresh identified Matrix failures and reuses it for its current batch.
 Historical failures are deliberately absent. The index is discarded before
 exit and creates neither durable state nor a second health owner.
 
+Runtime also showed that the old 500-ms parallel sentinel frequently returned
+`UNKNOWN` under normal host contention. That is safe but cannot establish a
+failure for recovery. Its bounded observation budget is now 1,000 ms; cadence,
+target selection, Authority, Matrix ownership and route execution are
+unchanged. `UNKNOWN` remains a no-move result.
+
 Next: deploy this bounded detector correction, verify its ordinary-role timing
 in Runtime, then return control to the normal V7 caller for the automatic
 Chuck2-equivalent seven-second proof. No manual user movement is admissible.

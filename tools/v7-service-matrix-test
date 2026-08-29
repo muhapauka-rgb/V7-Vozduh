@@ -37,7 +37,11 @@ SAFE_SERVICE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 DIRECT_LOCAL_SERVICE_ID = "__channel_liveness__"
 DIRECT_LOCAL_FAILURE_CLASSES = {"INTERFACE_DOWN_OR_MISSING"}
 N3_MAX_BATCH_CONTRACTS = 10_000
-N3_MAX_FAST_SERVICES_PER_CONTRACT = 3
+# The standard ordinary profile has four HTTP services; Telegram stays with
+# its dedicated sentinel.  A lower bound silently marked that exact default
+# contract UNKNOWN, so a user moved onto a bad channel could never enter the
+# normal confirmation path.  Four remains bounded by the existing batch cap.
+N3_MAX_FAST_SERVICES_PER_CONTRACT = 4
 N3_ROLE_DEADLINE_SECONDS = 5.0
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}

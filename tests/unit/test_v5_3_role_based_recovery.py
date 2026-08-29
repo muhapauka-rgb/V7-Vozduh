@@ -716,6 +716,31 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
         self.assertTrue(all(row["failure_count"] == 0 for row in result["contracts"]))
         self.assertFalse(matrix_exists)
 
+    def test_n3_batch_accepts_the_standard_four_http_service_profile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            (state / "egress.registry").write_text(
+                "id=vless interface=tun0 enabled=1\n", encoding="utf-8",
+            )
+            contracts = root / "contracts.tsv"
+            contracts.write_text(
+                "vless\t10.7.0.125\tgoogle,google_auth,instagram,youtube\tvless-profile\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                self.matrix, "run_lightweight_service_sentinel",
+                return_value={"ok": True, "status": "OK"},
+            ) as probe:
+                result = self.matrix.batch_lightweight_observations(
+                    state, contracts, concurrency=16, timeout_seconds=0.5,
+                )
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["probe_count"], 4)
+        self.assertFalse(result["contracts"][0]["blockers"])
+        self.assertEqual(probe.call_count, 4)
+
     def test_n9_n3_rejects_timeout_bound_overrun_before_opening_sockets(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

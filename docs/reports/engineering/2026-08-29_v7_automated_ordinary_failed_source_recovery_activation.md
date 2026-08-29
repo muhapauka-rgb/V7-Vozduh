@@ -53,6 +53,38 @@ specific change. The commit is published but not deployed; the live Runtime
 continues running the previous aligned implementation. No workaround was
 attempted.
 
+## Subsequent live outcome and timing reconciliation
+
+A later read-only reconciliation of the live Runtime records shows that the
+existing automatic consumer subsequently completed both VLESS failovers. This
+supersedes the earlier point-in-time snapshot above (`users_moved=0`); it does
+not imply that `ee4ae185` was deployed.
+
+All timestamps below are UTC (Moscow time is UTC+03:00). The first failure
+observation for the incident was `2026-08-29T00:25:12.008579Z`.
+
+| User | Target | Latest actionable failure event | Apply/operation terminal | Exact route/service verification | First observation -> S11 | Event -> S11 |
+|---|---|---|---|---:|---:|---:|
+| `10.7.0.126` | `awg0` | `00:48:47.654446Z` | `00:50:31.661559Z` / `APPLIED` | `00:50:36.502954Z` (`V7_USER_ROUTE_CHECK=OK`, service connected) | 1524.494 s (25m 24.494s) | 108.849 s |
+| `10.7.0.127` | `awg3` | `02:05:05.050933Z` | `02:06:48.514706Z` / `APPLIED` | `02:06:54.275959Z` (`V7_USER_ROUTE_CHECK=OK`, service connected) | 6102.267 s (1h 41m 42.267s) | 109.225 s |
+
+The current `users.registry` then contained no enabled VLESS users: user
+`10.7.0.126` was on `awg0`, user `10.7.0.127` on `awg3`, and the disabled
+synthetic entry `10.7.0.7` remained disabled. The operation records include the
+existing decision trace, packet id, source incident/event ids, `APPLIED`
+terminal state, and exact route verification; no manual target substitution
+was recorded.
+
+The complete route-writer critical path was 4266.334 ms for `10.7.0.126` and
+5065.986 ms for `10.7.0.127`. The low-level kernel route mutation itself was
+only 100 ms and 70 ms respectively; most of the writer interval was audit
+work (3330 ms and 3870 ms). Exact individual timestamps for Candidate,
+Packet, Lease, and Barrier are not persisted in these outcome records, so they
+are not fabricated here. The evidence shows that the dominant delay was
+before the final governed operation became actionable (about 103--104 s after
+the latest bound event), with the second user additionally waiting for the
+one-user-at-a-time transaction scope.
+
 ## Next executable step
 
 After explicit approval of this narrowly bounded advisory-gate change, rerun

@@ -39,6 +39,9 @@
   ожидания: качество слабого AWG и устаревшая строковая проверка старого
   hard-consumer. Изменённый путь их не затрагивает; они не дают права назвать
   production deploy доказанным до отдельной сверки safe-deploy gate.
+- штатный `tools/v7-safe-deploy --json` подтвердил allowlist и Runtime-delta,
+  но законно остановился на `github_truth_check_failed`: локальный commit ещё
+  не совпадает с опубликованной веткой. Runtime не менялся.
 
 ## Текущий Matrix blocker
 

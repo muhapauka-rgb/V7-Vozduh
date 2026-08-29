@@ -1919,6 +1919,17 @@ def run_bounded_delegated_service_failure_action(
                 "RECOMMENDATION_RECONCILIATION"
             ),
         }
+    # A live ordinary failed-source incident already has fresh canonical
+    # Matrix scope/evidence and continues through the governed executor,
+    # where target admission, Packet, Lease, Barrier, route and required
+    # service verification are all revalidated.  The intelligence snapshots
+    # below are ranking/learning inputs, not an Authority or route-safety
+    # prerequisite for that bounded transaction.  Keep their refresh out of
+    # the recovery critical section so an expired advisory projection cannot
+    # strand a small affected cohort for up to the refresh timeout.
+    ordinary_execution = (
+        ordinary_incident_actionable and not campaign_binding.get("active")
+    )
     # Keep the existing intelligence owner in front of the governed action
     # whenever one of its advisory inputs has expired.  A Matrix generation
     # changes the source hash of candidate suitability; without this bounded
@@ -1977,7 +1988,16 @@ def run_bounded_delegated_service_failure_action(
                         break
             if refresh_required:
                 break
-    if refresh_required:
+    if refresh_required and ordinary_execution:
+        snapshot_refresh.update({
+            "status": "DEFERRED_ADVISORY_OUTSIDE_RUNTIME_HOT_PATH",
+            "deferred": True,
+            "reason": (
+                "ordinary_service_failure_uses_fresh_matrix_and_governed_"
+                "target_packet_lease_barrier_route_service_checks"
+            ),
+        })
+    elif refresh_required:
         snapshot_command = [
             "v7-intelligence-snapshot-refresh",
             "--state-dir", str(state_dir),
@@ -2056,9 +2076,6 @@ def run_bounded_delegated_service_failure_action(
         int(campaign_binding.get("next_stage") or 0)
         if campaign_binding.get("active")
         else policy_max_users
-    )
-    ordinary_execution = (
-        ordinary_incident_actionable and not campaign_binding.get("active")
     )
     if ordinary_execution:
         axes = operator_execution.standing_delegated_policy_runtime_axes(contract)

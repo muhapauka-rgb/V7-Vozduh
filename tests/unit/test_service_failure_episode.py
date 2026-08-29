@@ -4650,6 +4650,12 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(stop["status"], "STOP_SAFE")
             self.assertTrue(stop["action_attempted"])
             self.assertEqual(stop["users_moved"], 0)
+            self.assertEqual(
+                stop["snapshot_refresh"]["status"],
+                "DEFERRED_ADVISORY_OUTSIDE_RUNTIME_HOT_PATH",
+            )
+            self.assertFalse(stop["snapshot_refresh"]["attempted"])
+            self.assertIn("--ordinary-service-failure-only", stop["command"])
             self.assertEqual(stop["admitted_max_users"], 4)
             self.assertEqual(stop["max_concurrent_transactions"], 1)
             self.assertEqual(stop["consumer_result"]["max_users_argument"], "4")

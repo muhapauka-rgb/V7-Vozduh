@@ -778,6 +778,7 @@ profile_service_trigger() {
   failed_services="$7"
   unknown_services="$8"
   state_key="${9:-}"
+  matrix_failure_fallback="${10:-0}"
   if [ -z "$state_key" ]; then
     key_hash="$(printf '%s' "${source_id}|${profile_user}" | shasum -a 256 | awk '{print substr($1,1,16)}')"
     state_key="${source_id}_profile_${key_hash}"
@@ -858,8 +859,18 @@ EOF
   if [ -n "$PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC" ]; then
     trigger_persistence_args+=(--shadow-failure-persistence-window-seconds "$PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC")
   fi
-  PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=$((PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT + 1))
-  if "$SHADOW_TRIGGER_COMMAND" \
+  # A current canonical Matrix failure was just read above.  Re-running the
+  # same Matrix confirmation here is duplicate synchronous work and can delay
+  # the ordinary recovery caller by many seconds.  Reuse it only when the
+  # existing governed consumer can be woken; otherwise retain the historical
+  # shadow confirmation as the fail-closed fallback.
+  if [ "$matrix_failure_fallback" = "1" ] && [ -n "$CONSUMER_WAKE_COMMAND" ]; then
+    trigger_status="PASS"
+    trigger_rc="0"
+    printf '%s_profile_matrix_confirmation=REUSED_CURRENT\n' "$state_key" >> "$TMP"
+  else
+    PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=$((PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT + 1))
+    if "$SHADOW_TRIGGER_COMMAND" \
       --state-dir "$STATE_DIR" \
       --event-dir "$trigger_event_dir" \
       --egresses "$source_id" \
@@ -868,25 +879,24 @@ EOF
       --shadow-trigger-class "$trigger_class" \
       --shadow-trigger-id "$trigger_id" \
       "${trigger_persistence_args[@]}" \
-      --matrix-observation-only >/dev/null 2>&1; then
-    trigger_status="PASS"
-    trigger_rc="0"
-    # A targeted Matrix confirmation is only the canonical health/T0 write.
-    # Hand the confirmed event to the already existing governed consumer in
-    # the same way as the definitive hard-signal path.  The consumer remains
-    # fail-closed and single-flight; this producer never plans or applies a
-    # route itself.
-    if [ -n "$CONSUMER_WAKE_COMMAND" ]; then
-      if wake_existing_failure_consumer; then
-        PROFILE_SERVICE_CONSUMER_WAKE_COUNT=$((PROFILE_SERVICE_CONSUMER_WAKE_COUNT + 1))
-        printf '%s_profile_consumer_wake=PASS\n' "$state_key" >> "$TMP"
-      else
-        printf '%s_profile_consumer_wake=STOP_SAFE\n' "$state_key" >> "$TMP"
-      fi
+        --matrix-observation-only >/dev/null 2>&1; then
+      trigger_status="PASS"
+      trigger_rc="0"
+    else
+      trigger_rc="$?"
+      trigger_status="FAILED"
     fi
-  else
-    trigger_rc="$?"
-    trigger_status="FAILED"
+  fi
+  # A targeted Matrix confirmation, or reuse of the current canonical Matrix
+  # failure, only opens the existing governed consumer.  This producer never
+  # plans or applies a route itself.
+  if [ "$trigger_status" = "PASS" ] && [ -n "$CONSUMER_WAKE_COMMAND" ]; then
+    if wake_existing_failure_consumer; then
+      PROFILE_SERVICE_CONSUMER_WAKE_COUNT=$((PROFILE_SERVICE_CONSUMER_WAKE_COUNT + 1))
+      printf '%s_profile_consumer_wake=PASS\n' "$state_key" >> "$TMP"
+    else
+      printf '%s_profile_consumer_wake=STOP_SAFE\n' "$state_key" >> "$TMP"
+    fi
   fi
   printf '%s_profile_trigger_status=%s\n' "$state_key" "$trigger_status" >> "$TMP"
   printf '%s_profile_trigger_family=%s\n' "$state_key" "$producer_family" >> "$TMP"
@@ -935,6 +945,7 @@ process_profile_service_probe() {
   services="$3"
   probe="$4"
   state_key="${5:-}"
+  matrix_failure_fallback="0"
   IFS='|' read -r probe_status failure_count dns_services degraded_services failed_services unknown_services completion_ns <<EOF
 $probe
 EOF
@@ -994,13 +1005,14 @@ EOF
       failed_services="$matrix_failed_services"
       failure_count="1"
       unknown_services=""
+      matrix_failure_fallback="1"
       printf '%s_profile_matrix_failure_fallback=USED\n' "${state_key:-${source_id}_profile}" >> "$TMP"
     fi
   fi
   if [ -n "$dns_services" ]; then
     dns_suspicion_producer "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services" "$state_key"
   else
-    profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services" "$state_key"
+  profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services" "$state_key" "$matrix_failure_fallback"
   fi
 }
 

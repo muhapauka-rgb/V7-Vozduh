@@ -427,6 +427,42 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertTrue(receiver_log.exists())
             self.assertIn("--shadow-trigger-source vless", receiver_log.read_text(encoding="utf-8"))
 
+    def test_fast_producer_reuses_fresh_matrix_before_waking_consumer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=vless protocol=vless interface=v7tun enabled=1\n")
+            (state / "users.registry").write_text("ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8")
+            observed = time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime())
+            (state / "service-matrix.json").write_text(json.dumps({"items": {"vless": {"services": {"youtube": {
+                "status": "FAIL", "severity": "FAIL", "failure_state": "OBSERVED_CONTINUING",
+                "source_incident_id": "sfinc-current", "observed_at": observed,
+            }}}}}), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7tun: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "batch-checker", "printf '%s\\n' '{\"status\":\"PASS\",\"ok\":true,\"probe_count\":1,\"contracts\":[{\"source\":\"vless\",\"profile\":\"__GLOBAL__\",\"services\":[\"youtube\"],\"state_key\":\"vless-profile\",\"failure_count\":0,\"blockers\":[\"fast_service_budget_exceeded\"]}]}'\n")
+            shadow_log = root / "shadow.args"
+            wake_log = root / "wake.args"
+            self.write_command(bin_dir, "shadow", "printf '%s\\n' \"$*\" > \"$SHADOW_LOG\"\n")
+            self.write_command(bin_dir, "wake", "printf '%s\\n' \"$*\" > \"$WAKE_LOG\"\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["SHADOW_LOG"] = str(shadow_log)
+            env["WAKE_LOG"] = str(wake_log)
+            proc = subprocess.run([str(TOOL), "--state-dir", str(state), "--output", str(state / "fast.state"),
+                "--fast-producer-only", "--lightweight-batch-producer",
+                "--profile-service-suspicion-command", str(bin_dir / "batch-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow"),
+                "--consumer-wake-command", str(bin_dir / "wake"),
+                "--profile-service-failure-samples", "1", "--profile-service-cooldown-sec", "0"],
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = (state / "fast.state").read_text(encoding="utf-8")
+            self.assertIn("profile_matrix_confirmation=REUSED_CURRENT", state_text)
+            self.assertIn("profile_consumer_wake=PASS", state_text)
+            self.assertFalse(shadow_log.exists())
+            self.assertTrue(wake_log.exists())
+
     def test_fast_producer_defers_stale_matrix_revalidation_without_trigger(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

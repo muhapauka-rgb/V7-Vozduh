@@ -115,6 +115,16 @@ synchronous repeat. It cannot authorize recovery or conceal a fresh failure;
 a current Matrix failure remains required for every downstream trigger.
 Full/deep diagnostic revalidation is unchanged.
 
+The next live cycle exposed one final duplicate: when the fast batch returned
+`UNKNOWN` but the canonical Matrix already held a fresh confirmed failure, the
+producer correctly reused that failure for eligibility but then synchronously
+ran the same Matrix confirmation again before waking the existing consumer.
+The repeat was the observed long span. The correction reuses the fresh
+canonical confirmation only when the existing governed consumer is available;
+otherwise it preserves the old confirmation path. This preserves Matrix,
+Authority, Candidate/Packet/Lease/Barrier and S11 ownership while removing no
+safety check and no ordinary-user route action.
+
 Next: deploy this bounded detector correction, verify its ordinary-role timing
 in Runtime, then return control to the normal V7 caller for the automatic
 Chuck2-equivalent seven-second proof. No manual user movement is admissible.

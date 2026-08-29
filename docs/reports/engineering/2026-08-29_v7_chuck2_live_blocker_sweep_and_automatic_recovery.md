@@ -193,3 +193,25 @@ Conclusion: VLESS is presently service-compatible for Chuck2, subject to the
 normal live Planner/Authority capacity and reservation checks at the time of
 an actual recovery.  This was not an operational action: Chuck2 was not moved,
 no target was injected, and no recovery transaction was advanced manually.
+
+## Whole-population profile-fit reconciliation
+
+Read-only reconciliation at `2026-08-29T19:41:40Z` inspected all 128 enabled
+assignments against the canonical service-preferences state and Matrix.  The
+Matrix generation itself was fresh (0.2 seconds old at collection), but a
+client can only be assessed when it has an explicit personal required-service
+profile.
+
+Only three enabled clients currently have such a profile.  Two are satisfied:
+`10.0.0.2` requires Telegram and has it on
+`wireguard-1779454504-c43409`; `10.7.0.5` requires Telegram, YouTube and
+Google and has all three on `awg0`.  Chuck2 (`10.7.0.127`) requires Instagram
+and Telegram but Matrix still records Instagram `FAIL`/`OBSERVED_CONTINUING`
+on `awg3`; Telegram is OK.  Thus the current canonical state does not show
+Chuck2's profile as satisfied.
+
+The other 125 enabled clients have no explicit personal required-service
+profile.  They are not failures, but their personal satisfaction cannot be
+established or disproved because there is no declared individual requirement
+to compare with Matrix.  No user, assignment, authority, target or route was
+changed by this reconciliation.

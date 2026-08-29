@@ -162,3 +162,15 @@ one-use Authority contract. Consequently it cannot lawfully supply the
 requested automatic proof until those existing lifecycle owners establish a
 new controlled baseline. This is a controlled-evidence readiness boundary,
 not a reason to manually move Chuck2 or any ordinary customer.
+
+An existing-owner request-only attempt was then made to restore that baseline.
+It performed no write and returned `STOP_SAFE_PREDECESSOR_REQUIRED`. Its exact
+physical/state boundary is now clear: the only isolated controlled source
+(`1`) has zero reachable services and fourteen hard failures; the healthy
+empty `amneziawg-exec-20260528-10-8-1-14` is lawfully reserved as an
+EXECUTION_ONLY target and cannot be repurposed as a source. In addition, the
+prior controlled Authority contract and lease have expired. The fast recovery
+repair is fully deployed and running, but a full automatic Polygon-to-S11
+proof cannot be created safely until a healthy isolated source is supplied by
+the existing topology/Authority lifecycle. No ordinary user was moved, no
+Candidate/Packet/Lease/Barrier was created, and no route was changed.

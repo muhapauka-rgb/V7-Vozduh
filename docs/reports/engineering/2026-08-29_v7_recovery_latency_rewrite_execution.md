@@ -50,18 +50,22 @@ recovery SLO.
 ## CPS/OMP and Runtime reconciliation
 
 `tools/v7-truth-check --all --json` returned CPS/OMP consistency `PASS` and
-local branch `Updatesystem` at `644f6a5a`. The check returned overall `NO-GO`
-because the new Program edit is intentionally unstaged at this report point,
-GitHub remote verification was unavailable, and the live Runtime remains at
-the previously deployed commit `2b4e86896aab1a43b0399537b7f6c227e55fd26d`
-while local runtime-relevant commits include an undeployed gate change. This
-was not silently deployed or overridden.
+local branch `Updatesystem` at
+`d77450d7b78e26eef881c1d2ddafefe1b3033e0e`. The workspace is clean and the
+corrected Program/report commits are published locally and to the configured
+remote. The overall truth result remains `NO-GO` for independent
+remote/runtime convergence: GitHub branch/hash verification is unavailable,
+and the live Runtime remains at the previously deployed commit
+`2b4e86896aab1a43b0399537b7f6c227e55fd26d` while local runtime-relevant
+changes include an undeployed gate change. This was not silently deployed or
+overridden.
 
 ## Current implementation gaps found
 
-1. The live outcome records contain `observed_at`, operation and verification
-   times, but do not persist individual Candidate/Packet/Lease/Barrier
-   timestamps or one immutable incident-start-to-last-member receipt.
+1. The Matrix producer already carries first-failure and confirmation
+   monotonic timestamps. The live ordinary outcome projection does not yet
+   persist those fields together with individual Candidate/Packet/Lease/
+   Barrier timestamps in one immutable incident-start-to-last-member receipt.
 2. The observed production incident was executed one user per transaction;
    the Program now requires a bounded cohort transaction for compatible users.
 3. The largest delay is before the governed operation becomes actionable
@@ -81,9 +85,25 @@ was not silently deployed or overridden.
 4. Run focused Polygon falsification, safe-deploy gate and one controlled
    end-to-end sample before any broader production claim.
 
-This block is a contract correction plus read-only reconciliation. Runtime
-implementation and deployment remain pending the existing owner-backed
-frontier and safe-deploy evidence.
+## Execution status after the updated prompt
+
+- Program contract correction: `CONSUMED` in place; no parallel Program.
+- CPS/OMP reconciliation: `PASS`; the current global CPS frontier remains
+  `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`, so it supplies no new
+  executable production incident event.
+- Safe-deploy gate: `NO-GO` until independent GitHub/runtime provenance is
+  readable and the already-existing runtime mismatch is reconciled.
+- Automatic ordinary recovery activation: not claimed; current policy still
+  reports emergency autonomy disabled, and this document-only correction made
+  no production mutation.
+- Latency result: not remeasured; the rewrite intentionally makes the known
+  25-minute/1-hour-41-minute observations binding failures instead of
+  silently accepting them.
+
+The next executable frontier is the existing-owner instrumentation and
+automatic-consumer re-entry described above, followed by Polygon
+falsification and a new safe-deploy gate. No code or production route was
+changed in this turn.
 
 ## Verification in this turn
 

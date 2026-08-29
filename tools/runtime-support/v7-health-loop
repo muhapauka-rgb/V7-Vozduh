@@ -600,6 +600,46 @@ class ManagedRole:
     runtime_observation_started: dict[str, Any] = field(default_factory=dict)
 
 
+def prepared_hot_target_timing_from_output(output: bytes | str) -> dict[str, Any]:
+    """Return the already-emitted bounded Matrix timing for journal evidence.
+
+    The health loop owns no additional state: it keeps the child receipt only
+    until that child has exited, then emits a compact journal projection.  The
+    Matrix command remains the canonical writer and its normal JSON receipt is
+    unchanged.
+    """
+    if isinstance(output, bytes):
+        text = output.decode("utf-8", errors="replace")
+    else:
+        text = str(output or "")
+    try:
+        payload = json.loads(text)
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    timing = payload.get("prepared_path_timing")
+    timing = timing if isinstance(timing, dict) else {}
+    lock = payload.get("service_matrix_lock")
+    lock = lock if isinstance(lock, dict) else {}
+    if not timing and not lock:
+        return {}
+    return {
+        "total_ms": timing.get("total_ms"),
+        "owner_load_ms": timing.get("owner_load_ms"),
+        "parallel_probe_wall_ms": timing.get("parallel_probe_wall_ms"),
+        "serialized_write_wall_ms": timing.get("serialized_write_wall_ms"),
+        "writer_lock_timeout_count": lock.get("writer_lock_timeout_count"),
+        "selected_target_count": (
+            (payload.get("prepared_hot_target_scope") or {}).get(
+                "selected_target_count_for_service_class"
+            )
+            if isinstance(payload.get("prepared_hot_target_scope"), dict)
+            else None
+        ),
+    }
+
+
 @dataclass
 class RoleHealthLoop:
     """Multi-cadence work placement inside the one existing health owner."""
@@ -986,9 +1026,15 @@ class RoleHealthLoop:
             if role.name in {"hard", "telegram"} and self.persistent_matrix_ready:
                 environment = os.environ.copy()
                 environment["V7_HEALTH_PERSISTENT_MATRIX_CONSUMER"] = "1"
+            # A prepared PATH run already emits one small Matrix receipt. Keep
+            # it in this existing owner only until exit so the journal can
+            # expose the measured critical-path split. Other roles retain
+            # their historical DEVNULL behaviour and no durable surface or
+            # execution semantics are introduced.
+            capture_prepared_path_timing = role.name == "hot_target"
             role.process = subprocess.Popen(
                 command,
-                stdout=subprocess.DEVNULL,
+                stdout=(subprocess.PIPE if capture_prepared_path_timing else subprocess.DEVNULL),
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
                 env=environment,
@@ -1012,6 +1058,13 @@ class RoleHealthLoop:
             rc = role.process.poll()
             if rc is None:
                 continue
+            prepared_timing: dict[str, Any] = {}
+            if role.name == "hot_target" and role.process.stdout is not None:
+                try:
+                    stdout, _stderr = role.process.communicate(timeout=0)
+                    prepared_timing = prepared_hot_target_timing_from_output(stdout)
+                except (OSError, subprocess.TimeoutExpired):
+                    prepared_timing = {}
             if role.name in {"hard", "telegram"} and self.persistent_matrix_ready:
                 t0_ns = canonical_service_failure_t0_ns(
                     self.matrix_state_file,
@@ -1041,6 +1094,17 @@ class RoleHealthLoop:
                 f"duration_ms={duration} rc={rc}",
                 flush=True,
             )
+            if prepared_timing:
+                print(
+                    "V7_HEALTH_PREPARED_TARGET_TIMING "
+                    f"role={role.name} "
+                    + " ".join(
+                        f"{key}={value}"
+                        for key, value in prepared_timing.items()
+                        if value is not None
+                    ),
+                    flush=True,
+                )
             role.process = None
             role.started_ns = 0
             role.runtime_observation_started = {}

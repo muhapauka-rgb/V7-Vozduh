@@ -64,3 +64,30 @@ profile-required-service failure or the existing lawful Polygon controlled
 falsification. It must then prove the full automatic Matrix-to-S11 chain for
 Chuck2-equivalent ordinary scope within the 7-second contract. The current
 live Chuck2 state is not such an event and must not be fabricated.
+
+## Follow-up Runtime reconciliation
+
+The follow-up package (`55064460`) was published and deployed with an explicit
+health restart. The running `/usr/local/bin/v7-health-loop` contains the
+one-second writer-lock bound for both prepared-target lanes. The old
+pre-restart 8--12-second samples are therefore not evidence against the new
+package.
+
+Fresh post-restart observations no longer wait on the inherited 90-second
+writer lock, but PATH still varied between about 1.0 and 4.0 seconds. Existing
+Matrix path evidence itself was short (for example, `awg3` path projection was
+143 ms), so the remaining delay cannot be responsibly attributed to the
+network-path probe alone.
+
+To distinguish owner/module loading, parallel path reads and the one atomic
+Matrix write, the existing health process now retains the already emitted
+prepared-PATH receipt in memory only until the child exits and writes its
+compact timing split to the existing service journal. It creates no state
+file, timer, queue, owner or routing action. Focused regression after this
+instrumentation passed (health-loop, prepared target, failure-episode and
+autoswitch-policy suites; `git diff --check` passed).
+
+Next: deploy this measurement-only receipt, collect its live timing split, fix
+only the measured generic blocker, and return control to the normal V7 caller
+for the automatic Chuck2-equivalent seven-second proof. No manual user
+movement is admissible.

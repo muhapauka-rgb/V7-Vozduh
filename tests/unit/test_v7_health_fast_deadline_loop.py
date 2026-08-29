@@ -142,6 +142,27 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("serialize_slow_roles=not any(controlled.values())", loop)
         self.assertIn('and role.name != "hard"', loop)
 
+    def test_prepared_path_timing_receipt_is_compact_and_non_authoritative(self):
+        receipt = HEALTH_LOOP_MODULE.prepared_hot_target_timing_from_output(json.dumps({
+            "prepared_path_timing": {
+                "total_ms": 117.2,
+                "owner_load_ms": 8.1,
+                "parallel_probe_wall_ms": 92.7,
+                "serialized_write_wall_ms": 16.4,
+            },
+            "service_matrix_lock": {"writer_lock_timeout_count": 0},
+            "prepared_hot_target_scope": {
+                "selected_target_count_for_service_class": 3,
+            },
+        }))
+        self.assertEqual(receipt["total_ms"], 117.2)
+        self.assertEqual(receipt["parallel_probe_wall_ms"], 92.7)
+        self.assertEqual(receipt["writer_lock_timeout_count"], 0)
+        self.assertEqual(receipt["selected_target_count"], 3)
+        self.assertEqual(
+            HEALTH_LOOP_MODULE.prepared_hot_target_timing_from_output("not-json"), {},
+        )
+
     def test_controlled_commands_require_a_finite_polygon_run(self):
         result = subprocess.run(
             [str(LOOP), "--controlled-fast-command", "/bin/true"],

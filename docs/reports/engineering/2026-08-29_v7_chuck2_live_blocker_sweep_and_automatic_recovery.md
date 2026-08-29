@@ -174,3 +174,22 @@ repair is fully deployed and running, but a full automatic Polygon-to-S11
 proof cannot be created safely until a healthy isolated source is supplied by
 the existing topology/Authority lifecycle. No ordinary user was moved, no
 Candidate/Packet/Lease/Barrier was created, and no route was changed.
+
+## Current VLESS assessment for Chuck2
+
+Read-only reconciliation at `2026-08-29T17:24:28Z` found that Chuck2
+(`10.7.0.127`) is currently assigned to `awg3` and has exactly two required
+services: `instagram` and `telegram`.  VLESS is enabled, uses `tun0`, and has
+no current registry assignment recorded for an ordinary user.
+
+The fresh Matrix generation (`updated=2026-08-29T17:21:40Z`, 168 seconds old
+at inspection) reports both of Chuck2's required services healthy on VLESS:
+Instagram `OK` and Telegram `OK`.  VLESS remains globally `WARN`, because
+YouTube and ChatGPT fail there; those failures do not make it incompatible
+with Chuck2's current two-service profile.  Google and WhatsApp are also OK;
+Claude is reachable but limited.
+
+Conclusion: VLESS is presently service-compatible for Chuck2, subject to the
+normal live Planner/Authority capacity and reservation checks at the time of
+an actual recovery.  This was not an operational action: Chuck2 was not moved,
+no target was injected, and no recovery transaction was advanced manually.

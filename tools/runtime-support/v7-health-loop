@@ -104,7 +104,12 @@ DEFAULT_ROLE_COMMANDS = (
             "--output", "/opt/v7/egress/state/egress-diagnose.state",
             "--fast-producer-only",
             "--lightweight-batch-producer",
-            "--fast-producer-concurrency", "128",
+            # A 2-vCPU Runtime cannot safely execute 128 one-second network
+            # probes at once: the detector then manufactures timeouts on
+            # healthy channels and blocks the same event loop it must wake.
+            # Eight retains bounded fan-out while keeping the producer below
+            # the host's scheduling/connection-pressure cliff.
+            "--fast-producer-concurrency", "8",
             "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
             "--shadow-trigger-command", "/usr/local/bin/v7-service-matrix-refresh-all",
             # One bounded protocol-level observation never moves a user: it

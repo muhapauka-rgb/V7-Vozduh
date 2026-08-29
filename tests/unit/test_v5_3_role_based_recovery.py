@@ -856,6 +856,7 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
         self.assertIn("fast_producer_batch_probe_count=1", second_state)
         self.assertEqual(len(receiver_lines), 1)
         self.assertIn("--shadow-trigger-class OTHER_PROFILE_REQUIRED_SERVICE_FAILURE", receiver_lines[0])
+        self.assertIn("--timeout 1", receiver_lines[0])
 
 
 if __name__ == "__main__":

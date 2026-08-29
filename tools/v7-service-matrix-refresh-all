@@ -6971,9 +6971,21 @@ def main() -> int:
             str(row.get("_prepared_services") or "")
             if args.prepared_hot_targets else service_subset
         )
+        # An exact profile/source shadow trigger is the independent Matrix
+        # confirmation which gates a live recovery.  It may use the same
+        # bounded fast verifier as prepared non-path checks; a timeout still
+        # yields no failure admission, so this never weakens fail-closed
+        # semantics.  Untargeted Matrix work keeps its ordinary timeout.
+        role_fast_timeout = bool(
+            args.prepared_hot_targets
+            or (shadow_trigger_requested and bool(row_services))
+        )
         row_timeout = (
             max(1, min(int(args.prepared_hot_target_timeout_sec or 1), 5))
-            if args.prepared_hot_targets else max(3, min(int(args.timeout), 30))
+            if args.prepared_hot_targets
+            else max(1, min(int(args.timeout), 5))
+            if role_fast_timeout
+            else max(3, min(int(args.timeout), 30))
         )
         return run_one(
             row["id"], row_timeout, args.checker,
@@ -6986,8 +6998,11 @@ def main() -> int:
                 and args.prepared_hot_target_service_class == "path"
             ),
             role_fast_timeout=(
-                args.prepared_hot_targets
-                and args.prepared_hot_target_service_class != "path"
+                role_fast_timeout
+                and (
+                    shadow_trigger_requested
+                    or args.prepared_hot_target_service_class != "path"
+                )
             ),
         )
 

@@ -114,6 +114,25 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn('/api/actions/operator-profile-egress-rebind', page)
         self.assertIn('OPERATOR_PROFILE_EGRESS_REBIND', page)
 
+    def test_inline_channel_choice_starts_governed_rebind_without_intermediate_drawer(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+        page = self.admin.html_page_v2()
+        start = page.index("async function switchV2UserEgressInline")
+        end = page.index("function v2PostEnableNextActions", start)
+        inline = page[start:end]
+
+        self.assertIn("setUserSwitchOptimistic(ip, egress, previous)", inline)
+        self.assertIn("/api/actions/operator-profile-egress-rebind", inline)
+        self.assertIn("OPERATOR_PROFILE_EGRESS_REBIND", inline)
+        self.assertIn("7000", inline)
+        self.assertNotIn("openGovernedMovementRequired", inline)
+        operation = source[
+            source.index("def operator_profile_egress_rebind"):
+            source.index("def autoswitch_read_only_plan_command")
+        ]
+        self.assertIn('timeout=7', operation)
+        self.assertIn('writer_deadline_exceeded_7s', operation)
+
     def test_priority_save_surfaces_rejection_and_reuses_written_preference_state(self):
         page = self.admin.html_page_v2()
         start = page.index("function saveUserPriorities")

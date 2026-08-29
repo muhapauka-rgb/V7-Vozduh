@@ -40,9 +40,21 @@ was changed.
   the existing one-user governed route writer.  It does not manually bypass the
   routing owner or substitute a target.
 
+## Operator channel choice simplification
+
+- Removed the obsolete intermediate approval drawer from the user-row channel
+  chooser. Selecting a channel now immediately updates the row to a bounded
+  "switching" state and starts the existing governed one-user rebind in the
+  background.
+- The rebind still uses `v7-user-switch` as the only route writer, verifies
+  assignment and route, and restores the displayed previous channel on failure.
+- The route writer has a seven-second deadline. A timeout is an explicit failed
+  transition, never a silently pending UI action. A later health failure of the
+  chosen source remains the existing automatic-recovery owner's responsibility.
+
 ## Verification
 
-- `python3 -m unittest tests.unit.test_admin_realtime_truth tests.unit.test_admin_service_preferences_lifecycle tests.contracts.endpoint_inventory_test` — 18 PASS.
+- `python3 -m unittest tests.unit.test_admin_realtime_truth tests.unit.test_admin_service_preferences_lifecycle tests.contracts.endpoint_inventory_test` — 19 PASS.
 - Python syntax compilation with a writable temporary bytecode cache — PASS.
 - Live `v7-admin-api.service` — active before deployment.
 

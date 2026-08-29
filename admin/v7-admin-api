@@ -16340,9 +16340,15 @@ def operator_profile_egress_rebind(data, actor):
             "V7_EXECUTION_CONTROL_FILE_HASH": operator_execution.sha256_file(SAFE_MODE_FILE),
         })
         try:
-            proc = subprocess.run(["v7-user-switch", user_ip, requested], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=35, check=False, env=env)
+            # Operator choice is one bounded, background-safe user action.
+            # It must not leave the UI waiting behind a long generic command
+            # timeout; a seven-second miss is a failed transition, not a
+            # reason to strand the operator in an indeterminate state.
+            proc = subprocess.run(["v7-user-switch", user_ip, requested], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=7, check=False, env=env)
             writer = {"rc": proc.returncode, "output": redact((proc.stdout or "")[-4000:])}
-        except (OSError, subprocess.TimeoutExpired) as exc:
+        except subprocess.TimeoutExpired:
+            writer = {"rc": 124, "output": "writer_deadline_exceeded_7s"}
+        except OSError as exc:
             writer = {"rc": 127, "output": f"writer_failed:{type(exc).__name__}"}
         current_rows = [row for row in parse_registry(STATE_DIR / "users.registry") if safe_user_ip(row.get("ip") or "") == user_ip]
         assign = read_text(STATE_DIR / f"user-{user_ip}.assign", "")
@@ -16365,9 +16371,11 @@ def operator_profile_egress_rebind(data, actor):
                     "V7_SWITCH_REASON": "operator_profile_egress_rebind_rollback",
                 })
                 try:
-                    rollback_proc = subprocess.run(["v7-user-switch", user_ip, source], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=35, check=False, env=rollback_env)
+                    rollback_proc = subprocess.run(["v7-user-switch", user_ip, source], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=7, check=False, env=rollback_env)
                     rollback = {"attempted": True, "rc": rollback_proc.returncode, "output": redact((rollback_proc.stdout or "")[-2000:])}
-                except (OSError, subprocess.TimeoutExpired) as exc:
+                except subprocess.TimeoutExpired:
+                    rollback = {"attempted": True, "rc": 124, "output": "rollback_deadline_exceeded_7s"}
+                except OSError as exc:
                     rollback = {"attempted": True, "rc": 127, "output": f"rollback_failed:{type(exc).__name__}"}
             audit_admin(actor, "admin_action_operator_profile_egress_rebind", f"ip={user_ip} source={source} target={requested} verification=fail rollback_attempted={str(rollback.get('attempted')).lower()}", object_type="user", object_id=user_ip, result="FAIL", severity="warning")
             return None, {"error": "operator_profile_rebind_verification_failed", "writer": writer, "verification": verification, "rollback": rollback}, 409
@@ -25225,6 +25233,28 @@ def html_page_v2():
     function clearUserSwitchOptimistic(ip='') {
       delete userSwitchPending[ip];
     }
+    function rollbackUserSwitchOptimistic(ip='') {
+      const pending = userSwitchPending[ip] || {};
+      const previous = pending.previous || '';
+      if (previous) {
+        (overview.registries?.users || []).forEach(u => {
+          if (String(u.ip || '') === String(ip)) u.current = previous;
+        });
+        const route = overview.proxy_runtime_user_routes?.[ip] || {};
+        if (overview.proxy_runtime_user_routes) {
+          overview.proxy_runtime_user_routes[ip] = {
+            ...route,
+            primary_egress: previous,
+            egress_ids: [previous],
+            outbound_tags: [`v7-egress-${previous}`],
+          };
+        }
+      }
+      clearUserSwitchOptimistic(ip);
+      renderOverview();
+      renderUsers();
+      renderChannels();
+    }
     function channelUsers(id='') { return users().filter(u => userEffectiveChannel(u) === id); }
     function egressUserCount(id) { return channelUsers(id).length; }
     function formatAge(sec) {
@@ -27475,8 +27505,8 @@ def html_page_v2():
           const verb = state === 'enabled' ? 'включён' : (state === 'maintenance' ? 'переведён в обслуживание' : 'выключен');
           return {
             title: `Канал ${verb}`,
-            detail: 'Состояние применено. Теперь проверьте карточку канала и, если нужно, переключите одного пользователя для теста.',
-            actions: `<button class="primary" onclick="openChannelDrawer('${egress}')">Открыть канал</button>${state === 'enabled' ? `<button class="ghost" onclick="openV2ManualSwitchPanel('${egress}')">Переключить одного</button>` : ''}`,
+            detail: 'Состояние применено. Назначение конкретного пользователя выполняется прямо в его строке — без промежуточного окна.',
+            actions: `<button class="primary" onclick="openChannelDrawer('${egress}')">Открыть канал</button>`,
           };
         }
         return {
@@ -27682,37 +27712,11 @@ def html_page_v2():
           <div class="result-actions"><button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Обновить сервисы</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>
         </div>`);
     }
-    function openGovernedMovementRequired(ip='', egress='') {
-      const row = userDecisionRow(ip) || {};
-      const target = egress || row.recommended_channel || '';
-      openCompactDrawer(ip || 'Move User', 'operator', [
-        drawerSection('Governed execution required', kvRows({
-          'Пользователь': ip,
-          'Цель': target,
-          'Прямое переключение': 'blocked',
-          'Execution authority': 'v7-users-autoswitch --apply --verify',
-          'Runtime mutation now': 'false',
-        })),
-        drawerSection('Required path', operatorDecisionChainHtml([
-          'recommendation',
-          'approval_packet',
-          'execution_time_recheck',
-          'restore_barrier',
-          'rollback_packet',
-          'governance',
-          'v7-users-autoswitch --apply --verify',
-          'verification',
-          'audit',
-          'closure',
-        ])),
-        drawerSection('Следующее действие', `<div class="detail-actions"><button class="primary" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Открыть approval preview</button><button class="ghost" onclick="showTab('operator');closeDrawer()">Operator Center</button></div><p class="muted">Этот экран больше не вызывает прямой user-switch. Движение возможно только через approval packet, restore barrier, rollback packet и governed apply.</p>`),
-      ].join(''), {size:'card'});
-    }
     async function switchV2UserEgress(ip) {
       const select = document.getElementById(`v2UserSwitch-${ip}`);
       const egress = select?.value || '';
       if (!ip || !egress) return;
-      openGovernedMovementRequired(ip, egress);
+      await switchV2UserEgressInline(ip, egress, userEffectiveChannel(userRowByIp(ip)) || '');
     }
     function closeInlineEgressMenu() {
       document.querySelectorAll('.inline-egress-menu').forEach(el => el.remove());
@@ -27740,31 +27744,37 @@ def html_page_v2():
     async function switchV2UserEgressInline(ip, egress, previous='') {
       closeInlineEgressMenu();
       if (!ip || !egress || egress === previous) return;
-      showToast('Нужен governed approval', `${ip}: ${egress}`, 'info');
-      openGovernedMovementRequired(ip, egress);
+      setUserSwitchOptimistic(ip, egress, previous);
+      showToast('Канал выбран', `${egress}. Переключаю пользователя в фоне, максимум 7 секунд.`, 'info');
+      const deadline = window.setTimeout(() => {
+        const pending = userSwitchPending[ip];
+        if (pending?.egress === egress) {
+          showToast('Переключение требует проверки', `${egress}: подтверждение не получено за 7 секунд.`, 'warn');
+        }
+      }, 7000);
+      try {
+        const d = await postJson('/api/actions/operator-profile-egress-rebind', {
+          ip, egress, confirm:'OPERATOR_PROFILE_EGRESS_REBIND'
+        });
+        if (!d._http_ok || d.error || d.status !== 'APPLIED_AND_VERIFIED') {
+          rollbackUserSwitchOptimistic(ip);
+          showToast('Канал не переключён', actionErrorReason(d), 'bad');
+          return;
+        }
+        clearUserSwitchOptimistic(ip);
+        renderUsers();
+        showToast('Канал переключён', `${egress}: маршрут подтверждён.`, 'ok');
+      } catch (error) {
+        rollbackUserSwitchOptimistic(ip);
+        showToast('Канал не переключён', error?.message || String(error), 'bad');
+      } finally {
+        window.clearTimeout(deadline);
+      }
     }
     function v2PostEnableNextActions(postEnable={}) {
       const egress = esc(postEnable.egress || '');
       if (!egress) return '';
-      return `<div class="detail-actions"><button class="primary" onclick="runV2ServiceMatrix('${egress}')">Обновить сервисы</button><button class="ghost" onclick="openV2ManualSwitchPanel('${egress}')">Подготовить governed movement</button><button class="ghost" onclick="runV2RebalanceDryRun()">Предпросмотр балансировки</button></div><p class="muted">Движение пользователя больше не выполняется прямым user-switch. Следующий шаг — approval packet, restore barrier, rollback packet и governed apply.</p>`;
-    }
-    function openV2ManualSwitchPanel(targetEgress='') {
-      const safeTarget = esc(targetEgress || '');
-      const rows = users().filter(u => String(u.enabled ?? '1') === '1' && u.ip);
-      if (!rows.length) {
-        openDrawer('Переключить одного пользователя', 'user', drawerSection('Переключить одного пользователя', '<p class="muted">Нет включённых пользователей для контрольного ручного переключения.</p>'));
-        return;
-      }
-      const options = rows.map(u => `<option value="${esc(u.ip)}">${esc(u.ip)} · сейчас ${esc(u.current || '')} · таблица ${esc(u.table || '')}</option>`).join('');
-      openDrawer('Переключить одного пользователя', 'user', [
-        drawerSection('Governed movement candidate', `<p class="muted">Выберите пользователя, чтобы открыть governed execution workflow. Прямое переключение здесь не выполняется.</p><label class="field-label" for="v2PostEnableUser">Пользователь</label><select id="v2PostEnableUser" style="width:100%;min-height:36px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:6px 10px">${options}</select><div class="detail-actions"><button class="primary" onclick="switchV2SelectedUserToEgress('${safeTarget}')">Открыть governed workflow для ${safeTarget}</button><button class="ghost" onclick="openChannelDrawer('${safeTarget}')">Открыть канал</button></div>`),
-      ].join(''));
-    }
-    async function switchV2SelectedUserToEgress(targetEgress='') {
-      const ip = document.getElementById('v2PostEnableUser')?.value || '';
-      const egress = targetEgress || '';
-      if (!ip || !egress) return;
-      openGovernedMovementRequired(ip, egress);
+      return `<div class="detail-actions"><button class="primary" onclick="runV2ServiceMatrix('${egress}')">Обновить сервисы</button><button class="ghost" onclick="runV2RebalanceDryRun()">Предпросмотр балансировки</button></div><p class="muted">Ручной выбор канала выполняется прямо в строке пользователя: выберите канал — V7 переключит его и подтвердит маршрут в фоне.</p>`;
     }
     async function runV2RebalanceDryRun() {
       openDrawer('Предпросмотр балансировки', 'routing', drawerSection('Предпросмотр балансировки', '<p class="muted">Запускаю предпросмотр без изменений. Пользователи не будут перенесены.</p>'));
@@ -30113,7 +30123,7 @@ def html_page_v2():
         ['Здоровье', s.healthOk, st.diagnose_reason || st.diagnose_detail || (s.healthOk ? 'Канал отвечает.' : 'Состояние канала не подтверждено.'), `openChannelTechnicalDiagnostics("${id}")`],
         ['Сервисы', s.matrixReady || !s.matrixTotal, matrixDetail, `openChannelTechnicalDiagnostics("${id}")`],
         ['Скорость', s.speedOk, speedDetail, `runV2EgressSpeed("${id}");closeDrawer()`],
-        ['Пользователи', true, `${s.usersCount} пользователей назначено. Ручное переключение двигает только одного выбранного пользователя.`, `openV2ManualSwitchPanel("${id}")`],
+        ['Пользователи', true, `${s.usersCount} пользователей назначено. Выберите нужный канал прямо в строке пользователя.`, `showTab('users');closeDrawer()`],
         ['Рабочий профиль', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Профиль готов.' : 'Проверьте карточку и логи канала.'), `openV2ChannelLogs("${id}")`],
         ['Логи', true, 'Недавние события канала и защищённые действия.', `openV2ChannelLogs("${id}")`],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
@@ -30281,7 +30291,6 @@ def html_page_v2():
           <div class="channel-control-actions">
             <button class="ghost" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button>
             <button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Обновить сервисы</button>
-            <button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button>
           </div>
           <div id="v2ChAutoswitchPlan_${key}" class="channel-autoswitch-result table-shell"></div>
         </section>`;

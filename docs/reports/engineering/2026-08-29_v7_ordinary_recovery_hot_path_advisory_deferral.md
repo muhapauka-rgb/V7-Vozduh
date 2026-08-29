@@ -100,3 +100,13 @@ distinct target. Its exact blockers are
 `no_exact_certification_identity_for_controlled_condition`, and
 `no_distinct_controlled_contract_admitted_target`. It made no policy, route,
 assignment, Candidate, Packet or Lease change.
+
+## Live Matrix observation after deployment
+
+The deployed `v7-health.service` is active and its existing role-based Matrix
+owner is running. Recent live HARD-role completions were 136–254 ms. This is
+the definitive local-failure detector relevant to the ordinary HARD recovery
+path. Telegram and prepared-target observation sometimes overrun their own
+one-second cadence on the two-vCPU host; they are background/proof roles and
+do not delay a completed HARD detector. No cadence, priority or scheduling
+change was made without an end-to-end owner-backed timing transaction.

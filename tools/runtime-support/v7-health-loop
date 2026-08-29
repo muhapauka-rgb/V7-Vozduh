@@ -445,6 +445,32 @@ def canonical_profile_service_failure_bindings(
     users = preferences.get("users") if isinstance(preferences, dict) else {}
     if not isinstance(items, dict) or not isinstance(users, dict):
         return []
+    # This handoff is the live ordinary-recovery wake, not a historical
+    # incident reconciler.  A past ``OBSERVED_*`` row must stay visible in
+    # Matrix, but may not repeatedly start the governed executor after the
+    # affected service has recovered or a user was later assigned elsewhere.
+    # The Matrix/Planner path applies the same ten-second live-evidence bound
+    # before admitting a move.  Keep this producer aligned with that law so a
+    # stale row cannot monopolise the 5 s service role and delay a new event.
+    max_observation_age_seconds = 10
+    now_epoch = time.time()
+
+    def has_current_observation(observed: dict[str, Any]) -> bool:
+        stamp = str(observed.get("observed_at") or observed.get("tested_at") or "")
+        # Isolated legacy/Polygon fixtures may have only monotonic T0.  The
+        # production Matrix always has an ISO timestamp, which is where this
+        # freshness law is enforceable.
+        if not stamp:
+            return True
+        try:
+            observed_epoch = datetime.fromisoformat(
+                stamp.replace("Z", "+00:00")
+            ).timestamp()
+        except (TypeError, ValueError, OverflowError):
+            return False
+        age = now_epoch - observed_epoch
+        return 0 <= age <= max_observation_age_seconds
+
     t0_values: list[int] = []
     affected: list[dict[str, Any]] = []
     for line in registry_lines:
@@ -478,6 +504,8 @@ def canonical_profile_service_failure_bindings(
             if not failed or not str(observed.get("failure_state") or "").startswith("OBSERVED_"):
                 continue
             if not str(observed.get("source_incident_id") or "") or not str(observed.get("failure_event_id") or ""):
+                continue
+            if not has_current_observation(observed):
                 continue
             try:
                 t0_ns = int(str(

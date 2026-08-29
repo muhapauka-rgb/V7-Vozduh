@@ -783,6 +783,44 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 matrix, users, preferences,
             ))
 
+    def test_profile_service_bindings_reject_stale_production_matrix_failure(self):
+        """A historical Matrix failure must not wake the bounded live executor."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            preferences = root / "service-preferences.json"
+            matrix.write_text(json.dumps({"items": {
+                "stale-source": {"services": {"google": {
+                    "ok": False, "status": "FAIL", "failure_state": "OBSERVED_CONTINUING",
+                    "source_incident_id": "old", "failure_event_id": "event-old",
+                    "observation_monotonic_ns": 100,
+                    "observed_at": "2000-01-01T00:00:00+00:00",
+                }}},
+                "fresh-source": {"services": {"telegram": {
+                    "ok": False, "status": "FAIL", "failure_state": "OBSERVED_NEW",
+                    "source_incident_id": "new", "failure_event_id": "event-new",
+                    "observation_monotonic_ns": 200,
+                    "observed_at": datetime.now(timezone.utc).isoformat(),
+                }}},
+            }}), encoding="utf-8")
+            users.write_text(
+                "ip=10.7.0.125 enabled=1 current=stale-source\n"
+                "ip=10.7.0.126 enabled=1 current=fresh-source\n",
+                encoding="utf-8",
+            )
+            preferences.write_text(json.dumps({"users": {
+                "10.7.0.125": {"services": ["google"]},
+                "10.7.0.126": {"services": ["telegram"]},
+            }}), encoding="utf-8")
+            bindings = HEALTH_LOOP_MODULE.canonical_profile_service_failure_bindings(
+                matrix, users, preferences,
+            )
+            self.assertEqual(len(bindings), 1)
+            self.assertEqual(bindings[0]["source_egress"], "fresh-source")
+            self.assertEqual(bindings[0]["t0_ns"], 200)
+            self.assertEqual(bindings[0]["affected_profile_count"], 1)
+
     def test_due_projection_preempts_disposable_slow_observation(self):
         """A slow probe cannot defer the bounded prepared-decision refresh."""
         probe_process = mock.Mock()

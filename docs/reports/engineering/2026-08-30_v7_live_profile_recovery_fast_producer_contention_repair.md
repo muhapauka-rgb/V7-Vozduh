@@ -115,3 +115,47 @@ the live V7 health caller. Observe whether V7 itself creates a fresh
 source-bounded recovery transaction, selects a ready target, and reaches
 required-service S11 inside the seven-second contract. No manual client or
 route action is allowed.
+
+## Fourth live finding and repair
+
+The next live observation showed a separate scheduling defect: the health
+loop's `other_required` consumer joined every historical `OBSERVED_*` Matrix
+row to the current user registry, without checking its wall-clock freshness.
+Those old rows repeatedly launched the existing governed executor and held the
+five-second service role for 54--57 seconds. This is invalid recovery work and
+can delay a genuinely fresh profile failure.
+
+The repair keeps historical Matrix evidence intact but excludes rows older
+than ten seconds from the *live handoff only*. The ten-second bound is already
+the Planner's required-service freshness bound. Legacy isolated fixtures with
+no ISO wall-clock timestamp retain their existing behavior; production Matrix
+rows always carry that timestamp. No user, source, target, Authority, Planner,
+route writer, timer, or Matrix state was changed.
+
+## Verification for the fourth repair
+
+- New regression: a stale production Matrix row is ignored while a concurrent
+  fresh exact failure is handed to the existing live consumer.
+- Health-loop focused suite and the autoswitch policy suite pass after the
+  change.
+
+## Live observation after the user-operated assignment test
+
+At `2026-08-30T02:02+03:00`, the current assignments were Lisa on `awg0`,
+Chuck on `vless`, and Chuck2 on `wireguard-1779454504-c43409`. Chuck's declared
+profile is `google`, `google_auth`, `instagram`, `telegram`, and `youtube`.
+The latest bounded profile-probe batch reported no current failed service for
+that VLESS profile. A nearly contemporaneous Matrix row recorded an Instagram
+timeout, so the two observations are inconsistent rather than a safe recovery
+fact. The system must not move a customer on the stale/contradictory row; a
+new exact Matrix confirmation is required. This is not credited as a recovery
+success or failure sample.
+
+## Exact next step (updated)
+
+Publish and safely deploy the fourth generic repair. The normal health caller
+then remains the sole source of action. On the next fresh, unambiguous
+profile-required service failure for either user-operated assignment, it must
+discover the affected scope, choose the target itself, apply the governed
+change, and produce exact required-service S11 within seven seconds. Any
+longer automatic attempt remains visible as a failed SLO sample.

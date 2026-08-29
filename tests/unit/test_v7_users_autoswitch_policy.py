@@ -2030,7 +2030,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "ct_m0f_standing_validation_transaction_guard",
                 return_value={"ok": True},
             ), mock.patch.object(
-                planner, "_open_n10_execution_control_window", return_value=n10_window,
+                planner, "_open_packet_bound_execution_control_window", return_value=n10_window,
             ), mock.patch.object(
                 planner, "_execution_control_decision", return_value=allowed,
             ), mock.patch.object(
@@ -9712,7 +9712,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(result["reason"], "n10_packet_bound_restore_barrier_required")
         self.assertEqual(result["user_movement"], 0)
 
-    def test_n10_packet_opens_and_finalizes_exact_execution_control_window(self):
+    def test_packet_bound_operation_opens_and_finalizes_exact_execution_control_window(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             control_file = root / "safe-mode.json"
@@ -9728,7 +9728,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 approved_source_bundle_hash="",
                 approved_snapshot_bundle_hash="",
             )
-            planner._n10_execution_control_window = {}
+            planner._operation_execution_control_window = {}
             plan = {
                 "safety": {
                     "restore_barrier": {
@@ -9746,11 +9746,14 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "snapshot_bundle_hash": "snapshot-binding",
                 },
             ):
-                window = planner._open_n10_execution_control_window(
+                window = planner._open_packet_bound_execution_control_window(
                     plan,
                     operation_id="govexec_unit",
                     selected_move_hash="selected-unit",
                     action_class="BOUNDED_REBALANCE",
+                    require_restore_barrier=True,
+                    actor="unit-test",
+                    reason="packet-bound-unit-test",
                 )
             closed = operator_execution.autonomous_execution_control_state(control_file)
             finalization = operator_execution.finalize_autonomous_execution_control_window(
@@ -9767,6 +9770,52 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(closed["scope"], "operation")
         self.assertTrue(finalization["final_open"])
         self.assertEqual(finalization["after"]["state"], "OPEN")
+
+    def test_ordinary_service_failure_window_needs_exact_operation_binding_not_n10_barrier(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            control_file = root / "safe-mode.json"
+            operator_execution.write_json_atomic(
+                control_file,
+                operator_execution.build_autonomous_execution_control_state(
+                    True, actor="unit-test", reason="idle_fail_closed"
+                ),
+            )
+            planner = object.__new__(self.tool.AutoswitchPlanner)
+            planner.args = SimpleNamespace(execution_control_file=str(control_file))
+            planner._operation_execution_control_window = {}
+            with mock.patch.object(
+                planner,
+                "_operation_scoped_source_binding",
+                return_value={
+                    "status": "BOUND",
+                    "source_bundle_hash": "ordinary-source-binding",
+                    "snapshot_bundle_hash": "ordinary-snapshot-binding",
+                },
+            ):
+                window = planner._open_packet_bound_execution_control_window(
+                    {"safety": {}},
+                    operation_id="ordinary-failure-operation",
+                    selected_move_hash="ordinary-selected-move",
+                    action_class="EMERGENCY_FAILOVER",
+                    require_restore_barrier=False,
+                    actor="ordinary-service-failure-test",
+                    reason="ordinary_service_failure_packet_bound_apply",
+                )
+            closed = operator_execution.autonomous_execution_control_state(control_file)
+            finalization = operator_execution.finalize_autonomous_execution_control_window(
+                control_file,
+                expected_generation=window["control"]["generation"],
+                operation_id="ordinary-failure-operation",
+                actor="unit-test",
+                reason="terminal",
+            )
+
+        self.assertTrue(window["ok"], window)
+        self.assertTrue(window["decision"]["allowed_forward_mutation"])
+        self.assertEqual(closed["scope"], "operation")
+        self.assertEqual(closed["action_class"], "EMERGENCY_FAILOVER")
+        self.assertTrue(finalization["final_open"])
 
     def test_apply_uses_valid_approved_lock_moves_when_fresh_plan_selected_moves_empty(self):
         with tempfile.TemporaryDirectory() as tmp:

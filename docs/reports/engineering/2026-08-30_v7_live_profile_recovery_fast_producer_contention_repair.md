@@ -297,3 +297,46 @@ Deploy this repair and return to the normal health caller. The next fresh
 Matrix confirmation of either user-operated incompatible placement must be
 captured immediately by the existing automatic chain; its own governed
 executor, not Engineering, must select and apply any safe replacement.
+
+## Ninth live finding and repair
+
+The next normal VLESS Matrix cycle proved that the passive repair had worked:
+V7 itself identified the one affected ordinary identity, selected `awg3`,
+created the governed operation, and invoked the existing `v7-users-autoswitch`
+apply path. It still did not write a route. The exact reason was the last
+execution-control gate: the global control file correctly starts `OPEN`
+(fail closed), but the ordinary service-failure path never converted its
+already Packet/Lease-bound operation into the existing short, operation-scoped
+`CLOSED` control window. The command therefore ran only far enough to record
+a safe stop and restore-barrier clearance.
+
+The repair generalizes that existing control-window owner. Both N10 and an
+ordinary Matrix-confirmed service failure now use one function that opens a
+window only after the exact operation binding is current. Ordinary failure
+recovery additionally verifies the source and snapshot hashes carried by its
+existing governed operation. N10 retains its Restore Barrier requirement.
+The normal finalizer restores the global `OPEN` fail-closed state for either
+path, including an unsuccessful terminal result.
+
+No source, target, user, Matrix generation, Authority, Candidate, Packet,
+Lease, route, or assignment was created or advanced by Engineering.
+
+## Verification for the ninth repair
+
+- The full `tests.unit.test_v7_users_autoswitch_policy` suite passed:
+  225 tests, 0 failures.
+- New focused regression proves that a Matrix ordinary service-failure
+  operation can open only one exact operation-bound control window without
+  requiring N10's separate Restore Barrier.
+- Existing regression proves global `OPEN` still denies forward switching
+  when there is no exact bound operation.
+- Existing CT-M0F reservation and scoped-binding safety regressions pass.
+
+## Exact next step (current)
+
+Publish and safely deploy the ninth repair. Then return control only to the
+normal `v7-health.service` caller. A new fresh VLESS required-service failure
+must cause V7 itself to select, govern, apply and verify the recovery. Record
+the real Matrix T0, automatic decision, operation, route visibility and S11;
+the seven-second requirement remains unproven until that complete automatic
+chain succeeds.

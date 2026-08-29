@@ -84,3 +84,31 @@ is created.
   profile-service failure to measure the full T0→S11 path.  Codex must not
   recreate or manually advance that incident.  Acceptance remains `<=7s`;
   `>8s` is a failure and requires further generic diagnosis.
+
+## Deployment and final live observation
+
+The second repair was published as `fbc8d59f516b5744539a248593f76464d8b176f3`
+and deployed by the existing safe deployer as
+`deploy-z8-14-Updatesystem-fbc8d59-20260830T002034`.  Runtime verification
+confirmed the deployed Matrix consumer hash
+`1a72661f71d...`, `v7-health.service=active`, and
+`v7-admin-api.service=active`.
+
+No user was moved during deployment.  Chuck2 remained on
+`wireguard-1779454504-c43409`, the channel selected by the earlier live V7
+recovery, and its four declared services stayed available.  This was an
+observation only: Codex did not invoke the route writer or any user-specific
+recovery command.
+
+During the follow-up live check, `10.7.0.5` briefly looked affected because
+its required YouTube check had failed on the same WireGuard source.  The next
+fresh Matrix observation at `2026-08-29T21:27:52Z` marked that service
+`RECOVERY_OBSERVED` and `OK`; the current failed-source selector consequently
+returned no source.  V7 correctly made no new assignment: moving a user after
+the required service has recovered would be unnecessary churn, not recovery.
+
+The new source-specific path is therefore deployed and the live Chuck2
+functional recovery is proven.  A new, naturally occurring profile-required
+failure is still required to measure this deployed path against the seven
+second law.  The previous 150-second event remains a failed latency sample and
+is not reused as evidence of the new version.

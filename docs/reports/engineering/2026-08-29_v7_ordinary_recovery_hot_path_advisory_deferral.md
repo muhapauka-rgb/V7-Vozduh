@@ -91,3 +91,12 @@ source, identity and one-use Authority through the existing certification
 lifecycle. Only after that can Polygon produce a valid `T_FIRST_VALID_FAILURE`
 to last-member S11 measurement. Until then the seven-second target is a
 deployed binding requirement, not a certified observed result.
+
+A second read-only pass through the current automatic source-selection owner
+confirmed the same boundary without relying on the preflight defaults:
+`eligible_source_count=0`, `eligible_identity_count=0`, and no admitted
+distinct target. Its exact blockers are
+`no_healthy_isolated_controlled_source_with_group_aligned_certification_identity`,
+`no_exact_certification_identity_for_controlled_condition`, and
+`no_distinct_controlled_contract_admitted_target`. It made no policy, route,
+assignment, Candidate, Packet or Lease change.

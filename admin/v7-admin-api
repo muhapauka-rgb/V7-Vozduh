@@ -26002,8 +26002,19 @@ def html_page_v2():
       const selected = Array.from(document.querySelectorAll('[data-priority-service]:checked')).map(el => el.dataset.priorityService);
       const services = priorityServicesFromGroups(selected);
       const d = await postJson('/api/actions/service-preferences-update', {enabled:true, ip, services});
+      if (!d._http_ok || d.error) {
+        showToast('Приоритеты не сохранены', actionErrorReason(d), 'bad');
+        return;
+      }
       if (d.overview) overview = d.overview;
-      showToast(`Приоритеты сохранены для ${ip}`, 'ok');
+      // Use the response that just wrote canonical state rather than an older
+      // overview snapshot.  The latter made a successful save appear lost
+      // until a later full refresh.
+      if (d.preferences) overview.service_preferences = d.preferences;
+      const labels = USER_PRIORITY_SERVICE_GROUPS
+        .filter(group => selected.includes(group.id))
+        .map(group => group.label);
+      showToast('Приоритеты сохранены', labels.length ? labels.join(', ') : 'Без обязательных сервисов', 'ok');
       openUserPriorities(ip);
       renderAll();
     }

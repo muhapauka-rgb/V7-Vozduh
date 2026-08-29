@@ -114,6 +114,16 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn('/api/actions/operator-profile-egress-rebind', page)
         self.assertIn('OPERATOR_PROFILE_EGRESS_REBIND', page)
 
+    def test_priority_save_surfaces_rejection_and_reuses_written_preference_state(self):
+        page = self.admin.html_page_v2()
+        start = page.index("async function saveUserPriorities")
+        end = page.index("function userTableColumns", start)
+        save = page[start:end]
+
+        self.assertIn("if (!d._http_ok || d.error)", save)
+        self.assertIn("showToast('Приоритеты не сохранены'", save)
+        self.assertIn("overview.service_preferences = d.preferences", save)
+
     def test_unchanged_karing_reissue_does_not_restart_public_runtime(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

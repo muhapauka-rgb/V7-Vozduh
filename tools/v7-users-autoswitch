@@ -2220,6 +2220,84 @@ def normalize_service_ids(values: Any) -> list[str]:
     return result
 
 
+def live_profile_failure_priority(
+    *,
+    users: list["User"],
+    matrix: dict[str, Any],
+    service_preferences: dict[str, Any],
+    source: str,
+    explicitly_required_services: Any = None,
+) -> tuple[int, int]:
+    """Rank a source by Matrix failures that affect currently assigned profiles.
+
+    This is read-only selection inside the existing passive-event Planner.  A
+    failure that no currently assigned ordinary profile requires must not
+    overtake a newer exact profile failure solely because its source has a
+    larger historical cohort.  Matrix, users.registry, and
+    service-preferences remain the respective owners.
+    """
+    items = matrix.get("items") if isinstance(matrix, dict) else {}
+    source_row = items.get(str(source)) if isinstance(items, dict) else {}
+    services = (
+        source_row.get("services")
+        if isinstance(source_row, dict)
+        and isinstance(source_row.get("services"), dict)
+        else {}
+    )
+    preferences = (
+        service_preferences.get("users")
+        if isinstance(service_preferences, dict)
+        and isinstance(service_preferences.get("users"), dict)
+        else {}
+    )
+    baseline = normalize_service_ids(explicitly_required_services or [])
+    affected_profiles = 0
+    newest_t0_ns = 0
+    for user in users:
+        if (
+            not bool(getattr(user, "enabled", False))
+            or str(getattr(user, "current", "") or "") != str(source)
+            or bool_value((getattr(user, "raw", {}) or {}).get("certification_user"))
+        ):
+            continue
+        preference = preferences.get(str(getattr(user, "ip", "") or ""))
+        preference = preference if isinstance(preference, dict) else {}
+        required = normalize_service_ids(
+            list(baseline)
+            + list(
+                preference.get("required_services")
+                if "required_services" in preference
+                else preference.get("services") or []
+            )
+        )
+        matching_t0s: list[int] = []
+        for service_id in required:
+            evidence = services.get(service_id)
+            if not isinstance(evidence, dict):
+                continue
+            failed = (
+                evidence.get("ok") is False
+                or str(evidence.get("status") or "").upper()
+                in {"FAIL", "DOWN", "ERROR"}
+            )
+            observed = str(evidence.get("failure_state") or "").startswith("OBSERVED")
+            if not (failed and observed and str(evidence.get("source_incident_id") or "")):
+                continue
+            try:
+                t0_ns = int(str(
+                    evidence.get("confirmed_hard_failure_monotonic_ns")
+                    or evidence.get("observation_monotonic_ns")
+                    or "0"
+                ))
+            except (TypeError, ValueError):
+                t0_ns = 0
+            matching_t0s.append(t0_ns)
+        if matching_t0s:
+            affected_profiles += 1
+            newest_t0_ns = max(newest_t0_ns, max(matching_t0s))
+    return affected_profiles, newest_t0_ns
+
+
 def user_priority_services_from_pref(row: Any) -> list[str]:
     if isinstance(row, dict) and "services" in row:
         services = normalize_service_ids(row.get("services") or [])
@@ -20136,12 +20214,43 @@ class AutoswitchPlanner:
                     str(candidate_incident.get("incident_state") or "")
                     == "INTENT_CLOSED"
                 )
+                # Several sources can be unhealthy simultaneously.  The
+                # passive-event owner still executes one bounded transaction
+                # at a time, so select the newest *profile-impacting* Matrix
+                # failure first.  This prevents a continuing broad source
+                # incident from starving a later failure of a service that a
+                # current user's profile explicitly requires.  The normal
+                # source/target, Authority and governed execution checks all
+                # remain downstream and unchanged.
+                profile_affected_count, profile_failure_t0_ns = (
+                    live_profile_failure_priority(
+                        users=list(getattr(self, "users", []) or []),
+                        matrix=(
+                            getattr(self, "matrix", {})
+                            if isinstance(getattr(self, "matrix", {}), dict)
+                            else {}
+                        ),
+                        service_preferences=(
+                            getattr(self, "service_prefs", {})
+                            if isinstance(getattr(self, "service_prefs", {}), dict)
+                            else {}
+                        ),
+                        source=str(row.get("channel") or ""),
+                        explicitly_required_services=(
+                            self._explicit_required_services()
+                            if callable(getattr(self, "_explicit_required_services", None))
+                            else []
+                        ),
+                    )
+                )
                 candidates.append((
                     # Never let a larger historical/closed cohort outrank a
                     # newer live passive generation.  A zero-scope current
                     # observation still cannot starve an older *open* cohort,
                     # because only unresolved live scope receives this rank.
                     int(candidate_unresolved_count > 0 and not candidate_intent_closed),
+                    int(profile_affected_count > 0),
+                    profile_failure_t0_ns,
                     str(row.get("observed_at") or row.get("created_at") or ""),
                     candidate_scope_count,
                     obligation_id,
@@ -20162,9 +20271,17 @@ class AutoswitchPlanner:
                 "pre_obligation_scope_reconciliation": pre_obligation_scope_reconciliation,
                 "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False},
             }
-        _has_live_scope, _observed, _scope_count, obligation_id, closure = sorted(
+        (
+            _has_live_scope,
+            _has_profile_impact,
+            _profile_failure_t0_ns,
+            _observed,
+            _scope_count,
+            obligation_id,
+            closure,
+        ) = sorted(
             candidates,
-            key=lambda row: (row[0], row[1], row[2], row[3]),
+            key=lambda row: (row[0], row[1], row[2], row[3], row[4], row[5]),
             reverse=True,
         )[0]
         obligation_build_started_ns = time.monotonic_ns()

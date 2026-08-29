@@ -53,6 +53,47 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(rows[0]["seq"], 505)
         self.assertEqual(rows[-1]["seq"], 2504)
 
+    def test_profile_failure_priority_prefers_newer_required_service_failure(self):
+        users = [
+            self.autoswitch.User(
+                ip="10.7.0.127", current="vless", enabled=True,
+            ),
+            self.autoswitch.User(
+                ip="10.7.0.128", current="awg0", enabled=True,
+            ),
+        ]
+        matrix = {"items": {
+            "vless": {"services": {"google": {
+                "ok": False,
+                "failure_state": "OBSERVED_NEW",
+                "source_incident_id": "vless-current",
+                "observation_monotonic_ns": 2_000,
+            }}},
+            "awg0": {"services": {"telegram": {
+                "ok": False,
+                "failure_state": "OBSERVED_CONTINUING",
+                "source_incident_id": "awg0-older",
+                "observation_monotonic_ns": 1_000,
+            }}},
+        }}
+        preferences = {"users": {
+            "10.7.0.127": {"services": ["google"]},
+            "10.7.0.128": {"services": ["telegram"]},
+        }}
+
+        vless = self.autoswitch.live_profile_failure_priority(
+            users=users, matrix=matrix, service_preferences=preferences,
+            source="vless",
+        )
+        awg0 = self.autoswitch.live_profile_failure_priority(
+            users=users, matrix=matrix, service_preferences=preferences,
+            source="awg0",
+        )
+
+        self.assertEqual(vless, (1, 2_000))
+        self.assertEqual(awg0, (1, 1_000))
+        self.assertGreater(vless[1], awg0[1])
+
     def test_exact_client_probe_owner_is_loaded_once_in_process(self):
         previous = self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE
         self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE = None

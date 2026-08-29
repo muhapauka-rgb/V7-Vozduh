@@ -65,9 +65,13 @@ by its existing dedicated sentinel.
 
 ## Deployment and next action
 
-The repair is local until it passes the existing GitHub publication and
-`tools/v7-safe-deploy` gates.  It must not be deployed by bypassing those
-owners.  After a lawful deployment, the next action is only observation: the
-normal V7 health caller must itself see the current VLESS HTTP failure, obtain
-Matrix confirmation, select any lawful target and complete required-service
-S11 for Chuck2.  Any manual movement would be invalid acceptance evidence.
+The repair is committed locally as `747c55c5`.  The existing safe-deploy
+allowlist passed and the local workspace is aligned, but its final verdict is
+`NO-GO`: GitHub truth is unreadable and the canonical remote branch cannot be
+independently verified.  It must not be deployed by bypassing those owners.
+
+After GitHub becomes readable and the normal safe-deploy gate passes, the next
+action is only observation: the normal V7 health caller must itself see the
+current VLESS HTTP failure, obtain Matrix confirmation, select any lawful
+target and complete required-service S11 for Chuck2.  Any manual movement
+would be invalid acceptance evidence.

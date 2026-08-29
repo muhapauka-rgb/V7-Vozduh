@@ -125,6 +125,13 @@ otherwise it preserves the old confirmation path. This preserves Matrix,
 Authority, Candidate/Packet/Lease/Barrier and S11 ownership while removing no
 safety check and no ordinary-user route action.
 
+Final profiling of that caller showed a further mechanical cost: it parsed the
+same 310-KB canonical Matrix file once for every active profile while the host
+was contended. The fast producer now builds one temporary, process-local index
+of fresh identified Matrix failures and reuses it for its current batch.
+Historical failures are deliberately absent. The index is discarded before
+exit and creates neither durable state nor a second health owner.
+
 Next: deploy this bounded detector correction, verify its ordinary-role timing
 in Runtime, then return control to the normal V7 caller for the automatic
 Chuck2-equivalent seven-second proof. No manual user movement is admissible.

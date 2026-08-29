@@ -463,7 +463,7 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertFalse(shadow_log.exists())
             self.assertTrue(wake_log.exists())
 
-    def test_fast_producer_defers_stale_matrix_revalidation_without_trigger(self):
+    def test_fast_producer_ignores_stale_matrix_revalidation_without_trigger(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             bin_dir = root / "bin"
@@ -513,7 +513,7 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             state_text = (state / "fast.state").read_text(encoding="utf-8")
-            self.assertIn("profile_targeted_revalidation=DEFERRED_STALE_MATRIX", state_text)
+            self.assertNotIn("profile_targeted_revalidation=USED", state_text)
             self.assertNotIn("profile_trigger_status=PASS", state_text)
             self.assertFalse(receiver_log.exists())
 

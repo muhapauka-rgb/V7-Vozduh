@@ -37,6 +37,7 @@ FAST_PRODUCER_MAX_INFLIGHT=0
 FAST_PRODUCER_STARTED_NS="0"
 FAST_PRODUCER_COMPLETION_MS=()
 PROFILE_SERVICE_PROBE_TIMEOUT_ARGS=(--timeout 5)
+FAST_MATRIX_FRESH_FAILURES_FILE=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -601,6 +602,14 @@ profile_rows_for_source() {
 matrix_failed_services_for_source() {
   source_id="$1"
   services="$2"
+  if [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ] && [ -n "$FAST_MATRIX_FRESH_FAILURES_FILE" ] && [ -r "$FAST_MATRIX_FRESH_FAILURES_FILE" ]; then
+    awk -F '\t' -v source="$source_id" -v services="$services" '
+      BEGIN { split(services, wanted, ","); for (i in wanted) required[wanted[i]] = 1 }
+      $1 == source && required[$2] { found[$2] = 1 }
+      END { for (service in found) print service ":MATRIX_CONFIRMED_FAILURE" }
+    ' "$FAST_MATRIX_FRESH_FAILURES_FILE" | sort | paste -sd, -
+    return 0
+  fi
   python3 - "$STATE_DIR/service-matrix.json" "$source_id" "$services" <<'PY'
 import json
 import sys
@@ -651,6 +660,13 @@ PY
 matrix_stale_failed_services_for_source() {
   source_id="$1"
   services="$2"
+  # The FAST producer uses one precomputed current-failure index below.  It
+  # deliberately does not parse historical Matrix rows per profile: stale
+  # evidence cannot authorize a recovery and is reconciled by the normal
+  # Matrix roles outside this deadline-critical caller.
+  if [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ]; then
+    return 0
+  fi
   python3 - "$STATE_DIR/service-matrix.json" "$source_id" "$services" <<'PY'
 import json
 import sys
@@ -1242,6 +1258,46 @@ build_ready_fast_contract_workset() {
   done < "$PROFILE_CONTRACTS_FILE"
 }
 
+build_fast_matrix_fresh_failure_index() {
+  FAST_MATRIX_FRESH_FAILURES_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-fast-matrix-failures.XXXXXX")"
+  python3 - "$STATE_DIR/service-matrix.json" > "$FAST_MATRIX_FRESH_FAILURES_FILE" <<'PY'
+import json
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+try:
+    items = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")).get("items") or {}
+except (OSError, ValueError, TypeError):
+    items = {}
+now = time.time()
+for source_id, source in items.items():
+    if not isinstance(source, dict):
+        continue
+    for service_id, row in (source.get("services") or {}).items():
+        if not isinstance(row, dict):
+            continue
+        observed = str(row.get("observed_at") or row.get("tested_at") or "")
+        try:
+            at = datetime.fromisoformat(observed.replace("Z", "+00:00"))
+            if at.tzinfo is None:
+                at = at.replace(tzinfo=timezone.utc)
+            age = now - at.timestamp()
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if age < 0 or age > 120:
+            continue
+        if not str(row.get("source_incident_id") or ""):
+            continue
+        status = str(row.get("status") or "").upper()
+        severity = str(row.get("severity") or "").upper()
+        failure_state = str(row.get("failure_state") or "").upper()
+        if status == "FAIL" or severity == "FAIL" or failure_state.startswith("OBSERVED_"):
+            print(f"{source_id}\t{service_id}")
+PY
+}
+
 run_lightweight_batch_profile_suspicion_cycle() {
   work_dir="$(mktemp -d "${TMPDIR:-/tmp}/v7-fast-batch.XXXXXX")"
   work_file="$work_dir/active-contract-set.tsv"
@@ -1252,6 +1308,7 @@ run_lightweight_batch_profile_suspicion_cycle() {
     rm -rf "$work_dir"
     return 0
   fi
+  build_fast_matrix_fresh_failure_index
   if ! "$PROFILE_SERVICE_SUSPICION_COMMAND" __batch__ all \
       --state-dir "$STATE_DIR" \
       --batch-lightweight-contracts "$work_file" \
@@ -1313,6 +1370,8 @@ PY
   printf 'fast_producer_batch_status=PASS\n' >> "$TMP"
   printf 'fast_producer_batch_probe_count=%s\n' "$batch_probe_count" >> "$TMP"
   rm -rf "$work_dir"
+  rm -f "$FAST_MATRIX_FRESH_FAILURES_FILE"
+  FAST_MATRIX_FRESH_FAILURES_FILE=""
 }
 
 run_parallel_active_profile_suspicion_cycle() {
@@ -1426,11 +1485,11 @@ if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
   build_active_profile_contracts > "$PROFILE_CONTRACTS_FILE"
   PROFILE_SERVICE_CONTRACT_COUNT="$(wc -l < "$PROFILE_CONTRACTS_FILE" | tr -d ' ')"
   PROFILE_SERVICE_ACTIVE_SOURCE_COUNT="$(cut -f1 "$PROFILE_CONTRACTS_FILE" | uniq | wc -l | tr -d ' ')"
-  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"' EXIT
+  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"; test -z "$FAST_MATRIX_FRESH_FAILURES_FILE" || rm -f "$FAST_MATRIX_FRESH_FAILURES_FILE"' EXIT
 elif [ "$HARD_SIGNAL_ONLY" = "1" ]; then
   ACTIVE_SOURCE_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-active-sources.XXXXXX")"
   build_active_hard_rows > "$ACTIVE_SOURCE_FILE"
-  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"' EXIT
+  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"; test -z "$FAST_MATRIX_FRESH_FAILURES_FILE" || rm -f "$FAST_MATRIX_FRESH_FAILURES_FILE"' EXIT
 fi
 
 : > "$TMP"

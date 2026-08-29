@@ -3529,6 +3529,73 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["selected_moves"][0]["selected_move_hash"], plan["operation"]["selected_move_hash"])
             self.assertEqual(plan["selected_moves"][0]["selected_move_index"], 0)
 
+    def test_profile_persistent_failure_is_a_complete_ordinary_recovery_trigger(self):
+        """One fresh, persistent chosen-service failure may recover a user."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={
+                    "instagram": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "score": 0,
+                        "consecutive_failures": 3,
+                    },
+                },
+            )
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"]["services"]["instagram"]["tested_at"] = self.tool.now_iso()
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (root / "state" / "service-preferences.json").write_text(
+                json.dumps({"users": {"10.0.0.2": {"services": ["instagram"]}}}),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            plan = planner.plan()
+            evidence = planner._ordinary_service_failure_move_evidence(
+                plan["selected_moves"][0]
+            )
+
+        self.assertTrue(evidence["ok"], evidence)
+        self.assertTrue(evidence["profile_service_failure_confirmed"])
+        self.assertEqual(evidence["profile_required_services"], ["instagram"])
+        self.assertFalse(evidence["current_channel_failure"].get("confirmed"))
+
+    def test_profile_required_target_with_stale_truth_is_not_admitted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={
+                    "instagram": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "score": 0,
+                        "consecutive_failures": 3,
+                    },
+                },
+                service_signals={
+                    "service_truth_stale_seconds": 1,
+                    "service_truth_expired_seconds": 2,
+                },
+            )
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["vless"]["services"]["instagram"]["tested_at"] = "2000-01-01T00:00:00+00:00"
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (root / "state" / "service-preferences.json").write_text(
+                json.dumps({"users": {"10.0.0.2": {"services": ["instagram"]}}}),
+                encoding="utf-8",
+            )
+            plan = self.plan(root)
+
+        target = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "vless")
+        self.assertFalse(target["eligible"])
+        self.assertIn("service_instagram_truth_stale", target["blocked"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+
     def test_source_egress_limits_selected_moves_to_current_channel(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

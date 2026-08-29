@@ -9906,16 +9906,16 @@ class AutoswitchPlanner:
             controlled_failure = self._controlled_certification_failure_context(current_id, user_ip=user_ip)
             if bool_value(controlled_failure.get("confirmed")):
                 current_failure = controlled_failure
-        if not bool_value(current_failure.get("confirmed")):
-            blockers.append("fresh_channel_failure_evidence_required")
-        if current and bool_value(current.get("eligible")):
-            blockers.append("current_candidate_still_eligible")
-        if not target or not bool_value(target.get("eligible")):
-            blockers.append("safe_target_required")
-        target_load = target.get("load") if isinstance(target.get("load"), dict) else {}
-        if str(target_load.get("status") or "OK") in {"HARD_FULL", "FAILOVER_FULL"}:
-            blockers.append("target_load_gate_failed")
-        required_services = normalize_service_ids(move.get("important_services") or [])
+        # A profile's explicitly selected services are the ordinary recovery
+        # contract. Ranking may inspect additional best-effort services, but
+        # an independently confirmed persistent failure of one required
+        # service is enough to recover that profile. It must not be promoted
+        # into a claim that the whole channel has failed.
+        required_services = normalize_service_ids(
+            move.get("profile_required_services")
+            if "profile_required_services" in move
+            else move.get("important_services") or []
+        )
         current_service = current.get("service_suitability") if isinstance(current.get("service_suitability"), dict) else {}
         target_service = target.get("service_suitability") if isinstance(target.get("service_suitability"), dict) else {}
         current_failures: list[dict[str, Any]] = []
@@ -9926,6 +9926,24 @@ class AutoswitchPlanner:
             truth_class = str(row.get("truth_class") or "")
             if row.get("available") is False or truth_class == "PERSISTENT_FAIL" or status in {"DOWN", "FAIL", "ERROR", "NOT_STARTED"}:
                 current_failures.append(row)
+        fresh_profile_failure = any(
+            str(row.get("truth_class") or "") == "PERSISTENT_FAIL"
+            and str(((row.get("freshness") or {}).get("state") or "")) in {"FRESH", "AGING"}
+            for row in current_failures
+        )
+        source_failure_confirmed = (
+            bool_value(current_failure.get("confirmed"))
+            or fresh_profile_failure
+        )
+        if not source_failure_confirmed:
+            blockers.append("fresh_profile_or_channel_failure_evidence_required")
+        if current and bool_value(current.get("eligible")) and not source_failure_confirmed:
+            blockers.append("current_candidate_still_eligible")
+        if not target or not bool_value(target.get("eligible")):
+            blockers.append("safe_target_required")
+        target_load = target.get("load") if isinstance(target.get("load"), dict) else {}
+        if str(target_load.get("status") or "OK") in {"HARD_FULL", "FAILOVER_FULL"}:
+            blockers.append("target_load_gate_failed")
         if not current_failures and not bool_value(current_failure.get("confirmed")):
             blockers.append("required_service_failure_required")
         stale_failures = [
@@ -9940,6 +9958,8 @@ class AutoswitchPlanner:
             "ok": not blockers,
             "blockers": sorted(set(blockers)),
             "current_channel_failure": current_failure,
+            "profile_required_services": required_services,
+            "profile_service_failure_confirmed": fresh_profile_failure,
             "current_failures": [
                 {"service": row.get("service"), "status": row.get("status"), "truth_class": row.get("truth_class"), "freshness": row.get("freshness")}
                 for row in current_failures
@@ -13099,9 +13119,17 @@ class AutoswitchPlanner:
             "profile": SERVICE_QUALITY_PROFILES.get(service, {}),
         }
 
-    def _service_suitability(self, egress: Egress, services: list[str], route_class: str) -> dict[str, Any]:
+    def _service_suitability(
+        self,
+        egress: Egress,
+        services: list[str],
+        route_class: str,
+        *,
+        required_services: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
         matrix_services = self._matrix_services(egress.id)
-        explicit_required = self._explicit_required_services()
+        explicit_required = set(self._explicit_required_services())
+        explicit_required.update(normalize_service_ids(required_services or []))
         wanted = normalize_service_ids(services)
         if not wanted:
             wanted = normalize_service_ids(list((((self.matrix.get("items") or {}).get(egress.id) or {}).get("services") or {}).keys()))
@@ -17424,7 +17452,13 @@ class AutoswitchPlanner:
     ) -> Candidate:
         c = Candidate(egress=egress, eligible=True, purpose=purpose)
         c.severity_classification = self._severity_classification(egress)
-        c.service_suitability = self._service_suitability(egress, services, route_class)
+        profile_required = self._profile_required_services(user)
+        c.service_suitability = self._service_suitability(
+            egress,
+            services,
+            route_class,
+            required_services=profile_required,
+        )
         if include_scoring:
             c.routing_intelligence = self._routing_intelligence_candidate_advice(user, egress, services, route_class)
             c.ctr_advisory = self._ctr_advisory_for_egress(egress.id)
@@ -17439,7 +17473,14 @@ class AutoswitchPlanner:
         c.capacity_decision = self._capacity_decision(egress)
         if not c.eligible or not include_scoring:
             return c
-        c.score_parts = self._score_parts(user, egress, services, route_class, c.routing_intelligence)
+        c.score_parts = self._score_parts(
+            user,
+            egress,
+            services,
+            route_class,
+            c.routing_intelligence,
+            suitability=c.service_suitability,
+        )
         c.score = sum(c.score_parts.values())
         return c
 
@@ -17800,11 +17841,12 @@ class AutoswitchPlanner:
         services: list[str],
         route_class: str,
         routing_intelligence: Optional[dict[str, Any]] = None,
+        suitability: Optional[dict[str, Any]] = None,
     ) -> dict[str, float]:
         max_avg = max((e.avg_mbps for e in self.egress.values()), default=1.0) or 1.0
         max_min = max((e.min_mbps for e in self.egress.values()), default=1.0) or 1.0
         max_client = max((e.client_mbps for e in self.egress.values()), default=1.0) or 1.0
-        suitability = self._service_suitability(egress, services, route_class)
+        suitability = suitability or self._service_suitability(egress, services, route_class)
         service_score, latency_score = self._service_scores(egress, services, route_class, suitability)
         telegram_score = 0.0
         if "telegram" in services:

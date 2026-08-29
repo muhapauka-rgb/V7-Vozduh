@@ -100,10 +100,26 @@ overridden.
   25-minute/1-hour-41-minute observations binding failures instead of
   silently accepting them.
 
+## Bounded implementation slice
+
+The existing `tools/v7-users-autoswitch` consumer now carries Matrix's
+already-produced `first_failed_observation_monotonic_ns`, confirmation time and
+clock domain through current-channel evidence into the existing L3 incident
+context and its durable outcome/learning rows. This is observability only: it
+does not enable emergency autonomy, alter target admission, change cadence, or
+perform a route mutation. Focused emergency-authority regression tests passed
+(2/2), and AST/diff checks passed.
+
+The safe-deploy gate was rerun after this slice. It remains `NO-GO` because
+independent GitHub truth is unreadable and the live Runtime is still on
+`2b4e86896aab1a43b0399537b7f6c227e55fd26d`, while the local branch contains
+pre-existing runtime-relevant changes. The slice is therefore committed for
+review but deliberately not represented as live production behavior.
+
 The next executable frontier is the existing-owner instrumentation and
 automatic-consumer re-entry described above, followed by Polygon
 falsification and a new safe-deploy gate. No code or production route was
-changed in this turn.
+changed in production in this turn.
 
 ## Verification in this turn
 

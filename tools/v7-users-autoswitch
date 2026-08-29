@@ -10102,6 +10102,38 @@ class AutoswitchPlanner:
                 in {"FAIL", "DOWN", "ERROR"}
             )
         ]
+        matrix_failure_rows = [
+            row for row in matrix_services.values()
+            if isinstance(row, dict)
+            and (
+                row.get("ok") is False
+                or str(row.get("status") or "").upper()
+                in {"FAIL", "DOWN", "ERROR"}
+            )
+        ]
+        matrix_first_failed_ns = min(
+            (
+                to_int(row.get("first_failed_observation_monotonic_ns"), 0)
+                for row in matrix_failure_rows
+                if to_int(row.get("first_failed_observation_monotonic_ns"), 0) > 0
+            ),
+            default=0,
+        )
+        matrix_confirmed_failed_ns = max(
+            (
+                to_int(row.get("confirmed_hard_failure_monotonic_ns"), 0)
+                for row in matrix_failure_rows
+            ),
+            default=0,
+        )
+        matrix_clock_domain = next(
+            (
+                str(row.get("monotonic_clock_domain") or "")
+                for row in matrix_failure_rows
+                if str(row.get("monotonic_clock_domain") or "")
+            ),
+            "",
+        )
         matrix_total_services = len(matrix_services)
         matrix_failure_threshold = max(
             2,
@@ -10129,6 +10161,9 @@ class AutoswitchPlanner:
                 "matrix_failed_service_count": len(matrix_failed_services),
                 "matrix_total_service_count": matrix_total_services,
                 "matrix_failure_threshold": matrix_failure_threshold,
+                "first_failed_observation_monotonic_ns": matrix_first_failed_ns,
+                "confirmed_hard_failure_monotonic_ns": matrix_confirmed_failed_ns,
+                "monotonic_clock_domain": matrix_clock_domain,
                 "block_reason": "fresh_matrix_majority_channel_failure",
                 "freshness": {
                     "state": "FRESH",
@@ -10163,6 +10198,15 @@ class AutoswitchPlanner:
             "diagnose_reason": reason,
             "block_reason": str(severity.get("block_reason") or ""),
             "freshness": freshness,
+            "first_failed_observation_monotonic_ns": to_int(
+                current.get("first_failed_observation_monotonic_ns"), 0
+            ),
+            "confirmed_hard_failure_monotonic_ns": to_int(
+                current.get("confirmed_hard_failure_monotonic_ns"), 0
+            ),
+            "monotonic_clock_domain": str(
+                current.get("monotonic_clock_domain") or ""
+            ),
             "producer": "tools/v7-users-autoswitch._emergency_failover_move_evidence",
             "source_object": "v7-state.json:egress[].diagnose_severity/diagnose_reason + users.registry assignment",
             "owner": "tools/v7-users-autoswitch",
@@ -10715,6 +10759,34 @@ class AutoswitchPlanner:
             if item.get("service")
         })
         incident_services = failed_services or (["current_channel_failure"] if channel_failed_sources else [])
+        failure_clock_rows = [
+            row.get("current_channel_failure")
+            for row in move_evidence
+            if isinstance(row.get("current_channel_failure"), dict)
+        ]
+        first_failed_observation_ns = min(
+            (
+                to_int(row.get("first_failed_observation_monotonic_ns"), 0)
+                for row in failure_clock_rows
+                if to_int(row.get("first_failed_observation_monotonic_ns"), 0) > 0
+            ),
+            default=0,
+        )
+        confirmed_hard_failure_ns = max(
+            (
+                to_int(row.get("confirmed_hard_failure_monotonic_ns"), 0)
+                for row in failure_clock_rows
+            ),
+            default=0,
+        )
+        monotonic_clock_domain = next(
+            (
+                str(row.get("monotonic_clock_domain") or "")
+                for row in failure_clock_rows
+                if str(row.get("monotonic_clock_domain") or "")
+            ),
+            "",
+        )
         affected_users = sorted({
             str(row.get("user_ip") or "")
             for row in move_evidence
@@ -10757,6 +10829,9 @@ class AutoswitchPlanner:
             "incident_source": incident_source,
             "incident_source_continuity": gate.get("incident_source_continuity", {}),
             "failed_required_services": failed_services,
+            "first_failed_observation_monotonic_ns": first_failed_observation_ns,
+            "confirmed_hard_failure_monotonic_ns": confirmed_hard_failure_ns,
+            "monotonic_clock_domain": monotonic_clock_domain,
             "confirmed_current_channel_failures": [
                 row.get("current_channel_failure")
                 for row in move_evidence
@@ -20622,6 +20697,18 @@ class AutoswitchPlanner:
                 "terminal_state": terminal_state,
                 "terminal_reason": terminal_reason,
                 "terminal_outcome_classification": classification,
+                "recovery_clocks": {
+                    "first_failed_observation_monotonic_ns": to_int(
+                        incident.get("first_failed_observation_monotonic_ns"), 0
+                    ),
+                    "confirmed_hard_failure_monotonic_ns": to_int(
+                        incident.get("confirmed_hard_failure_monotonic_ns"), 0
+                    ),
+                    "monotonic_clock_domain": str(
+                        incident.get("monotonic_clock_domain") or ""
+                    ),
+                    "source": "existing Matrix failure episode -> existing L3 incident context",
+                },
                 "capability": "L3_EMERGENCY_AUTONOMOUS_FAILOVER",
                 "runtime_cycle": "Wake->Observation->Planner->Authority->Eligibility->Execution->Verification->RollbackOrSuccess->Learning->Evidence->OMP->CapabilityState->NextRuntimeCycle",
             }

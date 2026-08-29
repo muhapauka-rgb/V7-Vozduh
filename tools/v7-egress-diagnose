@@ -36,6 +36,7 @@ FAST_PRODUCER_CONCURRENCY="1"
 FAST_PRODUCER_MAX_INFLIGHT=0
 FAST_PRODUCER_STARTED_NS="0"
 FAST_PRODUCER_COMPLETION_MS=()
+PROFILE_SERVICE_PROBE_TIMEOUT_ARGS=(--timeout 5)
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -158,6 +159,13 @@ fi
 if [ "$FAST_PRODUCER_ONLY" = "1" ] && { [ -z "$PROFILE_SERVICE_SUSPICION_COMMAND" ] || [ "$OUTPUT_EXPLICIT" != "1" ]; }; then
   echo "fast producer only requires profile suspicion command and explicit output" >&2
   exit 2
+fi
+if [ "$FAST_PRODUCER_ONLY" = "1" ]; then
+  # A FAST producer may use an exact one-second service confirmation only.
+  # Timeout/unknown remains fail-closed and is never a move authorization;
+  # the existing full/deep Matrix owners keep their normal five-plus second
+  # diagnostic semantics outside the customer recovery deadline.
+  PROFILE_SERVICE_PROBE_TIMEOUT_ARGS=(--role-fast-timeout --timeout 1)
 fi
 if [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ] && [ "$FAST_PRODUCER_ONLY" != "1" ]; then
   echo "lightweight batch producer requires --fast-producer-only" >&2
@@ -706,7 +714,7 @@ run_profile_service_probe() {
       --probe-observation-only \
       --failure-persistence-samples 1 \
       --failure-persistence-window-seconds 30 \
-      --timeout 5 >"$probe_output" 2>/dev/null; then
+      "${PROFILE_SERVICE_PROBE_TIMEOUT_ARGS[@]}" >"$probe_output" 2>/dev/null; then
     probe_rc=0
   else
     probe_rc="$?"

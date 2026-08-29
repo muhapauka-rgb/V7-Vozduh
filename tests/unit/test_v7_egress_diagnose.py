@@ -795,6 +795,41 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertIn("wgprod", state_text)
             self.assertNotIn("wgcert_profile", state_text)
 
+    def test_fast_producer_uses_one_second_exact_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgprod protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "users.registry").write_text(
+                "ip=ordinary current=wgprod enabled=1\n", encoding="utf-8"
+            )
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {"ordinary": {"services": ["google"]}},
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(
+                bin_dir, "profile-checker",
+                "printf '%s\\n' \"$*\" >> \"$ARGS_LOG\"\n"
+                "printf '%s\\n' '{\"status\":\"OK\",\"results\":{}}'\n",
+            )
+            self.write_command(bin_dir, "shadow-receiver", "exit 0\n")
+            output = root / "fast.state"
+            args_log = root / "profile-checker.args"
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["ARGS_LOG"] = str(args_log)
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--output", str(output),
+                "--fast-producer-only",
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            checker_args = args_log.read_text(encoding="utf-8")
+            self.assertIn("--role-fast-timeout", checker_args)
+            self.assertIn("--timeout 1", checker_args)
+
     def test_fast_producer_requires_explicit_controlled_output(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

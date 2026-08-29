@@ -1194,10 +1194,9 @@ def run_lightweight_service_sentinel(
             "error": "telegram_owned_by_n2_sentinel",
             "evidence_class": "ROLE_OWNERSHIP_CONFLICT_STOP_SAFE",
         }
-    parsed = urlparse(str(meta.get("url") or ""))
-    host = str(parsed.hostname or "")
-    port = int(parsed.port or (443 if parsed.scheme == "https" else 80))
-    if not host:
+    url = str(meta.get("url") or "")
+    parsed = urlparse(url)
+    if not parsed.hostname:
         return {
             "label": str(meta.get("label") or service_id),
             "ok": False,
@@ -1208,30 +1207,87 @@ def run_lightweight_service_sentinel(
             "error": "protocol_target_missing",
             "evidence_class": "AMBIGUOUS_LIGHTWEIGHT_SENTINEL",
         }
-    sample = tcp_connect_sample(
-        host, port, iface, max(0.05, min(float(timeout_seconds), 2.0)), True,
-    )
-    ok = bool(sample.get("ok"))
-    error = str(sample.get("error") or sample.get("bind_error") or "")
+    # A TCP handshake only proves that something accepted port 443.  It cannot
+    # prove that the profile's HTTP service works (the live VLESS/Chuck2 case
+    # exposed exactly that false-negative).  Keep this probe bounded and
+    # observation-only, but use the same HTTP reachability semantics as the
+    # canonical Matrix probe.  Matrix independently confirms any suspicion
+    # before it can create T0 or reach the recovery consumer.
+    started = time.time()
+    timeout = max(0.05, min(float(timeout_seconds), 2.0))
+    cmd = [
+        "curl",
+        "--interface", iface,
+        "-A", HTTP_USER_AGENT,
+        "-L",
+        "-o", "/dev/null",
+        "-w", "%{http_code} %{time_starttransfer} %{time_total}",
+        "--connect-timeout", str(timeout),
+        "--max-time", str(timeout),
+        "-fsS",
+        url,
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=timeout + 1.0,
+        )
+        output = (proc.stdout or "").strip()
+        error = (proc.stderr or "").strip()
+        rc = proc.returncode
+    except subprocess.TimeoutExpired as exc:
+        output = (exc.stdout or "") if isinstance(exc.stdout, str) else ""
+        error = (exc.stderr or "") if isinstance(exc.stderr, str) else ""
+        error = (error + "\ntimeout").strip()
+        rc = 124
+    parts = output.split()
+    http_code = parts[0] if parts else ""
+    http_reachable = http_code.startswith(("2", "3")) or http_code in HTTP_REACHABLE_CODES
+    limited = http_code in HTTP_REACHABLE_CODES
+    ok = http_reachable
+    error_blob = "\n".join(part for part in (error, output) if part).strip()
+    error_lower = error_blob.lower()
     if ok:
-        status = "OK"
-    elif "name" in error.lower() or "resolve" in error.lower() or "gaierror" in error.lower():
+        status = "HTTP_LIMITED" if limited else "OK"
+        reason = (
+            f"HTTP {http_code}: endpoint reached but returned an application/CDN limit"
+            if limited else "http_reachable"
+        )
+    elif "resolve" in error_lower or "could not resolve" in error_lower or "gaierror" in error_lower:
         status = "DNS_FAILURE"
-    elif "timeout" in error.lower():
+        reason = error_blob or "dns_unreachable"
+    elif "timeout" in error_lower or "timed out" in error_lower or rc == 28:
         status = "TIMEOUT"
+        reason = error_blob or "http_timeout"
     else:
         status = "FAIL"
+        reason = error_blob or f"curl_rc_{rc}"
+    sample = {
+        "target": url,
+        "interface": iface,
+        "ok": ok,
+        "http_code": http_code,
+        "rc": rc,
+        "error": "" if ok else reason,
+    }
     return {
         "label": str(meta.get("label") or service_id),
-        "kind": "lightweight_tcp_sentinel",
+        "kind": "lightweight_http_sentinel",
         "interface": iface,
         "ok": ok,
         "status": status,
         "severity": "OK" if ok else "FAIL",
         "tested_at": now_iso(),
-        "reason": "tcp_reachable" if ok else (error or "tcp_unreachable"),
-        "error": "" if ok else (error or "tcp_unreachable"),
+        "reason": reason,
+        "error": "" if ok else reason,
         "samples": [sample],
+        "http_reachable": http_reachable,
+        "limited": limited,
+        "http_code": http_code,
+        "elapsed_sec": round(time.time() - started, 3),
         "evidence_class": "AMBIGUOUS_LIGHTWEIGHT_SENTINEL",
         "requires_targeted_matrix_confirmation": not ok,
         "direct_t0_allowed": False,

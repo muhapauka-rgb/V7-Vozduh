@@ -3467,6 +3467,48 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(observed["status"], "FAIL")
         self.assertTrue(self.matrix.service_failure_observed(observed))
 
+    def test_lightweight_http_sentinel_does_not_treat_open_tcp_as_service_success(self):
+        """N3 must see a short HTTP failure as suspicion, never as TCP success."""
+        with mock.patch.object(
+            self.matrix.subprocess,
+            "run",
+            return_value=SimpleNamespace(
+                stdout="500 0.101 0.202",
+                stderr="curl: (22) The requested URL returned error",
+                returncode=22,
+            ),
+        ) as run:
+            observed = self.matrix.run_lightweight_service_sentinel(
+                "google", "vless0", 1.0,
+            )
+        self.assertFalse(observed["ok"])
+        self.assertEqual(observed["kind"], "lightweight_http_sentinel")
+        self.assertEqual(observed["status"], "FAIL")
+        self.assertTrue(observed["requires_targeted_matrix_confirmation"])
+        self.assertFalse(observed["direct_t0_allowed"])
+        command = run.call_args.args[0]
+        self.assertIn("--interface", command)
+        self.assertIn("--max-time", command)
+        self.assertEqual(command[command.index("--max-time") + 1], "1.0")
+
+    def test_lightweight_http_sentinel_keeps_expected_limited_response_nonfailing(self):
+        with mock.patch.object(
+            self.matrix.subprocess,
+            "run",
+            return_value=SimpleNamespace(
+                stdout="403 0.101 0.202",
+                stderr="curl: (22) The requested URL returned error",
+                returncode=22,
+            ),
+        ):
+            observed = self.matrix.run_lightweight_service_sentinel(
+                "google", "vless0", 1.0,
+            )
+        self.assertTrue(observed["ok"])
+        self.assertEqual(observed["status"], "HTTP_LIMITED")
+        self.assertTrue(observed["limited"])
+        self.assertFalse(observed["requires_targeted_matrix_confirmation"])
+
     def test_failure_episode_survives_production_timer_jitter_but_not_long_gap(self):
         self.assertEqual(
             self.matrix.FAILURE_EPISODE_CONTINUITY_SECONDS,

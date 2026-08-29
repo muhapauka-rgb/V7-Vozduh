@@ -520,6 +520,16 @@ for line in users_lines:
         if "=" in part:
             key, value = part.split("=", 1)
             fields[key.strip()] = value.strip()
+    # Certification identities are owned by the existing controlled lane.  A
+    # failed certification source must not continuously create an ordinary
+    # profile-recovery workload: that both misclassifies the scope and can
+    # starve a real customer's bounded failure observation. Their Matrix
+    # facts remain visible to the certification owner; only the ordinary FAST
+    # producer excludes them here.
+    if str(fields.get("certification_user", "")).strip().lower() in {
+        "1", "true", "yes", "on"
+    }:
+        continue
     source = str(fields.get("current") or "").strip()
     if not source or fields.get("enabled", "1").lower() in {"0", "false", "no"}:
         continue

@@ -755,6 +755,46 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertIn("fast_producer_observation_count=2", state_text)
             self.assertIn("fast_producer_receiver_invocation_count=0", state_text)
 
+    def test_fast_producer_excludes_certification_only_identity_from_ordinary_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(
+                root,
+                "id=wgprod protocol=wireguard interface=v7wg enabled=1\n"
+                "id=wgcert protocol=wireguard interface=v7wg enabled=1\n",
+            )
+            (state / "users.registry").write_text(
+                "ip=ordinary current=wgprod enabled=1\n"
+                "ip=certification current=wgcert enabled=1 certification_user=1 certification_group=polygon\n",
+                encoding="utf-8",
+            )
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {
+                    "ordinary": {"services": ["google"]},
+                    "certification": {"services": ["google"]},
+                },
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "profile-checker", "printf '%s\\n' '{\"status\":\"OK\",\"results\":{}}'\n")
+            self.write_command(bin_dir, "shadow-receiver", "exit 0\n")
+            output = root / "ordinary-fast.state"
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--output", str(output),
+                "--fast-producer-only",
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = output.read_text(encoding="utf-8")
+            self.assertIn("fast_producer_active_source_count=1", state_text)
+            self.assertIn("fast_producer_distinct_contract_count=1", state_text)
+            self.assertIn("wgprod", state_text)
+            self.assertNotIn("wgcert_profile", state_text)
+
     def test_fast_producer_requires_explicit_controlled_output(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

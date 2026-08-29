@@ -94,6 +94,14 @@ receipt before Python drained it. This bounded instrumentation defect is
 corrected to drain only after `poll()` has confirmed exit; it does not change
 the Matrix command, target scope, user state or recovery semantics.
 
+Further live scope reconciliation showed that the repeatedly failing OpenVPN
+source contained only a certification identity (`certification_user=1`), not
+an ordinary customer. The ordinary five-second profile detector nevertheless
+kept treating it as an ordinary source and repeatedly launched bounded Matrix
+confirmation/consumer work. That self-inflicted load delayed unrelated health
+roles. The ordinary producer now excludes certification-only identities; their
+existing controlled owner retains all Matrix visibility and responsibility.
+
 Next: deploy this measurement-only receipt, collect its live timing split, fix
 only the measured generic blocker, and return control to the normal V7 caller
 for the automatic Chuck2-equivalent seven-second proof. No manual user

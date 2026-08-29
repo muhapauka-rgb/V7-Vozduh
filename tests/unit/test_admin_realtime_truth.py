@@ -156,6 +156,15 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn('self.send_json({"action": "service_preferences_update", "preferences": prefs})', handler)
         self.assertNotIn('"overview": overview()', handler)
 
+    def test_new_profile_materializes_the_displayed_standard_service_contract(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+        device = source[source.index("def identity_issue_device"):source.index("def identity_issue_config_quick")]
+        connect = source[source.index("def connect_onboard"):source.index("def audit_admin")]
+        self.assertIn("def materialize_default_service_preferences_for_new_profile", source)
+        self.assertIn("services=DEFAULT_USER_PRIORITY_SERVICES", source)
+        self.assertIn("materialize_default_service_preferences_for_new_profile(actor, ip)", device)
+        self.assertIn('materialize_default_service_preferences_for_new_profile("connect", parsed["ip"])', connect)
+
     def test_unchanged_karing_reissue_does_not_restart_public_runtime(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

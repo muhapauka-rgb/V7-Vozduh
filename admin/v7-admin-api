@@ -3243,6 +3243,7 @@ def identity_issue_device(data, actor):
         audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} ip={ip} client={vpn_client} delivery=fail", object_type="identity_user", object_id=user["id"], result="FAIL")
         return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "generated": generated, "check": check}, delivery_error, 500
     device = identity_record_device(user["id"], artifact_name, vpn_client, device_type, parsed)
+    materialize_default_service_preferences_for_new_profile(actor, ip)
     identity_log_attempt(user.get("phone_normalized", ""), user.get("display_name", ""), user.get("organization_id", ""), "OK", "operator_device_issued")
     audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} device_id={device.get('id')} ip={ip} client={vpn_client} mode={mode}", object_type="identity_device", object_id=device.get("id", ""), result="OK")
     return {
@@ -4346,6 +4347,7 @@ def connect_onboard(data, handler=None):
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "delivery_create_failed", handler)
         return fail(500, "delivery_create_failed", delivery_error)
     device = identity_record_device(user["id"], client_name, vpn_client, device_type, parsed)
+    materialize_default_service_preferences_for_new_profile("connect", parsed["ip"])
     identity_log_attempt(phone, entered_name, org_input, "OK", "success_phone_confirmation_required", handler)
     audit_admin("connect", "public_connect_onboard", f"phone={phone} user_id={user.get('id')} device_id={device.get('id')} ip={parsed.get('ip')}", object_type="identity_device", object_id=device.get("id", ""), result="OK")
     result = {
@@ -16085,6 +16087,27 @@ def update_service_preferences(actor, enabled=None, user_ip=None, services=None,
     data["updated_by"] = actor or "admin"
     write_json_atomic(SERVICE_PREFS_FILE, data)
     return redact(data)
+
+
+def materialize_default_service_preferences_for_new_profile(actor, user_ip):
+    """Make the displayed standard profile an exact recovery contract.
+
+    Existing profiles are intentionally not bulk-migrated: their service needs
+    must not be inferred from a presentation fallback.
+    """
+    ip = safe_user_ip(user_ip)
+    if not ip:
+        return None
+    state = service_preferences_state()
+    users = state.get("users") if isinstance(state.get("users"), dict) else {}
+    if isinstance(users.get(ip), dict):
+        return state
+    return update_service_preferences(
+        actor,
+        enabled=True,
+        user_ip=ip,
+        services=DEFAULT_USER_PRIORITY_SERVICES,
+    )
 
 
 def policy_state():

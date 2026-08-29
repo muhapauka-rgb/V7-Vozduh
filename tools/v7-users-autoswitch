@@ -2220,21 +2220,22 @@ def normalize_service_ids(values: Any) -> list[str]:
     return result
 
 
-def live_profile_failure_priority(
+def live_profile_failure_evidence(
     *,
     users: list["User"],
     matrix: dict[str, Any],
     service_preferences: dict[str, Any],
     source: str,
     explicitly_required_services: Any = None,
-) -> tuple[int, int]:
-    """Rank a source by Matrix failures that affect currently assigned profiles.
+    require_current_observation: bool = False,
+) -> tuple[int, int, set[str]]:
+    """Return profile-impacting Matrix failures for one current source.
 
-    This is read-only selection inside the existing passive-event Planner.  A
-    failure that no currently assigned ordinary profile requires must not
-    overtake a newer exact profile failure solely because its source has a
-    larger historical cohort.  Matrix, users.registry, and
-    service-preferences remain the respective owners.
+    The default remains the historical ranking view used by existing
+    Engineering projections.  The live ordinary recovery consumer additionally
+    requests current ISO-timestamped evidence and uses the returned incident
+    identities to prevent an old passive record for the same channel from
+    being mistaken for the newly confirmed Matrix failure.
     """
     items = matrix.get("items") if isinstance(matrix, dict) else {}
     source_row = items.get(str(source)) if isinstance(items, dict) else {}
@@ -2253,6 +2254,7 @@ def live_profile_failure_priority(
     baseline = normalize_service_ids(explicitly_required_services or [])
     affected_profiles = 0
     newest_t0_ns = 0
+    incident_ids: set[str] = set()
     for user in users:
         if (
             not bool(getattr(user, "enabled", False))
@@ -2283,6 +2285,16 @@ def live_profile_failure_priority(
             observed = str(evidence.get("failure_state") or "").startswith("OBSERVED")
             if not (failed and observed and str(evidence.get("source_incident_id") or "")):
                 continue
+            if require_current_observation:
+                try:
+                    observed_at = parse_ts(str(
+                        evidence.get("observed_at") or evidence.get("tested_at") or ""
+                    ))
+                    age_seconds = time.time() - observed_at
+                except (TypeError, ValueError):
+                    continue
+                if age_seconds < 0 or age_seconds > 10.0:
+                    continue
             try:
                 t0_ns = int(str(
                     evidence.get("confirmed_hard_failure_monotonic_ns")
@@ -2292,10 +2304,30 @@ def live_profile_failure_priority(
             except (TypeError, ValueError):
                 t0_ns = 0
             matching_t0s.append(t0_ns)
+            incident_ids.add(str(evidence.get("source_incident_id") or ""))
         if matching_t0s:
             affected_profiles += 1
             newest_t0_ns = max(newest_t0_ns, max(matching_t0s))
-    return affected_profiles, newest_t0_ns
+    return affected_profiles, newest_t0_ns, incident_ids
+
+
+def live_profile_failure_priority(
+    *,
+    users: list["User"],
+    matrix: dict[str, Any],
+    service_preferences: dict[str, Any],
+    source: str,
+    explicitly_required_services: Any = None,
+) -> tuple[int, int]:
+    """Rank a source by Matrix failures that affect currently assigned profiles."""
+    affected, newest_t0_ns, _incident_ids = live_profile_failure_evidence(
+        users=users,
+        matrix=matrix,
+        service_preferences=service_preferences,
+        source=source,
+        explicitly_required_services=explicitly_required_services,
+    )
+    return affected, newest_t0_ns
 
 
 def user_priority_services_from_pref(row: Any) -> list[str]:
@@ -20301,6 +20333,41 @@ class AutoswitchPlanner:
                 continue
             existing[str(row.get("automation_obligation_id") or "")] = row
         requested_source = str(source_egress or "").strip()
+        live_requested_incident_ids: set[str] = set()
+        source_bound_live_recovery = (
+            bool(requested_source)
+            and bool_value(getattr(getattr(self, "args", None), "ordinary_service_failure_context", False))
+        )
+        if source_bound_live_recovery:
+            # A source-bound wake originates from the health owner after a
+            # fresh Matrix profile observation.  ``closure-records`` is
+            # historical evidence, so it may contain earlier incidents for
+            # the same channel.  Bind this recovery only to the incident
+            # identity still present in the current Matrix; otherwise a
+            # stale closure can send the executor into its expensive full
+            # Planner fallback and delay the new affected user.
+            _affected, _t0_ns, live_requested_incident_ids = (
+                live_profile_failure_evidence(
+                    users=list(getattr(self, "users", []) or []),
+                    matrix=(
+                        getattr(self, "matrix", {})
+                        if isinstance(getattr(self, "matrix", {}), dict)
+                        else {}
+                    ),
+                    service_preferences=(
+                        getattr(self, "service_prefs", {})
+                        if isinstance(getattr(self, "service_prefs", {}), dict)
+                        else {}
+                    ),
+                    source=requested_source,
+                    explicitly_required_services=(
+                        self._explicit_required_services()
+                        if callable(getattr(self, "_explicit_required_services", None))
+                        else []
+                    ),
+                    require_current_observation=True,
+                )
+            )
         passive = [
             row for row in closures
             if str(row.get("object_type") or "") == "passive_production_event"
@@ -20313,6 +20380,12 @@ class AutoswitchPlanner:
         candidates = []
         correct_terminals_skipped = 0
         for row in passive:
+            if source_bound_live_recovery and str(
+                row.get("source_incident_id") or row.get("object_id") or ""
+            ) not in live_requested_incident_ids:
+                # No matching current Matrix event means this passive row is
+                # history, not the cause of the live source-bound wake.
+                continue
             terminal = str(row.get("terminal_outcome_classification") or "").upper()
             if terminal.startswith(("RECOVERY", "EPISODE_EXPIRED")):
                 # These terminals are already consumed as no-action evidence.

@@ -1,5 +1,6 @@
 import argparse
 import contextlib
+from datetime import datetime, timedelta, timezone
 import hashlib
 import http.server
 import importlib.machinery
@@ -93,6 +94,37 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(vless, (1, 2_000))
         self.assertEqual(awg0, (1, 1_000))
         self.assertGreater(vless[1], awg0[1])
+
+    def test_live_profile_failure_evidence_excludes_old_incident_on_same_source(self):
+        users = [self.autoswitch.User(
+            ip="10.7.0.127", current="vless", enabled=True,
+        )]
+        now = datetime.now(timezone.utc)
+        matrix = {"items": {"vless": {"services": {
+            "google": {
+                "ok": False, "status": "FAIL", "failure_state": "OBSERVED_NEW",
+                "source_incident_id": "sfinc_current",
+                "observation_monotonic_ns": 2_000,
+                "observed_at": now.isoformat(),
+            },
+            "telegram": {
+                "ok": False, "status": "FAIL", "failure_state": "OBSERVED_CONTINUING",
+                "source_incident_id": "sfinc_old",
+                "observation_monotonic_ns": 1_000,
+                "observed_at": (now - timedelta(seconds=30)).isoformat(),
+            },
+        }}}}
+        preferences = {"users": {
+            "10.7.0.127": {"services": ["google", "telegram"]},
+        }}
+
+        affected, t0_ns, incidents = self.autoswitch.live_profile_failure_evidence(
+            users=users, matrix=matrix, service_preferences=preferences,
+            source="vless", require_current_observation=True,
+        )
+
+        self.assertEqual((affected, t0_ns), (1, 2_000))
+        self.assertEqual(incidents, {"sfinc_current"})
 
     def test_exact_client_probe_owner_is_loaded_once_in_process(self):
         previous = self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE

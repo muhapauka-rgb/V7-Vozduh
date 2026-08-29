@@ -159,3 +159,37 @@ profile-required service failure for either user-operated assignment, it must
 discover the affected scope, choose the target itself, apply the governed
 change, and produce exact required-service S11 within seven seconds. Any
 longer automatic attempt remains visible as a failed SLO sample.
+
+## Fifth live finding and repair
+
+The first live post-deploy transaction exposed a causality mismatch, not a
+route decision defect. The fresh VLESS Matrix failure was correctly detected,
+and the source-bounded advisory completed in about two seconds. However its
+passive-history selector bound the governed executor to an older VLESS
+incident from the same channel. That old incident had no valid prepared
+handoff, so the executor rebuilt the full Planner for about 30 seconds. The
+result was a 61.437 s `other_required` run and is an explicit failed SLO
+sample.
+
+The repair adds no state or owner. For a source-bound ordinary health wake,
+the existing passive-history selection may now use only a closure whose
+incident identity is also present in a fresh, profile-required Matrix failure
+for a user currently assigned to that source. An older incident on the same
+channel is ignored. Historical ranking remains available unchanged for
+non-live Engineering projections.
+
+## Verification for the fifth repair
+
+- New regression: a current Matrix incident and an older incident on the same
+  source yield only the current identity for a live recovery handoff.
+- Existing profile-failure priority behavior remains unchanged.
+- Autoswitch policy and health-loop regression suites pass together with the
+  new focused test.
+
+## Exact next step (updated again)
+
+Publish and deploy the source-incident binding repair. V7 then owns the next
+step completely: a new fresh profile failure must bind to its matching current
+incident, use the prepared decision when valid, and either reach required
+service S11 within seven seconds or emit an honest STOP_SAFE/SLO failure. No
+manual route operation is permitted.

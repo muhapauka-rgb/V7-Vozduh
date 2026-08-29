@@ -745,9 +745,14 @@ class RoleHealthLoop:
     persistent_matrix_load_error: str = ""
     # Process-local de-duplication only.  Matrix remains the durable owner of
     # the incident and its receipt; this prevents one already-confirmed T0
-    # from being replayed once per HARD observation while that same incident
-    # is still open.
+    # from being replayed once per observation while that same incident is
+    # still open.  The three health roles have independent Matrix incident
+    # families, so a newer Telegram/HARD T0 must never suppress an earlier
+    # still-open profile-required-service T0.
     persistent_matrix_last_consumed_t0_ns: int = 0
+    persistent_matrix_last_consumed_t0_ns_by_role: dict[str, int] = field(
+        default_factory=dict,
+    )
 
     def _default_hard_runtime(self) -> bool:
         hard = next((role for role in self.roles if role.name == "hard"), None)
@@ -897,7 +902,11 @@ class RoleHealthLoop:
         )
 
     def _consume_new_persistent_matrix_t0(
-        self, t0_ns: int, health_dispatch_context: dict[str, Any] | None = None,
+        self,
+        t0_ns: int,
+        health_dispatch_context: dict[str, Any] | None = None,
+        *,
+        dedupe_key: str = "hard",
     ) -> bool:
         """Consume each current canonical T0 at most once per health process.
 
@@ -908,7 +917,11 @@ class RoleHealthLoop:
         generation.  This is scheduling-local de-duplication, not a new
         Matrix state or an admission rule.
         """
-        if t0_ns <= 0 or t0_ns <= self.persistent_matrix_last_consumed_t0_ns:
+        key = str(dedupe_key or "hard")
+        last_consumed = int(
+            self.persistent_matrix_last_consumed_t0_ns_by_role.get(key) or 0
+        )
+        if t0_ns <= 0 or t0_ns <= last_consumed:
             return False
         self._hard_recovery_takeover(monotonic_ns())
         persistent_rc = (
@@ -921,7 +934,12 @@ class RoleHealthLoop:
                 self._fallback_matrix_consumer(t0_ns, health_dispatch_context)
             else:
                 self._fallback_matrix_consumer(t0_ns)
-        self.persistent_matrix_last_consumed_t0_ns = t0_ns
+        self.persistent_matrix_last_consumed_t0_ns_by_role[key] = t0_ns
+        # Retain the aggregate high-water mark solely for existing diagnostics
+        # and controlled fixtures.  It is deliberately not an admission gate.
+        self.persistent_matrix_last_consumed_t0_ns = max(
+            self.persistent_matrix_last_consumed_t0_ns, t0_ns,
+        )
         return True
 
     def _hard_recovery_active(self, now_ns: int) -> bool:
@@ -1178,7 +1196,9 @@ class RoleHealthLoop:
                         "persistent_dispatch_monotonic_ns": int(dispatch_ns),
                         "matrix_t0_monotonic_ns": int(t0_ns),
                     })
-                    self._consume_new_persistent_matrix_t0(t0_ns, context)
+                    self._consume_new_persistent_matrix_t0(
+                        t0_ns, context, dedupe_key=role.name,
+                    )
                     now_ns = monotonic_ns()
             duration = elapsed_ms(role.started_ns, now_ns)
             role.completions += 1

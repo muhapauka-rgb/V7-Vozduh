@@ -143,6 +143,8 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("SLOW_ROLE_ALREADY_RUNNING", loop)
         self.assertIn("serialize_slow_roles=not any(controlled.values())", loop)
         self.assertIn('and role.name != "hard"', loop)
+        self.assertIn('"--profile-service-failure-samples", "1"', loop)
+        self.assertIn('"--consumer-wake-command", "/bin/true"', loop)
 
     def test_prepared_path_timing_receipt_is_compact_and_non_authoritative(self):
         receipt = HEALTH_LOOP_MODULE.prepared_hot_target_timing_from_output(json.dumps({
@@ -628,6 +630,51 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             self.assertEqual(
                 HEALTH_LOOP_MODULE.canonical_service_failure_t0_ns(
                     matrix, users, "telegram"
+                ),
+                0,
+            )
+
+    def test_profile_service_handoff_requires_current_required_service_incident(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            preferences = root / "service-preferences.json"
+            matrix.write_text(json.dumps({
+                "items": {"source-a": {"services": {
+                    "google": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "failure_state": "OBSERVED_NEW",
+                        "source_incident_id": "sfinc_google",
+                        "failure_event_id": "sfe_google",
+                        "observation_monotonic_ns": 678_901,
+                    },
+                    "instagram": {"ok": True, "status": "OK"},
+                }}},
+            }), encoding="utf-8")
+            users.write_text(
+                "ip=10.7.0.127 enabled=1 current=source-a\n"
+                "ip=10.7.0.128 enabled=1 current=source-a\n",
+                encoding="utf-8",
+            )
+            preferences.write_text(json.dumps({"users": {
+                "10.7.0.127": {"services": ["google", "instagram"]},
+                "10.7.0.128": {"services": ["instagram"]},
+            }}), encoding="utf-8")
+            self.assertEqual(
+                HEALTH_LOOP_MODULE.canonical_profile_service_failure_t0_ns(
+                    matrix, users, preferences,
+                ),
+                678_901,
+            )
+            users.write_text(
+                "ip=10.7.0.127 enabled=1 current=target-a\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                HEALTH_LOOP_MODULE.canonical_profile_service_failure_t0_ns(
+                    matrix, users, preferences,
                 ),
                 0,
             )

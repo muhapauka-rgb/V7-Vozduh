@@ -106,8 +106,12 @@ DEFAULT_ROLE_COMMANDS = (
             "--fast-producer-concurrency", "128",
             "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
             "--shadow-trigger-command", "/usr/local/bin/v7-service-matrix-refresh-all",
-            "--consumer-wake-command", "/usr/bin/systemctl",
-            "--profile-service-failure-samples", "2",
+            # One bounded protocol-level observation never moves a user: it
+            # immediately enters independent Matrix confirmation. Waiting for
+            # another five-second detector pass makes the seven-second
+            # ordinary recovery contract physically impossible.
+            "--consumer-wake-command", "/bin/true",
+            "--profile-service-failure-samples", "1",
             "--profile-service-cooldown-sec", "5",
             "--profile-service-shadow-matrix-samples", "1",
             "--profile-service-shadow-matrix-window-sec", "5",
@@ -192,6 +196,7 @@ SLOW_ROLE_NAMES = frozenset({
 RECOVERY_CRITICAL_ROLE_NAMES = frozenset({"hard", "hot_target", "other_required"})
 DEFAULT_MATRIX_STATE_FILE = Path("/opt/v7/egress/state/service-matrix.json")
 DEFAULT_USERS_REGISTRY_FILE = Path("/opt/v7/egress/state/users.registry")
+DEFAULT_SERVICE_PREFERENCES_FILE = Path("/opt/v7/egress/state/service-preferences.json")
 
 
 def canonical_service_failure_t0_ns(
@@ -364,6 +369,75 @@ def canonical_definitive_hard_failure_t0_ns(
         "__channel_liveness__",
         "DEFINITIVE_LOCAL_HARD_FAILURE",
     )
+
+
+def canonical_profile_service_failure_t0_ns(
+    matrix_state_file: Path,
+    users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
+    service_preferences_file: Path = DEFAULT_SERVICE_PREFERENCES_FILE,
+) -> int:
+    """Return a fresh Matrix T0 for an assigned user's failed requirement.
+
+    The ordinary detector is profile-scoped: a source need not lose a majority
+    of its complete catalog before one user's required service has failed. This
+    reader joins only existing Matrix, users-registry and preferences owners.
+    It creates no incident, target, operation or state, and requires Matrix's
+    incident identity before the existing health consumer may proceed.
+    """
+    try:
+        matrix = json.loads(matrix_state_file.read_text(encoding="utf-8"))
+        preferences = json.loads(service_preferences_file.read_text(encoding="utf-8"))
+        registry_lines = users_registry_file.read_text(encoding="utf-8").splitlines()
+    except (OSError, ValueError, TypeError):
+        return 0
+    items = matrix.get("items") if isinstance(matrix, dict) else {}
+    users = preferences.get("users") if isinstance(preferences, dict) else {}
+    if not isinstance(items, dict) or not isinstance(users, dict):
+        return 0
+    t0_values: list[int] = []
+    for line in registry_lines:
+        row: dict[str, str] = {}
+        for token in line.strip().split():
+            key, separator, value = token.partition("=")
+            if separator:
+                row[key] = value
+        if not row or str(row.get("enabled", "1")).lower() in {
+            "0", "false", "no", "off", "disabled",
+        }:
+            continue
+        user_id = str(row.get("ip") or "")
+        source_id = str(row.get("current") or "")
+        preference = users.get(user_id)
+        required = preference.get("services") if isinstance(preference, dict) else []
+        if not isinstance(required, list) or not source_id:
+            continue
+        source = items.get(source_id)
+        services = source.get("services") if isinstance(source, dict) else {}
+        if not isinstance(services, dict):
+            continue
+        for service_id in required:
+            observed = services.get(str(service_id))
+            if not isinstance(observed, dict):
+                continue
+            failed = (
+                observed.get("ok") is False
+                or str(observed.get("status") or "").upper() in {"FAIL", "DOWN", "ERROR"}
+            )
+            if not failed or not str(observed.get("failure_state") or "").startswith("OBSERVED_"):
+                continue
+            if not str(observed.get("source_incident_id") or "") or not str(observed.get("failure_event_id") or ""):
+                continue
+            try:
+                t0_ns = int(str(
+                    observed.get("confirmed_hard_failure_monotonic_ns")
+                    or observed.get("observation_monotonic_ns")
+                    or "0"
+                ))
+            except (TypeError, ValueError):
+                t0_ns = 0
+            if t0_ns > 0:
+                t0_values.append(t0_ns)
+    return max(t0_values, default=0)
 
 
 def canonical_definitive_hard_failure_active(
@@ -744,13 +818,13 @@ class RoleHealthLoop:
                 health_dispatch_context if isinstance(health_dispatch_context, dict) else {},
                 sort_keys=True,
             )
-            # HARD keeps its historical call contract. Telegram carries an
-            # explicit service label so its evidence cannot be misreported as
-            # a HARD-path interval.
+            # HARD keeps its historical call contract. Service-specific roles
+            # carry an explicit label so their evidence cannot be misreported
+            # as a HARD-path interval.
             if (
                 isinstance(health_dispatch_context, dict)
                 and str(health_dispatch_context.get("service_role") or "")
-                == "telegram"
+                in {"telegram", "other_required"}
             ):
                 os.environ["V7_SERVICE_T0_MONOTONIC_NS"] = str(t0_ns)
                 os.environ["V7_SERVICE_PERSISTENT_MATRIX_OWNER"] = "1"
@@ -804,7 +878,7 @@ class RoleHealthLoop:
         if (
             isinstance(health_dispatch_context, dict)
             and str(health_dispatch_context.get("service_role") or "")
-            == "telegram"
+            in {"telegram", "other_required"}
         ):
             environment["V7_SERVICE_T0_MONOTONIC_NS"] = str(t0_ns)
             environment["V7_SERVICE_HEALTH_DISPATCH_CONTEXT"] = environment[
@@ -1031,7 +1105,7 @@ class RoleHealthLoop:
             if nice is not None:
                 command = ["/usr/bin/nice", "-n", str(nice), *command]
             environment = None
-            if role.name in {"hard", "telegram"} and self.persistent_matrix_ready:
+            if role.name in {"hard", "telegram", "other_required"} and self.persistent_matrix_ready:
                 environment = os.environ.copy()
                 environment["V7_HEALTH_PERSISTENT_MATRIX_CONSUMER"] = "1"
             # A prepared PATH run already emits one small Matrix receipt. Keep
@@ -1050,7 +1124,7 @@ class RoleHealthLoop:
             role.started_ns = now_ns
             role.runtime_observation_started = (
                 health_runtime_observation()
-                if role.name in {"hard", "telegram"} else {}
+                if role.name in {"hard", "telegram", "other_required"} else {}
             )
             role.starts += 1
             print(
@@ -1078,13 +1152,19 @@ class RoleHealthLoop:
                     prepared_timing = prepared_hot_target_timing_from_output(stdout)
                 except OSError:
                     prepared_timing = {}
-            if role.name in {"hard", "telegram"} and self.persistent_matrix_ready:
-                t0_ns = canonical_service_failure_t0_ns(
-                    self.matrix_state_file,
-                    self.users_registry_file,
-                    "__channel_liveness__" if role.name == "hard" else "telegram",
-                    "DEFINITIVE_LOCAL_HARD_FAILURE" if role.name == "hard" else "",
-                )
+            if role.name in {"hard", "telegram", "other_required"} and self.persistent_matrix_ready:
+                if role.name == "other_required":
+                    t0_ns = canonical_profile_service_failure_t0_ns(
+                        self.matrix_state_file,
+                        self.users_registry_file,
+                    )
+                else:
+                    t0_ns = canonical_service_failure_t0_ns(
+                        self.matrix_state_file,
+                        self.users_registry_file,
+                        "__channel_liveness__" if role.name == "hard" else "telegram",
+                        "DEFINITIVE_LOCAL_HARD_FAILURE" if role.name == "hard" else "",
+                    )
                 if t0_ns > 0:
                     dispatch_ns = monotonic_ns()
                     context = health_runtime_observation_delta(

@@ -1400,6 +1400,46 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "users.registry",
         )
 
+    def test_ordinary_profile_failure_planner_uses_current_registry_not_stale_state_projection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="vless")
+            state_dir = root / "state"
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.16 current=1 table=1014 enabled=1\n",
+                encoding="utf-8",
+            )
+            state = json.loads(
+                (state_dir / "v7-state.json").read_text(encoding="utf-8")
+            )
+            state["users"] = [{
+                "ip": "10.7.0.16",
+                "current": "vless",
+                "table": "1014",
+                "enabled": "1",
+            }]
+            (state_dir / "v7-state.json").write_text(
+                json.dumps(state), encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, [
+                "--ordinary-service-failure-context",
+                "--source-egress", "1",
+            ]))
+
+        self.assertEqual(len(planner.users), 1)
+        self.assertEqual(planner.users[0].current, "1")
+        registry_span = next(
+            row for row in planner._performance_spans
+            if row.get("stage") == "registry_and_live_inventory_reads"
+        )
+        self.assertTrue(
+            registry_span["details"]["ordinary_current_source_scope"]
+        )
+        self.assertEqual(
+            registry_span["details"]["user_assignment_owner"],
+            "users.registry",
+        )
+
     def test_controlled_engineering_setup_is_exact_and_independent_of_l3_incident(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

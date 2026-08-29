@@ -233,3 +233,36 @@ Planner target selection -> governed Apply -> required-service S11. The two
 user-operated placements remain valid real-world checks, but no successful
 automatic movement or seven-second timing claim is made until that live chain
 has actually completed.
+
+## Seventh live finding and repair
+
+After the sixth repair was deployed, the Matrix emitted fresh exact VLESS
+profile-failure events for the currently assigned ordinary client, but the
+passive consumer still did not create an obligation. The remaining mismatch
+was inside the existing Planner intake: Matrix resolves the affected source
+against canonical `users.registry`, while this source-bound ordinary recovery
+path still overlaid the lagging diagnostic `v7-state` user projection. A
+recent operator assignment could therefore disappear only for the consumer
+which must react to it.
+
+The bounded repair makes a source-bound ordinary service-failure transaction
+read the same canonical current user registry as Matrix and the existing
+pre-Apply verifier. It does not affect broad planning, target eligibility,
+Matrix, Authority, routing, cadence, or user records. This removes one
+contradictory current-state view; V7 remains the sole originator of any
+recovery operation.
+
+## Verification for the seventh repair
+
+- New regression: an ordinary source-bound failure uses the current registry
+  assignment even when the diagnostic state projection still names a previous
+  channel.
+- Existing exact certification incident behavior retains the same registry
+  truth rule.
+
+## Exact next step (current)
+
+Safely deploy this reconciliation. The normal health caller must then either
+create a governed recovery from the fresh VLESS profile incident, or expose a
+new exact safety stop. No client is moved by Engineering; the first automatic
+operation and its T0-to-S11 timing are the acceptance evidence.

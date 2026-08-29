@@ -4676,17 +4676,26 @@ class AutoswitchPlanner:
                 )
             )
         )
-        # The exact one-user failure transaction is entered after Matrix has
-        # already bound a current source and identity.  ``v7-state.json`` is a
-        # diagnostic projection and may legitimately lag a preceding Polygon
-        # or production assignment; overlaying it on ``users.registry`` can
-        # therefore erase the exact current Candidate before Packet creation.
-        # Reuse the canonical mutable registry directly for this already
-        # bounded incident scope, matching the existing pre-apply verifier.
-        # Broad planning retains its historical snapshot-overlay semantics.
+        current_ordinary_failure_source_scope = bool(
+            bool_value(
+                getattr(args, "ordinary_service_failure_context", False)
+            )
+            and str(getattr(args, "source_egress", "") or "").strip()
+        )
+        # An exact one-user transaction, and a source-bound ordinary failure
+        # transaction, both begin only after Matrix has bound a *current*
+        # source. ``v7-state.json`` is a diagnostic projection and may
+        # legitimately lag a just-operated assignment. Overlaying it over
+        # ``users.registry`` can erase the affected client before Candidate
+        # creation. Reuse the canonical mutable registry for these bounded
+        # source scopes, matching the existing pre-apply verifier. Broad
+        # planning retains its historical snapshot-overlay semantics.
         self.users = (
             self._load_runtime_registry_users()
-            if exact_incident_identity_scope
+            if (
+                exact_incident_identity_scope
+                or current_ordinary_failure_source_scope
+            )
             else self._load_users()
         )
         self.egress = self._load_egress()
@@ -4698,10 +4707,17 @@ class AutoswitchPlanner:
             details={
                 "exact_incident_identity_scope": (
                     exact_incident_identity_scope
+                    or current_ordinary_failure_source_scope
+                ),
+                "ordinary_current_source_scope": (
+                    current_ordinary_failure_source_scope
                 ),
                 "user_assignment_owner": (
                     "users.registry"
-                    if exact_incident_identity_scope
+                    if (
+                        exact_incident_identity_scope
+                        or current_ordinary_failure_source_scope
+                    )
                     else "v7-state projection with registry completion"
                 ),
             },

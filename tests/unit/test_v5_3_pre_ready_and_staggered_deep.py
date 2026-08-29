@@ -98,7 +98,16 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
             projection["hot_target_set"]["deduplicated_target_service_contract_count"],
             4,
         )
-        self.assertNotIn("10.7.0.1", json.dumps(projection))
+        # The current contract may retain only a bounded ordinary slice for
+        # the existing automatic recovery consumer; it may never retain the
+        # raw 1,000-member list.
+        stored_members = [
+            member
+            for item in projection["classes"]
+            for member in (item.get("ordinary_member_slice") or [])
+        ]
+        self.assertLessEqual(len(stored_members), 4)
+        self.assertTrue(prepared["raw_member_list_stored"] is False)
         self.assertFalse(projection["hot_target_set"]["incident_time_world_model_rebuild"])
 
     def test_n5_capacity_generation_is_revalidated_at_use_not_selection(self):
@@ -328,7 +337,7 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
             "CURRENT_MATRIX_SERVICE_IDS",
         )
 
-    def test_n10_path_role_refreshes_generation_aligned_projection_same_cycle(self):
+    def test_n10_path_role_defers_expired_projection_to_existing_background_owner(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             state = root / "state"
@@ -359,11 +368,6 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
                 "--prepared-hot-targets", "--matrix-observation-only",
                 "--prepared-hot-target-service-class", "path",
             ]
-            refreshed = {
-                "schema_version": "v7.matrix-prepared-projection-refresh.v1",
-                "status": "PASS", "ok": True,
-                "routing_mutation_performed": False, "users_moved": 0,
-            }
             output = io.StringIO()
             with mock.patch.object(sys, "argv", argv), mock.patch.object(
                 self.refresh, "run_prepared_path_rows_in_process",
@@ -371,21 +375,22 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
                     "concurrency_cap": 1,
                 }),
             ), mock.patch.object(
-                self.refresh, "refresh_prepared_class_projection",
-                return_value=refreshed,
-            ) as refresh_projection, contextlib.redirect_stdout(output):
+                    self.refresh, "refresh_prepared_class_projection",
+                ) as refresh_projection, contextlib.redirect_stdout(output):
                 self.assertEqual(self.refresh.main(), 0)
             payload = json.loads(output.getvalue())
 
-        refresh_projection.assert_called_once()
+        refresh_projection.assert_not_called()
+        self.assertEqual(payload["prepared_projection_refresh"]["status"], "DEFERRED_TO_EXISTING_PLANNER_PROJECTION_ROLE")
         self.assertEqual(
-            refresh_projection.call_args.kwargs["summary_file"], summary,
+            payload["prepared_projection_refresh"]["deferred_owner"],
+            "tools/runtime-support/v7-health-loop:planner_projection",
         )
         self.assertTrue(payload["prepared_projection_refresh"]["ok"])
         self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
         self.assertEqual(payload["observation_only"]["users_moved"], 0)
 
-    def test_n10_path_role_fails_closed_when_projection_cannot_align(self):
+    def test_n10_path_role_never_rebuilds_or_blocks_on_expired_projection(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / "state"
             state.mkdir()
@@ -403,20 +408,15 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
                 "--prepared-hot-targets", "--matrix-observation-only",
                 "--prepared-hot-target-service-class", "path",
             ]
-            stopped = {
-                "schema_version": "v7.matrix-prepared-projection-refresh.v1",
-                "status": "STOP_SAFE", "ok": False,
-                "routing_mutation_performed": False, "users_moved": 0,
-            }
             output = io.StringIO()
             with mock.patch.object(sys, "argv", argv), mock.patch.object(
                 self.refresh, "refresh_prepared_class_projection",
-                return_value=stopped,
-            ), contextlib.redirect_stdout(output):
-                self.assertEqual(self.refresh.main(), 2)
+            ) as refresh_projection, contextlib.redirect_stdout(output):
+                self.assertEqual(self.refresh.main(), 0)
             payload = json.loads(output.getvalue())
 
-        self.assertEqual(payload["prepared_projection_refresh"]["status"], "STOP_SAFE")
+        refresh_projection.assert_not_called()
+        self.assertEqual(payload["prepared_projection_refresh"]["status"], "DEFERRED_TO_EXISTING_PLANNER_PROJECTION_ROLE")
         self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
         self.assertEqual(payload["observation_only"]["users_moved"], 0)
 

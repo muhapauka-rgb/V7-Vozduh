@@ -2718,7 +2718,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             ],
             27,
         )
-        self.assertNotIn("10.0.0.2", json.dumps(prepared))
+        self.assertEqual(
+            prepared["classes"][0]["ordinary_member_slice"],
+            ["10.0.0.2", "10.0.0.3"],
+        )
+        self.assertLessEqual(
+            len(prepared["classes"][0]["ordinary_member_slice"]),
+            prepared["classes"][0]["ordinary_member_slice_limit"],
+        )
         self.assertEqual(
             prepared["hot_validation_law"],
             "COMPARE_DECLARED_GENERATIONS_ONLY_NO_WORLD_MODEL_REBUILD",
@@ -4175,7 +4182,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "source_channel": "vless",
                 "affected_scope_count": 1,
                 "affected_scope_fingerprint": "scope_idempotent_outcome",
-                "observed_at": "2026-07-27T12:00:00+00:00",
+                "observed_at": self.autoswitch.now_iso(),
             }
             event = {
                 "event_id": "sfrev_idempotent_outcome",
@@ -4188,7 +4195,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "failure_episode_id": "sfep_idempotent_outcome",
                 "failure_samples": 3,
                 "bad_for_seconds": 180,
-                "observed_at": "2026-07-27T12:00:00+00:00",
+                "observed_at": source_scope["observed_at"],
                 "source_hashes": {"service_row": "hash"},
                 "source_scope": source_scope,
             }
@@ -4215,6 +4222,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "terminal_outcome_classification": "SUCCESS",
                 "verification_result": {"success": True},
                 "service_failure_causal_binding": {
+                    "direct_l3_handoff": True,
+                    "binding_kind": "ORDINARY_SERVICE_FAILURE_RUNTIME",
                     "source_incident_id": incident_id,
                     "source_event_id": event["event_id"],
                     "source_event_ids": [event["event_id"]],

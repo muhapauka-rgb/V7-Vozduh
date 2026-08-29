@@ -15070,6 +15070,37 @@ class AutoswitchPlanner:
                     "expired_foreign_clearance_candidate_only_deferral": True,
                     "apply_exemption": False,
                 })
+        elif (
+            ordinary_service_failure_context
+            and selected
+            and bool_value(intelligence_snapshot_gate.get("active"))
+            and bool_value(intelligence_snapshot_gate.get("stop_required"))
+        ):
+            # Intelligence/trust/prediction snapshots are advisory for a
+            # current ordinary service failure.  Matrix has already proved the
+            # failed source and the target's required services; the existing
+            # Authority and Packet/Lease/Barrier owners still validate every
+            # mutable execution fact before Apply.  Let them receive a fresh
+            # candidate instead of making an unrelated stale advisory read
+            # strand a user.  This is deliberately candidate-only and never
+            # makes the stale snapshot an Apply exemption.
+            intelligence_snapshot_gate.update({
+                "stop_required_before_ordinary_service_failure_packet_recheck": True,
+                "stop_required": False,
+                "selected_moves_suppressed": False,
+                "selected_moves_after_gate": len(selected),
+                "snapshot_gate_source": "ordinary_service_failure_candidate_only_deferral",
+                "snapshot_gate_decision": "defer_advisory_snapshot_to_current_governed_rechecks",
+                "ordinary_service_failure_candidate_only_deferral": True,
+                "apply_exemption": False,
+                "mandatory_current_owners": [
+                    "Matrix",
+                    "Authority",
+                    "Candidate/Packet/Lease/Barrier",
+                    "existing route writer",
+                    "required-service S11 verifier",
+                ],
+            })
         else:
             intelligence_snapshot_gate = (
                 self._apply_source_bundle_lease_to_intelligence_gate(

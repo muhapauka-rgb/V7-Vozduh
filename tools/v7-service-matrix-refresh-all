@@ -6972,14 +6972,26 @@ def main() -> int:
             read_json(summary_file, {}),
         )
         if refresh_due["due"]:
-            prepared_projection_refresh = refresh_prepared_class_projection(
-                str(args.passive_consumer),
-                state_dir=state_dir,
-                summary_file=summary_file,
-                lock_timeout_sec=int(args.lock_timeout_sec),
-                timeout_sec=max(45, int(args.passive_consumer_timeout_sec)),
-            )
-            prepared_projection_refresh["refresh_due"] = refresh_due
+            # PATH is the one-second readiness half of an already prepared
+            # recovery transaction.  The exact Matrix observations above are
+            # sufficient for the later mutable Candidate/Packet/Lease/Barrier
+            # checks; synchronously rebuilding the advisory Planner projection
+            # here can take tens of seconds and would make a target probe miss
+            # its own deadline.  Leave the projection rebuild to the existing
+            # ``planner_projection`` health role.  This is not a reuse of an
+            # expired decision: a live incident still fails closed unless its
+            # current Matrix, Authority and governed execution checks pass.
+            prepared_projection_refresh = {
+                "schema_version": "v7.matrix-prepared-projection-refresh.v1",
+                "status": "DEFERRED_TO_EXISTING_PLANNER_PROJECTION_ROLE",
+                "ok": True,
+                "refresh_due": refresh_due,
+                "planner_invoked": False,
+                "deferred_owner": "tools/runtime-support/v7-health-loop:planner_projection",
+                "defer_reason": "prepared_hot_target_path_deadline_preserved",
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
         else:
             prepared_projection_refresh = {
                 "schema_version": "v7.matrix-prepared-projection-refresh.v1",

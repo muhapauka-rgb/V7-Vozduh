@@ -3563,6 +3563,52 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(evidence["profile_required_services"], ["instagram"])
         self.assertFalse(evidence["current_channel_failure"].get("confirmed"))
 
+    def test_ordinary_profile_failure_defers_advisory_snapshot_stop_to_governed_rechecks(self):
+        """A stale advisory read cannot suppress a fresh Matrix failure move."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={
+                    "instagram": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "score": 0,
+                        "consecutive_failures": 3,
+                    },
+                },
+            )
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"]["services"]["instagram"]["tested_at"] = self.tool.now_iso()
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (root / "state" / "service-preferences.json").write_text(
+                json.dumps({"users": {"10.0.0.2": {"services": ["instagram"]}}}),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(
+                root, ["--ordinary-service-failure-context"],
+            ))
+            planner._l3_active_incident_source_context = lambda: {
+                "active": True,
+                "incident_source": "1",
+                "affected_users": ["10.0.0.2"],
+                "reason": "unit_test_current_matrix_incident",
+            }
+            planner.intelligence_snapshots = {
+                "active": True,
+                "stop_required": True,
+                "stop_families": ["trust-summaries"],
+                "results": {"trust-summaries": {"freshness_state": "STALE"}},
+            }
+            plan = planner.plan()
+
+        gate = plan["safety"]["intelligence_snapshots"]
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertFalse(gate["stop_required"])
+        self.assertTrue(gate["ordinary_service_failure_candidate_only_deferral"])
+        self.assertFalse(gate["apply_exemption"])
+
     def test_profile_required_target_with_stale_truth_is_not_admitted(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

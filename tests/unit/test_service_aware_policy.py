@@ -228,6 +228,70 @@ class ServiceAwarePolicyTest(unittest.TestCase):
             self.assertIn("avg_mbps_below_floor", awg0["blocked"])
             self.assertIn("min_mbps_below_floor", awg0["blocked"])
 
+    def test_stale_certification_capacity_overlay_does_not_strand_ordinary_recovery(self):
+        """An inactive certification marker is not a physical capacity cap."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                vless_extra=(
+                    " soft_limit=1 hard_limit=2 "
+                    "controlled_certification_source=1 certification_group=old-batch"
+                ),
+            )
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                users_path.read_text(encoding="utf-8")
+                + "".join(
+                    f"ip=10.0.1.{index} current=vless table={200 + index} enabled=1\n"
+                    for index in range(1, 45)
+                ),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            limits = planner._load_limits_for_egress(planner.egress["vless"])
+
+            self.assertTrue(
+                limits["capacity_owner_inputs"]["stale_controlled_capacity_overlay"]
+            )
+            self.assertGreater(limits["failover_hard_limit"], 44)
+            self.assertNotEqual(limits["status"], "FAILOVER_FULL")
+
+    def test_active_certification_capacity_overlay_remains_authoritative(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                vless_extra=(
+                    " soft_limit=1 hard_limit=2 controlled_certification_source=1 "
+                    "certification_group=active-batch execution_reserved=1 "
+                    "canary_reserved=1 reservation_owner=operator_execution_governance "
+                    "controlled_source_reservation_id=ctres_1234567890abcdef12345678 "
+                    "controlled_source_reservation_expires_at=2099-01-01T00:00:00+00:00 "
+                    "production_assignment_allowed=false"
+                ),
+            )
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                users_path.read_text(encoding="utf-8")
+                + "".join(
+                    f"ip=10.0.2.{index} current=vless table={300 + index} enabled=1 certification_user=1 certification_group=active-batch\n"
+                    for index in range(1, 4)
+                ),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            limits = planner._load_limits_for_egress(planner.egress["vless"])
+
+            self.assertTrue(
+                limits["capacity_owner_inputs"]["active_controlled_capacity_overlay"]
+            )
+            self.assertFalse(
+                limits["capacity_owner_inputs"]["stale_controlled_capacity_overlay"]
+            )
+            self.assertEqual(limits["failover_hard_limit"], 2)
+            self.assertEqual(limits["status"], "FAILOVER_FULL")
+
     def test_reservation_and_manual_gates_remain_hard(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

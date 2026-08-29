@@ -12449,21 +12449,68 @@ class AutoswitchPlanner:
             to_int(registry.get("failover_hard_limit"), 0),
         )
         capacity_owner_errors: list[str] = []
+        # A small explicit capacity overlay can be placed on an otherwise
+        # ordinary egress while it is an *active* controlled-certification
+        # source.  It is not a physical ceiling.  A legacy marker without an
+        # exact, live reservation must therefore not strand ordinary users
+        # once that egress is already carrying ordinary production traffic.
+        #
+        # This is deliberately a read-only reconciliation in the existing
+        # capacity owner: it never clears a marker, changes a registry, or
+        # admits a target by itself.  A live reservation still retains its
+        # exact explicit capacity contract; all normal Matrix, Planner,
+        # Authority, Packet/Lease, Barrier and S11 checks remain downstream.
+        controlled_overlay = bool_value(
+            registry.get("controlled_certification_source")
+        )
+        overlay_reservation_id = str(
+            registry.get("controlled_source_reservation_id")
+            or registry.get("execution_reservation_id")
+            or registry.get("reservation_id")
+            or ""
+        ).strip()
+        overlay_owner = str(registry.get("reservation_owner") or "").strip()
+        overlay_expiry = parse_ts(
+            registry.get("controlled_source_reservation_expires_at")
+            or registry.get("reservation_expires_at")
+            or ""
+        )
+        overlay_execution_reserved = bool_value(
+            registry.get("execution_reserved")
+        ) or bool_value(registry.get("canary_reserved"))
+        overlay_production_blocked = not bool_value(
+            registry.get("production_assignment_allowed", "true")
+        )
+        active_controlled_capacity_overlay = (
+            controlled_overlay
+            and bool(overlay_reservation_id)
+            and overlay_owner == "operator_execution_governance"
+            and overlay_expiry > time.time()
+            and overlay_execution_reserved
+            and overlay_production_blocked
+        )
+        stale_controlled_capacity_overlay = (
+            controlled_overlay
+            and bool(registry_soft or registry_hard or registry_failover)
+            and egress.users > 0
+            and not active_controlled_capacity_overlay
+        )
         if registry_soft and registry_hard and registry_soft > registry_hard:
             capacity_owner_errors.append(
                 "registry_soft_limit_exceeds_registry_hard_limit"
             )
-        if registry_soft:
-            soft_limit = min(soft_limit, registry_soft)
-        if registry_hard:
-            hard_limit = min(hard_limit, registry_hard)
-        if registry_failover:
-            failover_hard_limit = min(failover_hard_limit, registry_failover)
-        elif registry_hard:
-            # A declared hard ceiling is authoritative for both planned and
-            # failover admission unless its owner explicitly provides a
-            # distinct failover ceiling.
-            failover_hard_limit = min(failover_hard_limit, registry_hard)
+        if not stale_controlled_capacity_overlay:
+            if registry_soft:
+                soft_limit = min(soft_limit, registry_soft)
+            if registry_hard:
+                hard_limit = min(hard_limit, registry_hard)
+            if registry_failover:
+                failover_hard_limit = min(failover_hard_limit, registry_failover)
+            elif registry_hard:
+                # A declared hard ceiling is authoritative for both planned
+                # and failover admission unless its owner explicitly
+                # provides a distinct failover ceiling.
+                failover_hard_limit = min(failover_hard_limit, registry_hard)
         hard_limit = max(1, hard_limit)
         soft_limit = max(1, min(soft_limit, hard_limit))
         failover_hard_limit = max(hard_limit, failover_hard_limit)
@@ -12482,7 +12529,9 @@ class AutoswitchPlanner:
             "capacity_users": egress.capacity_users,
             "status": status,
             "capacity_owner": (
-                "egress.registry explicit limits bounded by existing load policy"
+                "existing dynamic/static load policy after stale controlled-certification capacity overlay excluded"
+                if stale_controlled_capacity_overlay
+                else "egress.registry explicit limits bounded by existing load policy"
                 if registry_soft or registry_hard or registry_failover
                 else "existing dynamic/static load policy"
             ),
@@ -12494,6 +12543,9 @@ class AutoswitchPlanner:
                 "base_soft_limit": base_soft,
                 "base_hard_limit": base_hard,
                 "base_failover_hard_limit": base_failover,
+                "controlled_certification_source": controlled_overlay,
+                "active_controlled_capacity_overlay": active_controlled_capacity_overlay,
+                "stale_controlled_capacity_overlay": stale_controlled_capacity_overlay,
             },
             "capacity_owner_errors": capacity_owner_errors,
             "capacity_owner_reconciled": not capacity_owner_errors,

@@ -398,7 +398,7 @@ def canonical_profile_service_failure_binding(
     if not isinstance(items, dict) or not isinstance(users, dict):
         return {}
     t0_values: list[int] = []
-    affected: list[dict[str, str]] = []
+    affected: list[dict[str, Any]] = []
     for line in registry_lines:
         row: dict[str, str] = {}
         for token in line.strip().split():
@@ -447,6 +447,7 @@ def canonical_profile_service_failure_binding(
                     "service": str(service_id),
                     "source_incident_id": str(observed.get("source_incident_id") or ""),
                     "failure_event_id": str(observed.get("failure_event_id") or ""),
+                    "t0_ns": t0_ns,
                 })
     if not affected:
         return {}
@@ -457,11 +458,24 @@ def canonical_profile_service_failure_binding(
             row["source_incident_id"], row["failure_event_id"],
         ),
     ), separators=(",", ":"), sort_keys=True)
-    return {
+    newest_t0 = max(t0_values, default=0)
+    newest_sources = {
+        str(row["source"])
+        for row in affected
+        if int(row.get("t0_ns") or 0) == newest_t0
+    }
+    result = {
         "t0_ns": max(t0_values, default=0),
         "dedupe_identity": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
         "affected_profile_count": len({row["user_ip"] for row in affected}),
     }
+    # The health role may constrain the Matrix consumer only when the current
+    # profile evidence identifies one source.  A tie remains intentionally
+    # unconstrained for the existing Matrix source selector to resolve or stop
+    # safely; health never supplies a target or a user-specific route action.
+    if len(newest_sources) == 1:
+        result["source_egress"] = next(iter(newest_sources))
+    return result
 
 
 def canonical_profile_service_failure_t0_ns(
@@ -851,6 +865,7 @@ class RoleHealthLoop:
         previous_service_t0 = os.environ.get("V7_SERVICE_T0_MONOTONIC_NS")
         previous_service_owner = os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER")
         previous_service_context = os.environ.get("V7_SERVICE_HEALTH_DISPATCH_CONTEXT")
+        previous_service_source = os.environ.get("V7_SERVICE_PROFILE_SOURCE_EGRESS")
         try:
             sys.argv = [
                 "v7-service-matrix-refresh-all",
@@ -876,6 +891,9 @@ class RoleHealthLoop:
                 os.environ["V7_SERVICE_HEALTH_DISPATCH_CONTEXT"] = json.dumps(
                     health_dispatch_context, sort_keys=True,
                 )
+                source_egress = str(health_dispatch_context.get("profile_source_egress") or "")
+                if source_egress:
+                    os.environ["V7_SERVICE_PROFILE_SOURCE_EGRESS"] = source_egress
             with open(os.devnull, "w", encoding="utf-8") as sink:
                 with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
                     return int(self.persistent_matrix_module.main())
@@ -908,6 +926,10 @@ class RoleHealthLoop:
                 os.environ.pop("V7_SERVICE_HEALTH_DISPATCH_CONTEXT", None)
             else:
                 os.environ["V7_SERVICE_HEALTH_DISPATCH_CONTEXT"] = previous_service_context
+            if previous_service_source is None:
+                os.environ.pop("V7_SERVICE_PROFILE_SOURCE_EGRESS", None)
+            else:
+                os.environ["V7_SERVICE_PROFILE_SOURCE_EGRESS"] = previous_service_source
 
     def _fallback_matrix_consumer(
         self, t0_ns: int, health_dispatch_context: dict[str, Any] | None = None,
@@ -929,6 +951,9 @@ class RoleHealthLoop:
             environment["V7_SERVICE_HEALTH_DISPATCH_CONTEXT"] = environment[
                 "V7_HARD_HEALTH_DISPATCH_CONTEXT"
             ]
+            source_egress = str(health_dispatch_context.get("profile_source_egress") or "")
+            if source_egress:
+                environment["V7_SERVICE_PROFILE_SOURCE_EGRESS"] = source_egress
         subprocess.run(
             [
                 "/usr/local/bin/v7-service-matrix-refresh-all",
@@ -1247,6 +1272,10 @@ class RoleHealthLoop:
                         "persistent_dispatch_monotonic_ns": int(dispatch_ns),
                         "matrix_t0_monotonic_ns": int(t0_ns),
                     })
+                    if profile_binding.get("source_egress"):
+                        context["profile_source_egress"] = str(
+                            profile_binding["source_egress"]
+                        )
                     self._consume_new_persistent_matrix_t0(
                         t0_ns,
                         context,

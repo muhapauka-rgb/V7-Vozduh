@@ -354,6 +354,30 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
         self.assertEqual(handoff.call_args.kwargs["source_incident_id"], "new")
         self.assertEqual(handoff.call_args.kwargs["source_scope_fingerprint"], "v")
 
+    def test_health_profile_source_constraint_beats_unrelated_larger_scope(self):
+        scope = {
+            "active_sources": [
+                {"channel": "wireguard", "source_incident_id": "old", "source_scope_fingerprint": "w"},
+                {"channel": "vless", "source_incident_id": "profile", "source_scope_fingerprint": "v"},
+            ],
+        }
+        selected = tool.runtime_profile_source_constraint(
+            scope,
+            {
+                "V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1",
+                "V7_SERVICE_PROFILE_SOURCE_EGRESS": "vless",
+            },
+        )
+        self.assertEqual(selected["channel"], "vless")
+        self.assertEqual(
+            selected["source_selection"],
+            "HEALTH_MATRIX_PROFILE_REQUIRED_SERVICE_BINDING",
+        )
+        self.assertEqual(tool.runtime_profile_source_constraint(
+            scope,
+            {"V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1", "V7_SERVICE_PROFILE_SOURCE_EGRESS": "missing"},
+        ), {})
+
     def test_current_scope_does_not_fallback_to_history_after_exact_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

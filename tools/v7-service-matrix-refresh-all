@@ -6225,8 +6225,40 @@ def automatically_prioritized_failed_source(
     return selected
 
 
+def runtime_profile_source_constraint(
+    source_scope: dict[str, Any],
+    environment: Optional[dict[str, str]] = None,
+) -> dict[str, Any]:
+    """Read one exact profile-failure source forwarded by the health owner.
+
+    The health loop derives this value from current Matrix, assignment and
+    stored required-service evidence.  It narrows only the *failed source*
+    when that evidence has one source; the existing Planner still chooses the
+    user, target and every governed execution object.  A stale or ambiguous
+    value is ignored and the normal Matrix selector remains authoritative.
+    """
+    env = environment if environment is not None else os.environ
+    if str(env.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") or "") != "1":
+        return {}
+    requested = str(env.get("V7_SERVICE_PROFILE_SOURCE_EGRESS") or "").strip()
+    if not requested:
+        return {}
+    active_sources = source_scope.get("active_sources")
+    if not isinstance(active_sources, list):
+        return {}
+    matches = [
+        dict(row) for row in active_sources
+        if isinstance(row, dict) and str(row.get("channel") or "") == requested
+    ]
+    if len(matches) != 1:
+        return {}
+    selected = matches[0]
+    selected["source_selection"] = "HEALTH_MATRIX_PROFILE_REQUIRED_SERVICE_BINDING"
+    return selected
+
+
 def direct_service_failure_handoff_for_scope(
-    *, state_dir: Path, source_scope: dict[str, Any],
+    *, state_dir: Path, source_scope: dict[str, Any], source_constraint: Optional[dict[str, Any]] = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Read one already-durable direct L3 handoff for the current Matrix scope.
 
@@ -6238,9 +6270,13 @@ def direct_service_failure_handoff_for_scope(
         if isinstance(source_scope.get("active_sources"), list)
         else []
     )
-    direct_source = automatically_prioritized_failed_source(
-        state_dir=state_dir,
-        active_sources=[row for row in active_sources if isinstance(row, dict)],
+    direct_source = (
+        dict(source_constraint)
+        if isinstance(source_constraint, dict) and source_constraint
+        else automatically_prioritized_failed_source(
+            state_dir=state_dir,
+            active_sources=[row for row in active_sources if isinstance(row, dict)],
+        )
     )
     handoff = service_failure_direct_execution_handoff(
         state_dir=state_dir,
@@ -7179,10 +7215,12 @@ def main() -> int:
     # passive-first path, so no fast path can invent a Candidate or bypass
     # current-scope reconciliation.
     source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
+    profile_source_constraint = runtime_profile_source_constraint(source_scope)
     direct_handoff, direct_service_failure_obligation = (
         direct_service_failure_handoff_for_scope(
             state_dir=state_dir,
             source_scope=source_scope,
+            source_constraint=profile_source_constraint,
         )
     )
     defer_passive_consumer_until_after_direct_execution = (
@@ -7298,10 +7336,12 @@ def main() -> int:
         # Passive reconciliation may have materialized the first current L3
         # handoff. Re-read only through the same existing Matrix/L3 owners.
         source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
+        profile_source_constraint = runtime_profile_source_constraint(source_scope)
         direct_handoff, direct_service_failure_obligation = (
             direct_service_failure_handoff_for_scope(
                 state_dir=state_dir,
                 source_scope=source_scope,
+                source_constraint=profile_source_constraint,
             )
         )
     payload["current_failed_source_scope"] = source_scope
@@ -7334,7 +7374,7 @@ def main() -> int:
             "reason": "explicit_skip",
         }
     else:
-        priority_source = automatically_prioritized_failed_source(
+        priority_source = profile_source_constraint or automatically_prioritized_failed_source(
             state_dir=state_dir,
             active_sources=[
                 row for row in (source_scope.get("active_sources") or [])

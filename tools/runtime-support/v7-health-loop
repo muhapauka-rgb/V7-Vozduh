@@ -165,8 +165,16 @@ DEFAULT_ROLE_NICE = {
     "hot_target": 5,
     "planner_projection": 19,
     "deep": 18,
-    "hot_target_other": 14,
-    "other_required": 14,
+    # The target's non-path application-service observation is useful
+    # background readiness evidence, but it must not contend equally with the
+    # source-side required-service detector.  The latter is the only existing
+    # ordinary recovery entry point: once it reports a fresh suspicion, Matrix
+    # still performs the independent confirmation and every governed
+    # Candidate/Packet/Lease/Barrier check.  Give the detector normal service
+    # priority and keep this non-critical target refresh at the lowest normal
+    # priority so two-vCPU contention cannot consume its five-second slot.
+    "hot_target_other": 19,
+    "other_required": 0,
 }
 SLOW_ROLE_NAMES = frozenset({
     "planner_projection", "deep", "hot_target_other", "other_required",

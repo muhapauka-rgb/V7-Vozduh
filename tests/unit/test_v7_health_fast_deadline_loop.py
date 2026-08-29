@@ -133,6 +133,8 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn('"hot_target": 500', loop)
         self.assertIn('"planner_projection": 19', loop)
         self.assertIn('"hot_target": 5', loop)
+        self.assertIn('"hot_target_other": 19', loop)
+        self.assertIn('"other_required": 0', loop)
         self.assertEqual(loop.count('"--lock-timeout-sec", "1"'), 2)
         self.assertIn('"hard": -20', loop)
         self.assertIn('"telegram": 10', loop)

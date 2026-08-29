@@ -24942,6 +24942,9 @@ def html_page_v2():
     function shouldRefreshAfterPost(path='', data={}) {
       if (!String(path || '').startsWith('/api/actions/')) return false;
       if (data && data.error) return false;
+      // Service priorities return their exact, just-written canonical state.
+      // Do not make the picker wait for an unrelated full-overview rebuild.
+      if (path === '/api/actions/service-preferences-update') return false;
       return !/(preview|dry-run|export|plan|test|diagnose|backups|activate-check)$/i.test(String(path || ''));
     }
     function overviewSignature(data={}) {
@@ -25991,32 +25994,65 @@ def html_page_v2():
       const items = USER_PRIORITY_SERVICE_GROUPS.map(group => {
         const checked = enabled.has(group.id) ? 'checked' : '';
         const sub = group.services.map(serviceDisplayName).join(' + ');
-        return `<label class="priority-picker-item"><span><strong>${esc(group.label)}</strong><em>${esc(sub)}</em></span><input type="checkbox" data-priority-service="${esc(group.id)}" ${checked}></label>`;
+        return `<label class="priority-picker-item"><span><strong>${esc(group.label)}</strong><em>${esc(sub)}</em></span><input type="checkbox" data-priority-service="${esc(group.id)}" onchange="queueUserPrioritySave('${esc(safeIp)}')" ${checked}></label>`;
       }).join('');
       openCompactDrawer('Приоритеты', 'users', [
         drawerSection('Пользователь', kvRows({'Имя': h.name || safeIp, 'IP': safeIp, 'Канал сейчас': row.current || 'не выбран'})),
-        drawerSection('Обязательные сервисы', `<div class="priority-picker-grid">${items}</div><div class="detail-actions"><button class="primary" onclick="saveUserPriorities('${esc(safeIp)}')">Сохранить</button><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button></div>`),
+        drawerSection('Обязательные сервисы', `<div class="priority-picker-grid">${items}</div><p id="userPrioritySaveStatus" class="muted" aria-live="polite">Изменения сохраняются сразу после выбора.</p><div class="detail-actions"><button class="primary" id="userPrioritySaveButton" onclick="saveUserPriorities('${esc(safeIp)}')">Сохранить сейчас</button><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button></div>`),
       ].join(''));
     }
-    async function saveUserPriorities(ip='') {
-      const selected = Array.from(document.querySelectorAll('[data-priority-service]:checked')).map(el => el.dataset.priorityService);
+    let userPrioritySaveChain = Promise.resolve();
+    let userPrioritySaveRevision = 0;
+    function prioritySelectionFromDrawer() {
+      return Array.from(document.querySelectorAll('[data-priority-service]:checked')).map(el => el.dataset.priorityService);
+    }
+    function setUserPrioritySaveStatus(text='', tone='') {
+      const status = document.getElementById('userPrioritySaveStatus');
+      if (!status) return;
+      status.textContent = text;
+      status.className = `muted${tone ? ` ${tone}` : ''}`;
+    }
+    function applyUserPriorityPreferenceLocally(ip='', services=[]) {
+      const base = overview.service_preferences && typeof overview.service_preferences === 'object'
+        ? overview.service_preferences : {enabled:true, users:{}};
+      const users = {...(base.users && typeof base.users === 'object' ? base.users : {})};
+      users[ip] = {schema_version:2, services:[...services], updated:'just now', updated_by:'admin'};
+      overview.service_preferences = {...base, enabled:true, users, updated:'just now', updated_by:'admin'};
+      renderUsers();
+    }
+    function queueUserPrioritySave(ip='') {
+      return saveUserPriorities(ip, prioritySelectionFromDrawer());
+    }
+    function saveUserPriorities(ip='', selectedGroups=null) {
+      const selected = Array.isArray(selectedGroups) ? [...selectedGroups] : prioritySelectionFromDrawer();
       const services = priorityServicesFromGroups(selected);
-      const d = await postJson('/api/actions/service-preferences-update', {enabled:true, ip, services});
-      if (!d._http_ok || d.error) {
-        showToast('Приоритеты не сохранены', actionErrorReason(d), 'bad');
-        return;
-      }
-      if (d.overview) overview = d.overview;
-      // Use the response that just wrote canonical state rather than an older
-      // overview snapshot.  The latter made a successful save appear lost
-      // until a later full refresh.
-      if (d.preferences) overview.service_preferences = d.preferences;
-      const labels = USER_PRIORITY_SERVICE_GROUPS
-        .filter(group => selected.includes(group.id))
-        .map(group => group.label);
-      showToast('Приоритеты сохранены', labels.length ? labels.join(', ') : 'Без обязательных сервисов', 'ok');
-      openUserPriorities(ip);
-      renderAll();
+      const revision = ++userPrioritySaveRevision;
+      applyUserPriorityPreferenceLocally(ip, services);
+      setUserPrioritySaveStatus('Сохраняю…');
+      const button = document.getElementById('userPrioritySaveButton');
+      if (button) button.disabled = true;
+      userPrioritySaveChain = userPrioritySaveChain.catch(() => undefined).then(async () => {
+        const d = await postJson('/api/actions/service-preferences-update', {enabled:true, ip, services});
+        if (!d._http_ok || d.error) {
+          if (revision === userPrioritySaveRevision) {
+            setUserPrioritySaveStatus(`Не сохранено: ${actionErrorReason(d)}`, 'bad');
+            showToast('Приоритеты не сохранены', actionErrorReason(d), 'bad');
+          }
+          return d;
+        }
+        if (d.preferences) overview.service_preferences = d.preferences;
+        if (revision === userPrioritySaveRevision) {
+          const labels = USER_PRIORITY_SERVICE_GROUPS
+            .filter(group => selected.includes(group.id))
+            .map(group => group.label);
+          setUserPrioritySaveStatus(`Сохранено: ${labels.length ? labels.join(', ') : 'без обязательных сервисов'}`, 'ok');
+          renderUsers();
+        }
+        return d;
+      }).finally(() => {
+        if (revision === userPrioritySaveRevision && button) button.disabled = false;
+      });
+      return userPrioritySaveChain;
     }
     function userTableColumns() {
       const fallback = USER_TABLE_COLUMN_DEFS.map(c => ({id:c.id, visible:c.defaultVisible !== false}));
@@ -41557,7 +41593,10 @@ class Handler(BaseHTTPRequestHandler):
                 f"services={','.join(normalize_services(services)) if ip and not clear_user else 'cleared' if ip else 'unchanged'} "
                 f"clear_user={str(clear_user).lower()}",
             )
-            self.send_json({"action": "service_preferences_update", "preferences": prefs, "overview": overview()})
+            # This write is deliberately a short admin interaction.  The
+            # browser receives its exact canonical row immediately and can
+            # refresh broader diagnostics independently.
+            self.send_json({"action": "service_preferences_update", "preferences": prefs})
         else:
             self.send_json({"error": "not_found", "path": html.escape(path)}, status=404)
 

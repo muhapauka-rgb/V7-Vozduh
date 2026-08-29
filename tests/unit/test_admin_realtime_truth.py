@@ -116,13 +116,26 @@ class AdminRealtimeTruthTest(unittest.TestCase):
 
     def test_priority_save_surfaces_rejection_and_reuses_written_preference_state(self):
         page = self.admin.html_page_v2()
-        start = page.index("async function saveUserPriorities")
+        start = page.index("function saveUserPriorities")
         end = page.index("function userTableColumns", start)
         save = page[start:end]
 
         self.assertIn("if (!d._http_ok || d.error)", save)
         self.assertIn("showToast('Приоритеты не сохранены'", save)
         self.assertIn("overview.service_preferences = d.preferences", save)
+
+    def test_priority_picker_saves_immediately_without_overview_round_trip(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+        page = self.admin.html_page_v2()
+
+        self.assertIn("onchange=\"queueUserPrioritySave", page)
+        self.assertIn("Изменения сохраняются сразу после выбора", page)
+        self.assertIn("if (path === '/api/actions/service-preferences-update') return false", page)
+        start = source.index('elif path == "/api/actions/service-preferences-update":')
+        end = source.index("        else:\n            self.send_json({\"error\": \"not_found\"", start)
+        handler = source[start:end]
+        self.assertIn('self.send_json({"action": "service_preferences_update", "preferences": prefs})', handler)
+        self.assertNotIn('"overview": overview()', handler)
 
     def test_unchanged_karing_reissue_does_not_restart_public_runtime(self):
         with tempfile.TemporaryDirectory() as tmp:

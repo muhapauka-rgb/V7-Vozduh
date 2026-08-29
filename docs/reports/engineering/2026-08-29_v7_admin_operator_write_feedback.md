@@ -22,6 +22,11 @@ failed or newly saved change look indistinguishable from a no-op.
 - Prefer the just-written canonical preference payload over an older overview
   snapshot during the redraw.
 - Show the exact saved service groups in the confirmation.
+- Save a priority change immediately when the operator toggles a service.
+  The explicit button remains available, but is no longer required.
+- Remove the synchronous full-admin-overview rebuild from this small write. The
+  response now contains only the exact canonical preference state, so the
+  affected table cell and picker update without waiting for unrelated checks.
 
 No route, Matrix, Planner, Authority, timer, user assignment, or health policy
 was changed.
@@ -37,8 +42,7 @@ was changed.
 
 ## Verification
 
-- `python3 -m unittest tests.unit.test_admin_realtime_truth tests.unit.test_admin_service_preferences_lifecycle` — 10 PASS.
-- `python3 -m unittest tests.contracts.endpoint_inventory_test` — 7 PASS.
+- `python3 -m unittest tests.unit.test_admin_realtime_truth tests.unit.test_admin_service_preferences_lifecycle tests.contracts.endpoint_inventory_test` — 18 PASS.
 - Python syntax compilation with a writable temporary bytecode cache — PASS.
 - Live `v7-admin-api.service` — active before deployment.
 

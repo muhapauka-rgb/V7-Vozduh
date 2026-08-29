@@ -50,7 +50,15 @@ no operator or Codex route action was taken.
 
 ## Production effect and next step
 
-The repair has not yet been deployed at this report point. After safe deploy,
+The initial repair was deployed as `5d52309b` and the full truth check passed.
+The first post-restart health observation then exposed a second bounded cause:
+the prepared-target role inherited the general 90-second Matrix writer-lock
+wait. The existing health role has therefore been corrected in the current
+workspace to use a one-second lock wait for both prepared-target lanes. A
+busy writer consequently leaves the target unproven rather than blocking the
+recovery path; it does not make a stale target eligible.
+
+After this follow-up deploy,
 the existing health-loop caller—not Codex—must observe either a real fresh
 profile-required-service failure or the existing lawful Polygon controlled
 falsification. It must then prove the full automatic Matrix-to-S11 chain for

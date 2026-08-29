@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 from datetime import datetime
+import hashlib
 import importlib.machinery
 import importlib.util
 import json
@@ -371,30 +372,33 @@ def canonical_definitive_hard_failure_t0_ns(
     )
 
 
-def canonical_profile_service_failure_t0_ns(
+def canonical_profile_service_failure_binding(
     matrix_state_file: Path,
     users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
     service_preferences_file: Path = DEFAULT_SERVICE_PREFERENCES_FILE,
-) -> int:
-    """Return a fresh Matrix T0 for an assigned user's failed requirement.
+) -> dict[str, Any]:
+    """Return the exact current profile-required failure binding.
 
     The ordinary detector is profile-scoped: a source need not lose a majority
     of its complete catalog before one user's required service has failed. This
     reader joins only existing Matrix, users-registry and preferences owners.
     It creates no incident, target, operation or state, and requires Matrix's
-    incident identity before the existing health consumer may proceed.
+    incident identity before the existing health consumer may proceed.  The
+    compact binding identity makes a *newly affected* profile visible even if
+    the source incident started before that user was assigned there.
     """
     try:
         matrix = json.loads(matrix_state_file.read_text(encoding="utf-8"))
         preferences = json.loads(service_preferences_file.read_text(encoding="utf-8"))
         registry_lines = users_registry_file.read_text(encoding="utf-8").splitlines()
     except (OSError, ValueError, TypeError):
-        return 0
+        return {}
     items = matrix.get("items") if isinstance(matrix, dict) else {}
     users = preferences.get("users") if isinstance(preferences, dict) else {}
     if not isinstance(items, dict) or not isinstance(users, dict):
-        return 0
+        return {}
     t0_values: list[int] = []
+    affected: list[dict[str, str]] = []
     for line in registry_lines:
         row: dict[str, str] = {}
         for token in line.strip().split():
@@ -437,7 +441,40 @@ def canonical_profile_service_failure_t0_ns(
                 t0_ns = 0
             if t0_ns > 0:
                 t0_values.append(t0_ns)
-    return max(t0_values, default=0)
+                affected.append({
+                    "source": source_id,
+                    "user_ip": user_id,
+                    "service": str(service_id),
+                    "source_incident_id": str(observed.get("source_incident_id") or ""),
+                    "failure_event_id": str(observed.get("failure_event_id") or ""),
+                })
+    if not affected:
+        return {}
+    canonical = json.dumps(sorted(
+        affected,
+        key=lambda row: (
+            row["source"], row["user_ip"], row["service"],
+            row["source_incident_id"], row["failure_event_id"],
+        ),
+    ), separators=(",", ":"), sort_keys=True)
+    return {
+        "t0_ns": max(t0_values, default=0),
+        "dedupe_identity": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "affected_profile_count": len({row["user_ip"] for row in affected}),
+    }
+
+
+def canonical_profile_service_failure_t0_ns(
+    matrix_state_file: Path,
+    users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
+    service_preferences_file: Path = DEFAULT_SERVICE_PREFERENCES_FILE,
+) -> int:
+    """Compatibility reader for callers that only need Matrix T0."""
+    return int(canonical_profile_service_failure_binding(
+        matrix_state_file,
+        users_registry_file,
+        service_preferences_file,
+    ).get("t0_ns") or 0)
 
 
 def canonical_definitive_hard_failure_active(
@@ -753,6 +790,9 @@ class RoleHealthLoop:
     persistent_matrix_last_consumed_t0_ns_by_role: dict[str, int] = field(
         default_factory=dict,
     )
+    persistent_matrix_last_consumed_identity_by_role: dict[str, str] = field(
+        default_factory=dict,
+    )
 
     def _default_hard_runtime(self) -> bool:
         hard = next((role for role in self.roles if role.name == "hard"), None)
@@ -907,6 +947,7 @@ class RoleHealthLoop:
         health_dispatch_context: dict[str, Any] | None = None,
         *,
         dedupe_key: str = "hard",
+        dedupe_identity: str = "",
     ) -> bool:
         """Consume each current canonical T0 at most once per health process.
 
@@ -921,7 +962,13 @@ class RoleHealthLoop:
         last_consumed = int(
             self.persistent_matrix_last_consumed_t0_ns_by_role.get(key) or 0
         )
-        if t0_ns <= 0 or t0_ns <= last_consumed:
+        identity = str(dedupe_identity or "")
+        last_identity = str(
+            self.persistent_matrix_last_consumed_identity_by_role.get(key) or ""
+        )
+        if t0_ns <= 0 or (identity and identity == last_identity) or (
+            not identity and t0_ns <= last_consumed
+        ):
             return False
         self._hard_recovery_takeover(monotonic_ns())
         persistent_rc = (
@@ -935,6 +982,8 @@ class RoleHealthLoop:
             else:
                 self._fallback_matrix_consumer(t0_ns)
         self.persistent_matrix_last_consumed_t0_ns_by_role[key] = t0_ns
+        if identity:
+            self.persistent_matrix_last_consumed_identity_by_role[key] = identity
         # Retain the aggregate high-water mark solely for existing diagnostics
         # and controlled fixtures.  It is deliberately not an admission gate.
         self.persistent_matrix_last_consumed_t0_ns = max(
@@ -1172,11 +1221,13 @@ class RoleHealthLoop:
                     prepared_timing = {}
             if role.name in {"hard", "telegram", "other_required"} and self.persistent_matrix_ready:
                 if role.name == "other_required":
-                    t0_ns = canonical_profile_service_failure_t0_ns(
+                    profile_binding = canonical_profile_service_failure_binding(
                         self.matrix_state_file,
                         self.users_registry_file,
                     )
+                    t0_ns = int(profile_binding.get("t0_ns") or 0)
                 else:
+                    profile_binding = {}
                     t0_ns = canonical_service_failure_t0_ns(
                         self.matrix_state_file,
                         self.users_registry_file,
@@ -1197,7 +1248,10 @@ class RoleHealthLoop:
                         "matrix_t0_monotonic_ns": int(t0_ns),
                     })
                     self._consume_new_persistent_matrix_t0(
-                        t0_ns, context, dedupe_key=role.name,
+                        t0_ns,
+                        context,
+                        dedupe_key=role.name,
+                        dedupe_identity=str(profile_binding.get("dedupe_identity") or ""),
                     )
                     now_ns = monotonic_ns()
             duration = elapsed_ms(role.started_ns, now_ns)

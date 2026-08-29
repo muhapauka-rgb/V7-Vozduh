@@ -586,6 +586,23 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             {"telegram": 900, "other_required": 800},
         )
 
+    def test_profile_scope_change_reconsumes_same_source_incident_once(self):
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
+        loop.persistent_matrix_ready = True
+        with mock.patch.object(
+            loop, "_run_persistent_matrix_consumer", return_value=0,
+        ) as consumer:
+            self.assertTrue(loop._consume_new_persistent_matrix_t0(
+                800, dedupe_key="other_required", dedupe_identity="scope-a",
+            ))
+            self.assertFalse(loop._consume_new_persistent_matrix_t0(
+                800, dedupe_key="other_required", dedupe_identity="scope-a",
+            ))
+            self.assertTrue(loop._consume_new_persistent_matrix_t0(
+                800, dedupe_key="other_required", dedupe_identity="scope-b",
+            ))
+        self.assertEqual(consumer.call_args_list, [mock.call(800), mock.call(800)])
+
     def test_persistent_handoff_requires_current_matrix_t0_and_exact_assignment(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -694,6 +711,26 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                     matrix, users, preferences,
                 ),
                 678_901,
+            )
+            binding = HEALTH_LOOP_MODULE.canonical_profile_service_failure_binding(
+                matrix, users, preferences,
+            )
+            self.assertEqual(binding["affected_profile_count"], 1)
+            first_identity = binding["dedupe_identity"]
+            users.write_text(
+                "ip=10.7.0.127 enabled=1 current=source-a\n"
+                "ip=10.7.0.128 enabled=1 current=source-a\n",
+                encoding="utf-8",
+            )
+            preferences.write_text(json.dumps({"users": {
+                "10.7.0.127": {"services": ["google", "instagram"]},
+                "10.7.0.128": {"services": ["google"]},
+            }}), encoding="utf-8")
+            self.assertNotEqual(
+                HEALTH_LOOP_MODULE.canonical_profile_service_failure_binding(
+                    matrix, users, preferences,
+                )["dedupe_identity"],
+                first_identity,
             )
             users.write_text(
                 "ip=10.7.0.127 enabled=1 current=target-a\n",

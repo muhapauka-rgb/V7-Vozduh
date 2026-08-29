@@ -387,16 +387,56 @@ def canonical_profile_service_failure_binding(
     compact binding identity makes a *newly affected* profile visible even if
     the source incident started before that user was assigned there.
     """
+    bindings = canonical_profile_service_failure_bindings(
+        matrix_state_file,
+        users_registry_file,
+        service_preferences_file,
+    )
+    if not bindings:
+        return {}
+    affected_profile_count = sum(
+        int(binding.get("affected_profile_count") or 0)
+        for binding in bindings
+    )
+    canonical = json.dumps([
+        str(binding.get("dedupe_identity") or "") for binding in bindings
+    ], separators=(",", ":"))
+    result = {
+        "t0_ns": max(int(binding.get("t0_ns") or 0) for binding in bindings),
+        "dedupe_identity": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "affected_profile_count": affected_profile_count,
+    }
+    # Preserve the narrow compatibility contract.  The live health owner uses
+    # the per-source reader below: when several incidents are current, one
+    # aggregate wake must not silently select an unrelated newer source.
+    if len(bindings) == 1:
+        result["source_egress"] = str(bindings[0]["source_egress"])
+    return result
+
+
+def canonical_profile_service_failure_bindings(
+    matrix_state_file: Path,
+    users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
+    service_preferences_file: Path = DEFAULT_SERVICE_PREFERENCES_FILE,
+) -> list[dict[str, Any]]:
+    """Return one exact current profile-required binding per failed source.
+
+    Several sources can fail at once. Collapsing them into one newest-T0
+    binding made the health consumer pass a stale/absent source constraint,
+    after which Matrix could choose a different incident. These compact rows
+    remain a read-only join of the existing Matrix, registry and preference
+    owners; they only drive independent exact-once wakes of existing Matrix.
+    """
     try:
         matrix = json.loads(matrix_state_file.read_text(encoding="utf-8"))
         preferences = json.loads(service_preferences_file.read_text(encoding="utf-8"))
         registry_lines = users_registry_file.read_text(encoding="utf-8").splitlines()
     except (OSError, ValueError, TypeError):
-        return {}
+        return []
     items = matrix.get("items") if isinstance(matrix, dict) else {}
     users = preferences.get("users") if isinstance(preferences, dict) else {}
     if not isinstance(items, dict) or not isinstance(users, dict):
-        return {}
+        return []
     t0_values: list[int] = []
     affected: list[dict[str, Any]] = []
     for line in registry_lines:
@@ -449,32 +489,24 @@ def canonical_profile_service_failure_binding(
                     "failure_event_id": str(observed.get("failure_event_id") or ""),
                     "t0_ns": t0_ns,
                 })
-    if not affected:
-        return {}
-    canonical = json.dumps(sorted(
-        affected,
-        key=lambda row: (
-            row["source"], row["user_ip"], row["service"],
-            row["source_incident_id"], row["failure_event_id"],
-        ),
-    ), separators=(",", ":"), sort_keys=True)
-    newest_t0 = max(t0_values, default=0)
-    newest_sources = {
-        str(row["source"])
-        for row in affected
-        if int(row.get("t0_ns") or 0) == newest_t0
-    }
-    result = {
-        "t0_ns": max(t0_values, default=0),
-        "dedupe_identity": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
-        "affected_profile_count": len({row["user_ip"] for row in affected}),
-    }
-    # The health role may constrain the Matrix consumer only when the current
-    # profile evidence identifies one source.  A tie remains intentionally
-    # unconstrained for the existing Matrix source selector to resolve or stop
-    # safely; health never supplies a target or a user-specific route action.
-    if len(newest_sources) == 1:
-        result["source_egress"] = next(iter(newest_sources))
+    by_source: dict[str, list[dict[str, Any]]] = {}
+    for row in affected:
+        by_source.setdefault(str(row["source"]), []).append(row)
+    result: list[dict[str, Any]] = []
+    for source, source_rows in sorted(by_source.items()):
+        canonical = json.dumps(sorted(
+            source_rows,
+            key=lambda row: (
+                row["user_ip"], row["service"], row["source_incident_id"],
+                row["failure_event_id"],
+            ),
+        ), separators=(",", ":"), sort_keys=True)
+        result.append({
+            "source_egress": source,
+            "t0_ns": max(int(row.get("t0_ns") or 0) for row in source_rows),
+            "dedupe_identity": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+            "affected_profile_count": len({str(row["user_ip"]) for row in source_rows}),
+        })
     return result
 
 
@@ -1246,20 +1278,24 @@ class RoleHealthLoop:
                     prepared_timing = {}
             if role.name in {"hard", "telegram", "other_required"} and self.persistent_matrix_ready:
                 if role.name == "other_required":
-                    profile_binding = canonical_profile_service_failure_binding(
+                    profile_bindings = canonical_profile_service_failure_bindings(
                         self.matrix_state_file,
                         self.users_registry_file,
                     )
-                    t0_ns = int(profile_binding.get("t0_ns") or 0)
                 else:
-                    profile_binding = {}
+                    profile_bindings = [{}]
                     t0_ns = canonical_service_failure_t0_ns(
                         self.matrix_state_file,
                         self.users_registry_file,
                         "__channel_liveness__" if role.name == "hard" else "telegram",
                         "DEFINITIVE_LOCAL_HARD_FAILURE" if role.name == "hard" else "",
                     )
-                if t0_ns > 0:
+                if role.name != "other_required":
+                    profile_bindings[0]["t0_ns"] = t0_ns
+                for profile_binding in profile_bindings:
+                    t0_ns = int(profile_binding.get("t0_ns") or 0)
+                    if t0_ns <= 0:
+                        continue
                     dispatch_ns = monotonic_ns()
                     context = health_runtime_observation_delta(
                         role.runtime_observation_started,
@@ -1276,10 +1312,11 @@ class RoleHealthLoop:
                         context["profile_source_egress"] = str(
                             profile_binding["source_egress"]
                         )
+                    source_egress = str(profile_binding.get("source_egress") or "")
                     self._consume_new_persistent_matrix_t0(
                         t0_ns,
                         context,
-                        dedupe_key=role.name,
+                        dedupe_key=(f"{role.name}:{source_egress}" if source_egress else role.name),
                         dedupe_identity=str(profile_binding.get("dedupe_identity") or ""),
                     )
                     now_ns = monotonic_ns()

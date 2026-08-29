@@ -743,6 +743,46 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 0,
             )
 
+    def test_profile_service_bindings_keep_simultaneous_sources_separate(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            preferences = root / "service-preferences.json"
+            matrix.write_text(json.dumps({"items": {
+                "older-source": {"services": {"google": {
+                    "ok": False, "status": "FAIL", "failure_state": "OBSERVED_CONTINUING",
+                    "source_incident_id": "older", "failure_event_id": "event-older",
+                    "observation_monotonic_ns": 100,
+                }}},
+                "newer-unrelated-source": {"services": {"telegram": {
+                    "ok": False, "status": "FAIL", "failure_state": "OBSERVED_NEW",
+                    "source_incident_id": "newer", "failure_event_id": "event-newer",
+                    "observation_monotonic_ns": 200,
+                }}},
+            }}), encoding="utf-8")
+            users.write_text(
+                "ip=10.7.0.125 enabled=1 current=older-source\n"
+                "ip=10.7.0.126 enabled=1 current=older-source\n"
+                "ip=10.7.0.127 enabled=1 current=newer-unrelated-source\n",
+                encoding="utf-8",
+            )
+            preferences.write_text(json.dumps({"users": {
+                "10.7.0.125": {"services": ["google"]},
+                "10.7.0.126": {"services": ["google"]},
+                "10.7.0.127": {"services": ["telegram"]},
+            }}), encoding="utf-8")
+            bindings = HEALTH_LOOP_MODULE.canonical_profile_service_failure_bindings(
+                matrix, users, preferences,
+            )
+            self.assertEqual(
+                [(row["source_egress"], row["affected_profile_count"]) for row in bindings],
+                [("newer-unrelated-source", 1), ("older-source", 2)],
+            )
+            self.assertNotIn("source_egress", HEALTH_LOOP_MODULE.canonical_profile_service_failure_binding(
+                matrix, users, preferences,
+            ))
+
     def test_due_projection_preempts_disposable_slow_observation(self):
         """A slow probe cannot defer the bounded prepared-decision refresh."""
         probe_process = mock.Mock()

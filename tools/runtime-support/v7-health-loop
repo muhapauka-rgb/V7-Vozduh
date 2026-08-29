@@ -1061,9 +1061,14 @@ class RoleHealthLoop:
             prepared_timing: dict[str, Any] = {}
             if role.name == "hot_target" and role.process.stdout is not None:
                 try:
-                    stdout, _stderr = role.process.communicate(timeout=0)
+                    # ``poll`` has already observed child exit.  Reading the
+                    # small completed receipt without a zero-length timeout
+                    # cannot delay the role, while ``timeout=0`` could throw
+                    # before Python drained an already closed pipe and lose
+                    # the diagnostic evidence.
+                    stdout, _stderr = role.process.communicate()
                     prepared_timing = prepared_hot_target_timing_from_output(stdout)
-                except (OSError, subprocess.TimeoutExpired):
+                except OSError:
                     prepared_timing = {}
             if role.name in {"hard", "telegram"} and self.persistent_matrix_ready:
                 t0_ns = canonical_service_failure_t0_ns(

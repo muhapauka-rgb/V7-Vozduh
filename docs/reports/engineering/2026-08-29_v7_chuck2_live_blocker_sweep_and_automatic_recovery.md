@@ -87,6 +87,13 @@ file, timer, queue, owner or routing action. Focused regression after this
 instrumentation passed (health-loop, prepared target, failure-episode and
 autoswitch-policy suites; `git diff --check` passed).
 
+The first deployed instrumented process confirmed normal post-restart PATH
+completions around 0.4--1.1 seconds. Its compact timing line was not emitted,
+because a zero-duration pipe read could discard the already completed child
+receipt before Python drained it. This bounded instrumentation defect is
+corrected to drain only after `poll()` has confirmed exit; it does not change
+the Matrix command, target scope, user state or recovery semantics.
+
 Next: deploy this measurement-only receipt, collect its live timing split, fix
 only the measured generic blocker, and return control to the normal V7 caller
 for the automatic Chuck2-equivalent seven-second proof. No manual user

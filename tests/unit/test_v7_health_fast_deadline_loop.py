@@ -145,10 +145,17 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("serialize_slow_roles=not any(controlled.values())", loop)
         self.assertIn('and role.name != "hard"', loop)
         self.assertIn('"--profile-service-failure-samples", "1"', loop)
-        self.assertIn(
+        other_required_command = loop.split('"other_required", 5_000,', 1)[1].split(
+            '"planner_projection", 30_000,', 1
+        )[0]
+        self.assertNotIn(
             '"--consumer-wake-command", '
             '"/usr/local/bin/v7-service-matrix-refresh-all"',
-            loop,
+            other_required_command,
+        )
+        self.assertIn(
+            "persistent Matrix parent could consume the result",
+            other_required_command,
         )
 
     def test_prepared_path_timing_receipt_is_compact_and_non_authoritative(self):

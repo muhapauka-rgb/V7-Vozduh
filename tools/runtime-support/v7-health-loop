@@ -124,19 +124,19 @@ DEFAULT_ROLE_COMMANDS = (
             "--fast-producer-concurrency", "8",
             "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
             # A failed one-second sentinel must be written through this same
-            # canonical Matrix owner before its governed consumer wakes.
-            # Shadow-only observation has no canonical state to hand off.
+            # canonical Matrix owner before the health parent consumes its
+            # exact binding. Shadow-only observation has no canonical state
+            # to hand off.
             "--definitive-matrix-command", "/usr/local/bin/v7-service-matrix-test",
             "--shadow-trigger-command", "/usr/local/bin/v7-service-matrix-refresh-all",
-            # One bounded protocol-level observation never moves a user, but
-            # its fresh Matrix confirmation must immediately reach the
-            # existing governed consumer.  Leaving this wake as ``/bin/true``
-            # made a current profile-required failure wait for the whole
-            # batch to exit; on a busy Runtime the ten-second freshness window
-            # could expire before the persistent health owner read it.  The
-            # existing Matrix consumer still owns current scope, Authority,
-            # target selection and Apply; this producer only wakes it.
-            "--consumer-wake-command", "/usr/local/bin/v7-service-matrix-refresh-all",
+            # Do not synchronously invoke a second Matrix/Planner consumer
+            # per source from inside this bounded detector. That made a
+            # five-second producer wait for a 30..90-second downstream
+            # reconciliation and then lose freshness before its own existing
+            # persistent Matrix parent could consume the result. On normal
+            # health Runtime the parent reads the same canonical binding
+            # immediately when this child exits; it remains the only caller
+            # that can enter governed recovery.
             "--profile-service-failure-samples", "1",
             "--profile-service-cooldown-sec", "5",
             "--profile-service-shadow-matrix-samples", "1",

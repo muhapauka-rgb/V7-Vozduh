@@ -23,6 +23,15 @@ a Matrix-currentness gap; it is not valid seven-second recovery evidence.
 `--lightweight-batch-producer` in addition to its existing bounded
 `--fast-producer-only` mode and eight-way concurrency cap.
 
+During the first live verification, the batch made VLESS evidence fresh, but
+the detector still waited inside a per-source downstream consumer wake. One
+cycle therefore took `49977 ms`; later cycles ranged from `7351 ms` to
+`25751 ms`. The health parent is already the existing persistent Matrix
+consumer. The default detector command no longer synchronously wakes a second
+consumer per source; it returns the canonical Matrix evidence to that parent.
+This removes duplicate downstream work from the detector's five-second window
+without removing the governed recovery consumer.
+
 The batch implementation already existed. It makes one ephemeral,
 source-scoped sentinel pass, retains Matrix as the only persistent writer,
 and treats stale or unknown results as non-actionable. No owner, policy,

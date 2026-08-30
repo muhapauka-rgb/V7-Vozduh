@@ -23,6 +23,74 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_packet_bound_control_window_opens_before_governed_pre_apply(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            control = Path(tmp) / "control.json"
+            operator_execution.write_json_atomic(
+                control,
+                operator_execution.build_autonomous_execution_control_state(
+                    True, actor="unit", reason="resting_fail_closed"
+                ),
+            )
+            packet_identity = {
+                "operation_id": "op-unit",
+                "selected_move_hash": "move-unit",
+                "source_bundle_hash": "source-unit",
+                "snapshot_bundle_hash": "snapshot-unit",
+            }
+            result = module.open_packet_bound_execution_control_window(
+                control,
+                packet_identity=packet_identity,
+                action_class="EMERGENCY_FAILOVER",
+                max_users=1,
+                actor="unit",
+                reason="after-packet-lease-barrier",
+            )
+            after = operator_execution.autonomous_execution_control_state(control)
+            decision = operator_execution.autonomous_execution_control_decision(
+                control,
+                mutation_kind="forward",
+                action_class="EMERGENCY_FAILOVER",
+                expected_generation=result["control"]["generation"],
+                max_users=1,
+                **packet_identity,
+            )
+
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(after["valid"])
+        self.assertEqual(after["state"], "CLOSED")
+        self.assertEqual(after["scope"], "operation")
+        self.assertTrue(decision["allowed_forward_mutation"])
+
+    def test_packet_bound_control_window_allows_only_bounded_emergency_cohort(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            control = Path(tmp) / "control.json"
+            operator_execution.write_json_atomic(
+                control,
+                operator_execution.build_autonomous_execution_control_state(
+                    True, actor="unit", reason="resting_fail_closed"
+                ),
+            )
+            result = load_cli_module().open_packet_bound_execution_control_window(
+                control,
+                packet_identity={
+                    "operation_id": "op-cohort",
+                    "selected_move_hash": "move-cohort",
+                    "source_bundle_hash": "source-cohort",
+                    "snapshot_bundle_hash": "snapshot-cohort",
+                },
+                action_class="EMERGENCY_FAILOVER",
+                max_users=3,
+                actor="unit",
+                reason="after-packet-lease-barrier",
+            )
+            after = operator_execution.autonomous_execution_control_state(control)
+
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(after["valid"])
+        self.assertEqual(after["max_users"], 3)
+
     def test_initial_certification_source_binding_uses_only_existing_route_writer(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

@@ -417,8 +417,18 @@ def build_autonomous_execution_control_state(
         action_class_text == N10_SMALL_COHORT_ACTION_CLASS
         and 2 <= max_users_value <= 4
     )
+    # Ordinary failed-source recovery has separately proven bounded production
+    # scope through four users.  It is still one exact Packet/Lease-bound
+    # operation, never a general batch permission: the action class must be
+    # EMERGENCY_FAILOVER and the maximum remains hard-capped at four.
+    bounded_emergency_failover_cohort = (
+        action_class_text == "EMERGENCY_FAILOVER"
+        and 2 <= max_users_value <= 4
+    )
     operation_scope_valid = (
-        max_users_value == 1 or bounded_n10_cohort
+        max_users_value == 1
+        or bounded_n10_cohort
+        or bounded_emergency_failover_cohort
     )
     state = {
         "schema_version": AUTONOMOUS_EXECUTION_CONTROL_SCHEMA,
@@ -493,6 +503,10 @@ def autonomous_execution_control_state(path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL
             max_users == 1
             or (
                 action_class == N10_SMALL_COHORT_ACTION_CLASS
+                and 2 <= max_users <= 4
+            )
+            or (
+                action_class == "EMERGENCY_FAILOVER"
                 and 2 <= max_users <= 4
             )
         ):

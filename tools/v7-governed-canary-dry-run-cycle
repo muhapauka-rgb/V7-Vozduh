@@ -4001,6 +4001,83 @@ def run_autoswitch_apply(
     }
 
 
+def open_packet_bound_execution_control_window(
+    control_file: Path,
+    *,
+    packet_identity: dict[str, Any],
+    action_class: str,
+    max_users: int,
+    actor: str,
+    reason: str,
+) -> dict[str, Any]:
+    """Open one exact existing-owner window after Packet/Lease/Barrier.
+
+    The governed executor owns the pre-Apply check and therefore must create
+    the short operation window before that check.  The route writer remains
+    the only route mutator and independently adopts/verifies this same bound
+    window immediately before its mutation.
+    """
+    bindings = {
+        "operation_id": str(packet_identity.get("operation_id") or ""),
+        "selected_move_hash": str(packet_identity.get("selected_move_hash") or ""),
+        "source_bundle_hash": str(packet_identity.get("source_bundle_hash") or ""),
+        "snapshot_bundle_hash": str(packet_identity.get("snapshot_bundle_hash") or ""),
+    }
+    before = operator_execution.autonomous_execution_control_state(control_file)
+    if (
+        not all(bindings.values())
+        or not before.get("valid")
+        or before.get("state") != "OPEN"
+    ):
+        return {
+            "ok": False,
+            "reason": "packet_bound_execution_control_window_not_open",
+            "before": before,
+            "bindings_complete": bool(all(bindings.values())),
+        }
+    control = operator_execution.build_autonomous_execution_control_state(
+        False,
+        actor=actor,
+        reason=reason,
+        action_class=action_class,
+        max_users=max_users,
+        **bindings,
+    )
+    if control.get("scope") != "operation":
+        return {
+            "ok": False,
+            "reason": "packet_bound_execution_control_scope_invalid",
+            "before": before,
+            "control": control,
+        }
+    operator_execution.write_json_atomic(control_file, control)
+    decision = operator_execution.autonomous_execution_control_decision(
+        control_file,
+        mutation_kind="forward",
+        action_class=action_class,
+        expected_generation=str(control.get("generation") or ""),
+        max_users=max_users,
+        **bindings,
+    )
+    if decision.get("allowed_forward_mutation"):
+        return {"ok": True, "before": before, "control": control, "decision": decision}
+    finalization = operator_execution.finalize_autonomous_execution_control_window(
+        control_file,
+        expected_generation=str(control.get("generation") or ""),
+        operation_id=bindings["operation_id"],
+        actor=actor,
+        reason="packet_bound_control_window_validation_failed",
+    )
+    return {
+        "ok": False,
+        "reason": "packet_bound_execution_control_window_validation_failed",
+        "before": before,
+        "control": control,
+        "decision": decision,
+        "finalization": finalization,
+    }
+
+
 def recover_controlled_topology_apply_terminal(
     apply_run: dict[str, Any],
     *,
@@ -6960,21 +7037,70 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             execution_lease_create_result=lease_create_result,
             clearance_result=clearance_result,
             lease_terminalization=terminal,
-        )
+    )
     clearance_completed_ns = time.monotonic_ns()
+
+    packet_bound_control_window: dict[str, Any] = {}
+    # The Packet owns the actual selected scope.  The standing policy ceiling
+    # may be larger (four), but the operation window must bind the exact
+    # selected set so the route writer can neither adopt nor extend it.
+    execution_control_max_users = int(constraints["selected_move_count"])
+    if bool(getattr(args, "ordinary_service_failure_only", False)):
+        # Packet/Lease/Barrier have now completed their last mutable checks.
+        # The existing governed executor owns the pre-Apply control decision,
+        # so it must open the exact short-lived operation window *before*
+        # checking it.  The route writer below only adopts this binding and
+        # remains the sole writer of routes/Core-primary.  Opening it in the
+        # child would always be too late: this preflight correctly treats the
+        # resting OPEN state as fail-closed.
+        packet_bound_control_window = open_packet_bound_execution_control_window(
+            control_file,
+            packet_identity=packet_identity,
+            action_class="EMERGENCY_FAILOVER",
+            max_users=execution_control_max_users,
+            actor="tools/v7-governed-canary-dry-run-cycle:ordinary-service-failure",
+            reason="ordinary_service_failure_packet_lease_barrier_apply",
+        )
+        if not packet_bound_control_window.get("ok"):
+            terminal = operator_execution.finish_execution_lease(
+                lease_file,
+                status="OPERATOR_CANCELLED",
+                reason="packet_bound_execution_control_window_not_open",
+                operation={"terminal_state": "STOP_SAFE", "terminal_reason": "packet_bound_execution_control_window_not_open", "apply_result": {"applied": False, "results": []}},
+            )
+            return transaction_stop(
+                "packet_bound_execution_control_window_not_open",
+                execution_control_window=packet_bound_control_window,
+                lease_terminalization=terminal,
+            )
 
     pre_apply_control = operator_execution.autonomous_execution_control_decision(
         control_file,
         mutation_kind="forward",
         action_class="EMERGENCY_FAILOVER",
-        expected_generation=str(packet_identity.get("breaker_generation") or ""),
+        expected_generation=str(
+            (packet_bound_control_window.get("control") or {}).get("generation")
+            if packet_bound_control_window else packet_identity.get("breaker_generation") or ""
+        ),
         operation_id=str(packet_identity.get("operation_id") or ""),
         selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
         source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
         snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
-        max_users=requested_max_users,
+        max_users=execution_control_max_users,
     )
     if not pre_apply_control.get("allowed_forward_mutation"):
+        control_finalization = (
+            operator_execution.finalize_autonomous_execution_control_window(
+                control_file,
+                expected_generation=str(
+                    (packet_bound_control_window.get("control") or {}).get("generation") or ""
+                ),
+                operation_id=str(packet_identity.get("operation_id") or ""),
+                actor="tools/v7-governed-canary-dry-run-cycle:ordinary-service-failure",
+                reason="ordinary_service_failure_pre_apply_stop_safe",
+            )
+            if packet_bound_control_window else {}
+        )
         terminal = operator_execution.finish_execution_lease(
             lease_file,
             status="OPERATOR_CANCELLED",
@@ -6984,6 +7110,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         return transaction_stop(
             "autonomous_execution_control_denied_pre_apply",
             execution_control=pre_apply_control,
+            execution_control_finalization=control_finalization,
             lease_terminalization=terminal,
         )
 
@@ -7099,6 +7226,23 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ),
     )
     apply_completed_ns = time.monotonic_ns()
+    # The route writer normally finalizes the adopted operation window.  This
+    # idempotent parent finalizer covers a child crash/early return without
+    # ever widening the window or affecting another operation.
+    packet_bound_control_finalization = (
+        operator_execution.finalize_autonomous_execution_control_window(
+            control_file,
+            expected_generation=str(
+                (packet_bound_control_window.get("control") or {}).get("generation") or ""
+            ),
+            operation_id=str(packet_identity.get("operation_id") or ""),
+            actor="tools/v7-governed-canary-dry-run-cycle:ordinary-service-failure",
+            reason="ordinary_service_failure_child_terminal",
+        ) if packet_bound_control_window else {}
+    )
+    if packet_bound_control_window:
+        apply_run["packet_bound_execution_control_window"] = packet_bound_control_window
+        apply_run["packet_bound_execution_control_finalization"] = packet_bound_control_finalization
     deferred_lifecycle_records: dict[str, Any] = {}
     if (
         clearance_result.get("execution_allowed_now")

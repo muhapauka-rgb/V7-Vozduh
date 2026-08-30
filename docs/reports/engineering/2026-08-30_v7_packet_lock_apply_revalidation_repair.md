@@ -68,3 +68,33 @@ or performed.  The compact Matrix receipt now also carries only the structural
 child receipt facts (payload keys, Apply-result presence/keys and whether the
 existing in-process Planner was reused).  This makes the next normal V7 retry
 diagnostic without logging an unbounded child payload or adding a state owner.
+
+## Packet-to-Apply orphan closure repair
+
+The new structural receipt showed a second generic lifecycle defect.  When a
+governed child returned after its operation-control window had already been
+finalized to the normal global `OPEN` state, an unapplied Packet lease could
+remain active until its fifteen-minute expiry.  The existing Matrix cleanup
+accepted only an exactly matching `CLOSED` window, so it could not close this
+proven no-mutation orphan and the next ordinary recovery correctly stopped
+behind the stale lease.
+
+The existing Matrix cleanup now also accepts a resting, valid global `OPEN`
+control state, but only after proving all of the following: the lease is for
+the exact ordinary failed source; it records no Apply, route mutation or moved
+users; all Packet-bound users remain on that failed source; and no governed
+route process is alive.  A `CLOSED` window for another operation, any
+mutation, any moved user, or any live route worker remains fail-closed.
+
+The Matrix invokes that proof after every exited ordinary child, rather than
+only for one particular non-zero child exit code.  It never starts a recovery,
+selects a target or writes a route; it merely releases the stale lease through
+the existing execution-lease owner.  This prevents an unstarted transaction
+from blocking the normal caller for its full lease duration.
+
+### Verification update
+
+- Exact closed-window orphan regression: PASS.
+- Newly covered already-global-OPEN orphan regression: PASS.
+- Relevant service-failure, policy and governed-cycle suites: 528 PASS.
+- Python compile and `git diff --check`: PASS.

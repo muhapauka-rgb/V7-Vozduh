@@ -127,9 +127,10 @@ def reconcile_finished_unapplied_ordinary_lease(
 
     The existing Matrix caller invokes this after its governed child has
     exited.  A lease is eligible only when it is bound to this exact source,
-    its closed control window matches, no route worker remains, and every
-    bound user is still on that source.  It therefore cannot release a live
-    transaction or conceal a route mutation.
+    its operation control window has already either closed exactly or been
+    finalized back to the global OPEN state, no route worker remains, and
+    every bound user is still on that source.  It therefore cannot release a
+    live transaction or conceal a route mutation.
     """
     lease_file = state_dir / "operator-execution-lease.json"
     control_file = operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE
@@ -152,14 +153,27 @@ def reconcile_finished_unapplied_ordinary_lease(
     control = operator_execution.autonomous_execution_control_state(control_file)
     immutable = lease.get("immutable_packet_identity")
     immutable = immutable if isinstance(immutable, dict) else {}
-    if not (
+    exact_closed_window = bool(
         control.get("valid")
         and control.get("state") == "CLOSED"
         and str(control.get("operation_id") or "")
         == str(immutable.get("operation_id") or "")
         and str(control.get("selected_move_hash") or "")
         == str(immutable.get("selected_move_hash") or "")
-    ):
+    )
+    # The parent finalizer is allowed to return the exact operation window to
+    # the resting global OPEN state before a child exits without its receipt.
+    # That is a stronger no-live-operation signal than a stale CLOSED window,
+    # provided the former Packet-bound users are still all on the failed
+    # source and no governed route worker is alive (checked below).
+    finalized_open_window = bool(
+        control.get("valid")
+        and control.get("state") == "OPEN"
+        and str(control.get("scope") or "") == "global"
+        and not str(control.get("operation_id") or "")
+        and not str(control.get("selected_move_hash") or "")
+    )
+    if not (exact_closed_window or finalized_open_window):
         return {"ok": False, "status": "CONTROL_WINDOW_NOT_EXACT"}
     if (
         bool(lease.get("apply_executed"))
@@ -198,12 +212,21 @@ def reconcile_finished_unapplied_ordinary_lease(
     )
     if not terminal.get("ok"):
         return {"ok": False, "status": "LEASE_FINALIZATION_FAILED", "terminal": terminal}
-    control_finalization = operator_execution.finalize_autonomous_execution_control_window(
-        control_file,
-        expected_generation=str(control.get("generation") or ""),
-        operation_id=str(immutable.get("operation_id") or ""),
-        actor="tools/v7-service-matrix-refresh-all:ordinary-service-failure",
-        reason="completed_governed_child_left_unapplied_ordinary_lease",
+    control_finalization = (
+        operator_execution.finalize_autonomous_execution_control_window(
+            control_file,
+            expected_generation=str(control.get("generation") or ""),
+            operation_id=str(immutable.get("operation_id") or ""),
+            actor="tools/v7-service-matrix-refresh-all:ordinary-service-failure",
+            reason="completed_governed_child_left_unapplied_ordinary_lease",
+        )
+        if exact_closed_window
+        else {
+            "ok": True,
+            "idempotent": True,
+            "reason": "operation_window_already_global_open_after_child_exit",
+            "after": control,
+        }
     )
     return {
         "ok": bool(control_finalization.get("ok")),
@@ -2288,17 +2311,13 @@ def run_bounded_delegated_service_failure_action(
             except json.JSONDecodeError:
                 parsed = {}
     post_child_lease_reconciliation: dict[str, Any] = {}
-    if (
-        proc.returncode != 0
-        and isinstance(parsed, dict)
-        and str(parsed.get("final_verdict") or "")
-        in {"STOP_SAFE", "GOVERNED_TRANSACTION_STOPPED"}
-        and not bool(parsed.get("apply_executed"))
-        and int(parsed.get("users_moved") or 0) == 0
-    ):
-        # The child has exited, so this is the existing Matrix consumer's
-        # only safe opportunity to close an exact, unapplied orphan. A
-        # non-exact or still-running operation remains untouched.
+    if ordinary_execution:
+        # The child has exited, so this is the existing Matrix consumer's only
+        # safe opportunity to close an exact, unapplied orphan.  Do not infer
+        # safety from the child's return code: a wrapper may return zero after
+        # the parent finalizes its window but before the child emits its
+        # terminal receipt.  The reconciler independently proves that no
+        # route was written and no route owner remains before it can close.
         post_child_lease_reconciliation = (
             reconcile_finished_unapplied_ordinary_lease(
                 state_dir=state_dir,

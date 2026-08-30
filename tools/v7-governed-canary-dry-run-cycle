@@ -3076,6 +3076,7 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
                 "child_final_verdict", "child_transaction_status",
                 "child_stop_reason", "child_stop_detail",
                 "child_apply_reason", "child_unsafe_blocker",
+                "child_apply_error",
                 "child_l3_eligibility_blockers",
                 "child_approved_plan_lock_reasons", "proof_blockers",
                 "route_apply_failure_count", "route_apply_failure_reasons",
@@ -7521,6 +7522,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         # top-level terminal field.  Keep only its bounded decision evidence,
         # so Matrix can diagnose the automatic path without replaying it.
         "child_apply_reason": str(apply_result.get("reason") or ""),
+        "child_apply_error": str(apply_run.get("error") or ""),
         "child_unsafe_blocker": str(
             apply_result.get("unsafe_blocker") or ""
         ),

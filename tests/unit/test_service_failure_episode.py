@@ -4778,6 +4778,79 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(failed["omp_repair_frontier"]["frontier_id"], "V7_PASSIVE_SERVICE_EVENT_CONSUMER_REPAIR")
             self.assertEqual(failed["omp_repair_frontier"]["forbidden_effects"], "NONE")
 
+    def test_finished_unapplied_ordinary_lease_is_released_only_by_matrix_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.126 current=vless\n"
+                "ip=10.7.0.127 current=vless\n",
+                encoding="utf-8",
+            )
+            lease = {
+                "lease_id": "lease-test",
+                "apply_executed": False,
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+                "immutable_packet_identity": {
+                    "operation_id": "operation-test",
+                    "selected_move_hash": "move-test",
+                },
+                "packet": {
+                    "service_failure_causal_binding": {
+                        "binding_kind": "ORDINARY_SERVICE_FAILURE_OBLIGATION",
+                        "source_channel": "vless",
+                    },
+                    "constraints": {
+                        "allowed_users": ["10.7.0.126", "10.7.0.127"],
+                    },
+                },
+            }
+            active = {"active": True, "reason": "execution_lease_active"}
+            control = {
+                "valid": True,
+                "state": "CLOSED",
+                "generation": "aec-test",
+                "operation_id": "operation-test",
+                "selected_move_hash": "move-test",
+            }
+            with mock.patch.object(
+                self.refresh.operator_execution,
+                "load_execution_lease",
+                return_value=lease,
+            ), mock.patch.object(
+                self.refresh.operator_execution,
+                "execution_lease_state",
+                return_value=active,
+            ), mock.patch.object(
+                self.refresh.operator_execution,
+                "autonomous_execution_control_state",
+                return_value=control,
+            ), mock.patch.object(
+                self.refresh,
+                "_governed_route_worker_is_running",
+                return_value=False,
+            ), mock.patch.object(
+                self.refresh.operator_execution,
+                "finish_execution_lease",
+                return_value={"ok": True},
+            ) as finish, mock.patch.object(
+                self.refresh.operator_execution,
+                "finalize_autonomous_execution_control_window",
+                return_value={"ok": True},
+            ) as finalize:
+                result = self.refresh.reconcile_finished_unapplied_ordinary_lease(
+                    state_dir=state_dir,
+                    source="vless",
+                )
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(
+                result["status"],
+                "ORPHANED_UNAPPLIED_ORDINARY_LEASE_RELEASED",
+            )
+            finish.assert_called_once()
+            finalize.assert_called_once()
+
     def test_matrix_lifecycle_invokes_bounded_executor_only_with_active_standing_policy(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -5966,6 +6039,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "child_transaction_status": "STOP_SAFE",
                     "child_stop_reason": "route_visibility_not_confirmed",
                     "child_apply_reason": "l3_execution_eligibility_stop_safe",
+                    "child_apply_error": "RuntimeError:exact_owner_failure",
                     "child_l3_eligibility_blockers": ["target_lost_before_apply"],
                     "proof_blockers": ["route_visibility_not_confirmed"],
                     "route_apply_failure_count": 1,
@@ -5994,6 +6068,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(
             diagnostic["child_apply_reason"],
             "l3_execution_eligibility_stop_safe",
+        )
+        self.assertEqual(
+            diagnostic["child_apply_error"],
+            "RuntimeError:exact_owner_failure",
         )
         self.assertEqual(
             diagnostic["verification_failure_reasons"],

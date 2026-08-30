@@ -32,7 +32,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from admin_core import intelligence_workers, operator_execution  # noqa: E402
+from admin_core import (  # noqa: E402
+    intelligence_workers,
+    operator_execution,
+    registry_readers,
+)
 
 TOOLS_DIR = ROOT / "tools"
 if str(TOOLS_DIR) not in sys.path:
@@ -84,6 +88,130 @@ PERFORMANCE_CLOSURE_RECORD_TYPE = "governed_performance_closure_benchmark"
 PERFORMANCE_REVALIDATION_GENERATION = (
     "stage48-second-level-critical-path-v3"
 )
+
+
+def _governed_route_worker_is_running() -> bool:
+    """Return whether another existing route-execution process is live.
+
+    This is only a conservative orphan-cleanup guard.  It is not health
+    truth, does not schedule work, and never selects or moves a user.
+    """
+    markers = (
+        "v7-governed-canary-dry-run-cycle",
+        "v7-users-autoswitch",
+        "v7-user-switch",
+    )
+    proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return True
+    for entry in proc_root.iterdir():
+        if not entry.name.isdigit() or entry.name == str(os.getpid()):
+            continue
+        try:
+            command = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(
+                "utf-8", errors="ignore"
+            )
+        except OSError:
+            continue
+        if any(marker in command for marker in markers):
+            return True
+    return False
+
+
+def reconcile_finished_unapplied_ordinary_lease(
+    *,
+    state_dir: Path,
+    source: str,
+) -> dict[str, Any]:
+    """Release only an orphaned failed ordinary-service-failure lease.
+
+    The existing Matrix caller invokes this after its governed child has
+    exited.  A lease is eligible only when it is bound to this exact source,
+    its closed control window matches, no route worker remains, and every
+    bound user is still on that source.  It therefore cannot release a live
+    transaction or conceal a route mutation.
+    """
+    lease_file = state_dir / "operator-execution-lease.json"
+    control_file = operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE
+    lease = operator_execution.load_execution_lease(lease_file)
+    lease_state = operator_execution.execution_lease_state(lease)
+    if not lease_state.get("active"):
+        return {"ok": False, "status": "NOT_ACTIVE", "reason": lease_state.get("reason", "")}
+    packet = lease.get("packet") if isinstance(lease.get("packet"), dict) else {}
+    causal = (
+        packet.get("service_failure_causal_binding")
+        if isinstance(packet.get("service_failure_causal_binding"), dict)
+        else {}
+    )
+    if (
+        str(causal.get("binding_kind") or "")
+        != "ORDINARY_SERVICE_FAILURE_OBLIGATION"
+        or str(causal.get("source_channel") or "") != str(source or "")
+    ):
+        return {"ok": False, "status": "NOT_EXACT_ORDINARY_SOURCE"}
+    control = operator_execution.autonomous_execution_control_state(control_file)
+    immutable = lease.get("immutable_packet_identity")
+    immutable = immutable if isinstance(immutable, dict) else {}
+    if not (
+        control.get("valid")
+        and control.get("state") == "CLOSED"
+        and str(control.get("operation_id") or "")
+        == str(immutable.get("operation_id") or "")
+        and str(control.get("selected_move_hash") or "")
+        == str(immutable.get("selected_move_hash") or "")
+    ):
+        return {"ok": False, "status": "CONTROL_WINDOW_NOT_EXACT"}
+    if (
+        bool(lease.get("apply_executed"))
+        or bool(lease.get("runtime_mutation_performed"))
+        or int(lease.get("users_moved") or 0) != 0
+    ):
+        return {"ok": False, "status": "MUTATION_STATE_NOT_EMPTY"}
+    allowed_users = list((packet.get("constraints") or {}).get("allowed_users") or [])
+    if not allowed_users:
+        return {"ok": False, "status": "BOUND_USERS_MISSING"}
+    current_rows = {
+        str(row.get("ip") or ""): row
+        for row in registry_readers.parse_registry_lines(
+            (state_dir / "users.registry").read_text(
+                encoding="utf-8", errors="replace"
+            ).splitlines()
+        )
+    }
+    if any(
+        str((current_rows.get(str(user)) or {}).get("current") or "")
+        != str(source or "")
+        for user in allowed_users
+    ):
+        return {"ok": False, "status": "BOUND_USERS_NO_LONGER_ON_SOURCE"}
+    if _governed_route_worker_is_running():
+        return {"ok": False, "status": "ROUTE_WORKER_STILL_RUNNING"}
+    terminal = operator_execution.finish_execution_lease(
+        lease_file,
+        status="OPERATOR_CANCELLED",
+        reason="completed_governed_child_left_unapplied_ordinary_lease",
+        operation={
+            "terminal_state": "STOP_SAFE",
+            "terminal_reason": "completed_governed_child_left_unapplied_ordinary_lease",
+            "apply_result": {"applied": False, "results": []},
+        },
+    )
+    if not terminal.get("ok"):
+        return {"ok": False, "status": "LEASE_FINALIZATION_FAILED", "terminal": terminal}
+    control_finalization = operator_execution.finalize_autonomous_execution_control_window(
+        control_file,
+        expected_generation=str(control.get("generation") or ""),
+        operation_id=str(immutable.get("operation_id") or ""),
+        actor="tools/v7-service-matrix-refresh-all:ordinary-service-failure",
+        reason="completed_governed_child_left_unapplied_ordinary_lease",
+    )
+    return {
+        "ok": bool(control_finalization.get("ok")),
+        "status": "ORPHANED_UNAPPLIED_ORDINARY_LEASE_RELEASED",
+        "lease_id": str(lease.get("lease_id") or ""),
+        "operation_id": str(immutable.get("operation_id") or ""),
+        "control_finalization": control_finalization,
+    }
 
 
 def health_runtime_executable() -> Path:
@@ -2159,6 +2287,24 @@ def run_bounded_delegated_service_failure_action(
                 parsed = value if isinstance(value, dict) else {}
             except json.JSONDecodeError:
                 parsed = {}
+    post_child_lease_reconciliation: dict[str, Any] = {}
+    if (
+        proc.returncode != 0
+        and isinstance(parsed, dict)
+        and str(parsed.get("final_verdict") or "")
+        in {"STOP_SAFE", "GOVERNED_TRANSACTION_STOPPED"}
+        and not bool(parsed.get("apply_executed"))
+        and int(parsed.get("users_moved") or 0) == 0
+    ):
+        # The child has exited, so this is the existing Matrix consumer's
+        # only safe opportunity to close an exact, unapplied orphan. A
+        # non-exact or still-running operation remains untouched.
+        post_child_lease_reconciliation = (
+            reconcile_finished_unapplied_ordinary_lease(
+                state_dir=state_dir,
+                source=source,
+            )
+        )
     verdict = str(parsed.get("final_verdict") or "")
     transaction_status = str(parsed.get("transaction_status") or "")
     completed = proc.returncode == 0 and verdict in {
@@ -2200,6 +2346,7 @@ def run_bounded_delegated_service_failure_action(
         "controlled_certification_campaign": campaign_binding,
         "controlled_certification_stage_consumption": {},
         "snapshot_refresh": snapshot_refresh,
+        "post_child_lease_reconciliation": post_child_lease_reconciliation,
         "output_tail": output[-2000:] if not (completed or stop_safe) else "",
         "output_parse_failed": not bool(parsed),
     }
@@ -5263,6 +5410,14 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         # tail is necessary to distinguish a genuine executor stop from an
         # output-contract failure on the live automatic path.
         compact_result["output_tail"] = str(value.get("output_tail") or "")[-2000:]
+    reconciliation = value.get("post_child_lease_reconciliation")
+    if isinstance(reconciliation, dict) and reconciliation:
+        compact_result["post_child_lease_reconciliation"] = {
+            key: reconciliation.get(key)
+            for key in ("ok", "status", "lease_id", "operation_id")
+            if reconciliation.get(key) not in (None, "", [], {})
+            or key == "ok"
+        }
     execution_timing = result.get("execution_timing")
     if not isinstance(execution_timing, dict) or not execution_timing:
         # CT-M0F may execute and close a sample in one bounded Matrix
@@ -5609,6 +5764,7 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "child_final_verdict", "child_transaction_status",
             "child_stop_reason", "child_stop_detail",
             "child_apply_reason", "child_unsafe_blocker",
+            "child_apply_error",
             "child_l3_eligibility_blockers",
             "child_approved_plan_lock_reasons", "proof_blockers",
             "route_apply_failure_count", "route_apply_failure_reasons",
@@ -5709,6 +5865,7 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
                     "child_transaction_status", "child_stop_reason",
                     "child_stop_detail", "child_apply_reason",
                     "child_unsafe_blocker", "child_l3_eligibility_blockers",
+                    "child_apply_error",
                     "child_approved_plan_lock_reasons", "proof_blockers",
                     "route_apply_failure_count", "route_apply_failure_reasons",
                     "verification_failure_count", "verification_failure_reasons",

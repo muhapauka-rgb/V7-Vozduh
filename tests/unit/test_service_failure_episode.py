@@ -5778,6 +5778,21 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(spans[0]["stage"], "advisory_l3_and_closure_history_load")
         self.assertNotIn("started_monotonic_ns", spans[0])
 
+    def test_advisory_projection_retains_exact_no_obligation_reason(self):
+        projected = self.refresh._consumer_projection({
+            "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
+            "consumer_result": {
+                "active": False,
+                "reason": "no_open_unmaterialized_passive_terminal",
+            },
+        })["consumer_result"]
+
+        self.assertEqual(
+            projected["service_failure_advisory"]["reason"],
+            "no_open_unmaterialized_passive_terminal",
+        )
+        self.assertFalse(projected["service_failure_advisory"]["active"])
+
     def test_matrix_projection_retains_governed_execution_timing(self):
         timing = {
             "schema_version": "v7.governed-execution-timing.v1",

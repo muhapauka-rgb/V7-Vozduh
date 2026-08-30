@@ -6196,6 +6196,31 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(scope["certification_selected_count"], 1)
         self.assertNotIn("selected_identities", scope)
 
+    def test_compact_transaction_result_retains_ordinary_selection_stop_reason(self):
+        module = load_cli_module()
+        compact = module.compact_transaction_result({
+            "ordinary_selection_binding": {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "blockers": [
+                    "ordinary_service_failure_planner_has_no_ordinary_candidate"
+                ],
+                "planner_candidate_count": 0,
+                "selected_count": 0,
+                "selection_owner": "tools/v7-users-autoswitch",
+                "selection_rule": "must-not-be-lost",
+                "raw_candidates": ["must-not-project"],
+            },
+        })
+
+        binding = compact["ordinary_selection_binding"]
+        self.assertFalse(binding["ok"])
+        self.assertEqual(binding["planner_candidate_count"], 0)
+        self.assertEqual(binding["blockers"], [
+            "ordinary_service_failure_planner_has_no_ordinary_candidate"
+        ])
+        self.assertNotIn("raw_candidates", binding)
+
     def test_ordinary_service_failure_binding_keeps_planner_order_and_excludes_certification(self):
         module = load_cli_module()
         bound = module.bind_ordinary_service_failure_selection(

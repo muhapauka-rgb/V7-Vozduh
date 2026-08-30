@@ -3035,6 +3035,38 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
     }
     if compact_ordinary_pre_packet_scope:
         receipt["ordinary_pre_packet_scope"] = compact_ordinary_pre_packet_scope
+    # A bounded ordinary-service recovery can stop before Packet creation
+    # when the existing Planner has no currently bindable member.  Preserve
+    # that small, owner-produced diagnosis in the Matrix-facing receipt.
+    # Without it the normal Runtime can only report the generic terminal
+    # label, which makes a safe retry indistinguishable from an absent
+    # affected scope.  This is observability only: target selection, Packet,
+    # Lease, Barrier and Apply remain entirely unchanged.
+    ordinary_selection_binding = result.get("ordinary_selection_binding")
+    ordinary_selection_binding = (
+        ordinary_selection_binding
+        if isinstance(ordinary_selection_binding, dict)
+        else {}
+    )
+    compact_ordinary_selection_binding = {
+        key: ordinary_selection_binding.get(key)
+        for key in (
+            "ok",
+            "status",
+            "blockers",
+            "planner_candidate_count",
+            "selected_count",
+            "selection_owner",
+            "selection_rule",
+        )
+        if key in ordinary_selection_binding
+        and (
+            ordinary_selection_binding.get(key) not in (None, "", [], {})
+            or key == "ok"
+        )
+    }
+    if compact_ordinary_selection_binding:
+        receipt["ordinary_selection_binding"] = compact_ordinary_selection_binding
     downstream = result.get("downstream_proof_diagnostic")
     if isinstance(downstream, dict) and downstream:
         receipt["downstream_proof_diagnostic"] = {

@@ -9124,7 +9124,9 @@ class AutoswitchPlanner:
         required_services: Optional[list[str]] = None,
     ) -> dict[str, Any]:
         egress = self.egress.get(source)
-        affected_users = self._l3_enabled_users_on_source(source, excluding_users=excluding_users)
+        all_assigned_users = self._l3_enabled_users_on_source(
+            source, excluding_users=excluding_users,
+        )
         severity = str((egress.severity if egress else "") or "").upper()
         diagnose_reason = str((egress.diagnose_reason if egress else "") or "")
         # A source that has just failed may already be marked ``down`` (or
@@ -9138,20 +9140,39 @@ class AutoswitchPlanner:
         egress_state = str((egress.state if egress else "") or "").lower()
         enabled = bool(egress and egress.enabled and egress_state not in {"disabled", "down"})
         controlled_failure = self._controlled_certification_failure_context(source)
-        channel_failed = bool(egress and severity == "FAIL" and affected_users)
+        channel_failed = bool(egress and severity == "FAIL" and all_assigned_users)
         service_failures = self._l3_required_service_failures_for_source(source, required_services=required_services)
         service_failed = (
             bool(service_failures)
-            and bool(affected_users)
+            and bool(all_assigned_users)
             and egress_state not in {"disabled", "maintenance"}
         )
         controlled_channel_failed = bool_value(controlled_failure.get("confirmed"))
+        # A total channel failure affects everyone assigned to the source.
+        # A partial required-service failure affects only profiles that name a
+        # failed service. Do not invent a requirement for unprofiled users.
+        failed_service_ids = {
+            str(row.get("service") or "") for row in service_failures
+        }
+        affected_users = list(all_assigned_users)
+        if (
+            service_failed
+            and not (channel_failed or controlled_channel_failed)
+            and bool_value(getattr(self.args, "ordinary_service_failure_context", False))
+        ):
+            assigned = set(all_assigned_users)
+            affected_users = sorted(
+                user.ip for user in self.users
+                if user.ip in assigned
+                and bool(set(self._profile_required_services(user)) & failed_service_ids)
+            )
         return {
             "schema_version": "v7.l3-incident-source-scope.v1",
             "source": source,
             "enabled": enabled,
             "affected_users": affected_users,
             "affected_users_count": len(affected_users),
+            "all_assigned_users_count": len(all_assigned_users),
             "source_failed": channel_failed or service_failed or controlled_channel_failed,
             "current_channel_failure": channel_failed or controlled_channel_failed,
             "required_service_failure": service_failed,
@@ -19979,7 +20000,17 @@ class AutoswitchPlanner:
             if consumption_cache_compacted:
                 self._write_l3_runtime_state(state)
             idempotent_reconciliation_started_ns = time.monotonic_ns()
-            scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+            runtime_profile_handoff = bool(
+                getattr(self, "_runtime_profile_handoff_only", False)
+            )
+            scope_reconciliation = (
+                {
+                    "status": "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",
+                    "reason": "fresh_profile_handoff_preserves_existing_l3_projection",
+                }
+                if runtime_profile_handoff else
+                self.reconcile_service_failure_execution_outcomes()
+            )
             record_passive_substep(
                 "passive_idempotent_scope_reconciliation",
                 idempotent_reconciliation_started_ns,
@@ -20315,7 +20346,17 @@ class AutoswitchPlanner:
         # current-source projection from the existing live-route owner.  This
         # is read-model reconciliation only; it cannot make an action.
         post_consumption_reconciliation_started_ns = time.monotonic_ns()
-        scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+        runtime_profile_handoff = bool(
+            getattr(self, "_runtime_profile_handoff_only", False)
+        )
+        scope_reconciliation = (
+            {
+                "status": "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",
+                "reason": "fresh_profile_handoff_preserves_current_l3_projection",
+            }
+            if runtime_profile_handoff else
+            self.reconcile_service_failure_execution_outcomes()
+        )
         record_passive_substep(
             "passive_post_consumption_scope_reconciliation",
             post_consumption_reconciliation_started_ns,
@@ -20502,6 +20543,9 @@ class AutoswitchPlanner:
         creates a Candidate/Packet/lease nor enters the apply path.
         """
         advisory_started_ns = time.monotonic_ns()
+        runtime_profile_handoff = bool_value(
+            getattr(getattr(self, "args", None), "runtime_profile_handoff_only", False)
+        )
 
         # ``materialize_service_failure_automation_advisory`` is currently a
         # measurable synchronous cost after a prepared decision.  Reuse the
@@ -20534,7 +20578,14 @@ class AutoswitchPlanner:
         # source.  This is selection only; the normal authority/action gates
         # remain downstream and unchanged.
         scope_reconciliation_started_ns = time.monotonic_ns()
-        pre_obligation_scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+        pre_obligation_scope_reconciliation = (
+            {
+                "status": "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",
+                "reason": "fresh_profile_handoff_uses_current_passive_l3_projection",
+            }
+            if runtime_profile_handoff else
+            self.reconcile_service_failure_execution_outcomes()
+        )
         record_advisory_span(
             "advisory_pre_obligation_scope_reconciliation",
             scope_reconciliation_started_ns,
@@ -20563,7 +20614,21 @@ class AutoswitchPlanner:
             bool(requested_source)
             and bool_value(getattr(getattr(self, "args", None), "ordinary_service_failure_context", False))
         )
-        if source_bound_live_recovery:
+        runtime_binding = getattr(
+            getattr(self, "args", None), "runtime_profile_failure_binding", {},
+        )
+        runtime_binding = runtime_binding if isinstance(runtime_binding, dict) else {}
+        if (
+            source_bound_live_recovery
+            and runtime_profile_handoff
+            and str(runtime_binding.get("source") or "") == requested_source
+        ):
+            live_requested_incident_ids = {
+                str(value)
+                for value in (runtime_binding.get("incident_ids") or [])
+                if str(value)
+            }
+        elif source_bound_live_recovery:
             # A source-bound wake originates from the health owner after a
             # fresh Matrix profile observation.  ``closure-records`` is
             # historical evidence, so it may contain earlier incidents for
@@ -21250,7 +21315,14 @@ class AutoswitchPlanner:
         # more so a stale passive closure cannot overwrite the current source
         # generation between the pre-plan reconciliation and the consumer.
         final_scope_reconciliation_started_ns = time.monotonic_ns()
-        final_scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+        final_scope_reconciliation = (
+            {
+                "status": "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",
+                "reason": "executor_revalidates_current_scope_before_apply",
+            }
+            if runtime_profile_handoff else
+            self.reconcile_service_failure_execution_outcomes()
+        )
         record_advisory_span(
             "advisory_final_scope_reconciliation",
             final_scope_reconciliation_started_ns,
@@ -23290,6 +23362,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--runtime-profile-handoff-only",
+        action="store_true",
+        help=(
+            "Internal health-Runtime handoff: preserve the existing passive and "
+            "advisory owners while deferring retrospective reconciliation until "
+            "after governed execution. Never grants execution authority."
+        ),
+    )
+    parser.add_argument(
         "--prepared-class-projection-only",
         action="store_true",
         help=(
@@ -23583,6 +23664,18 @@ def consume_passive_events_only(args: argparse.Namespace) -> dict[str, Any]:
     planner._standing_policy_audit_records_cache = None
     planner._standing_policy_lineage_reuse_diagnostic = {}
     planner._passive_performance_recorder = record_passive_span
+    runtime_profile_handoff = bool_value(
+        getattr(args, "runtime_profile_handoff_only", False)
+    )
+    if runtime_profile_handoff and os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") != "1":
+        return {
+            "schema_version": "v7.passive-event-consumer-entrypoint.v1",
+            "status": "STOP_SAFE_RUNTIME_PROFILE_HANDOFF_CALLER_REQUIRED",
+            "ok": False,
+            "mode": "PASSIVE_EVENTS_ONLY",
+            "forbidden_effects": forbidden_effects,
+        }
+    planner._runtime_profile_handoff_only = runtime_profile_handoff
     l3_load_started_ns = time.monotonic_ns()
     planner.l3_runtime_state = planner._load_l3_runtime_state()
     record_passive_span("passive_l3_current_state_load", l3_load_started_ns)
@@ -23638,6 +23731,19 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
             "blockers": [f"automation_advisory_forbids_{name}" for name in forbidden],
         }
     requested_source = str(getattr(args, "source_egress", "") or "").strip()
+    runtime_profile_handoff = bool_value(
+        getattr(args, "runtime_profile_handoff_only", False)
+    )
+    if runtime_profile_handoff and (
+        not requested_source
+        or os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") != "1"
+    ):
+        return {
+            "schema_version": "v7.service-failure-automation-entrypoint.v1",
+            "status": "STOP_SAFE_RUNTIME_PROFILE_HANDOFF_CALLER_REQUIRED",
+            "ok": False,
+            "mode": "INCIDENT_ADVISORY_AND_SHADOW_ONLY",
+        }
     if requested_source:
         # The health owner supplied one exact current failed source.  This is
         # still only advisory planning: Matrix evidence below must prove a
@@ -23646,6 +23752,28 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         # instead of applying the ordinary placement persistence delay.
         args.ordinary_service_failure_context = True
     planner = AutoswitchPlanner(args)
+    if runtime_profile_handoff:
+        # Keep one exact source/profile/Matrix binding from the health owner
+        # before read-only planning takes time. Apply still revalidates it.
+        affected, t0_ns, incident_ids = live_profile_failure_evidence(
+            users=list(planner.users or []), matrix=planner.matrix,
+            service_preferences=planner.service_prefs, source=requested_source,
+            explicitly_required_services=planner._explicit_required_services(),
+            require_current_observation=True,
+        )
+        args.runtime_profile_failure_binding = {
+            "source": requested_source,
+            "affected_profiles": affected,
+            "t0_monotonic_ns": t0_ns,
+            "incident_ids": sorted(incident_ids),
+        }
+        if not affected or not incident_ids:
+            return {
+                "schema_version": "v7.service-failure-automation-entrypoint.v1",
+                "status": "STOP_SAFE_NO_CURRENT_PROFILE_FAILURE",
+                "ok": False,
+                "mode": "INCIDENT_ADVISORY_AND_SHADOW_ONLY",
+            }
     bounded_closure_reconciliation_started_ns = time.monotonic_ns()
     bounded_closure_reconciliation = planner.reconcile_bounded_cohort_closure_obligations()
     planner._record_performance_span(

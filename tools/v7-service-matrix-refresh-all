@@ -4339,6 +4339,7 @@ def run_passive_consumer(
     state_dir: Path,
     event_dir: Path,
     timeout_sec: int = 30,
+    runtime_profile_handoff: bool = False,
 ) -> dict[str, Any]:
     """Consume passive events through the existing owner without runtime action."""
     command = [
@@ -4349,6 +4350,10 @@ def run_passive_consumer(
         "--event-dir",
         str(event_dir),
     ]
+    # Existing health Runtime only: keep retrospective reconciliation out of
+    # the short path. This never grants execution authority.
+    if runtime_profile_handoff:
+        command.append("--runtime-profile-handoff-only")
     started_at = now_iso()
     try:
         proc = subprocess.run(
@@ -4903,6 +4908,7 @@ def run_service_failure_automation_advisory(
     timeout_sec: int = 45,
     matrix_comparative_preflight: bool = False,
     source_egress: str = "",
+    runtime_profile_handoff: bool = False,
 ) -> dict[str, Any]:
     """Invoke the existing autoswitch owner in bounded advisory-only mode.
 
@@ -4921,6 +4927,8 @@ def run_service_failure_automation_advisory(
     ]
     if str(source_egress or "").strip():
         command.extend(["--source-egress", str(source_egress).strip()])
+    if runtime_profile_handoff:
+        command.append("--runtime-profile-handoff-only")
     if matrix_comparative_preflight:
         command.append("--matrix-comparative-preflight")
     started_at = now_iso()
@@ -7333,6 +7341,11 @@ def main() -> int:
             state_dir=state_dir,
             event_dir=Path(args.event_dir),
             timeout_sec=int(args.passive_consumer_timeout_sec),
+            runtime_profile_handoff=bool(
+                args.runtime_hot_path_only
+                and profile_source_constraint
+                and os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+            ),
         )
     consumer_payload = (
         (payload.get("passive_event_consumer") or {}).get("consumer_result") or {}
@@ -7411,6 +7424,11 @@ def main() -> int:
             timeout_sec=max(90, int(args.passive_consumer_timeout_sec) + 15),
             matrix_comparative_preflight=bool(args.matrix_comparative_preflight),
             source_egress=str(priority_source.get("channel") or ""),
+            runtime_profile_handoff=bool(
+                args.runtime_hot_path_only
+                and profile_source_constraint
+                and os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+            ),
         )
         if priority_source:
             payload["service_failure_automation_advisory"]["matrix_selected_source"] = {

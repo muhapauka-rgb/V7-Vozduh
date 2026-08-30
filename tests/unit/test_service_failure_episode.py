@@ -246,6 +246,24 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             command[command.index("--source-egress") + 1], "vless",
         )
 
+    def test_matrix_runtime_marks_only_health_owned_profile_handoff(self):
+        command = []
+
+        def fake_run(argv, **_kwargs):
+            command.extend(argv)
+            return subprocess.CompletedProcess(argv, 0, stdout=json.dumps({"ok": True}))
+
+        with mock.patch.object(self.refresh.subprocess, "run", side_effect=fake_run):
+            result = self.refresh.run_service_failure_automation_advisory(
+                "existing-autoswitch", state_dir=Path("/polygon/state"),
+                event_dir=Path("/polygon/events"), source_egress="vless",
+                runtime_profile_handoff=True,
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertIn("--runtime-profile-handoff-only", command)
+        self.assertNotIn("--apply", command)
+
     def test_active_ordinary_stop_safe_defers_certification_tail(self):
         active_scope = {"active": True}
         stop_safe = {

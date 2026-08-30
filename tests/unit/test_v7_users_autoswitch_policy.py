@@ -8378,6 +8378,104 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             timing["details"]["non_execution_diagnostic_sources_reloaded"]
         )
 
+    def test_bounded_packet_lock_handoff_rehydrates_lossy_barrier_without_replanning(self):
+        """A two-member Packet remains the sole selected-moves owner at Apply."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={
+                    "telegram": {"ok": False, "status": "DOWN", "score": 0}
+                },
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            bootstrap_args = self.args_for(root, [
+                "--apply", "--mode", "guarded", "--target-egress", "vless",
+                "--max-selected-moves", "2",
+            ])
+            planner = self.tool.AutoswitchPlanner(bootstrap_args)
+            committed = planner.plan()
+            self.assertEqual(len(committed["selected_moves"]), 2)
+            barrier = self.approved_restore_barrier_from_plan(committed)
+            packet_lock = json.loads(json.dumps(barrier["approved_plan_lock"]))
+            operation_id = committed["operation"]["operation_id"]
+            generation = committed["safety"]["generation"]["planner_generation_id"]
+            barrier.update({"packet_id": "pkt-bounded-unit", "operation_id": operation_id})
+            packet_lock.update({
+                "packet_id": "pkt-bounded-unit",
+                "operation_id": operation_id,
+                "authority_generation": generation,
+            })
+            barrier["approved_plan_lock"].update({
+                "packet_id": "pkt-bounded-unit",
+                "operation_id": operation_id,
+                "authority_generation": generation,
+                # Simulate only the historical lossy Barrier projection. The
+                # canonical Packet lock above remains complete and immutable.
+                "selected_moves": [],
+            })
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(
+                json.dumps(barrier), encoding="utf-8"
+            )
+            apply_args = self.args_for(root, [
+                "--apply", "--mode", "guarded", "--max-selected-moves", "2",
+                "--approved-packet-id", "pkt-bounded-unit",
+                "--approved-operation-id", operation_id,
+                "--approved-execution-lease-id", "lease-bounded-unit",
+                "--approved-selected-move-hash", committed["operation"]["selected_move_hash"],
+                "--approved-authority-generation", generation,
+                "--ct-m0f-kernel-cutover-validation",
+            ])
+            with mock.patch.object(
+                planner, "plan",
+                side_effect=AssertionError("Packet handoff must not replan a cohort"),
+            ), mock.patch.object(
+                planner, "_run_pre_planner_refresh",
+                side_effect=AssertionError("Packet handoff must not refresh broad state"),
+            ):
+                revalidated = planner.revalidate_committed_apply_plan(
+                    apply_args,
+                    committed_plan=committed,
+                    approved_plan_lock=packet_lock,
+                )
+
+        barrier_after = revalidated["safety"]["restore_barrier"]
+        self.assertTrue(barrier_after["packet_lock_handoff"]["ok"])
+        self.assertTrue(barrier_after["approved_plan_lock_validation"]["ok"])
+        self.assertEqual(len(revalidated["selected_moves"]), 2)
+        self.assertEqual(
+            [move["user_ip"] for move in revalidated["selected_moves"]],
+            [move["user_ip"] for move in packet_lock["selected_moves"]],
+        )
+
+    def test_packet_lock_handoff_rejects_foreign_barrier(self):
+        planner = self.tool.AutoswitchPlanner.__new__(self.tool.AutoswitchPlanner)
+        planner.args = SimpleNamespace(
+            approved_packet_id="pkt-current",
+            approved_operation_id="op-current",
+            approved_selected_move_hash="hash-current",
+            approved_authority_generation="generation-current",
+        )
+        handoff = planner._packet_lock_handoff_validation(
+            {"packet_id": "pkt-foreign", "operation_id": "op-current"},
+            {
+                "packet_id": "pkt-current",
+                "operation_id": "op-current",
+                "selected_move_hash": "hash-current",
+                "authority_generation": "generation-current",
+                "selected_move_count": 2,
+                "selected_moves": [{"user_ip": "10.0.0.2"}, {"user_ip": "10.0.0.3"}],
+            },
+        )
+        self.assertFalse(handoff["ok"])
+        self.assertIn("packet_lock_handoff_barrier_packet_id_mismatch", handoff["reasons"])
+
     def test_exact_prepared_incident_scores_only_bound_source_and_target(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

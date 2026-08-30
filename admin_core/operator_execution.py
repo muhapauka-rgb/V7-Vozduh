@@ -7309,7 +7309,14 @@ def approved_plan_lock_from_selected(selected, packet, packet_hash):
         "schema_version": "v7.approved-plan-lock.v1",
         "identity_source": selected.get("identity_source", ""),
         "decision_id": selected.get("decision_id", ""),
-        "authority_generation": selected.get("authority_generation", ""),
+        # Planner-originated ordinary recovery uses planner_generation_id as
+        # its already-approved Authority generation.  Persist it in the
+        # immutable lock as well; Apply must not infer it later from a broad
+        # snapshot or an unrelated Barrier projection.
+        "authority_generation": (
+            selected.get("authority_generation", "")
+            or selected.get("planner_generation_id", "")
+        ),
         "planner_generation_id": selected.get("planner_generation_id", ""),
         "selected_move_hash": selected.get("selected_move_hash", ""),
         "selected_move_count": as_int(selected.get("selected_move_count"), 0),

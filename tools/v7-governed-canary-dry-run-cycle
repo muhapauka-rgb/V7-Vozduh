@@ -3714,6 +3714,7 @@ def run_autoswitch_apply(
     ct_m0f_confirmed_hard_failure_monotonic_ns: int = 0,
     action_class_audit_store: str = "",
     planner_runtime: Any = None,
+    approved_plan_lock: Any = None,
     controlled_engineering_setup: bool = False,
     controlled_engineering_cleanup: bool = False,
     ordinary_service_failure_only: bool = False,
@@ -3862,9 +3863,14 @@ def run_autoswitch_apply(
             )
             planner = prior_planner
             planner_entry_started_ns = time.monotonic_ns()
+            revalidation_kwargs = {
+                "committed_plan": planner_runtime.get("committed_plan"),
+            }
+            if isinstance(approved_plan_lock, dict) and approved_plan_lock:
+                revalidation_kwargs["approved_plan_lock"] = approved_plan_lock
             plan = planner.revalidate_committed_apply_plan(
                 apply_args,
-                committed_plan=planner_runtime.get("committed_plan"),
+                **revalidation_kwargs,
             )
             planner._record_performance_span(
                 "planner_entry_target_capacity_and_allocation",
@@ -7282,6 +7288,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
         snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
         execution_control_file=str(control_file),
+        approved_plan_lock=packet.get("approved_plan_lock"),
         emergency_failover_autonomy=True,
         campaign_request_id=str(
             ""
@@ -8665,6 +8672,7 @@ def _execute_governed_transaction_with_guards_inner(
         source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
         snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
         execution_control_file=str(control_file),
+        approved_plan_lock=packet.get("approved_plan_lock"),
         ct_m0f_kernel_cutover_validation=bool(
             getattr(args, "ct_m0f_kernel_cutover_validation", False)
         ),

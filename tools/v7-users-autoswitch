@@ -4885,11 +4885,97 @@ class AutoswitchPlanner:
             )
         return self._standing_policy_audit_records_cache
 
+    def _packet_lock_handoff_validation(
+        self,
+        restore_barrier: dict[str, Any],
+        supplied_lock: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Validate the one in-process Packet -> Barrier -> Apply handoff.
+
+        The Packet is already created by the canonical governed executor and
+        is immutable for this operation.  The Restore Barrier is still the
+        current clearance owner, therefore a Packet lock may only rehydrate a
+        missing lossy Barrier projection when every immutable identity agrees.
+        It can never replace a different Barrier or widen its scope.
+        """
+        if not supplied_lock:
+            return {"provided": False, "ok": True, "reason": "no_packet_lock_handoff"}
+        if not isinstance(supplied_lock, dict):
+            return {
+                "provided": True,
+                "ok": False,
+                "reason": "packet_lock_handoff_invalid",
+                "reasons": ["packet_lock_handoff_not_object"],
+            }
+        requested = {
+            "packet_id": str(getattr(self.args, "approved_packet_id", "") or ""),
+            "operation_id": str(getattr(self.args, "approved_operation_id", "") or ""),
+            "selected_move_hash": str(getattr(self.args, "approved_selected_move_hash", "") or ""),
+            "authority_generation": str(getattr(self.args, "approved_authority_generation", "") or ""),
+        }
+        barrier_lock = (
+            restore_barrier.get("approved_plan_lock")
+            if isinstance(restore_barrier.get("approved_plan_lock"), dict)
+            else {}
+        )
+        reasons: list[str] = []
+        for field, expected in requested.items():
+            actual = str(supplied_lock.get(field) or "")
+            if expected and actual != expected:
+                reasons.append(f"packet_lock_handoff_{field}_mismatch")
+        for field in ("packet_id", "operation_id"):
+            actual = str(restore_barrier.get(field) or "")
+            expected = str(supplied_lock.get(field) or "")
+            if actual and expected and actual != expected:
+                reasons.append(f"packet_lock_handoff_barrier_{field}_mismatch")
+        for field in (
+            "lock_id",
+            "lock_hash",
+            "packet_id",
+            "operation_id",
+            "selected_move_hash",
+            "selected_move_count",
+        ):
+            barrier_value = barrier_lock.get(field)
+            packet_value = supplied_lock.get(field)
+            if barrier_value not in (None, "") and packet_value not in (None, "") and str(barrier_value) != str(packet_value):
+                reasons.append(f"packet_lock_handoff_barrier_lock_{field}_mismatch")
+        for field, barrier_field in (
+            ("selected_move_hash", "approved_selected_moves_hash"),
+            ("selected_move_count", "clearance_expected_selected_moves"),
+        ):
+            barrier_value = restore_barrier.get(barrier_field)
+            packet_value = supplied_lock.get(field)
+            if barrier_value not in (None, "") and packet_value not in (None, "") and str(barrier_value) != str(packet_value):
+                reasons.append(f"packet_lock_handoff_{barrier_field}_mismatch")
+        moves = supplied_lock.get("selected_moves")
+        if not isinstance(moves, list) or not moves:
+            reasons.append("packet_lock_handoff_selected_moves_missing")
+        expected_count = to_int(supplied_lock.get("selected_move_count"), 0)
+        if expected_count != len(moves or []):
+            reasons.append("packet_lock_handoff_selected_move_count_mismatch")
+        return {
+            "provided": True,
+            "ok": not reasons,
+            "reason": "packet_lock_handoff_valid" if not reasons else "packet_lock_handoff_invalid",
+            "reasons": sorted(set(reasons)),
+            "owner": "existing operator-execution Packet and Restore Barrier owners",
+            "binding": {
+                "packet_id": str(supplied_lock.get("packet_id") or ""),
+                "operation_id": str(supplied_lock.get("operation_id") or ""),
+                "selected_move_hash": str(supplied_lock.get("selected_move_hash") or ""),
+                "selected_move_count": expected_count,
+                "lock_id": str(supplied_lock.get("lock_id") or ""),
+                "lock_hash": str(supplied_lock.get("lock_hash") or ""),
+            },
+        }
+
     def revalidate_committed_apply_plan(
         self,
         apply_args: argparse.Namespace,
         *,
         committed_plan: Optional[dict[str, Any]] = None,
+        approved_plan_lock: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Revalidate one Packet-locked move without selecting it again.
 
@@ -4926,6 +5012,11 @@ class AutoswitchPlanner:
             self.state_dir / "l3-capability-state.json"
         )
 
+        supplied_packet_lock = (
+            copy.deepcopy(approved_plan_lock)
+            if isinstance(approved_plan_lock, dict)
+            else {}
+        )
         exact_packet_locked_incident = bool(
             bool_value(
                 getattr(
@@ -4940,12 +5031,17 @@ class AutoswitchPlanner:
             and str(
                 getattr(apply_args, "approved_selected_move_hash", "") or ""
             )
-            and str(getattr(apply_args, "user", "") or "")
-            and str(getattr(apply_args, "source_egress", "") or "")
-            and str(getattr(apply_args, "target_egress", "") or "")
-            and to_int(
-                getattr(apply_args, "max_selected_moves", 0), 0,
-            ) == 1
+            and (
+                (
+                    str(getattr(apply_args, "user", "") or "")
+                    and str(getattr(apply_args, "source_egress", "") or "")
+                    and str(getattr(apply_args, "target_egress", "") or "")
+                    and to_int(
+                        getattr(apply_args, "max_selected_moves", 0), 0,
+                    ) == 1
+                )
+                or bool(supplied_packet_lock)
+            )
         )
 
         current_l3_identity = self._runtime_file_identity(
@@ -5071,9 +5167,39 @@ class AutoswitchPlanner:
             else {}
         )
         restore_barrier = dict(self.restore_barrier)
+        packet_lock_handoff = self._packet_lock_handoff_validation(
+            restore_barrier,
+            supplied_packet_lock,
+        )
+        if packet_lock_handoff.get("provided"):
+            # Packet is the immutable owner of the approved cohort.  The
+            # Barrier remains the live clearance owner, but must not become a
+            # second, lossy selected-moves projection between Packet and
+            # Apply.  A supplied lock is accepted only after it matches the
+            # current Barrier and all command-bound operation identities.
+            # This is an in-process handoff, not another registry or writer.
+            if packet_lock_handoff.get("ok"):
+                restore_barrier["approved_plan_lock"] = copy.deepcopy(
+                    supplied_packet_lock
+                )
+                restore_barrier["packet_lock_handoff"] = packet_lock_handoff
+            else:
+                restore_barrier["packet_lock_handoff"] = packet_lock_handoff
         approved_plan_lock = self._approved_plan_lock_validation(
             restore_barrier
         )
+        if packet_lock_handoff.get("provided") and not packet_lock_handoff.get("ok"):
+            approved_plan_lock = {
+                **approved_plan_lock,
+                "present": True,
+                "ok": False,
+                "reason": "approved_plan_lock_handoff_invalid",
+                "reasons": sorted(set(
+                    list(approved_plan_lock.get("reasons") or [])
+                    + list(packet_lock_handoff.get("reasons") or [])
+                )),
+                "packet_lock_handoff": packet_lock_handoff,
+            }
         restore_barrier["approved_plan_lock_validation"] = (
             approved_plan_lock
         )

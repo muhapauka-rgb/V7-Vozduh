@@ -728,6 +728,9 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             confirmation_args = definitive_log.read_text(encoding="utf-8")
             self.assertIn("wgservice all --services google", confirmation_args)
             self.assertIn("--failure-persistence-samples 1", confirmation_args)
+            self.assertIn("--role-fast-timeout", confirmation_args)
+            self.assertIn("--lock-timeout-sec 1", confirmation_args)
+            self.assertIn("--timeout 1", confirmation_args)
             self.assertFalse(shadow_log.exists())
 
     def test_dns_profile_producer_has_dns_specific_class_and_cooldown(self):

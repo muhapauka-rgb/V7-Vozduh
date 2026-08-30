@@ -7325,9 +7325,15 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
         user=user if constraints["selected_move_count"] == 1 else "",
-        source=source if (
-            constraints["selected_move_count"] == 1 or campaign_target
-        ) else "",
+        # The immutable Packet already binds one exact failed source for the
+        # complete cohort.  Omitting it for a multi-member transaction makes
+        # Apply replace the committed source scope with an empty command
+        # value, so its mandatory live-evidence checks lose the Matrix
+        # incident they are meant to revalidate.  Passing this Packet-bound
+        # source does not choose a source or target again: it preserves the
+        # already admitted Matrix -> Candidate -> Packet provenance for every
+        # member while all current-owner checks remain fail-closed.
+        source=source,
         target=campaign_target or (
             target if constraints["selected_move_count"] == 1 else ""
         ),

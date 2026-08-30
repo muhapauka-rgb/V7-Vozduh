@@ -8540,6 +8540,12 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(barrier["allowed_users"], [move["user_ip"] for move in fresh_moves])
         self.assertEqual(len(apply_calls), 1)
         self.assertEqual(apply_calls[0]["max_users"], 10)
+        # A cohort Packet is still bound to one Matrix-confirmed failed
+        # source.  Apply must receive that immutable scope rather than erase
+        # it and force its live safety checks to rediscover the incident.
+        self.assertEqual(apply_calls[0]["source"], "openvpn-failed")
+        self.assertEqual(apply_calls[0]["user"], "")
+        self.assertEqual(apply_calls[0]["target"], "")
 
     def test_l3_production_validation_rejects_learning_proven_when_verification_failed(self):
         module = load_cli_module()

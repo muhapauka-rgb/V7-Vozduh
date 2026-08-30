@@ -921,12 +921,22 @@ EOF
     if [ -z "$confirmed_services" ]; then
       confirmed_services="$services"
     fi
+    # This is the exact, role-scoped Matrix confirmation that starts an
+    # ordinary recovery.  The former default Matrix lock wait (90 seconds)
+    # allowed a busy advisory writer to turn a one-second failure signal
+    # into a minute-long blind spot.  Keep the same canonical writer and
+    # all its persistence semantics, but bound this foreground attempt to
+    # its existing one-second role budget.  A contended/unknown write stays
+    # fail-closed and is retried by the existing health role; it never
+    # manufactures an incident or a route change.
     if "$DEFINITIVE_MATRIX_COMMAND" "$source_id" all \
       --services "$confirmed_services" \
       --state-dir "$STATE_DIR" \
       --event-dir "$CANONICAL_EVENT_DIR" \
       --failure-persistence-samples 1 \
       --failure-persistence-window-seconds 30 \
+      --role-fast-timeout \
+      --lock-timeout-sec 1 \
       --timeout 1 >/dev/null 2>&1; then
       trigger_status="PASS"
       trigger_rc="0"

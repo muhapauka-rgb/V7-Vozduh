@@ -5033,13 +5033,8 @@ class AutoswitchPlanner:
             if isinstance(approved_plan_lock, dict)
             else {}
         )
-        exact_packet_locked_incident = bool(
-            bool_value(
-                getattr(
-                    apply_args, "ct_m0f_kernel_cutover_validation", False,
-                )
-            )
-            and bool_value(getattr(apply_args, "apply", False))
+        packet_bound_apply = bool(
+            bool_value(getattr(apply_args, "apply", False))
             and str(getattr(apply_args, "approved_packet_id", "") or "")
             and str(
                 getattr(apply_args, "approved_execution_lease_id", "") or ""
@@ -5057,6 +5052,30 @@ class AutoswitchPlanner:
                     ) == 1
                 )
                 or bool(supplied_packet_lock)
+            )
+        )
+        # A live ordinary service failure reaches Apply with the same strict
+        # Packet/Lease/Barrier binding as the controlled cutover lane.  Its
+        # Matrix event is the current health owner, so a broad pre-planner
+        # refresh here can only race that owner and discard the immutable
+        # Packet cohort before the sole route writer consumes it.  This does
+        # not relax mutable checks: below we still reload the registry,
+        # Matrix, target, policy, Barrier and execution-control owners and
+        # reject any changed binding.  It merely prevents duplicate broad
+        # reconstruction from becoming a lossy selected-moves handoff.
+        exact_packet_locked_incident = bool(
+            packet_bound_apply
+            and (
+                bool_value(
+                    getattr(
+                        apply_args, "ct_m0f_kernel_cutover_validation", False,
+                    )
+                )
+                or bool_value(
+                    getattr(
+                        apply_args, "ordinary_service_failure_context", False,
+                    )
+                )
             )
         )
 

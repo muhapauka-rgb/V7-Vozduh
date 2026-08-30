@@ -8430,7 +8430,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "--approved-execution-lease-id", "lease-bounded-unit",
                 "--approved-selected-move-hash", committed["operation"]["selected_move_hash"],
                 "--approved-authority-generation", generation,
-                "--ct-m0f-kernel-cutover-validation",
+                "--ordinary-service-failure-context",
             ])
             with mock.patch.object(
                 planner, "plan",
@@ -8453,6 +8453,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             [move["user_ip"] for move in revalidated["selected_moves"]],
             [move["user_ip"] for move in packet_lock["selected_moves"]],
         )
+        timing = next(
+            row for row in planner._performance_spans
+            if row["stage"] == "committed_apply_mutable_owner_revalidation"
+        )
+        self.assertTrue(timing["details"]["exact_packet_locked_incident"])
 
     def test_packet_lock_handoff_rejects_foreign_barrier(self):
         planner = self.tool.AutoswitchPlanner.__new__(self.tool.AutoswitchPlanner)

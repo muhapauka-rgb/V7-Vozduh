@@ -414,3 +414,32 @@ still handed to the existing consumer while repeated 25 ms parent ticks no
 longer continuously re-read the full registry.  This second correction awaits
 its own safe deployment and Runtime measurement; the seven-second target is
 still unproven.
+
+## Second causal pass: eliminate duplicate Matrix work and probe contention
+
+The bounded polling repair alone exposed the remaining source of the long
+cycle.  The live detector was launching four exact one-second profile probes;
+their first results arrived only after 5.8--6.9 seconds under load.  For three
+sources whose Matrix already held a fresh matching failure, it then ran a
+second synchronous Matrix confirmation anyway.  This duplicated canonical
+work without increasing safety.  Separately, the health loop allowed Telegram,
+prepared-target work and deep analysis to run beside the ordinary source
+detector, even though the detector is the only normal entry point for a
+profile-required-service recovery.
+
+The current second pass makes two tightly bounded changes:
+
+- any producer that finds a fresh source-and-service-matching Matrix failure
+  reuses it rather than re-confirming it; a new, stale, unknown or mismatched
+  observation retains the existing independent Matrix confirmation and
+  fail-closed behavior;
+- when `other_required` starts, it temporarily releases only the disposable
+  Telegram/prepared-target/deep observations and defers their next starts
+  until the detector returns.  HARD local-interface observation remains live.
+
+No route action occurs in either change.  The normal health parent still
+consumes the Matrix binding, and the existing governed owners still create and
+verify every recovery object.  Five focused tests pass: current-Matrix reuse,
+fresh T0 handoff, bounded registry polling, projection precedence and the new
+detector CPU-slot rule.  This pass is pending safe deployment and live
+measurement; no seven-second result is claimed yet.

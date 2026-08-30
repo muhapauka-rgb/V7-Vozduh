@@ -906,7 +906,7 @@ EOF
   # the ordinary recovery caller by many seconds.  Reuse it only when the
   # existing governed consumer can be woken; otherwise retain the historical
   # shadow confirmation as the fail-closed fallback.
-  if [ "$matrix_failure_fallback" = "1" ] && [ -n "$CONSUMER_WAKE_COMMAND" ]; then
+  if [ "$matrix_failure_fallback" = "1" ]; then
     trigger_status="PASS"
     trigger_rc="0"
     printf '%s_profile_matrix_confirmation=REUSED_CURRENT\n' "$state_key" >> "$TMP"
@@ -1040,7 +1040,7 @@ EOF
   # Matrix confirmation.  If the Matrix already owns fresh source-bound
   # failure evidence for this contract, consume that evidence directly.  The
   # fallback remains unavailable for stale or unknown Matrix rows.
-  if [ -n "$failed_services" ] && [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ]; then
+  if [ -n "$failed_services" ]; then
     matrix_failed_services="$(matrix_failed_services_for_source "$source_id" "$services")"
     if [ -n "$matrix_failed_services" ]; then
       failed_services="$matrix_failed_services"

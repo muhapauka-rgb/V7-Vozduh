@@ -1222,6 +1222,37 @@ class RoleHealthLoop:
                 flush=True,
             )
 
+    def _ordinary_required_detector_takeover(self, now_ns: int) -> None:
+        """Give the existing ordinary service detector one bounded CPU slot.
+
+        ``other_required`` is the only regular producer for an ordinary
+        profile-required-service failure.  Its one-second probes were being
+        scheduled together with Telegram and prepared-target Matrix writers;
+        on two CPUs that turned the five-second detector into a 20--30 second
+        job.  The other roles are observations, not an execution authority,
+        and are restarted on their existing cadences after the detector exits.
+        HARD stays live because an unambiguous local interface loss is a
+        separate higher-safety signal.  No health state, priority, cadence or
+        downstream owner changes here.
+        """
+        for role in self.roles:
+            if (
+                role.name in {"hard", "other_required"}
+                or role.process is None
+            ):
+                continue
+            duration = elapsed_ms(role.started_ns, now_ns)
+            terminate_process_group(role.process)
+            role.process = None
+            role.started_ns = 0
+            role.runtime_observation_started = {}
+            print(
+                f"V7_HEALTH_ROLE_PREEMPTED role={role.name} "
+                f"duration_ms={duration} "
+                "reason=ORDINARY_REQUIRED_SERVICE_DETECTION_PRIORITY",
+                flush=True,
+            )
+
     def _start_due_roles(self, now_ns: int) -> None:
         hard = next((role for role in self.roles if role.name == "hard"), None)
         hard_takeover = self._hard_recovery_active(now_ns)
@@ -1245,6 +1276,20 @@ class RoleHealthLoop:
                     flush=True,
                 )
                 continue
+            ordinary_detector_running = any(
+                other.name == "other_required" and other.process is not None
+                for other in self.roles
+            )
+            if (
+                ordinary_detector_running
+                and role.name not in {"hard", "other_required"}
+            ):
+                print(
+                    f"V7_HEALTH_ROLE_DEFERRED role={role.name} "
+                    "reason=ORDINARY_REQUIRED_SERVICE_DETECTION_PRIORITY",
+                    flush=True,
+                )
+                continue
             # Keep the prepared decision inside its existing freshness
             # contract. The refresh itself is an existing slow child; it
             # gains no authority and does not alter cadence or Matrix-state
@@ -1255,6 +1300,8 @@ class RoleHealthLoop:
                 self._planner_projection_freshness_takeover(now_ns)
             if role.name in RECOVERY_CRITICAL_ROLE_NAMES and self.serialize_slow_roles:
                 self._recovery_critical_takeover(now_ns)
+            if role.name == "other_required":
+                self._ordinary_required_detector_takeover(now_ns)
             # HARD is the recovery deadline owner. It may run alongside an
             # observation child long enough to prove that a real incident is
             # underway; _hard_recovery_takeover then cancels that disposable

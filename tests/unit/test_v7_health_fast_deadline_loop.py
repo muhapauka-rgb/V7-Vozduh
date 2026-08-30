@@ -995,6 +995,46 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             " ".join(str(call) for call in printed.call_args_list),
         )
 
+    def test_ordinary_required_detector_releases_its_cpu_slot(self):
+        """Target and Telegram observations cannot stretch the source probe."""
+        telegram_process = mock.Mock()
+        target_process = mock.Mock()
+        telegram = HEALTH_LOOP_MODULE.ManagedRole(
+            name="telegram", cadence_ns=1_000_000_000,
+            command=("/bin/true",), next_due_ns=10_000,
+            process=telegram_process, started_ns=1_000,
+        )
+        target = HEALTH_LOOP_MODULE.ManagedRole(
+            name="hot_target", cadence_ns=1_000_000_000,
+            command=("/bin/true",), next_due_ns=10_000,
+            process=target_process, started_ns=1_000,
+        )
+        detector = HEALTH_LOOP_MODULE.ManagedRole(
+            name="other_required", cadence_ns=5_000_000_000,
+            command=("/bin/true",), next_due_ns=0,
+        )
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(
+            roles=(telegram, target, detector),
+        )
+        with mock.patch.object(
+            HEALTH_LOOP_MODULE, "terminate_process_group"
+        ) as terminate, mock.patch.object(
+            HEALTH_LOOP_MODULE.subprocess, "Popen", return_value=mock.Mock()
+        ), mock.patch("builtins.print") as printed:
+            loop._start_due_roles(5_000)
+
+        terminate.assert_has_calls((
+            mock.call(telegram_process), mock.call(target_process),
+        ))
+        self.assertEqual(terminate.call_count, 2)
+        self.assertIsNone(telegram.process)
+        self.assertIsNone(target.process)
+        self.assertIsNotNone(detector.process)
+        self.assertIn(
+            "reason=ORDINARY_REQUIRED_SERVICE_DETECTION_PRIORITY",
+            " ".join(str(call) for call in printed.call_args_list),
+        )
+
     def test_persistent_handoff_uses_freshest_t0_across_active_assignments(self):
         """A stale source listed first cannot suppress a newer Matrix wake."""
         with tempfile.TemporaryDirectory() as td:

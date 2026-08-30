@@ -25108,7 +25108,12 @@ def html_page_v2():
       if (overviewLiveTimer) return;
       overviewLiveTimer = window.setInterval(() => refreshOverviewLive('timer'), 8000);
       refreshLiveOperationalTruth('initial');
-      liveOperationalTruthTimer = window.setInterval(() => refreshLiveOperationalTruth('timer'), 500);
+      // Operator actions update their own rows immediately from the POST
+      // result.  A half-second full canonical read-model refresh can otherwise
+      // accumulate overlapping responses on the two-vCPU Runtime and delay
+      // both the UI and the health owner.  Two seconds keeps passive status
+      // current while preserving immediate action feedback.
+      liveOperationalTruthTimer = window.setInterval(() => refreshLiveOperationalTruth('timer'), 2000);
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
           refreshLiveOperationalTruth('visible');

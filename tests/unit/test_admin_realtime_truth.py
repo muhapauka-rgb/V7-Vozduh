@@ -61,7 +61,8 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         page = self.admin.html_page_v2()
         self.assertIn("/api/live-status", page)
         self.assertIn("liveOperationalTruthTimer = window.setInterval", page)
-        self.assertIn("refreshLiveOperationalTruth('timer'), 500", page)
+        self.assertIn("refreshLiveOperationalTruth('timer'), 2000", page)
+        self.assertIn("Operator actions update their own rows immediately", page)
         self.assertIn("mergeLiveOperationalTruthIntoOverview", page)
 
     def test_new_profile_binds_requested_configured_egress_without_health_query(self):

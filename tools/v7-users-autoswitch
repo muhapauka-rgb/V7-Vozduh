@@ -10394,7 +10394,7 @@ class AutoswitchPlanner:
                 move_blockers.append("target_not_eligible_before_apply")
             if source_id == target_id:
                 move_blockers.append("source_target_same_before_apply")
-            evidence = self._ordinary_service_failure_move_evidence(move)
+            evidence = self._ordinary_service_failure_move_evidence(plan, move)
             move_blockers.extend(str(item) for item in (evidence.get("blockers") or []))
             checked_moves.append({
                 "user_ip": user_ip,
@@ -10422,6 +10422,7 @@ class AutoswitchPlanner:
 
     def _ordinary_service_failure_move_evidence(
         self,
+        plan: dict[str, Any],
         move: dict[str, Any],
     ) -> dict[str, Any]:
         """Apply the existing live Matrix evidence gates to one failed source."""

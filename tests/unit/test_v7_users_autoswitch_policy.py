@@ -3704,6 +3704,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             planner = self.tool.AutoswitchPlanner(self.args_for(root))
             plan = planner.plan()
             evidence = planner._ordinary_service_failure_move_evidence(
+                plan,
                 plan["selected_moves"][0]
             )
 
@@ -3743,6 +3744,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             ))
             plan = planner.plan()
             evidence = planner._ordinary_service_failure_move_evidence(
+                plan,
                 plan["selected_moves"][0]
             )
 
@@ -3794,7 +3796,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "truth_class": "STALE_SERVICE_TRUTH",
                 "freshness": {"state": "STALE"},
             }
-            evidence = planner._ordinary_service_failure_move_evidence(move)
+            evidence = planner._ordinary_service_failure_move_evidence(plan, move)
 
         self.assertTrue(evidence["ok"], evidence)
         self.assertTrue(evidence["profile_service_failure_confirmed"])

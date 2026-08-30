@@ -427,7 +427,7 @@ prepared-target work and deep analysis to run beside the ordinary source
 detector, even though the detector is the only normal entry point for a
 profile-required-service recovery.
 
-The current second pass makes two tightly bounded changes:
+The current second pass made two tightly bounded changes:
 
 - any producer that finds a fresh source-and-service-matching Matrix failure
   reuses it rather than re-confirming it; a new, stale, unknown or mismatched
@@ -441,5 +441,34 @@ No route action occurs in either change.  The normal health parent still
 consumes the Matrix binding, and the existing governed owners still create and
 verify every recovery object.  Five focused tests pass: current-Matrix reuse,
 fresh T0 handoff, bounded registry polling, projection precedence and the new
-detector CPU-slot rule.  This pass is pending safe deployment and live
-measurement; no seven-second result is claimed yet.
+detector CPU-slot rule.
+
+## Deployed measurement and final ordinary-apply handoff repair
+
+The second pass was committed as
+`3fabe99f9c85fc8fc45a70c848a921d5dc70d2a9`, published and safely deployed.
+On the same two-vCPU Runtime, the normal `other_required` detector then
+completed a live cycle in **3.894 s** (the previous observed range was
+18--32 s).  HARD remained live during that work, with its normal checks in the
+roughly 0.18--0.57 s range.  This is a measured improvement in detection
+work, not evidence of a completed seven-second customer recovery.
+
+The first fresh VLESS Matrix binding after the deployment was also consumed by
+the normal health Runtime: it created a three-user, ordinary-only governed
+transaction with source `vless` and owner-selected target `awg0`.  No Codex
+route command, assignment, Candidate, Packet, Lease or Barrier was invoked.
+The existing Packet/Lease/Barrier path then stopped before Apply with the
+precise diagnostic `NameError: name 'plan' is not defined`.  The defect was in
+the ordinary-required-service revalidation helper: it checked the
+Packet-bound Matrix evidence but had not received the committed Planner plan.
+
+The repair passes that existing committed plan explicitly into that helper.
+It neither changes which failure is accepted nor relaxes the current source,
+target, authority, Packet, Lease, Barrier, route-verification or S11 gates.
+Focused regression coverage now includes the real ordinary context,
+fresh-Matrix profile failure, bounded Packet handoff and the in-process
+existing-Planner apply path (five checks pass).  This repair awaits safe
+deployment and renewed observation of the *normal* V7 caller.  The three
+users remain on VLESS at this point because the prior automatic transaction
+was safely cancelled; they were not moved manually.  The seven-second SLO is
+still not claimed.

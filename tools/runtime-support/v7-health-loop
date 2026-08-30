@@ -1185,23 +1185,19 @@ class RoleHealthLoop:
         The service-failure producer is an existing recovery-critical role.
         If a background Matrix projection already owns the shared Matrix lock,
         allowing the detector to wait behind it can turn a five-second health
-        observation into a minute-long stale window.  Preempt only the
-        non-critical slow observations; Matrix/Planner ownership and cadence
-        remain unchanged, and each interrupted role returns on its own due
-        schedule.
+        observation into a minute-long stale window.  Preempt every
+        non-critical slow observation, including advisory non-critical target
+        warming. Exact PATH/Telegram readiness remains owned by the
+        recovery-critical target role; other-service warming and deep analysis
+        must never postpone detection of a currently failed client contract.
+        Matrix/Planner ownership and cadence remain unchanged, and each
+        interrupted role returns on its own due schedule.
         """
         for role in self.roles:
             if (
                 role.name in RECOVERY_CRITICAL_ROLE_NAMES
                 or role.name not in SLOW_ROLE_NAMES
                 or role.process is None
-                # These existing observation roles supply target readiness
-                # evidence. They are intentionally allowed to overlap the
-                # detector: preempting them before the detector starts leaves
-                # every candidate stale and makes a healthy failover target
-                # look ineligible. Their own Matrix writers remain locked and
-                # serialized per invocation.
-                or role.name in {"hot_target_other", "deep"}
             ):
                 continue
             duration = elapsed_ms(role.started_ns, now_ns)

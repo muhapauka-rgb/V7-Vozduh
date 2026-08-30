@@ -19103,17 +19103,26 @@ def smart_client_name_for_ip(ip, adapter=""):
     return ""
 
 
-def client_profile_capabilities(ip=""):
+def client_profile_capabilities(
+    ip="", *, client_name="", wireguard_artifacts=None,
+    has_wireguard_config=None,
+):
     ip = safe_user_ip(ip)
-    conf = wg_conf_for_user_ip(ip) if ip else None
-    name = smart_client_name_for_ip(ip, "happ") if ip else ""
-    artifacts = client_artifacts_for_ip(ip) if ip else []
+    if client_name:
+        name = safe_client_name(client_name)
+        artifacts = list(wireguard_artifacts or [])
+        has_config = bool(has_wireguard_config)
+    else:
+        conf = wg_conf_for_user_ip(ip) if ip else None
+        name = smart_client_name_for_ip(ip, "happ") if ip else ""
+        artifacts = client_artifacts_for_ip(ip) if ip else []
+        has_config = bool(conf)
     artifact_ready = any(row.get("config_ready") for row in artifacts)
     qr_ready = any(row.get("qr_ready") for row in artifacts)
     rows = []
     for client_id, meta in CONNECT_CLIENTS.items():
         adapter = safe_smart_adapter(meta.get("adapter", ""))
-        can_generate = bool(meta.get("can_generate")) and bool(adapter) and (bool(conf) or adapter == "happ" or adapter_uses_karing_vless(adapter))
+        can_generate = bool(meta.get("can_generate")) and bool(adapter) and (has_config or adapter == "happ" or adapter_uses_karing_vless(adapter))
         generated_modes = []
         if can_generate and name:
             for mode in OPERATOR_SMART_MODES:
@@ -19164,11 +19173,23 @@ def client_profile_capabilities(ip=""):
     }
 
 
-def smart_client_profiles_for_ip(ip):
-    conf = wg_conf_for_user_ip(ip)
-    has_happ_name = bool(smart_client_name_for_ip(ip, "happ"))
-    has_karing_name = bool(smart_client_name_for_ip(ip, "karing")) if adapter_uses_karing_vless("karing") else False
-    if not conf and not has_happ_name and not has_karing_name:
+def smart_client_profiles_for_ip(ip, *, client_name="", wireguard_artifacts=None):
+    ip = safe_user_ip(ip)
+    if client_name:
+        name = safe_client_name(client_name)
+        artifacts = list(wireguard_artifacts or [])
+        has_config = bool(artifacts)
+    else:
+        conf = wg_conf_for_user_ip(ip)
+        name = safe_client_name(conf.stem) if conf else (
+            smart_client_name_for_ip(ip, "karing")
+            or smart_client_name_for_ip(ip, "happ")
+        )
+        artifacts = client_artifacts_for_ip(ip)
+        has_config = bool(conf)
+    has_happ_name = bool(name)
+    has_karing_name = bool(name) if adapter_uses_karing_vless("karing") else False
+    if not has_config and not has_happ_name and not has_karing_name:
         return {
             "available": False,
             "reason": "wireguard_client_config_not_found",
@@ -19177,7 +19198,6 @@ def smart_client_profiles_for_ip(ip):
             "supported_modes": {mode: SMART_MODE_META.get(mode, {}) for mode in OPERATOR_SMART_MODES},
             "items": [],
         }
-    name = safe_client_name(conf.stem) if conf else (smart_client_name_for_ip(ip, "karing") or smart_client_name_for_ip(ip, "happ"))
     items = []
     for adapter in sorted(SUPPORTED_SMART_ADAPTERS):
         for mode in OPERATOR_SMART_MODES:
@@ -19205,9 +19225,39 @@ def smart_client_profiles_for_ip(ip):
         "client": name,
         "selected": smart_client_preference_for_ip(ip),
         "supported_adapters": sorted(SUPPORTED_SMART_ADAPTERS),
-        "client_capabilities": client_profile_capabilities(ip),
+        "client_capabilities": client_profile_capabilities(
+            ip,
+            client_name=name,
+            wireguard_artifacts=artifacts,
+            has_wireguard_config=has_config,
+        ),
         "supported_modes": {mode: SMART_MODE_META.get(mode, {}) for mode in OPERATOR_SMART_MODES},
         "items": items,
+    }
+
+
+def smart_client_profiles_map(users):
+    """Build overview smart-profile rows with one config-tree scan.
+
+    The overview is a read-model. Re-scanning every client config for every
+    active user made its cost quadratic and could compete with health recovery
+    on the two-vCPU Runtime. The existing artifact reader already owns one
+    complete scan, so reuse its exact per-user rows for this response only.
+    """
+    artifacts_by_ip = client_artifacts_map(users)
+    return {
+        ip: smart_client_profiles_for_ip(
+            ip,
+            # This is the same canonical fallback produced by
+            # smart_client_name_for_ip() when a VLESS/Karing profile has no
+            # WireGuard artifact. Supplying it here keeps the overview on the
+            # one already-completed artifact scan rather than re-scanning the
+            # config tree for every such user.
+            client_name=(rows[0].get("name") if rows else f"user-{ip.replace('.', '-')}"),
+            wireguard_artifacts=rows,
+        )
+        for ip, rows in artifacts_by_ip.items()
+        if ip
     }
 
 
@@ -20053,7 +20103,7 @@ def overview(session=None):
         for row in active_users
         if row.get("ip")
     }
-    smart_profiles = {u.get("ip", ""): smart_client_profiles_for_ip(u.get("ip", "")) for u in active_users if u.get("ip")}
+    smart_profiles = smart_client_profiles_map(active_users)
     matrix = service_matrix_state()
     draft_evidence = egress_draft_pool_evidence_state()
     snapshot = overview_views.create_snapshot(

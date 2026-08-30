@@ -43,3 +43,32 @@ registry, egress registry and Matrix; it is not persistent and is not a new
 truth source.  Thus old tabs cannot repeatedly reparse and serialize the full
 read-model or retain request workers indefinitely, while a successful operator
 POST still returns its exact new row without waiting for the cache.
+
+## Completion: one-pass profile-artifact projection
+
+Read-only process tracing of the active `v7-admin-api.service` showed the
+overview worker repeatedly opening the complete `/root/v7-clients/*/*.conf`
+tree: once for each user row and again inside its profile-capability view.
+That made a normal overview refresh approximately `users × client configs`,
+which is avoidable work on the two-vCPU Runtime and directly explains the
+remaining high CPU pressure.
+
+The overview now reuses the existing `client_artifacts_map(users)` single
+config-tree scan.  Its per-user artifact rows are passed to the existing
+profile projection and capability code.  Users whose profile is VLESS/Karing
+only receive the same canonical `user-<ip>` fallback name that the existing
+reader would have returned, without another config scan.  This is a read-model
+performance repair only: no registry, Matrix, Authority, routing, Planner,
+health policy or user assignment changes.
+
+Focused verification after this final edge-case closure:
+
+- `tests.unit.test_admin_realtime_truth` plus
+  `tests.unit.test_admin_service_preferences_lifecycle`: **16 PASS**;
+- tests prove one scan for a multi-user overview and no re-scan for a user
+  without a WireGuard artifact;
+- source diff check: PASS.
+
+Next operational check after safe deployment: observe the existing health
+caller under the reduced UI CPU load.  No client recovery is induced or moved
+by this repair; any recovery evidence must originate from the live V7 Runtime.

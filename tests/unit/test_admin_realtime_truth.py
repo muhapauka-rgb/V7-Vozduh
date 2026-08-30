@@ -64,6 +64,34 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("canonical registries and Matrix", source)
         self.assertIn("self.send_json_bytes(live_operational_truth_json())", source)
 
+    def test_overview_smart_profiles_reuse_one_artifact_tree_scan(self):
+        users = [
+            {"ip": "10.7.0.125", "enabled": "1"},
+            {"ip": "10.7.0.126", "enabled": "1"},
+        ]
+        artifact_map = {
+            "10.7.0.125": [{"name": "first-profile", "config_ready": True}],
+            "10.7.0.126": [{"name": "second-profile", "config_ready": True}],
+        }
+        with mock.patch.object(self.admin, "client_artifacts_map", return_value=artifact_map) as scan, \
+             mock.patch.object(self.admin, "smart_client_profiles_for_ip", return_value={"available": True}) as profiles:
+            result = self.admin.smart_client_profiles_map(users)
+
+        scan.assert_called_once_with(users)
+        self.assertEqual(result, {"10.7.0.125": {"available": True}, "10.7.0.126": {"available": True}})
+        self.assertEqual(profiles.call_count, 2)
+        self.assertEqual(profiles.call_args_list[0].kwargs["client_name"], "first-profile")
+
+    def test_overview_smart_profiles_do_not_rescan_users_without_wireguard_artifact(self):
+        users = [{"ip": "10.7.0.125", "enabled": "1"}]
+        with mock.patch.object(self.admin, "client_artifacts_map", return_value={"10.7.0.125": []}) as scan, \
+             mock.patch.object(self.admin, "smart_client_profiles_for_ip", return_value={"available": True}) as profiles:
+            self.admin.smart_client_profiles_map(users)
+
+        scan.assert_called_once_with(users)
+        profiles.assert_called_once()
+        self.assertEqual(profiles.call_args.kwargs["client_name"], "user-10-7-0-125")
+
     def test_admin_page_uses_lightweight_live_status_polling(self):
         page = self.admin.html_page_v2()
         self.assertIn("/api/live-status", page)

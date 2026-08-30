@@ -180,6 +180,36 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("route replace default dev tun0 table 100", calls)
 
+    def test_emergency_failover_cohort_may_defer_one_core_primary_commit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, ip_log = self.fixture(root)
+            sync = root / "bin" / "v7-routing-sync"
+            sync.write_text(
+                "#!/bin/sh\n"
+                "if [ \"$1\" = \"--core-primary-active\" ]; then "
+                "echo \'{\"status\": \"CORE_PRIMARY_ACTIVE\"}\'; fi\n",
+                encoding="utf-8",
+            )
+            sync.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_failover",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-failover",
+                "V7_EXECUTION_ACTION_CLASS": "EMERGENCY_FAILOVER",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-failover",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-failover",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-failover",
+                "V7_EXECUTION_MAX_USERS": "3",
+                "V7_CORE_PRIMARY_COHORT_DEFER": "1",
+            })
+            result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
+            calls = ip_log.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("route replace default dev tun0 table 100", calls)
+        self.assertIn("V7_CORE_PRIMARY_SYNC=DEFERRED_COHORT", result.stdout)
+
     def test_non_failover_multi_user_context_is_denied_before_route_replace(self):
         with tempfile.TemporaryDirectory() as tmp:
             env, ip_log = self.fixture(Path(tmp))

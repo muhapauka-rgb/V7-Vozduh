@@ -2308,16 +2308,18 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         planner._verify_routes_for_apply = lambda ip, target: subprocess.CompletedProcess(
             ["verify"], 0, stdout="ok",
         )
+        service_checks = []
         planner._reuse_or_verify_emergency_required_services = lambda move: (
-            subprocess.CompletedProcess(["service-verify"], 0, stdout="ok")
+            service_checks.append(move)
+            or subprocess.CompletedProcess(["service-verify"], 0, stdout="ok")
         )
         planner._bounded_cohort_checkpoint = lambda *_args, **_kwargs: {
             "checkpoint": {"state": "SUCCESS"},
         }
         planner._update_safety_after_apply = lambda _rows: None
         moves = [
-            {"user_ip": "10.0.0.2", "current_egress": "1", "recommended_egress": "vless", "move_type": "failover"},
-            {"user_ip": "10.0.0.3", "current_egress": "1", "recommended_egress": "vless", "move_type": "failover"},
+            {"user_ip": "10.0.0.2", "current_egress": "1", "recommended_egress": "vless", "move_type": "failover", "profile_required_services": ["youtube"]},
+            {"user_ip": "10.0.0.3", "current_egress": "1", "recommended_egress": "vless", "move_type": "failover", "profile_required_services": ["telegram"]},
         ]
         plan = {"operation": {"operation_id": "op-core-cohort"}, "safety": {}}
         result = planner._apply_n10_core_primary_cohort(
@@ -2333,6 +2335,12 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(len(commits), 1)
         self.assertEqual(commits[0][0], ["10.0.0.2", "10.0.0.3"])
         self.assertTrue(all(item[3] for item in staged))
+        self.assertEqual(len(service_checks), 1)
+        self.assertEqual(service_checks[0]["recommended_egress"], "vless")
+        self.assertEqual(
+            set(service_checks[0]["profile_required_services"]),
+            {"telegram", "youtube"},
+        )
         self.assertFalse(planner._core_primary_cohort_defer)
 
     def test_bounded_cohort_checkpoint_blocks_duplicate_forward_apply_after_restart(self):

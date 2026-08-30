@@ -19242,14 +19242,31 @@ class AutoswitchPlanner:
                 "unsafe_blocker": ",".join(str(item) for item in (l3_eligibility.get("blockers") or [])),
                 "l3_execution_eligibility": l3_eligibility,
             }
-        # A bounded N10 move must prove that its one Core-primary map commit
-        # can remain truly affected-cohort-only before its one-use Authority is
-        # consumed. If a source class would vanish or a neighbouring class
-        # would be renumbered, the existing full projection owner would be
-        # required; stopping here avoids staging any ordinary assignment.
+        # A bounded N10 or ordinary emergency-failover cohort must prove that
+        # its one Core-primary map commit can remain truly affected-cohort-only
+        # before its exact operation authority is consumed. If a source class
+        # would vanish or a neighbouring class would be renumbered, the
+        # existing full projection owner would be required; stopping here
+        # avoids staging any ordinary assignment.
+        bounded_cohort_size = 2 <= len(plan.get("selected_moves") or []) <= 4
+        emergency_core_primary = {}
+        if action_class == "EMERGENCY_FAILOVER" and bounded_cohort_size:
+            # Existing ordinary recovery retains its historical per-member
+            # writer path unless the already-installed Core-primary owner
+            # explicitly declares this exact cohort optimisation available.
+            # A missing or inactive owner is therefore a safe fallback, not a
+            # new reason to block a valid emergency recovery.
+            emergency_core_primary = self._core_primary_cohort_active()
         core_primary_cohort_projection = (
-            action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
-            and 2 <= len(plan.get("selected_moves") or []) <= 4
+            (
+                action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                and bounded_cohort_size
+            )
+            or (
+                action_class == "EMERGENCY_FAILOVER"
+                and bounded_cohort_size
+                and emergency_core_primary.get("ok") is True
+            )
         )
         if core_primary_cohort_projection:
             admissibility = self._core_primary_cohort_admissible(
@@ -19393,10 +19410,11 @@ class AutoswitchPlanner:
                     "bounded_cohort_transaction": bounded_checkpoint.get("checkpoint") or {},
                     "remaining_forward_mutations_stopped": True,
                 }
-        # A small N10 cohort has one Packet/lease and one exact core-map
-        # publication boundary.  Reusing the existing writer one member at a
-        # time remains necessary for its low-level table/assignment work, but
-        # the Core-primary projection must not be rebuilt for every member.
+        # A small N10 or ordinary emergency-failover cohort has one
+        # Packet/lease and one exact core-map publication boundary. Reusing
+        # the existing writer one member at a time remains necessary for its
+        # low-level table/assignment work, but the Core-primary projection
+        # must not be rebuilt for every member.
         if core_primary_cohort_projection:
             if not self.args.verify:
                 return {
@@ -19405,7 +19423,11 @@ class AutoswitchPlanner:
                     "runtime_mutation": False,
                     "user_movement": 0,
                 }
-            active = self._core_primary_cohort_active()
+            active = (
+                emergency_core_primary
+                if action_class == "EMERGENCY_FAILOVER"
+                else self._core_primary_cohort_active()
+            )
             plan.setdefault("safety", {})["core_primary_cohort_projection"] = active
             if not active.get("ok"):
                 return {
@@ -22342,6 +22364,9 @@ class AutoswitchPlanner:
                     "from": str(move.get("current_egress") or ""),
                     "to": str(move.get("recommended_egress") or ""),
                     "move_type": move.get("move_type"), "operation_id": operation_id,
+                    "profile_required_services": normalize_service_ids(
+                        move.get("profile_required_services") or []
+                    ),
                     "selected_move_hash": selected_hash, "rc": proc.returncode,
                     "output": (proc.stdout or "")[-4000:],
                     "route_writer_timing": self._record_performance_span(
@@ -22384,53 +22409,72 @@ class AutoswitchPlanner:
                     circuit_breaker.update({"tripped": True, "trigger_terminal": "CORE_PRIMARY_COHORT_COMMIT_FAILED"})
                     plan.setdefault("safety", {})["core_primary_cohort_rollback"] = rollback
                 else:
+                    # The route binding is per identity, so retain one exact
+                    # route check for every staged member. Required-service
+                    # reachability is a target-channel fact, however. Running
+                    # the same Matrix probe once per member serially delayed
+                    # a three-member emergency recovery by three identical
+                    # four-second probes. Verify the union of the members'
+                    # declared services once for each exact selected target;
+                    # every member still needs both its own route proof and
+                    # that target's shared service proof. This reuses the
+                    # Matrix verifier and changes neither target selection nor
+                    # rollback semantics.
                     failed = False
+                    target_rows: dict[str, list[dict[str, Any]]] = {}
                     for row in results:
                         verify = self._verify_routes_for_apply(row["user_ip"], row["to"])
-                        service_verify = None
-                        if verify.returncode == 0:
-                            service_started_ns = time.monotonic_ns()
-                            service_verify = self._reuse_or_verify_emergency_required_services({
-                                "user_ip": row["user_ip"],
-                                "recommended_egress": row["to"],
-                            })
-                            row["service_verification_timing"] = (
-                                self._record_performance_span(
-                                    "required_service_verification",
-                                    service_started_ns,
-                                    owner="existing v7-service-matrix-test",
-                                    status=(
-                                        "PASS"
-                                        if service_verify.returncode == 0
-                                        else "FAIL"
-                                    ),
-                                    parent="apply_and_verification",
-                                )
-                            )
                         row.update({
                             "verify_rc": verify.returncode,
                             "verify_output": (verify.stdout or "")[-4000:],
-                            "service_verify_rc": (
-                                service_verify.returncode
-                                if service_verify is not None else None
-                            ),
-                            "service_verify_output": (
-                                (service_verify.stdout or "")[-4000:]
-                                if service_verify is not None else ""
-                            ),
                             "route_verification_scope": "selected_user_then_whole_system",
-                            "terminal_outcome_classification": (
-                                "SUCCESS"
-                                if verify.returncode == 0
-                                and service_verify is not None
-                                and service_verify.returncode == 0
-                                else "VERIFY_FAILED"
-                            ),
                             "core_primary_projection": "COMMITTED",
                         })
-                        failed = failed or verify.returncode != 0 or (
-                            service_verify is None or service_verify.returncode != 0
+                        if verify.returncode != 0:
+                            failed = True
+                            row["terminal_outcome_classification"] = "VERIFY_FAILED"
+                        else:
+                            target_rows.setdefault(row["to"], []).append(row)
+                    for target, rows in target_rows.items():
+                        required_services = normalize_service_ids([
+                            service
+                            for row in rows
+                            for service in self._verification_required_services({
+                                "user_ip": row["user_ip"],
+                                "recommended_egress": target,
+                                "profile_required_services": row.get(
+                                    "profile_required_services"
+                                ) or [],
+                            })
+                        ])
+                        service_started_ns = time.monotonic_ns()
+                        service_verify = self._reuse_or_verify_emergency_required_services({
+                            "recommended_egress": target,
+                            "profile_required_services": required_services,
+                        })
+                        service_span = self._record_performance_span(
+                            "required_service_verification",
+                            service_started_ns,
+                            owner="existing v7-service-matrix-test",
+                            status=("PASS" if service_verify.returncode == 0 else "FAIL"),
+                            parent="apply_and_verification",
+                            details={
+                                "shared_target_scope": True,
+                                "member_count": len(rows),
+                                "required_service_count": len(required_services),
+                            },
                         )
+                        for row in rows:
+                            row.update({
+                                "service_verify_rc": service_verify.returncode,
+                                "service_verify_output": (service_verify.stdout or "")[-4000:],
+                                "service_verification_timing": service_span,
+                                "service_verification_scope": "shared_exact_target_required_service_union",
+                                "terminal_outcome_classification": (
+                                    "SUCCESS" if service_verify.returncode == 0 else "VERIFY_FAILED"
+                                ),
+                            })
+                        failed = failed or service_verify.returncode != 0
                     if failed:
                         rollback = self._cohort_rollback_to_preimage(rows=results, entry_control=entry_control, action_class=action_class, operation_id=operation_id)
                         for row in results:

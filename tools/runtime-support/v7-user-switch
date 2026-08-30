@@ -178,9 +178,10 @@ fi
 CORE_PRIMARY_COHORT_DEFER="${V7_CORE_PRIMARY_COHORT_DEFER:-0}"
 if [ "$CORE_PRIMARY_COHORT_DEFER" = "1" ]; then
   if [ "$CORE_PRIMARY_ACTIVE" != "1" ] \
-    || [ "$ACTION_CLASS" != "N10_SMALL_COHORT" ] \
+    || { [ "$ACTION_CLASS" != "N10_SMALL_COHORT" ] \
+      && [ "$ACTION_CLASS" != "EMERGENCY_FAILOVER" ]; } \
     || ! [[ "$MAX_USERS" =~ ^[2-4]$ ]]; then
-    echo "STOP_SAFE: core-primary cohort defer outside exact N10 cohort scope"
+    echo "STOP_SAFE: core-primary cohort defer outside exact bounded cohort scope"
     exit 2
   fi
 fi

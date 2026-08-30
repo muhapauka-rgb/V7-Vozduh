@@ -5782,8 +5782,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         projected = self.refresh._consumer_projection({
             "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
             "consumer_result": {
-                "active": False,
-                "reason": "no_open_unmaterialized_passive_terminal",
+                "result": {
+                    "active": False,
+                    "reason": "no_open_unmaterialized_passive_terminal",
+                },
             },
         })["consumer_result"]
 

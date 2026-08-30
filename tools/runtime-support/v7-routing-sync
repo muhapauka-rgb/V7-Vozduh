@@ -14,6 +14,8 @@ import subprocess
 import sys
 import time
 
+from admin_core import operator_execution
+
 
 STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
 USERS = Path(os.environ.get("V7_USERS_REGISTRY", STATE_DIR / "users.registry"))
@@ -77,6 +79,72 @@ def exact_reset_authority(policy_path: Path) -> tuple[bool, dict]:
     preimage.pop("contract_id", None)
     ok = ok and bool(supplied) and canonical_hash(preimage) == supplied
     return ok, promotion
+
+
+def core_primary_operation_authority(
+    *,
+    emergency_failover: bool = False,
+    operation_id: str = "",
+    selected_move_hash: str = "",
+    max_users: int = 0,
+) -> tuple[bool, dict]:
+    """Resolve only an existing Core-primary authority for this operation.
+
+    Reset migrations retain their original exact contract.  A bounded ordinary
+    failed-source recovery may instead use the already-issued standing
+    delegated policy, but only while the existing operation-scoped execution
+    control owner binds this exact emergency operation.  This does not select
+    users or a target and cannot turn the routing owner into an Authority.
+    """
+    reset_ok, reset = exact_reset_authority(POLICY)
+    if reset_ok:
+        return True, {"authority_kind": "reset", **reset}
+    if not emergency_failover:
+        return False, {}
+    normalized_count = int(max_users or 0)
+    if not operation_id or not selected_move_hash or not 2 <= normalized_count <= 4:
+        return False, {}
+    try:
+        root = json.loads(POLICY.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False, {}
+    contract = root.get("delegated_autonomy_policy")
+    contract = contract if isinstance(contract, dict) else {}
+    validation = operator_execution.validate_standing_delegated_operational_policy(
+        contract,
+        audit_records=operator_execution.read_live_execution_lineage_records(
+            operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE,
+        ),
+    )
+    policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
+    control = operator_execution.autonomous_execution_control_decision(
+        mutation_kind="forward",
+        action_class="EMERGENCY_FAILOVER",
+        operation_id=operation_id,
+        selected_move_hash=selected_move_hash,
+        source_bundle_hash=str((operator_execution.autonomous_execution_control_state().get("source_bundle_hash") or "")),
+        snapshot_bundle_hash=str((operator_execution.autonomous_execution_control_state().get("snapshot_bundle_hash") or "")),
+        max_users=normalized_count,
+    )
+    valid = (
+        bool(validation.get("ok"))
+        and str(policy.get("policy_state") or "") == "APPROVED"
+        and str(policy.get("current_mode") or "") == "DELEGATED_AUTONOMY"
+        and policy.get("runtime_apply_enabled") is True
+        and policy.get("self_expansion_allowed") is False
+        and int(policy.get("max_users_per_action") or 0) >= normalized_count
+        and int(policy.get("max_concurrent_transactions") or 0) == 1
+        and bool(control.get("allowed_forward_mutation"))
+    )
+    if not valid:
+        return False, {}
+    return True, {
+        "authority_kind": "standing_emergency_failover",
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "operation_id": operation_id,
+        "selected_move_hash": selected_move_hash,
+    }
 
 
 def classes_for_users(
@@ -232,7 +300,10 @@ def core_primary_fallback() -> dict:
     return {"status": "CORE_PRIMARY_FALLBACK_PASS", "legacy": legacy, "core_table_present": False}
 
 
-def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> dict:
+def core_primary_cohort_commit(
+    members: list[str], operation_id: str = "", *, emergency_failover: bool = False,
+    selected_move_hash: str = "",
+) -> dict:
     """Atomically update only an already-governed Core-primary cohort.
 
     The canonical users registry remains the sole desired-state source.  This
@@ -242,7 +313,10 @@ def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> di
     existing full-projection owner/fallback instead of silently widening this
     bounded operation.
     """
-    authority_ok, authority = exact_reset_authority(POLICY)
+    authority_ok, authority = core_primary_operation_authority(
+        emergency_failover=emergency_failover, operation_id=operation_id,
+        selected_move_hash=selected_move_hash, max_users=len(members),
+    )
     normalized: list[str] = []
     try:
         normalized = sorted({str(ipaddress.ip_address(value)) for value in members})
@@ -301,7 +375,10 @@ def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> di
     ))
     if proc.returncode:
         return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_nft_atomic_commit_failed", proc.stdout[-1000:]], "runtime_mutation": False}
-    whole_system = verify()
+    whole_system = verify(
+        emergency_failover=emergency_failover, operation_id=operation_id,
+        selected_move_hash=selected_move_hash, max_users=len(normalized),
+    )
     if whole_system.get("status") != "CORE_PRIMARY_VERIFY_PASS":
         return {
             "status": "STOP_SAFE",
@@ -317,7 +394,10 @@ def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> di
     retired = retire_legacy_primary_routes([
         users_by_ip[ip] for ip in normalized
     ])
-    whole_system = verify()
+    whole_system = verify(
+        emergency_failover=emergency_failover, operation_id=operation_id,
+        selected_move_hash=selected_move_hash, max_users=len(normalized),
+    )
     if whole_system.get("status") != "CORE_PRIMARY_VERIFY_PASS":
         return {
             "status": "STOP_SAFE",
@@ -340,7 +420,10 @@ def core_primary_cohort_commit(members: list[str], operation_id: str = "") -> di
     }
 
 
-def core_primary_cohort_admissible(members: list[str], target_egress: str) -> dict:
+def core_primary_cohort_admissible(
+    members: list[str], target_egress: str, *, emergency_failover: bool = False,
+    operation_id: str = "", selected_move_hash: str = "",
+) -> dict:
     """Prove that a proposed cohort can use the bounded Core-primary commit.
 
     This is deliberately read-only and is called before an N10 contract is
@@ -349,7 +432,10 @@ def core_primary_cohort_admissible(members: list[str], target_egress: str) -> di
     untouched. Otherwise the existing full projection owner would be needed,
     so the bounded production transaction must stop before it stages a user.
     """
-    authority_ok, authority = exact_reset_authority(POLICY)
+    authority_ok, authority = core_primary_operation_authority(
+        emergency_failover=emergency_failover, operation_id=operation_id,
+        selected_move_hash=selected_move_hash, max_users=len(members),
+    )
     try:
         normalized = sorted({str(ipaddress.ip_address(value)) for value in members})
     except ValueError:
@@ -449,8 +535,14 @@ def nft_map_elements(payload: object, name: str) -> tuple[set[tuple[str, str]], 
     return set(), False
 
 
-def verify() -> dict:
-    authority_ok, authority = exact_reset_authority(POLICY)
+def verify(
+    *, emergency_failover: bool = False, operation_id: str = "",
+    selected_move_hash: str = "", max_users: int = 0,
+) -> dict:
+    authority_ok, authority = core_primary_operation_authority(
+        emergency_failover=emergency_failover, operation_id=operation_id,
+        selected_move_hash=selected_move_hash, max_users=max_users,
+    )
     users, classes = derived_classes()
     nft = run(["nft", "-j", "list", "table", NFT_FAMILY, NFT_TABLE])
     rules = run(["ip", "-j", "rule", "show"])
@@ -508,9 +600,15 @@ def verify() -> dict:
     }
 
 
-def core_primary_active() -> dict:
+def core_primary_active(
+    *, emergency_failover: bool = False, operation_id: str = "",
+    selected_move_hash: str = "", max_users: int = 0,
+) -> dict:
     """Expose the current Core-primary contract without inferring it elsewhere."""
-    authority_ok, authority = exact_reset_authority(POLICY)
+    authority_ok, authority = core_primary_operation_authority(
+        emergency_failover=emergency_failover, operation_id=operation_id,
+        selected_move_hash=selected_move_hash, max_users=max_users,
+    )
     return {
         "status": "CORE_PRIMARY_ACTIVE" if authority_ok else "CORE_PRIMARY_INACTIVE",
         "authority_contract_id": authority.get("contract_id", ""),
@@ -528,8 +626,11 @@ def main() -> int:
     parser.add_argument("--core-primary-active", action="store_true")
     parser.add_argument("--user", default="")
     parser.add_argument("--cohort-user", action="append", default=[])
+    parser.add_argument("--cohort-size", type=int, default=0)
     parser.add_argument("--cohort-target", default="")
     parser.add_argument("--operation-id", default="")
+    parser.add_argument("--selected-move-hash", default="")
+    parser.add_argument("--emergency-failover-cohort", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     lock_path = Path(os.environ.get("V7_ROUTING_LOCK", "/tmp/v7-routing.lock"))
@@ -538,9 +639,18 @@ def main() -> int:
         if args.user:
             result = scoped_user_sync(args.user)
         elif args.core_primary_cohort_commit:
-            result = core_primary_cohort_commit(args.cohort_user, args.operation_id)
+            result = core_primary_cohort_commit(
+                args.cohort_user, args.operation_id,
+                emergency_failover=args.emergency_failover_cohort,
+                selected_move_hash=args.selected_move_hash,
+            )
         elif args.core_primary_cohort_admissible:
-            result = core_primary_cohort_admissible(args.cohort_user, args.cohort_target)
+            result = core_primary_cohort_admissible(
+                args.cohort_user, args.cohort_target,
+                emergency_failover=args.emergency_failover_cohort,
+                operation_id=args.operation_id,
+                selected_move_hash=args.selected_move_hash,
+            )
         elif args.core_primary_apply:
             result = core_primary_apply()
         elif args.core_primary_fallback:
@@ -548,7 +658,12 @@ def main() -> int:
         elif args.core_primary_verify:
             result = verify()
         elif args.core_primary_active:
-            result = core_primary_active()
+            result = core_primary_active(
+                emergency_failover=args.emergency_failover_cohort,
+                operation_id=args.operation_id,
+                selected_move_hash=args.selected_move_hash,
+                max_users=args.cohort_size or len(args.cohort_user),
+            )
         else:
             authority_ok, _ = exact_reset_authority(POLICY)
             result = core_primary_apply() if authority_ok else legacy_sync()

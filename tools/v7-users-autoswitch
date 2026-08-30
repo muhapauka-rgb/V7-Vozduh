@@ -19256,7 +19256,12 @@ class AutoswitchPlanner:
             # explicitly declares this exact cohort optimisation available.
             # A missing or inactive owner is therefore a safe fallback, not a
             # new reason to block a valid emergency recovery.
-            emergency_core_primary = self._core_primary_cohort_active()
+            emergency_core_primary = self._core_primary_cohort_active(
+                emergency_failover=True,
+                operation_id=control_operation_id,
+                selected_move_hash=selected_hash,
+                max_users=len(plan.get("selected_moves") or []),
+            )
         core_primary_cohort_projection = (
             (
                 action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
@@ -19271,6 +19276,9 @@ class AutoswitchPlanner:
         if core_primary_cohort_projection:
             admissibility = self._core_primary_cohort_admissible(
                 list(plan.get("selected_moves") or []),
+                emergency_failover=action_class == "EMERGENCY_FAILOVER",
+                operation_id=control_operation_id,
+                selected_move_hash=selected_hash,
             )
             plan.setdefault("safety", {})[
                 "core_primary_cohort_admissibility"
@@ -22214,11 +22222,20 @@ class AutoswitchPlanner:
                 self.reconnect_state["updated"] = now_iso()
                 write_json_atomic(self.reconnect_state_file, self.reconnect_state)
 
-    def _core_primary_cohort_active(self) -> dict[str, Any]:
+    def _core_primary_cohort_active(
+        self, *, emergency_failover: bool = False, operation_id: str = "",
+        selected_move_hash: str = "", max_users: int = 0,
+    ) -> dict[str, Any]:
         """Read the existing Core-primary owner; this creates no new truth."""
         try:
             proc = subprocess.run(
-                ["v7-routing-sync", "--core-primary-active", "--json"],
+                [
+                    "v7-routing-sync", "--core-primary-active", "--json",
+                    *( ["--emergency-failover-cohort", "--operation-id", operation_id,
+                        "--selected-move-hash", selected_move_hash,
+                        "--cohort-size", str(max_users)]
+                       if emergency_failover else [] ),
+                ],
                 text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 check=False, timeout=15,
             )
@@ -22234,12 +22251,15 @@ class AutoswitchPlanner:
         }
 
     def _core_primary_cohort_commit(
-        self, members: list[str], operation_id: str,
+        self, members: list[str], operation_id: str, *, emergency_failover: bool = False,
+        selected_move_hash: str = "",
     ) -> subprocess.CompletedProcess[str]:
         argv = [
             "v7-routing-sync", "--core-primary-cohort-commit",
             "--operation-id", operation_id,
         ]
+        if emergency_failover:
+            argv.extend(["--emergency-failover-cohort", "--selected-move-hash", selected_move_hash])
         for member in sorted(set(members)):
             argv.extend(["--cohort-user", member])
         try:
@@ -22251,7 +22271,8 @@ class AutoswitchPlanner:
             return subprocess.CompletedProcess(argv, 2, stdout=f"STOP_SAFE: core-primary cohort commit unavailable: {exc}\n")
 
     def _core_primary_cohort_admissible(
-        self, selected_moves: list[dict[str, Any]],
+        self, selected_moves: list[dict[str, Any]], *, emergency_failover: bool = False,
+        operation_id: str = "", selected_move_hash: str = "",
     ) -> dict[str, Any]:
         """Ask the existing Core-primary owner before consuming N10 Authority."""
         members = sorted({str(row.get("user_ip") or "") for row in selected_moves})
@@ -22267,6 +22288,11 @@ class AutoswitchPlanner:
             "v7-routing-sync", "--core-primary-cohort-admissible",
             "--cohort-target", next(iter(targets)), "--json",
         ]
+        if emergency_failover:
+            argv.extend([
+                "--emergency-failover-cohort", "--operation-id", operation_id,
+                "--selected-move-hash", selected_move_hash,
+            ])
         for member in members:
             argv.extend(["--cohort-user", member])
         try:
@@ -22289,7 +22315,8 @@ class AutoswitchPlanner:
 
     def _cohort_rollback_to_preimage(
         self, *, rows: list[dict[str, Any]], entry_control: dict[str, Any],
-        action_class: str, operation_id: str, publish_projection: bool = True,
+        action_class: str, operation_id: str, selected_move_hash: str = "",
+        publish_projection: bool = True,
     ) -> dict[str, Any]:
         """Return staged canonical rows, then publish one matching map delta."""
         rollback_rows: list[dict[str, Any]] = []
@@ -22312,6 +22339,8 @@ class AutoswitchPlanner:
             return {"ok": True, "reason": "", "rows": rollback_rows, "projection": {"status": "PREIMAGE_MAP_RETAINED"}}
         commit = self._core_primary_cohort_commit(
             [str(row.get("user_ip") or "") for row in rows], operation_id,
+            emergency_failover=action_class == "EMERGENCY_FAILOVER",
+            selected_move_hash=selected_move_hash,
         )
         try:
             payload = json.loads(commit.stdout or "{}")
@@ -22396,6 +22425,8 @@ class AutoswitchPlanner:
             else:
                 projection = self._core_primary_cohort_commit(
                     [row["user_ip"] for row in results], operation_id,
+                    emergency_failover=action_class == "EMERGENCY_FAILOVER",
+                    selected_move_hash=selected_hash,
                 )
                 try:
                     projection_payload = json.loads(projection.stdout or "{}")
@@ -22403,7 +22434,7 @@ class AutoswitchPlanner:
                     projection_payload = {}
                 plan.setdefault("safety", {})["core_primary_cohort_projection_commit"] = projection_payload
                 if projection.returncode != 0 or projection_payload.get("status") != "CORE_PRIMARY_COHORT_COMMIT_PASS":
-                    rollback = self._cohort_rollback_to_preimage(rows=results, entry_control=entry_control, action_class=action_class, operation_id=operation_id)
+                    rollback = self._cohort_rollback_to_preimage(rows=results, entry_control=entry_control, action_class=action_class, operation_id=operation_id, selected_move_hash=selected_hash)
                     for row in results:
                         row.update({"rollback_attempted": True, "rollback_result": "OK" if rollback.get("ok") else "FAIL", "terminal_outcome_classification": "ROLLBACK_SUCCESS" if rollback.get("ok") else "ROLLBACK_FAILURE"})
                     circuit_breaker.update({"tripped": True, "trigger_terminal": "CORE_PRIMARY_COHORT_COMMIT_FAILED"})
@@ -22476,7 +22507,7 @@ class AutoswitchPlanner:
                             })
                         failed = failed or service_verify.returncode != 0
                     if failed:
-                        rollback = self._cohort_rollback_to_preimage(rows=results, entry_control=entry_control, action_class=action_class, operation_id=operation_id)
+                        rollback = self._cohort_rollback_to_preimage(rows=results, entry_control=entry_control, action_class=action_class, operation_id=operation_id, selected_move_hash=selected_hash)
                         for row in results:
                             row.update({"rollback_attempted": True, "rollback_result": "OK" if rollback.get("ok") else "FAIL", "terminal_outcome_classification": "ROLLBACK_SUCCESS" if rollback.get("ok") else "ROLLBACK_FAILURE"})
                         circuit_breaker.update({"tripped": True, "trigger_terminal": "POST_COMMIT_VERIFY_FAILED"})

@@ -2298,7 +2298,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             staged.append((ip, egress, reason, bool(getattr(planner, "_core_primary_cohort_defer", False))))
             or subprocess.CompletedProcess(["switch"], 0, stdout="ok")
         )
-        planner._core_primary_cohort_commit = lambda members, operation_id: (
+        planner._core_primary_cohort_commit = lambda members, operation_id, **_kwargs: (
             commits.append((members, operation_id))
             or subprocess.CompletedProcess(
                 ["commit"], 0,
@@ -2342,6 +2342,26 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             {"telegram", "youtube"},
         )
         self.assertFalse(planner._core_primary_cohort_defer)
+
+    def test_emergency_core_primary_read_is_bound_to_existing_operation_window(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        with mock.patch.object(
+            self.tool.subprocess, "run",
+            return_value=subprocess.CompletedProcess(
+                ["routing"], 0, stdout=json.dumps({"status": "CORE_PRIMARY_ACTIVE"}),
+            ),
+        ) as run_mock:
+            result = planner._core_primary_cohort_active(
+                emergency_failover=True, operation_id="op-live",
+                selected_move_hash="selection-live", max_users=2,
+            )
+
+        argv = run_mock.call_args.args[0]
+        self.assertTrue(result["ok"])
+        self.assertIn("--emergency-failover-cohort", argv)
+        self.assertEqual(argv[argv.index("--operation-id") + 1], "op-live")
+        self.assertEqual(argv[argv.index("--selected-move-hash") + 1], "selection-live")
+        self.assertEqual(argv[argv.index("--cohort-size") + 1], "2")
 
     def test_bounded_cohort_checkpoint_blocks_duplicate_forward_apply_after_restart(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -99,6 +99,43 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(after["scope"], "operation")
         self.assertTrue(decision["allowed_forward_mutation"])
 
+    def test_packet_bound_control_window_reuses_only_its_exact_closed_window(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            control = Path(tmp) / "control.json"
+            packet_identity = {
+                "operation_id": "op-unit",
+                "selected_move_hash": "move-unit",
+                "source_bundle_hash": "source-unit",
+                "snapshot_bundle_hash": "snapshot-unit",
+            }
+            operator_execution.write_json_atomic(
+                control,
+                operator_execution.build_autonomous_execution_control_state(
+                    False,
+                    actor="unit",
+                    reason="already-bound-by-packet-owner",
+                    action_class="EMERGENCY_FAILOVER",
+                    max_users=3,
+                    **packet_identity,
+                ),
+            )
+            before = operator_execution.autonomous_execution_control_state(control)
+            result = module.open_packet_bound_execution_control_window(
+                control,
+                packet_identity=packet_identity,
+                action_class="EMERGENCY_FAILOVER",
+                max_users=3,
+                actor="unit",
+                reason="after-packet-lease-barrier",
+            )
+            after = operator_execution.autonomous_execution_control_state(control)
+
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(result["reused_existing_operation_window"])
+        self.assertEqual(after["generation"], before["generation"])
+        self.assertEqual(after["operation_id"], "op-unit")
+
     def test_packet_bound_control_window_allows_only_bounded_emergency_cohort(self):
         with tempfile.TemporaryDirectory() as tmp:
             control = Path(tmp) / "control.json"

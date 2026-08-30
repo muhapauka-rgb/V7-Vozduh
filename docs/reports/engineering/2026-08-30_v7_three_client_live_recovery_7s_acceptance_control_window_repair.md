@@ -160,3 +160,47 @@ VLESS condition until the first valid automatic operation completes or a new,
 distinct owner blocker is evidenced. The previously observed attempts already
 exceed the seven-second KPI; they remain explicit product failures and are not
 credited. No manual recovery is valid acceptance evidence.
+
+## Fourth live reconciliation: the same operation window was opened twice
+
+The third repair was deployed as `c2f367f6`. The live Runtime then created new
+ordinary-recovery Packet/Lease/Barrier records itself; the three acceptance
+inputs remained on VLESS and no engineering route action occurred. Each new
+operation nevertheless ended at the same terminal reason before Apply.
+
+The exact cause was inside the existing L3 ordinary-recovery executor, not a
+foreign transaction: it already creates a valid, exact operation-scoped
+window while binding the Packet. Later, after Lease and Barrier, it called the
+same helper as if the window had to be opened again. That helper correctly
+sees the existing window as `CLOSED`, but before this repair it treated even
+the exact same operation as absent. Thus the transaction cancelled itself.
+
+## Implemented fourth generic repair
+
+* The packet-bound helper now reuses a `CLOSED` window only when every bound
+  field agrees exactly: operation id, selected-move hash, source hash,
+  snapshot hash, action class, and cohort size.
+* It performs the existing forward-mutation validation against that same
+  generation and never rewrites it.
+* A foreign, partial, stale, or otherwise mismatched window remains
+  `STOP_SAFE` and is never adopted.
+
+This is a minimal repair of the existing control owner. It does not select a
+target, move a user, widen authority, or create a new execution path.
+
+## Verification for the fourth repair
+
+* New exact-match reuse test: passed.
+* Existing first-open ordering and bounded-cohort tests: passed (3 total).
+* Service-failure episode regression: 128 passed.
+* Whitespace/diff validation: passed.
+
+## Current next step
+
+Publish and safely deploy the fourth repair, verify code/runtime alignment,
+then return control only to the normal `v7-health -> Matrix -> L3 executor`
+caller. The current Matrix condition must be re-read at that point: if the
+operator-provided source failure has recovered, it is closed without an
+unnecessary user move and cannot be counted as seven-second acceptance. If a
+fresh required-service failure remains actionable, V7—not Codex—must complete
+the automatic recovery and produce the full last-member timing record.

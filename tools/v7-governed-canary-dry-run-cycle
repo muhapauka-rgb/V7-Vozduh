@@ -4024,16 +4024,63 @@ def open_packet_bound_execution_control_window(
         "snapshot_bundle_hash": str(packet_identity.get("snapshot_bundle_hash") or ""),
     }
     before = operator_execution.autonomous_execution_control_state(control_file)
-    if (
-        not all(bindings.values())
-        or not before.get("valid")
-        or before.get("state") != "OPEN"
-    ):
+    if not all(bindings.values()) or not before.get("valid"):
         return {
             "ok": False,
             "reason": "packet_bound_execution_control_window_not_open",
             "before": before,
             "bindings_complete": bool(all(bindings.values())),
+        }
+    expected_window = {
+        **bindings,
+        "action_class": str(action_class or "").upper(),
+        "max_users": max(1, int(max_users or 1)),
+    }
+    if before.get("state") == "CLOSED":
+        # The L3 owner has already materialized this exact Packet-bound
+        # window before the Lease/Barrier handoff.  Re-opening it here would
+        # replace its generation and make the sole route writer reject the
+        # otherwise valid transaction.  Reuse only a complete exact match;
+        # any foreign or partial window remains fail-closed.
+        if (
+            before.get("scope") != "operation"
+            or not all(before.get(key) == value for key, value in expected_window.items())
+        ):
+            return {
+                "ok": False,
+                "reason": "packet_bound_execution_control_window_not_open",
+                "before": before,
+                "bindings_complete": True,
+            }
+        decision = operator_execution.autonomous_execution_control_decision(
+            control_file,
+            mutation_kind="forward",
+            action_class=action_class,
+            expected_generation=str(before.get("generation") or ""),
+            **bindings,
+            max_users=max(1, int(max_users or 1)),
+        )
+        if decision.get("allowed_forward_mutation"):
+            return {
+                "ok": True,
+                "before": before,
+                "control": before,
+                "decision": decision,
+                "reused_existing_operation_window": True,
+            }
+        return {
+            "ok": False,
+            "reason": "packet_bound_execution_control_window_validation_failed",
+            "before": before,
+            "control": before,
+            "decision": decision,
+        }
+    if before.get("state") != "OPEN":
+        return {
+            "ok": False,
+            "reason": "packet_bound_execution_control_window_not_open",
+            "before": before,
+            "bindings_complete": True,
         }
     control = operator_execution.build_autonomous_execution_control_state(
         False,

@@ -257,3 +257,44 @@ Matrix evidence remains actionable, V7 must recover the selected current
 cohort itself and emit the last-member timing. If it does not, no one is moved
 and the current observation remains an invalid/non-creditable seven-second
 sample; the next fresh live owner-backed failure is required.
+
+## Publication, Runtime verification, and current live result
+
+The fifth repair was committed as `fca5994d` and published to `Updatesystem`.
+The existing safe-deploy owner accepted and deployed it as
+`deploy-z8-14-Updatesystem-fca5994-20260830T105302`.
+
+Independent Runtime checks after deployment:
+
+* GitHub, local workspace, and deployed Runtime identify the same commit
+  `fca5994dd42e95eb670eef5501594c6864d47713`.
+* Installed `v7-users-autoswitch` hash is
+  `53f56ac56671301f9f26f32372b77a1229ee95b21b34ff9b2d2e214f758e970a`,
+  matching the deployed source.
+* `v7-health.service` is active.
+* The three acceptance identities remain unchanged on VLESS:
+  `10.7.0.125`, `10.7.0.126`, and `10.7.0.127`. No Codex route action and no
+  manual recovery transaction occurred.
+
+At `2026-08-30T07:54:03Z`, the fresh canonical Matrix showed every currently
+required service of all three identities as `OK` / `HEALTHY` on VLESS:
+
+* `.125`: Google, Google Auth, Instagram, Telegram, YouTube;
+* `.126`: Google, Google Auth, Instagram, Telegram, YouTube;
+* `.127`: Google, Google Auth, Instagram, Telegram.
+
+The last failed transaction was created before this deployment and remains
+explicitly non-creditable: it stopped at the now-repaired single-member gate.
+After the new code became active, there was no fresh actionable profile failure
+for the normal V7 caller to consume. Correct production behavior is therefore
+to leave all three clients in place. Inventing a failure, waking the executor,
+or moving them manually would violate the mission's provenance law.
+
+## Current acceptance status
+
+`V7_THREE_CLIENT_LIVE_RECOVERY_7S_ACCEPTANCE` is not passed and not failed on
+the post-repair implementation yet: its only live input has become
+`PROFILE_SATISFIED` before a new automatic transaction could begin. The next
+lawful input is one fresh, owner-backed required-service failure for the
+current assignment. From that observation V7 must autonomously complete the
+full cohort and produce the definitive earliest-observation-to-last-S11 time.

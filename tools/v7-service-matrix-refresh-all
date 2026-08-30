@@ -90,17 +90,30 @@ PERFORMANCE_REVALIDATION_GENERATION = (
 )
 
 
+def _is_governed_route_worker_command(command: str) -> bool:
+    """Identify only processes that can still write a governed route.
+
+    ``v7-users-autoswitch`` is deliberately excluded: it is also the normal
+    passive Matrix consumer and Planner.  Treating that long-lived observer as
+    a route writer leaves a completed ordinary-operation window permanently
+    closed, even after its governed child has exited.  The child executor and
+    the sole route writer remain conservative blockers.
+    """
+    return any(
+        marker in command
+        for marker in (
+            "v7-governed-canary-dry-run-cycle",
+            "v7-user-switch",
+        )
+    )
+
+
 def _governed_route_worker_is_running() -> bool:
     """Return whether another existing route-execution process is live.
 
     This is only a conservative orphan-cleanup guard.  It is not health
     truth, does not schedule work, and never selects or moves a user.
     """
-    markers = (
-        "v7-governed-canary-dry-run-cycle",
-        "v7-users-autoswitch",
-        "v7-user-switch",
-    )
     proc_root = Path("/proc")
     if not proc_root.is_dir():
         return True
@@ -113,7 +126,7 @@ def _governed_route_worker_is_running() -> bool:
             )
         except OSError:
             continue
-        if any(marker in command for marker in markers):
+        if _is_governed_route_worker_command(command):
             return True
     return False
 

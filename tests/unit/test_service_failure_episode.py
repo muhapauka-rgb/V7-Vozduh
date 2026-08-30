@@ -47,6 +47,17 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid_service_subset"):
             self.matrix.exact_services_to_run("all", "telegram,unknown")
 
+    def test_orphan_cleanup_ignores_passive_autoswitch_but_keeps_route_workers(self):
+        self.assertFalse(self.refresh._is_governed_route_worker_command(
+            "python3 /usr/local/bin/v7-users-autoswitch --consume-passive-events-only"
+        ))
+        self.assertTrue(self.refresh._is_governed_route_worker_command(
+            "python3 /usr/local/bin/v7-governed-canary-dry-run-cycle --execute"
+        ))
+        self.assertTrue(self.refresh._is_governed_route_worker_command(
+            "python3 /usr/local/bin/v7-user-switch --operation-id exact"
+        ))
+
     def test_telegram_required_endpoint_scope_excludes_optional_diagnostics(self):
         calls = []
 

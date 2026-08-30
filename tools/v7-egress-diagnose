@@ -355,13 +355,15 @@ PY
 
 wake_existing_failure_consumer() {
   [ -n "$CONSUMER_WAKE_COMMAND" ] || return 0
-  if [ "${V7_HEALTH_PERSISTENT_MATRIX_CONSUMER:-0}" = "1" ] \
-    && [ -n "$HARD_SIGNAL_CONSUMER_T0_MONOTONIC_NS" ]; then
+  if [ "${V7_HEALTH_PERSISTENT_MATRIX_CONSUMER:-0}" = "1" ]; then
     # The one existing v7-health owner has already loaded the exact Matrix
-    # consumer code.  This HARD child still writes canonical T0; its parent
-    # consumes that same event immediately after the child returns.  No state
-    # is held here and no decision is skipped.  If the parent is not ready it
-    # never sets this flag, so the historical governed Matrix invocation below
+    # consumer code. This child has written the canonical source/profile T0;
+    # its parent consumes that same event immediately after the child returns,
+    # including for a service-profile failure. Starting another external
+    # Matrix process here raced the parent, discarded its source binding and
+    # delayed the exact handoff until the evidence became stale. No state is
+    # held here and no decision is skipped. If the parent is not ready it
+    # never sets this flag, so the historical governed invocation below
     # remains the fail-closed fallback.
     return 0
   fi

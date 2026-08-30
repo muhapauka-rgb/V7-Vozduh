@@ -1098,6 +1098,44 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertEqual(receiver_log.read_text(encoding="utf-8").strip(), "before")
             self.assertIn("fast_producer_max_inflight=2", output.read_text(encoding="utf-8"))
 
+    def test_persistent_health_parent_consumes_profile_failure_without_child_wake(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=vless protocol=vless interface=v7tun enabled=1\n")
+            (state / "users.registry").write_text(
+                "ip=ordinary current=vless enabled=1\n", encoding="utf-8"
+            )
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {"ordinary": {"services": ["google"]}},
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7tun: <UP,LOWER_UP>'\n")
+            self.write_command(
+                bin_dir, "profile-checker",
+                "printf '%s\\n' '{\"status\":\"FAIL\",\"results\":{\"google\":{\"ok\":false,\"status\":\"DOWN\"}}}'\n",
+            )
+            shadow_log = root / "shadow.log"
+            wake_log = root / "wake.log"
+            self.write_command(bin_dir, "shadow", "echo shadow >> \"$SHADOW_LOG\"\n")
+            self.write_command(bin_dir, "wake", "echo wake >> \"$WAKE_LOG\"\n")
+            output = root / "fast.state"
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["SHADOW_LOG"] = str(shadow_log)
+            env["WAKE_LOG"] = str(wake_log)
+            env["V7_HEALTH_PERSISTENT_MATRIX_CONSUMER"] = "1"
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--output", str(output),
+                "--fast-producer-only", "--profile-service-suspicion-command",
+                str(bin_dir / "profile-checker"), "--shadow-trigger-command",
+                str(bin_dir / "shadow"), "--consumer-wake-command", str(bin_dir / "wake"),
+                "--profile-service-failure-samples", "1", "--profile-service-cooldown-sec", "0",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertTrue(shadow_log.exists())
+            self.assertFalse(wake_log.exists())
+
     def test_failed_receiver_records_its_real_exit_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -58,11 +58,58 @@ time-dependent failures caused by an expired standing delegated-policy contract;
 the six failures introduced during the first unscoped draft were eliminated by
 restricting the parent-window behavior to the ordinary-service-failure path.
 
+## Second live reconciliation: Matrix-to-executor receipt cycle
+
+After the control-window repair and the existing Authority owner activated the
+authorized four-user ordinary-recovery policy, the normal `v7-health` caller
+again detected the live VLESS required-service failure. Current Matrix scope
+was four ordinary users (the three acceptance inputs plus one already present
+ordinary user); the three inputs split into two profile-compatible prepared
+classes. The Matrix owner created the exact durable obligation
+`sfaob_05e23cd981a93d7b51b0ab29` for incident
+`sfinc_3215856daf5e8b44f637f349e057b841`.
+
+The governed executor then correctly stopped before Candidate/Packet/Lease or
+route mutation with `standing_delegated_cohort_service_failure_binding_invalid`.
+Its precise cause was a circular lifecycle condition: a fresh Matrix obligation
+was deliberately passed to execution before its OMP receipt (so the receipt
+does not add seconds to recovery), while the executor still required that same
+receipt before it could start.
+
+## Implemented second generic repair
+
+* Only the existing Matrix caller may mark the newly materialized exact
+  obligation as a fresh runtime handoff.
+* The governed executor may then proceed without the deferred OMP receipt, but
+  still independently requires the durable obligation, exact source incident,
+  unchanged current scope fingerprint, actionable classification, and a fresh
+  capture-only Matrix event with the expected provenance.
+* Direct L3 handoffs and already-consumed OMP obligations retain their prior
+  paths. Certification bindings cannot use the fresh ordinary handoff flag.
+* OMP receipt persistence remains required afterwards as history/evidence; it
+  is no longer a circular synchronous prerequisite.
+
+This changes no route, client, Matrix fact, Candidate, Packet, Lease, Barrier,
+authority policy, or target. It removes one generic wait/deadlock in the
+already existing owner chain.
+
+## Verification before publication
+
+* new receipt-cycle causal-binding test: passed;
+* Matrix command propagation test: passed;
+* focused execution tests: 2 passed;
+* targeted governed/Matrix test set: 281 tests ran, with two pre-existing
+  expiry-fixture failures caused by a standing contract dated before the
+  current clock;
+* broader legacy automation suite also exposes pre-existing fixtures that do
+  not initialize `AutoswitchPlanner.matrix`; this failure precedes and is
+  outside the changed path;
+* diff whitespace check: passed.
+
 ## Current next step
 
-Publish and deploy the tested repair. Then use only the normal live V7 caller
-to observe the current three-user source condition. The pre-existing live
-policy is still a one-user tier and must be lawfully re-issued through the
-existing Authority owner at the already authorized bounded cohort limit of four
-before a three-user automatic recovery can be admitted. No manual recovery is
-valid acceptance evidence.
+Publish and deploy this second tested repair. Return control exclusively to
+the normal `v7-health -> Matrix -> governed executor` caller and observe the
+current live VLESS condition. Record the immutable first failure observation,
+scope, all automatic lifecycle stages, and the last affected user S11. No
+manual recovery is valid acceptance evidence.

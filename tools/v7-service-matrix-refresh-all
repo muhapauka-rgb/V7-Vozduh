@@ -1735,6 +1735,7 @@ def run_bounded_delegated_service_failure_action(
     policy_file: Path,
     operator_execution_audit_store: Path = DEFAULT_OPERATOR_EXECUTION_AUDIT_STORE,
     service_failure_obligation: Optional[dict[str, Any]] = None,
+    fresh_matrix_runtime_handoff: bool = False,
     timeout_sec: int = 180,
 ) -> dict[str, Any]:
     """Close the existing event -> planner -> bounded executor consumer link.
@@ -2102,6 +2103,14 @@ def run_bounded_delegated_service_failure_action(
     ]
     if ordinary_execution:
         command.append("--ordinary-service-failure-only")
+    if fresh_matrix_runtime_handoff:
+        # Matrix has just produced this exact durable obligation and passes it
+        # straight to the governed owner.  Its OMP receipt is deliberately
+        # persisted after the attempt, so requiring that receipt here would
+        # create a circular wait in the ordinary recovery hot path.  The
+        # executor still independently revalidates obligation, current scope
+        # and fresh capture-only Matrix evidence before it can create work.
+        command.append("--expected-service-failure-fresh-matrix-handoff")
     if campaign_binding.get("active"):
         command.extend([
             "--controlled-certification-campaign-request-id",
@@ -7517,6 +7526,9 @@ def main() -> int:
                 args.operator_execution_audit_store
             ),
             service_failure_obligation=service_failure_obligation,
+            fresh_matrix_runtime_handoff=bool(
+                fresh_service_failure_obligation
+            ),
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]

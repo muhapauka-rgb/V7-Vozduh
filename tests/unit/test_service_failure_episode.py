@@ -4872,6 +4872,19 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "vless",
             )
 
+            fresh_stop = self.refresh.run_bounded_delegated_service_failure_action(
+                str(executor),
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=policy_file,
+                service_failure_obligation=obligation,
+                fresh_matrix_runtime_handoff=True,
+            )
+            self.assertIn(
+                "--expected-service-failure-fresh-matrix-handoff",
+                fresh_stop["command"],
+            )
+
             executor.write_text(
                 "#!/usr/bin/env python3\n"
                 "import json\n"

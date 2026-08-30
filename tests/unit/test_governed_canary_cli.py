@@ -2271,6 +2271,65 @@ class GovernedCanaryCliTest(unittest.TestCase):
             result["event_source_scope"]["affected_scope_count"], 0
         )
 
+    def test_fresh_matrix_handoff_does_not_wait_for_deferred_omp_receipt(self):
+        """A fresh Matrix obligation remains fenced without circular receipt wait."""
+        module = load_cli_module()
+        now = datetime.now(timezone.utc)
+        args = argparse.Namespace(
+            expected_service_failure_binding_kind="",
+            expected_service_failure_fresh_matrix_handoff=True,
+            expected_service_failure_obligation_id="sfaob_fresh",
+            expected_service_failure_incident_id="sfinc_fresh",
+            expected_service_failure_scope_fingerprint="scope-fresh",
+            approved_source="vless",
+        )
+        obligation = {
+            "object_type": "service_failure_automation_obligation",
+            "object_id": "sfaob_fresh",
+            "automation_obligation_id": "sfaob_fresh",
+            "closure_state": "READY_FOR_OMP_CONSUMPTION",
+            "source_incident_id": "sfinc_fresh",
+            "channel": "vless",
+            "stop_safe_classification": "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED",
+            "current_source_scope": {
+                "affected_scope_count": 3,
+                "unresolved_scope_count": 3,
+                "affected_scope_fingerprint": "scope-fresh",
+            },
+        }
+        event = {
+            "event_id": "sfrev_fresh",
+            "event_type": "SERVICE_FAILURE_REVALIDATED",
+            "channel": "vless",
+            "source_incident_id": "sfinc_fresh",
+            "capture_only": True,
+            "event_provenance": "EXTERNAL_UNATTRIBUTED",
+            "timestamp": now.isoformat(),
+            "source_scope": {
+                "affected_scope_count": 3,
+                "affected_scope_fingerprint": "scope-fresh",
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            events = Path(tmp) / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "closure-records.jsonl").write_text(
+                json.dumps(obligation) + "\n", encoding="utf-8",
+            )
+            (events / "service-failure-events.jsonl").write_text(
+                json.dumps(event) + "\n", encoding="utf-8",
+            )
+            result = module.service_failure_obligation_execution_binding(
+                args, state_dir=state, event_dir=events,
+            )
+
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(result["fresh_matrix_runtime_handoff"])
+        self.assertFalse(result["direct_l3_handoff"])
+        self.assertEqual(result["source_event_id"], "sfrev_fresh")
+
     def test_ct_m0f_reset_restores_owner_disabled_source_without_return_move(self):
         module = load_cli_module()
         reservation = {

@@ -5554,6 +5554,9 @@ def service_failure_obligation_execution_binding(
     expected_binding_kind = str(
         getattr(args, "expected_service_failure_binding_kind", "") or ""
     )
+    fresh_matrix_runtime_handoff = bool(
+        getattr(args, "expected_service_failure_fresh_matrix_handoff", False)
+    )
     expected_source = str(getattr(args, "approved_source", "") or "")
     if expected_binding_kind == "CERTIFICATION_ONLY_MATRIX_FAILURE":
         # Certification-only Matrix episodes intentionally have no ordinary
@@ -5811,7 +5814,23 @@ def service_failure_obligation_execution_binding(
         # Candidate/Packet fencing; its identity/scope were checked above.
         blockers.remove("service_failure_obligation_not_durable")
         scope = direct_l3_scope
-    if not consumption and not direct_l3_handoff:
+    # The ordinary Matrix owner may pass a newly durable, exact obligation
+    # directly to this executor and persist the OMP receipt afterwards.  That
+    # ordering keeps the receipt out of the recovery critical path.  It is
+    # safe only when this function can independently re-read the durable
+    # obligation and the exact fresh Matrix event below; arbitrary caller
+    # input alone never admits a transaction.
+    if (
+        fresh_matrix_runtime_handoff
+        and expected_binding_kind
+        and expected_binding_kind != "ORDINARY_SERVICE_FAILURE_OBLIGATION"
+    ):
+        blockers.append("fresh_matrix_runtime_handoff_binding_kind_invalid")
+    if (
+        not consumption
+        and not direct_l3_handoff
+        and not fresh_matrix_runtime_handoff
+    ):
         blockers.append("service_failure_obligation_omp_consumption_missing")
     elif consumption:
         if str(consumption.get("closure_state") or "") != "OMP_CONSUMED":
@@ -5865,6 +5884,7 @@ def service_failure_obligation_execution_binding(
         "ok": not blockers,
         "binding_kind": "ORDINARY_SERVICE_FAILURE_OBLIGATION",
         "direct_l3_handoff": direct_l3_handoff,
+        "fresh_matrix_runtime_handoff": fresh_matrix_runtime_handoff,
         "blockers": sorted(set(blockers)),
         "automation_obligation_id": expected_obligation_id,
         "omp_consumption_id": str(consumption.get("object_id") or ""),
@@ -14968,6 +14988,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--expected-service-failure-incident-id", default="")
     parser.add_argument("--expected-service-failure-scope-fingerprint", default="")
+    parser.add_argument(
+        "--expected-service-failure-fresh-matrix-handoff",
+        action="store_true",
+        help=(
+            "Permit the existing Matrix owner to execute its newly durable "
+            "exact obligation before the deferred OMP receipt."
+        ),
+    )
     parser.add_argument("--ordinary-service-failure-only", action="store_true")
     parser.add_argument(
         "--controlled-certification-campaign-request-id",

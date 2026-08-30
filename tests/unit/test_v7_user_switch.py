@@ -148,14 +148,46 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("route replace default dev tun0 table 100", calls)
 
-    def test_non_n10_multi_user_context_is_denied_before_route_replace(self):
+    def test_exact_emergency_failover_cohort_control_allows_its_bounded_member_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, ip_log = self.fixture(root)
+            control = root / "safe-mode.json"
+            control.write_text(json.dumps({
+                "state": "CLOSED", "scope": "operation", "generation": "aec_failover",
+                "operation_id": "op-failover", "action_class": "EMERGENCY_FAILOVER",
+                "selected_move_hash": "move-failover", "source_bundle_hash": "source-failover",
+                "snapshot_bundle_hash": "snapshot-failover", "max_users": 3,
+            }) + "\n", encoding="utf-8")
+            validator = root / "bin" / "v7-operator-execution-packet"
+            validator.write_text("#!/bin/sh\nexit 99\n", encoding="utf-8")
+            validator.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_failover",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-failover",
+                "V7_EXECUTION_ACTION_CLASS": "EMERGENCY_FAILOVER",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-failover",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-failover",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-failover",
+                "V7_EXECUTION_MAX_USERS": "3",
+                "V7_ADMIN_SAFE_MODE_FILE": str(control),
+                "V7_EXECUTION_CONTROL_FILE_HASH": hashlib.sha256(control.read_bytes()).hexdigest(),
+            })
+            result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
+            calls = ip_log.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("route replace default dev tun0 table 100", calls)
+
+    def test_non_failover_multi_user_context_is_denied_before_route_replace(self):
         with tempfile.TemporaryDirectory() as tmp:
             env, ip_log = self.fixture(Path(tmp))
             env.update({
                 "V7_EXECUTION_CONTROL_GENERATION": "aec_test",
                 "V7_EXECUTION_MUTATION_KIND": "forward",
                 "V7_EXECUTION_OPERATION_ID": "op-test",
-                "V7_EXECUTION_ACTION_CLASS": "EMERGENCY_FAILOVER",
+                "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
                 "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
                 "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
                 "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",

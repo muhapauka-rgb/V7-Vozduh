@@ -80,9 +80,13 @@ if [ "$MUTATION_KIND" = "forward" ]; then
   [ -n "$SNAPSHOT_BUNDLE_HASH" ] || { echo "STOP_SAFE: snapshot bundle hash missing"; exit 2; }
   if [ "$MAX_USERS" != "1" ]; then
     # A group is lawful only when the existing operation control explicitly
-    # names the narrow N10 cohort class and its already bounded 2..4 scope.
-    # Every other writer invocation retains the historical one-user fence.
-    [ "$ACTION_CLASS" = "N10_SMALL_COHORT" ] \
+    # names a bounded 2..4-member cohort.  N10 is one such contract; the
+    # already-admitted ordinary emergency-failover contract is the other.
+    # In both cases this writer still re-reads the exact operation identity,
+    # source/snapshot hashes and member bound above.  Every other invocation
+    # retains the historical one-user fence.
+    { [ "$ACTION_CLASS" = "N10_SMALL_COHORT" ] \
+      || [ "$ACTION_CLASS" = "EMERGENCY_FAILOVER" ]; } \
       && [[ "$MAX_USERS" =~ ^[2-4]$ ]] \
       || { echo "STOP_SAFE: max users outside exact action scope"; exit 2; }
   fi

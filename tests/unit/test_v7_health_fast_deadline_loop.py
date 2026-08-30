@@ -934,6 +934,32 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         consume.assert_called_once()
         self.assertIsNone(detector.process)
 
+    def test_running_detector_bounds_full_matrix_reads_to_250ms(self):
+        """The 25ms parent tick must not continuously parse the full registry."""
+        detector_process = mock.Mock()
+        detector_process.poll.return_value = None
+        detector = HEALTH_LOOP_MODULE.ManagedRole(
+            name="other_required",
+            cadence_ns=5_000_000_000,
+            command=("/bin/true",),
+            process=detector_process,
+            started_ns=1_000,
+        )
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=(detector,))
+        loop.persistent_matrix_ready = True
+        with mock.patch.object(
+            HEALTH_LOOP_MODULE,
+            "canonical_profile_service_failure_bindings",
+            return_value=[],
+        ) as bindings:
+            loop._collect_roles(5_000)
+            loop._collect_roles(5_000 + 25_000_000)
+            loop._collect_roles(
+                5_000 + HEALTH_LOOP_MODULE.PROFILE_BINDING_POLL_NS
+            )
+
+        self.assertEqual(bindings.call_count, 2)
+
     def test_service_failure_detector_preempts_projection_and_is_not_preempted(self):
         """The recovery detector must get the shared Matrix lock first."""
         projection_process = mock.Mock()

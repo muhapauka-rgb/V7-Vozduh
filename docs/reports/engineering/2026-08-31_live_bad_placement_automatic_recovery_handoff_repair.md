@@ -385,3 +385,32 @@ is not claimed**.  The next action is safe deployment followed by observation
 of the normal V7 caller on current owner-backed state.  The full historic test
 module was also sampled but has pre-existing independent failures; it is not
 being represented as verification of this repair.
+
+## Post-deploy observation: scheduler read-amplification repair
+
+The first correction was committed as `daf1b02eb7f55b94c2654e647e365d37a19b29c8`,
+published to `Updatesystem`, and safely deployed.  The safe-deploy gate passed;
+the deployed Matrix executable SHA-256 is
+`6fc783133e52d18e6a357c16b10f4f4e35996a887aa7ac1505a4691c0c97a057`,
+matching the published source.  `v7-health.service` is active after its
+required governed restart.
+
+Fresh Runtime observation exposed a second direct cause.  While a single
+`other_required` detector process was running, the health parent was parsing
+the full Matrix and users registry every 25 ms to discover a newly written
+profile binding.  On the two-vCPU server, that parent consumed roughly one
+third of a CPU core at the same time as the detector and the Admin process.
+The ordinary detector completed in 18--32 seconds despite its five-second
+cadence; Telegram, HARD and target roles also missed their one-second
+deadlines.  This is an implementation scheduling defect, not a safe reason
+to delay a customer.
+
+The next bounded correction keeps the same health loop and the same Matrix
+reader, but limits that *in-memory polling decision* to once per 250 ms while
+the child is live.  It adds at most 250 ms to discovering a current Matrix T0,
+is not persisted, and does not change Matrix, Authority, Planner, routing or
+S11 semantics.  A focused regression proves that the first fresh binding is
+still handed to the existing consumer while repeated 25 ms parent ticks no
+longer continuously re-read the full registry.  This second correction awaits
+its own safe deployment and Runtime measurement; the seven-second target is
+still unproven.

@@ -218,6 +218,15 @@ SLOW_ROLE_NAMES = frozenset({
 # slot.  It remains the same role/owner; this set only governs scheduling
 # precedence inside the existing health loop.
 RECOVERY_CRITICAL_ROLE_NAMES = frozenset({"hard", "hot_target", "other_required"})
+# While ``other_required`` is running, the parent can observe a fresh Matrix
+# profile binding before the unrelated tail of that child ends.  This is a
+# bounded in-memory scheduling poll, not a Matrix reader or a new state
+# owner.  Reading the full Matrix and users registry on every 25 ms parent
+# tick consumed a CPU core on the two-vCPU Runtime and made the detector it
+# was meant to accelerate miss its own deadline.  A 250 ms bound is small
+# relative to the seven-second recovery SLO and leaves Matrix freshness and
+# all downstream safety checks unchanged.
+PROFILE_BINDING_POLL_NS = 250_000_000
 DEFAULT_MATRIX_STATE_FILE = Path("/opt/v7/egress/state/service-matrix.json")
 DEFAULT_USERS_REGISTRY_FILE = Path("/opt/v7/egress/state/users.registry")
 DEFAULT_SERVICE_PREFERENCES_FILE = Path("/opt/v7/egress/state/service-preferences.json")
@@ -890,6 +899,10 @@ class RoleHealthLoop:
     persistent_matrix_last_consumed_identity_by_role: dict[str, str] = field(
         default_factory=dict,
     )
+    # Process-local throttle for the existing Matrix/users owner reads while
+    # a detector child is live. It is deliberately neither persisted nor used
+    # as recovery admission state.
+    profile_binding_last_checked_ns: int = 0
 
     def _default_hard_runtime(self) -> bool:
         hard = next((role for role in self.roles if role.name == "hard"), None)
@@ -1330,7 +1343,13 @@ class RoleHealthLoop:
                 rc is None
                 and role.name == "other_required"
                 and self.persistent_matrix_ready
+                and (
+                    self.profile_binding_last_checked_ns <= 0
+                    or now_ns - self.profile_binding_last_checked_ns
+                    >= PROFILE_BINDING_POLL_NS
+                )
             ):
+                self.profile_binding_last_checked_ns = now_ns
                 profile_bindings = canonical_profile_service_failure_bindings(
                     self.matrix_state_file,
                     self.users_registry_file,

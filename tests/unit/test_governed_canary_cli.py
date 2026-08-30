@@ -8062,6 +8062,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
             root = Path(tmp)
             self.make_transaction_state(root)
             args = self.transaction_args(root, open_control=True)
+            # Four is the delegated admission ceiling, but this exact Packet
+            # intentionally contains one selected user.  The operation window
+            # must bind to the Packet scope rather than reject it because it
+            # differs from the ceiling.
+            args.max_users = 4
             args.execute_l3_production_validation = True
             args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
             state = module.operator_execution.build_autonomous_execution_control_state(True, actor="owner", reason="incident")
@@ -8073,7 +8078,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "ok": True,
                     "returncode": 0,
                     "command": ["l3-plan"],
-                    "payload": self.ready_l3_plan(),
+                    "payload": self.ready_l3_plan(authority_budget={
+                        "current_allowed_user_budget": 4,
+                        "authority_class": "TIER4",
+                        "certified_authority_class": "TIER4",
+                    }),
                 }
                 module.operation_scoped_binding.read_binding = lambda **kwargs: {
                     "schema_version": module.operation_scoped_binding.SCHEMA_VERSION,

@@ -6639,6 +6639,13 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         selected = operator_execution.selected_moves_from_plan(plan)
         auto_window_blockers = []
         selected_count = int(selected.get("selected_move_count") or 0)
+        # The delegated policy is an upper bound, while the control window is
+        # the exact immutable Packet cohort.  A lawful partial recovery may
+        # select fewer users than its admitted ceiling (for example 3 of 4).
+        # Bind both sides of the pre-Lease control check to that exact count;
+        # otherwise a valid partial cohort is rejected as an artificial scope
+        # mismatch before V7 can create its Packet or Lease.
+        selected_scope_max_users = exact_packet_scope_max_users(selected_count)
         tier_allowed = (
             0 < requested_max_users
             <= int(availability_request.get("stage") or 0)
@@ -6707,7 +6714,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             action_class="EMERGENCY_FAILOVER",
             source_bundle_hash=str(selected.get("source_bundle_hash") or ""),
             snapshot_bundle_hash=str(selected.get("snapshot_bundle_hash") or ""),
-            max_users=exact_packet_scope_max_users(selected_count),
+            max_users=selected_scope_max_users,
         )
         try:
             packet = operator_execution.packet_from_plan(
@@ -6738,7 +6745,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             selected_move_hash=str((packet.get("expected") or {}).get("selected_move_hash") or ""),
             source_bundle_hash=str((packet.get("expected") or {}).get("source_bundle_hash") or ""),
             snapshot_bundle_hash=str((packet.get("expected") or {}).get("snapshot_bundle_hash") or ""),
-            max_users=requested_max_users,
+            max_users=selected_scope_max_users,
         )
         if not preflight_control.get("allowed_forward_mutation"):
             return transaction_stop("autonomous_execution_control_denied_pre_lease", execution_control=preflight_control)

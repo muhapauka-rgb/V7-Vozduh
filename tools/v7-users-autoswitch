@@ -24050,12 +24050,30 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
                 "mode": "INCIDENT_ADVISORY_AND_SHADOW_ONLY",
             }
     bounded_closure_reconciliation_started_ns = time.monotonic_ns()
-    bounded_closure_reconciliation = planner.reconcile_bounded_cohort_closure_obligations()
+    if runtime_profile_handoff:
+        # A fresh source/profile/Matrix binding is already held by the
+        # existing health caller. Replaying the historical bounded-closure
+        # scan before its first governed attempt has no bearing on Candidate,
+        # Packet, Lease, Barrier or Apply, yet can consume several seconds of
+        # the live recovery interval. Preserve the same reconciliation owner
+        # in the post-operation / subsequent Matrix path; all current mutable
+        # safety checks remain with the governed executor.
+        bounded_closure_reconciliation = {
+            "schema_version": "v7.bounded-cohort-closure-obligation-reconciliation.v1",
+            "status": "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",
+            "reason": "fresh_profile_handoff_has_exact_current_matrix_binding",
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    else:
+        bounded_closure_reconciliation = planner.reconcile_bounded_cohort_closure_obligations()
     planner._record_performance_span(
         "advisory_bounded_closure_reconciliation",
         bounded_closure_reconciliation_started_ns,
         owner="tools/v7-users-autoswitch.reconcile_bounded_cohort_closure_obligations",
         parent="service_failure_advisory",
+        critical_path=not runtime_profile_handoff,
     )
     # ``plan()`` does not consume the preceding reconciliation result: it
     # holds the constructor's L3 snapshot and writes only its separate

@@ -354,17 +354,41 @@ PY
 }
 
 wake_existing_failure_consumer() {
+  # A profile-source wake is narrower than an interface-liveness wake: the
+  # existing Matrix consumer needs the source that the just-completed
+  # canonical profile observation belongs to.  It still derives users,
+  # target, Authority and every execution object itself.
+  profile_source_id="${1:-}"
+  profile_t0_ns="${2:-}"
   [ -n "$CONSUMER_WAKE_COMMAND" ] || return 0
   if [ "${V7_HEALTH_PERSISTENT_MATRIX_CONSUMER:-0}" = "1" ]; then
-    # The one existing v7-health owner has already loaded the exact Matrix
-    # consumer code. This child has written the canonical source/profile T0;
-    # its parent consumes that same event immediately after the child returns,
-    # including for a service-profile failure. Starting another external
-    # Matrix process here raced the parent, discarded its source binding and
-    # delayed the exact handoff until the evidence became stale. No state is
-    # held here and no decision is skipped. If the parent is not ready it
-    # never sets this flag, so the historical governed invocation below
-    # remains the fail-closed fallback.
+    # A direct local-interface event has no profile binding, so the parent
+    # remains its single consumer.  A profile failure is different: waiting
+    # for the whole parallel probe batch to exit can make the already-written
+    # Matrix observation older than the bounded live-handoff window. Reuse
+    # the same existing Matrix consumer immediately, with only the exact
+    # source binding produced by this child.  This is not a route action and
+    # cannot select a user or target; the consumer revalidates all mutable
+    # state before Apply. The health parent later observes the same durable
+    # generation and its process-local de-duplication prevents a second
+    # transaction.
+    if [ -n "$profile_source_id" ] && [ "$(basename "$CONSUMER_WAKE_COMMAND")" = "v7-service-matrix-refresh-all" ]; then
+      if [ -n "$profile_t0_ns" ]; then
+        V7_SERVICE_PERSISTENT_MATRIX_OWNER=1 \
+          V7_SERVICE_PROFILE_SOURCE_EGRESS="$profile_source_id" \
+          V7_SERVICE_T0_MONOTONIC_NS="$profile_t0_ns" \
+          "$CONSUMER_WAKE_COMMAND" \
+            --consume-existing-service-failure-events-only \
+            --runtime-hot-path-only >/dev/null 2>&1
+      else
+        V7_SERVICE_PERSISTENT_MATRIX_OWNER=1 \
+          V7_SERVICE_PROFILE_SOURCE_EGRESS="$profile_source_id" \
+          "$CONSUMER_WAKE_COMMAND" \
+            --consume-existing-service-failure-events-only \
+            --runtime-hot-path-only >/dev/null 2>&1
+      fi
+      return $?
+    fi
     return 0
   fi
   if [ "$(basename "$CONSUMER_WAKE_COMMAND")" = "systemctl" ]; then
@@ -950,7 +974,7 @@ EOF
     build_fast_matrix_fresh_failure_index
   fi
   if [ "$trigger_status" = "PASS" ] && [ -n "$CONSUMER_WAKE_COMMAND" ]; then
-    if wake_existing_failure_consumer; then
+    if wake_existing_failure_consumer "$source_id" "$completion_ns"; then
       PROFILE_SERVICE_CONSUMER_WAKE_COUNT=$((PROFILE_SERVICE_CONSUMER_WAKE_COUNT + 1))
       printf '%s_profile_consumer_wake=PASS\n' "$state_key" >> "$TMP"
     else

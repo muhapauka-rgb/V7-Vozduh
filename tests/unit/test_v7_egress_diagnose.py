@@ -463,6 +463,40 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertFalse(shadow_log.exists())
             self.assertTrue(wake_log.exists())
 
+    def test_health_profile_wake_keeps_exact_source_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=vless protocol=vless interface=v7tun enabled=1\n")
+            (state / "users.registry").write_text("ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8")
+            observed = time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime())
+            (state / "service-matrix.json").write_text(json.dumps({"items": {"vless": {"services": {"youtube": {
+                "status": "FAIL", "severity": "FAIL", "failure_state": "OBSERVED_CONTINUING",
+                "source_incident_id": "sfinc-current", "observed_at": observed,
+            }}}}}), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7tun: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "batch-checker", "printf '%s\\n' '{\"status\":\"PASS\",\"ok\":true,\"probe_count\":1,\"contracts\":[{\"source\":\"vless\",\"profile\":\"__GLOBAL__\",\"services\":[\"youtube\"],\"state_key\":\"vless-profile\",\"failure_count\":0,\"blockers\":[\"fast_service_budget_exceeded\"]}]}'\n")
+            wake_log = root / "health-wake.env"
+            self.write_command(
+                bin_dir,
+                "v7-service-matrix-refresh-all",
+                "printf '%s|%s|%s\\n' \"$V7_SERVICE_PERSISTENT_MATRIX_OWNER\" \"$V7_SERVICE_PROFILE_SOURCE_EGRESS\" \"$V7_SERVICE_T0_MONOTONIC_NS\" > \"$WAKE_LOG\"\n",
+            )
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["WAKE_LOG"] = str(wake_log)
+            env["V7_HEALTH_PERSISTENT_MATRIX_CONSUMER"] = "1"
+            proc = subprocess.run([str(TOOL), "--state-dir", str(state), "--output", str(state / "fast.state"),
+                "--fast-producer-only", "--lightweight-batch-producer",
+                "--profile-service-suspicion-command", str(bin_dir / "batch-checker"),
+                "--shadow-trigger-command", "/bin/true",
+                "--consumer-wake-command", str(bin_dir / "v7-service-matrix-refresh-all"),
+                "--profile-service-failure-samples", "1", "--profile-service-cooldown-sec", "0"],
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(wake_log.read_text(encoding="utf-8").split("|")[0:2], ["1", "vless"])
+
     def test_fast_batch_reuses_fresh_matrix_for_explicit_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

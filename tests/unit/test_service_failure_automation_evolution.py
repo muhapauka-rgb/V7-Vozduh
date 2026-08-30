@@ -484,6 +484,42 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             {"decisions": []}, source_egress="vless",
         )
 
+    def test_runtime_profile_handoff_defers_historical_closure_scan(self):
+        args = argparse.Namespace(
+            apply=False,
+            emergency_failover_autonomy=False,
+            controlled_verifier_contention=False,
+            source_egress="vless",
+            runtime_profile_handoff_only=True,
+            state_dir=".",
+        )
+        planner = mock.Mock()
+        planner._performance_spans = []
+        planner.users = []
+        planner.matrix = {}
+        planner.service_prefs = {}
+        planner._explicit_required_services.return_value = []
+        planner.plan.return_value = {"decisions": []}
+        planner.materialize_service_failure_automation_advisory.return_value = {
+            "active": False,
+            "pre_obligation_scope_reconciliation": {"final_verdict": "PASS"},
+        }
+        planner.performance_timeline.return_value = {"spans": []}
+        with mock.patch.dict(self.autoswitch.os.environ, {
+            "V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1",
+        }, clear=False), \
+             mock.patch.object(self.autoswitch, "AutoswitchPlanner", return_value=planner), \
+             mock.patch.object(self.autoswitch, "live_profile_failure_evidence", return_value=(1, 1, {"sfinc-current"})), \
+             mock.patch.object(self.autoswitch, "build_prepared_class_decision_projection", return_value={}), \
+             mock.patch.object(self.autoswitch, "validate_prepared_class_decision_projection", return_value={}):
+            result = self.autoswitch.consume_service_failure_automation_only(args)
+
+        planner.reconcile_bounded_cohort_closure_obligations.assert_not_called()
+        self.assertEqual(
+            result["bounded_closure_reconciliation"]["status"],
+            "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",
+        )
+
     def test_existing_planner_selection_drives_subset_then_full_matrix_comparison(self):
         plan = {
             "decisions": [

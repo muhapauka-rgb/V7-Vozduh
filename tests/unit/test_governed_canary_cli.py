@@ -23,6 +23,42 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_valid_foreign_operation_window_is_never_reopened_by_competing_transaction(self):
+        module = load_cli_module()
+        active_window = {
+            "valid": True,
+            "state": "CLOSED",
+            "scope": "operation",
+            "operation_id": "govexec-owner",
+            "generation": "aec_owner",
+        }
+        args = argparse.Namespace(execution_control_file="/tmp/control.json")
+        with mock.patch.object(
+            module.operator_execution,
+            "autonomous_execution_control_state",
+            return_value=active_window,
+        ), mock.patch.object(
+            module.operator_execution,
+            "finalize_autonomous_execution_control_window",
+        ) as finalizer, mock.patch.object(
+            module,
+            "_execute_governed_transaction_with_guards_inner",
+        ) as inner:
+            result = module.execute_governed_transaction_with_guards(
+                args,
+                state_dir=Path("/tmp/state"),
+                event_dir=Path("/tmp/events"),
+                snapshot_root=Path("/tmp/snapshots"),
+                audit_dir=Path("/tmp/audit"),
+                lease_file=Path("/tmp/lease.json"),
+            )
+
+        self.assertEqual(
+            result["stop_reason"], "active_operation_control_window_in_progress"
+        )
+        inner.assert_not_called()
+        finalizer.assert_not_called()
+
     def test_packet_bound_control_window_opens_before_governed_pre_apply(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

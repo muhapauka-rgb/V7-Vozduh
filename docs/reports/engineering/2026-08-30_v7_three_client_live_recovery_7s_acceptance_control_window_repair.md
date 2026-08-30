@@ -106,10 +106,57 @@ already existing owner chain.
   outside the changed path;
 * diff whitespace check: passed.
 
+## Third live reconciliation: competing executor must not reopen another operation
+
+Both prior repairs were deployed and the normal `v7-health` caller then proved
+the next stage with no engineering route action. It created a real bounded
+four-member Packet/Lease/Barrier transaction for VLESS to `awg0`:
+
+* source incident: `sfinc_3215856daf5e8b44f637f349e057b841`;
+* exact selected scope: `10.7.0.13`, `10.7.0.125`, `10.7.0.126`,
+  `10.7.0.127`;
+* target: `awg0`, selected by the existing Planner;
+* capacity: `33/148`, therefore not a capacity or target-eligibility stop.
+
+The transaction still stopped at
+`packet_bound_execution_control_window_not_open`. Investigation of the
+existing control owner showed a cross-process race: a second normal Matrix
+generation could encounter the first transaction's valid, operation-scoped
+closed window. Its generic "recovery" path then force-opened that window,
+invalidating the first transaction before `v7-user-switch` could consume it.
+This is an executor-ownership defect, not a client or target-selection issue.
+
+## Implemented third generic repair
+
+* A valid closed operation window is now treated as being owned by the
+  transaction named in it. A competing transaction stops safely and does not
+  reopen, finalize, or otherwise alter it.
+* A finalizer also preserves a later valid operation window owned by another
+  transaction instead of force-opening it.
+* Only invalid control state can use the existing fail-closed recovery path.
+
+This preserves the existing control owner and fail-closed policy. It adds no
+timer, queue, planner, route writer, state source, or authority. It is the
+necessary ownership isolation for the normal V7 Runtime to complete one
+automatic recovery while background Matrix generations continue.
+
+## Verification for the third repair
+
+* New unit test proves a competing governed transaction cannot invoke either
+  the executor or the control-window finalizer when a valid foreign operation
+  window is active: pass.
+* Existing exact control-window ordering test: pass.
+* Full governed CLI suite: 154 tests run; 152 pass. The two failures remain
+  pre-existing, time-dependent fixtures whose standing policy expired before
+  the current clock.
+* Service-failure episode suite: 128 passed.
+* Whitespace/diff validation: pass.
+
 ## Current next step
 
-Publish and deploy this second tested repair. Return control exclusively to
-the normal `v7-health -> Matrix -> governed executor` caller and observe the
-current live VLESS condition. Record the immutable first failure observation,
-scope, all automatic lifecycle stages, and the last affected user S11. No
-manual recovery is valid acceptance evidence.
+Publish and deploy this third repair, then return control exclusively to the
+normal `v7-health -> Matrix -> governed executor` caller. Observe the current
+VLESS condition until the first valid automatic operation completes or a new,
+distinct owner blocker is evidenced. The previously observed attempts already
+exceed the seven-second KPI; they remain explicit product failures and are not
+credited. No manual recovery is valid acceptance evidence.

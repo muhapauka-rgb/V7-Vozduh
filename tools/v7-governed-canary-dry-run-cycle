@@ -14626,7 +14626,7 @@ def execute_governed_transaction_with_guards(
         args._controlled_window_generation = ""
         args._controlled_window_operation_id = ""
         initial_state = operator_execution.autonomous_execution_control_state(control_file)
-        if not initial_state.get("valid") or initial_state.get("state") != "OPEN":
+        if not initial_state.get("valid"):
             recovery = operator_execution.finalize_autonomous_execution_control_window(
                 control_file,
                 actor="governed-execution-recovery",
@@ -14636,6 +14636,19 @@ def execute_governed_transaction_with_guards(
             result = transaction_stop(
                 "stale_or_invalid_controlled_window_recovered_open",
                 controlled_window_recovery=recovery,
+            )
+            return result
+        if initial_state.get("state") != "OPEN":
+            # A valid CLOSED window is an operation that another existing
+            # governed executor already owns.  It is not stale state for this
+            # invocation to repair.  Re-opening it here races the owner that
+            # is between its Packet/Lease/Barrier checks and v7-user-switch,
+            # and can cancel a lawful ordinary recovery.  Preserve the exact
+            # fail-closed window; its owner finalizes it when its transaction
+            # reaches a terminal state.
+            result = transaction_stop(
+                "active_operation_control_window_in_progress",
+                execution_control=initial_state,
             )
             return result
         result = _execute_governed_transaction_with_guards_inner(
@@ -14667,6 +14680,28 @@ def execute_governed_transaction_with_guards(
             result["controlled_window_finalization"] = finalization
             result["safe_mode_final_state"] = str((finalization.get("after") or {}).get("state") or "UNKNOWN")
             if not finalization.get("final_open"):
+                current_window = operator_execution.autonomous_execution_control_state(
+                    control_file
+                )
+                if (
+                    current_window.get("valid")
+                    and current_window.get("state") == "CLOSED"
+                    and current_window.get("scope") == "operation"
+                ):
+                    # A different normal executor owns this window now.  Do
+                    # not force it open from the terminal path of the older
+                    # transaction: ownership, not best-effort cleanup,
+                    # controls the route-writer admission.
+                    result["controlled_window_recovery"] = {
+                        "ok": False,
+                        "skipped": True,
+                        "reason": "active_operation_control_window_owned_by_other_transaction",
+                        "after": current_window,
+                    }
+                    result["safe_mode_final_state"] = str(
+                        current_window.get("state") or "UNKNOWN"
+                    )
+                    return result
                 recovery = operator_execution.finalize_autonomous_execution_control_window(
                     control_file,
                     actor="governed-execution-recovery",

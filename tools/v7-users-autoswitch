@@ -10300,7 +10300,18 @@ class AutoswitchPlanner:
             row for row in current_failures
             if str(((row.get("freshness") or {}).get("state") or "")) not in {"FRESH", "AGING"}
         ]
-        if stale_failures and not bool_value(current_failure.get("confirmed")):
+        # One fresh, owner-confirmed failure of a service this user requires
+        # is sufficient to establish that the current route is unusable for
+        # that profile.  A stale failure of another required service is still
+        # useful diagnostic evidence, but it must not erase the fresh Matrix
+        # fact and strand the user on the known-bad source.  When every
+        # failure is stale (and there is no fresh channel confirmation), keep
+        # the existing fail-closed gate.
+        if (
+            stale_failures
+            and not bool_value(current_failure.get("confirmed"))
+            and not fresh_profile_failure
+        ):
             blockers.append("fresh_service_failure_evidence_required")
         if target_service.get("required_missing") or target_service.get("required_low"):
             blockers.append("target_required_services_not_ready")

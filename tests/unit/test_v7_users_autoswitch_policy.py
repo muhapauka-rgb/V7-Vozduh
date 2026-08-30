@@ -3714,6 +3714,55 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(evidence["ok"], evidence)
         self.assertTrue(evidence["exact_matrix_profile_failure"]["confirmed"])
 
+    def test_fresh_required_failure_is_not_cancelled_by_stale_secondary_service(self):
+        """A stale extra service row cannot erase a fresh Matrix failure.
+
+        The ordinary apply gate receives the exact Packet selected from a
+        fresh profile failure.  It must preserve that proof even if another
+        required service has an old failure row, otherwise a user can remain
+        on a known-bad source solely because a historical diagnostic exists.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={
+                    "instagram": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "score": 0,
+                        "consecutive_failures": 3,
+                    },
+                },
+            )
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"]["services"]["instagram"]["tested_at"] = self.tool.now_iso()
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (root / "state" / "service-preferences.json").write_text(
+                json.dumps({"users": {"10.0.0.2": {"services": ["instagram", "youtube"]}}}),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(
+                root, ["--ordinary-service-failure-context"],
+            ))
+            plan = planner.plan()
+            move = plan["selected_moves"][0]
+            current = next(
+                row for row in move["candidates"] if row.get("egress") == "1"
+            )
+            current["service_suitability"]["per_service"]["youtube"] = {
+                "available": False,
+                "status": "FAIL",
+                "truth_class": "STALE_SERVICE_TRUTH",
+                "freshness": {"state": "STALE"},
+            }
+            evidence = planner._ordinary_service_failure_move_evidence(move)
+
+        self.assertTrue(evidence["ok"], evidence)
+        self.assertTrue(evidence["profile_service_failure_confirmed"])
+        self.assertNotIn("fresh_service_failure_evidence_required", evidence["blockers"])
+
     def test_ordinary_service_failure_execution_allows_existing_bounded_cohort(self):
         """The route consumer must not collapse a lawful tier-4 packet to one.
 

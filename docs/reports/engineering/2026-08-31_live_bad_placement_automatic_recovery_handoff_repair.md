@@ -105,3 +105,30 @@ six profile contracts and three source-scoped observations.  Its first result
 was 1.826 s, P95 was 1.979 s and the maximum was 1.979 s.  This confirms the
 new streaming detector is active under the existing caller; it is not a
 failure/recovery sample and does not establish the seven-second SLO.
+
+## Controlled-polygon readiness reconciliation
+
+The existing controlled-certification preflight was run read-only after the
+deployment.  It made no routing, client, Authority or state change.  It
+returned `STOP_SAFE`: its old one-use certification Authority and exact
+identity/source context are terminal or stale.  In particular, the preflight
+could not derive one unique certification identity on a distinct restorable
+controlled source, and it correctly rejected the expired/used Authority
+request rather than reusing it.
+
+This is not an ordinary-recovery defect and it does not invalidate the live
+three-user automatic recovery evidence.  It means that a new isolated Polygon
+sample cannot honestly be started until the existing certification lifecycle
+owner has created a new exact one-user context and a new one-use Authority
+contract.  Codex did not choose a source or target, move a user, inject a
+failure, or manually call the ordinary recovery consumer.
+
+The live Runtime remains healthy (`v7-health.service` active since
+2026-08-31 00:33:07 MSK).  Local-to-Runtime deployment alignment is proven;
+independent GitHub revalidation remains unavailable from this environment
+because `v7-truth-check` reports the remote as unreadable.  The precise next
+step is therefore: use the existing certification lifecycle to establish a
+fresh, owner-selected one-user Polygon context, then let the normal health
+caller observe its controlled Matrix failure.  That controlled result may
+validate the handoff repair, but it cannot replace a fresh ordinary-production
+seven-second sample.

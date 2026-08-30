@@ -264,6 +264,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertIn("--runtime-profile-handoff-only", command)
         self.assertNotIn("--apply", command)
 
+    def test_health_service_enables_existing_persistent_matrix_owner(self):
+        unit = (ROOT / "systemd" / "v7-health.service").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "Environment=V7_SERVICE_PERSISTENT_MATRIX_OWNER=1", unit
+        )
+
     def test_active_ordinary_stop_safe_defers_certification_tail(self):
         active_scope = {"active": True}
         stop_safe = {

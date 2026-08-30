@@ -6,6 +6,12 @@ After=network-online.target v7-routing-sync.service
 [Service]
 Type=simple
 Environment=V7_ACTOR=health
+# The role-based health Runtime is the existing persistent Matrix owner for
+# one source-bound profile failure.  Without this declared lifecycle mode the
+# Matrix correctly records a fresh failure but cannot retain its exact source
+# binding through the advisory/Authority handoff, so recovery falls back to
+# historical matching and stops safe.  This changes no policy or route path.
+Environment=V7_SERVICE_PERSISTENT_MATRIX_OWNER=1
 ExecStartPre=/usr/local/bin/v7-service-matrix-refresh-all --initialize-standing-lineage-only
 ExecStart=/usr/local/bin/v7-health-loop --role-based-fast
 Restart=always

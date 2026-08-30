@@ -3015,6 +3015,33 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             again = planner.reconcile_bounded_cohort_closure_obligations()
             self.assertEqual(again["closure_obligations_published"], 0)
 
+    def test_bounded_checkpoint_reconciliation_never_materializes_full_closure_history(self):
+        """A live incident must not load an unbounded append-only journal."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            l3_path = state / "l3-runtime-state.json"
+            l3_path.write_text(json.dumps({
+                "bounded_cohort_transactions": {
+                    "op_unit": {
+                        "operation_id": "op_unit",
+                        "selected_move_hash": "moves_hash",
+                        "cohort_fingerprint": "cohort_hash",
+                    },
+                },
+            }), encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state
+            planner.l3_runtime_state_file = l3_path
+            planner.l3_runtime_state = {}
+            with mock.patch.object(
+                self.autoswitch,
+                "read_live_owner_history_window",
+                return_value=[],
+            ) as history_window:
+                result = planner.reconcile_bounded_cohort_closure_obligations()
+            self.assertEqual(result["closure_obligations_published"], 1)
+            history_window.assert_called_once_with(state / "closure-records.jsonl")
+
     def test_network_path_evidence_is_channel_path_scoped_and_secret_free(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

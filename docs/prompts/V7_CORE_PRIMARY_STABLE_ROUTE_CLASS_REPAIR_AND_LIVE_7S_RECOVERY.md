@@ -124,6 +124,19 @@ Measure Core-primary preparation/commit separately. It must be affected-cohort
 only and must not introduce recurring work above 100 ms without a measured
 decomposition.
 
+## Live-history budget
+
+No active failure path may materialise an append-only history file merely to
+reconcile a background closure. Live work may read only the bounded current
+owner window and the compact current projection. The full immutable history
+remains available to its existing offline/reconciliation consumer.
+
+Absence of an older historical row from that bounded live window is not
+permission to route, assign, apply or infer completion. It may only defer or
+republish a no-forward-apply closure successor through the existing owner.
+This protects the 7-second recovery law from memory exhaustion without
+weakening Matrix, Authority, Planner, Packet, Lease, Barrier or S11 checks.
+
 ## Deploy and live proof
 
 Run relevant routing/Core-primary, user-switch, autoswitch, governed-executor,

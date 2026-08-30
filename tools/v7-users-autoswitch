@@ -7130,9 +7130,17 @@ class AutoswitchPlanner:
         transactions = state.get("bounded_cohort_transactions")
         transactions = transactions if isinstance(transactions, dict) else {}
         closure_path = self.state_dir / "closure-records.jsonl"
+        # This is a live re-entry path.  ``closure-records.jsonl`` is
+        # append-only and may be hundreds of megabytes; materialising all of
+        # it here can OOM the health Runtime before the actual recovery owner
+        # gets a chance to act.  The compact checkpoint below is the durable
+        # current work set, while the newest owner window is sufficient to
+        # suppress duplicate publication.  A missing older receipt is never
+        # treated as permission for a route action: this method only publishes
+        # a no-forward-apply closure successor.
         existing = {
             str(row.get("object_id") or "")
-            for row in read_jsonl(closure_path)
+            for row in read_live_owner_history_window(closure_path)
             if str(row.get("object_type") or "") == "bounded_cohort_closure_obligation"
         }
         rows: list[dict[str, Any]] = []

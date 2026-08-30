@@ -20,7 +20,6 @@ from admin_core import operator_execution
 STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
 USERS = Path(os.environ.get("V7_USERS_REGISTRY", STATE_DIR / "users.registry"))
 EGRESS = Path(os.environ.get("V7_EGRESS_REGISTRY", STATE_DIR / "egress.registry"))
-CLASSES = Path(os.environ.get("V7_ROUTE_CLASSES_REG", "/opt/v7/policy/route-classes.registry"))
 POLICY = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
 NFT_FAMILY = "inet"
 NFT_TABLE = "v7_routing_core"
@@ -147,10 +146,14 @@ def core_primary_operation_authority(
     }
 
 
-def classes_for_users(
+def _legacy_positional_classes(
     users: list[dict[str, str]], egress: dict[str, dict[str, str]],
 ) -> list[dict]:
-    """Derive the existing Core-primary classes for an in-memory registry view."""
+    """Read the pre-migration projection solely to reconcile its preimage.
+
+    Ordinary recovery must never call this once stable Core-primary identities
+    have been materialized in the canonical egress registry.
+    """
     classes = []
     for index, name in enumerate(sorted({row.get("current", "") for row in users})):
         target = egress.get(name)
@@ -165,6 +168,75 @@ def classes_for_users(
             "members": sorted(row["ip"] for row in users if row.get("current") == name),
         })
     return classes
+
+
+def _core_primary_identity(row: dict[str, str], name: str) -> tuple[int, int]:
+    """Read one stable identity from the canonical existing egress record."""
+    try:
+        mark = int(str(row.get("core_primary_mark") or ""), 0)
+        table = int(str(row.get("core_primary_table") or ""), 0)
+    except ValueError as exc:
+        raise ValueError(f"core_primary_identity_invalid:{name}") from exc
+    if mark < MARK_BASE or mark > 0xFFFF:
+        raise ValueError(f"core_primary_mark_out_of_range:{name}")
+    if table != TABLE_BASE + (mark - MARK_BASE):
+        raise ValueError(f"core_primary_table_not_bound_to_mark:{name}")
+    return mark, table
+
+
+def _stable_classes_from_egress(
+    users: list[dict[str, str]], egress: dict[str, dict[str, str]],
+) -> list[dict] | None:
+    """Return stable classes when the existing canonical registry owns all.
+
+    ``route-classes.registry`` deliberately is not used here: it owns service
+    route classes, not Core-primary egress identities.  The egress registry is
+    the sole durable owner of a channel's current routing identity.
+    """
+    identity_names = {
+        name for name, row in egress.items()
+        if row.get("core_primary_mark") or row.get("core_primary_table")
+    }
+    if not identity_names:
+        return None
+    if identity_names != set(egress):
+        missing = sorted(set(egress) - identity_names)
+        raise ValueError("core_primary_identity_incomplete:" + ",".join(missing))
+    members_by_egress: dict[str, list[str]] = {name: [] for name in egress}
+    for user in users:
+        name = str(user.get("current") or "")
+        ip = str(user.get("ip") or "")
+        if not name or not ip or name not in egress or not egress[name].get("interface"):
+            raise ValueError(f"unresolved_current_egress:{name or ip}")
+        members_by_egress[name].append(ip)
+    marks: set[int] = set()
+    tables: set[int] = set()
+    classes = []
+    for name, target in egress.items():
+        if not target.get("interface"):
+            raise ValueError(f"core_primary_egress_interface_missing:{name}")
+        mark, table = _core_primary_identity(target, name)
+        if mark in marks or table in tables:
+            raise ValueError(f"core_primary_identity_collision:{name}")
+        marks.add(mark)
+        tables.add(table)
+        classes.append({
+            "class_id": "stable_" + hashlib.sha256(name.encode()).hexdigest()[:16],
+            "current_egress": name,
+            "interface": target["interface"],
+            "mark": mark,
+            "table": table,
+            "members": sorted(members_by_egress[name]),
+        })
+    return sorted(classes, key=lambda row: (int(row["mark"]), str(row["current_egress"])))
+
+
+def classes_for_users(
+    users: list[dict[str, str]], egress: dict[str, dict[str, str]],
+) -> list[dict]:
+    """Return stable Core-primary classes, retaining legacy read only pre-migration."""
+    stable = _stable_classes_from_egress(users, egress)
+    return stable if stable is not None else _legacy_positional_classes(users, egress)
 
 
 def derived_classes() -> tuple[list[dict], list[dict]]:
@@ -186,6 +258,256 @@ def enabled_egress() -> dict[str, dict[str, str]]:
     }
 
 
+def _rule_pref_for_mark(mark: int) -> int:
+    return RULE_PREF_BASE + (mark - MARK_BASE)
+
+
+def _atomic_write_text(path: Path, value: str) -> None:
+    """Publish one canonical registry preimage/replacement atomically."""
+    temp = path.with_name(path.name + ".core-primary.tmp")
+    try:
+        temp.write_text(value, encoding="utf-8")
+        os.replace(temp, path)
+    finally:
+        if temp.exists():
+            temp.unlink()
+
+
+def _replace_egress_core_primary_identities(identities: dict[str, tuple[int, int]]) -> str:
+    """Atomically extend the canonical egress registry, preserving its rows."""
+    original = EGRESS.read_text(encoding="utf-8")
+    rewritten: list[str] = []
+    seen: set[str] = set()
+    for raw in original.splitlines(keepends=True):
+        line = raw.rstrip("\n")
+        tokens = line.split()
+        fields = {
+            key: value for token in tokens if "=" in token
+            for key, value in [token.split("=", 1)]
+        }
+        name = str(fields.get("id") or "")
+        if name not in identities:
+            rewritten.append(raw)
+            continue
+        kept = [
+            token for token in tokens
+            if not token.startswith("core_primary_mark=")
+            and not token.startswith("core_primary_table=")
+        ]
+        mark, table = identities[name]
+        rewritten.append(
+            " ".join(kept + [
+                f"core_primary_mark=0x{mark:x}",
+                f"core_primary_table={table}",
+            ]) + "\n"
+        )
+        seen.add(name)
+    if seen != set(identities):
+        raise ValueError("core_primary_identity_egress_registry_changed")
+    _atomic_write_text(EGRESS, "".join(rewritten))
+    return original
+
+
+def _remove_prepared_core_policy(rows_to_remove: list[dict]) -> None:
+    """Undo only tables/rules introduced for previously empty egresses."""
+    for row in rows_to_remove:
+        mark = int(row["mark"])
+        table = int(row["table"])
+        while run([
+            "ip", "rule", "del", "pref", str(_rule_pref_for_mark(mark)),
+            "fwmark", hex(mark), "table", str(table),
+        ]).returncode == 0:
+            pass
+        run(["ip", "route", "del", "default", "table", str(table)])
+
+
+def _core_primary_projection_exact(
+    users: list[dict[str, str]], egress: dict[str, dict[str, str]],
+) -> dict:
+    """Verify the existing kernel projection without inferring Authority."""
+    classes = classes_for_users(users, egress)
+    nft = run(["nft", "-j", "list", "table", NFT_FAMILY, NFT_TABLE])
+    rules = run(["ip", "-j", "rule", "show"])
+    try:
+        nft_payload = json.loads(nft.stdout or "{}") if nft.returncode == 0 else {}
+        rule_rows = json.loads(rules.stdout or "[]") if rules.returncode == 0 else []
+    except json.JSONDecodeError:
+        return {"ok": False, "blockers": ["core_primary_kernel_projection_unparseable"]}
+    actual_user_class, user_class_readable = nft_map_elements(nft_payload, "user_class")
+    actual_class_egress, class_egress_readable = nft_map_elements(nft_payload, "class_egress")
+    expected_user_class = {
+        (str(member), str(row["mark"])) for row in classes for member in row["members"]
+    }
+    expected_class_egress = {
+        (str(row["mark"]), str(row["mark"])) for row in classes
+    }
+    marks = {str(row.get("fwmark") or "") for row in rule_rows if isinstance(row, dict)}
+    missing_rules = [hex(int(row["mark"])) for row in classes if hex(int(row["mark"])) not in marks]
+    return {
+        "ok": bool(
+            nft.returncode == 0 and user_class_readable and class_egress_readable
+            and actual_user_class == expected_user_class
+            and actual_class_egress == expected_class_egress
+            and not missing_rules
+        ),
+        "classes": classes,
+        "missing_rules": missing_rules,
+        "user_class_exact": actual_user_class == expected_user_class,
+        "class_egress_exact": actual_class_egress == expected_class_egress,
+    }
+
+
+def _core_primary_identity_slot_available(mark: int) -> bool:
+    """Reject a mark/table slot already used outside the live Core map."""
+    table = TABLE_BASE + (mark - MARK_BASE)
+    rules = run(["ip", "-j", "rule", "show"])
+    routes = run(["ip", "-j", "route", "show", "table", str(table)])
+    try:
+        rule_rows = json.loads(rules.stdout or "[]") if rules.returncode == 0 else []
+        route_rows = json.loads(routes.stdout or "[]") if routes.returncode == 0 else []
+    except json.JSONDecodeError:
+        return False
+    for row in rule_rows:
+        if not isinstance(row, dict):
+            return False
+        if str(row.get("fwmark") or "").lower() == hex(mark) or int(row.get("priority") or -1) == _rule_pref_for_mark(mark):
+            return False
+    return not bool(route_rows)
+
+
+def core_primary_stable_class_migrate() -> dict:
+    """Make Core-primary identities durable without changing any assignment.
+
+    This one-time operation belongs to the existing routing owner.  It retains
+    live marks for occupied egresses, prepares only empty egress identities,
+    atomically adds their unused class map entries, and finally persists the
+    mapping in the canonical egress registry.
+    """
+    users = [row for row in rows(USERS) if row.get("enabled", "0") == "1"]
+    egress = enabled_egress()
+    if not egress:
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_no_enabled_egress"], "runtime_mutation": False}
+    current_identities = {
+        name for name, row in egress.items()
+        if row.get("core_primary_mark") or row.get("core_primary_table")
+    }
+    if current_identities:
+        if current_identities != set(egress):
+            return {"status": "STOP_SAFE", "blockers": ["core_primary_identity_incomplete"], "runtime_mutation": False}
+        projection = _core_primary_projection_exact(users, egress)
+        return {
+            "status": "CORE_PRIMARY_STABLE_CLASS_MIGRATION_ALREADY_CONSUMED"
+            if projection["ok"] else "STOP_SAFE",
+            "blockers": [] if projection["ok"] else ["core_primary_stable_projection_not_exact"],
+            "classes": len(projection["classes"]),
+            "runtime_mutation": False,
+        }
+
+    # This is the only use of the positional mapping: retain its live preimage
+    # so existing users keep exactly their current kernel class during the
+    # migration.  New identities are allocated only for currently empty rows.
+    positional = _legacy_positional_classes(users, egress)
+    by_name = {str(row["current_egress"]): row for row in positional}
+    nft = run(["nft", "-j", "list", "table", NFT_FAMILY, NFT_TABLE])
+    try:
+        nft_payload = json.loads(nft.stdout or "{}") if nft.returncode == 0 else {}
+    except json.JSONDecodeError:
+        nft_payload = {}
+    actual_user_class, user_class_readable = nft_map_elements(nft_payload, "user_class")
+    actual_class_egress, class_egress_readable = nft_map_elements(nft_payload, "class_egress")
+    expected_user_class = {
+        (str(member), str(row["mark"])) for row in positional for member in row["members"]
+    }
+    expected_class_egress = {(str(row["mark"]), str(row["mark"])) for row in positional}
+    if (
+        not user_class_readable or not class_egress_readable
+        or actual_user_class != expected_user_class
+        or actual_class_egress != expected_class_egress
+    ):
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_pre_migration_projection_not_exact"], "runtime_mutation": False}
+
+    used_marks = {int(row["mark"]) for row in positional}
+    identities: dict[str, tuple[int, int]] = {}
+    for name in sorted(egress):
+        if name in by_name:
+            row = by_name[name]
+            identities[name] = (int(row["mark"]), int(row["table"]))
+            continue
+        mark = MARK_BASE
+        while mark in used_marks or not _core_primary_identity_slot_available(mark):
+            mark += 1
+        if mark > 0xFFFF:
+            return {"status": "STOP_SAFE", "blockers": ["core_primary_mark_space_exhausted"], "runtime_mutation": False}
+        used_marks.add(mark)
+        identities[name] = (mark, TABLE_BASE + (mark - MARK_BASE))
+
+    new_rows = [
+        {
+            "current_egress": name,
+            "interface": egress[name]["interface"],
+            "mark": mark,
+            "table": table,
+        }
+        for name, (mark, table) in identities.items() if name not in by_name
+    ]
+    for row in new_rows:
+        route = run(["ip", "route", "replace", "default", "dev", row["interface"], "table", str(row["table"])])
+        if route.returncode:
+            _remove_prepared_core_policy(new_rows)
+            return {"status": "STOP_SAFE", "blockers": ["core_primary_stable_route_prepare_failed", route.stdout[-1000:]], "runtime_mutation": False}
+        try:
+            replace_rule(
+                pref=_rule_pref_for_mark(int(row["mark"])),
+                selector=["fwmark", hex(int(row["mark"]))], table=int(row["table"]),
+            )
+        except RuntimeError as exc:
+            _remove_prepared_core_policy(new_rows)
+            return {"status": "STOP_SAFE", "blockers": ["core_primary_stable_rule_prepare_failed", str(exc)[-1000:]], "runtime_mutation": False}
+
+    additions = [
+        mark for name, (mark, _) in identities.items() if name not in by_name
+    ]
+    if additions:
+        elements = ", ".join(f"0x{mark:x} : 0x{mark:x}" for mark in sorted(additions))
+        commit = run(["nft", "-f", "-"], input_text=(
+            f"add element {NFT_FAMILY} {NFT_TABLE} class_egress {{ {elements} }}\n"
+        ))
+        if commit.returncode:
+            _remove_prepared_core_policy(new_rows)
+            return {"status": "STOP_SAFE", "blockers": ["core_primary_stable_nft_prepare_failed", commit.stdout[-1000:]], "runtime_mutation": False}
+    try:
+        # Verify the complete prospective kernel projection before publishing
+        # the canonical identity.  A registry write therefore never becomes a
+        # half-migration marker if nft/policy preparation was insufficient.
+        stable_egress = {
+            name: {
+                **row,
+                "core_primary_mark": hex(identities[name][0]),
+                "core_primary_table": str(identities[name][1]),
+            }
+            for name, row in egress.items()
+        }
+        projection = _core_primary_projection_exact(users, stable_egress)
+        if not projection["ok"]:
+            raise RuntimeError("core_primary_stable_post_migration_not_exact")
+        _replace_egress_core_primary_identities(identities)
+    except (OSError, RuntimeError, ValueError) as exc:
+        if additions:
+            elements = ", ".join(f"0x{mark:x}" for mark in sorted(additions))
+            run(["nft", "-f", "-"], input_text=(
+                f"delete element {NFT_FAMILY} {NFT_TABLE} class_egress {{ {elements} }}\n"
+            ))
+        _remove_prepared_core_policy(new_rows)
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_stable_migration_rolled_back", str(exc)[-1000:]], "runtime_mutation": False}
+    return {
+        "status": "CORE_PRIMARY_STABLE_CLASS_MIGRATION_PASS",
+        "classes": len(identities),
+        "new_empty_egress_classes": len(new_rows),
+        "membership_generation": canonical_hash(users),
+        "runtime_mutation": True,
+    }
+
+
 def live_classes_for_users(
     users: list[dict[str, str]], egress: dict[str, dict[str, str]],
     actual_user_class: set[tuple[str, str]], *,
@@ -200,6 +522,17 @@ def live_classes_for_users(
     retain marks already applied to the current registry.
     """
     ignored = ignored_actual_members or set()
+    stable = _stable_classes_from_egress(users, egress)
+    if stable is not None:
+        by_member = {str(member): str(mark) for member, mark in actual_user_class}
+        for row in stable:
+            expected_mark = str(row["mark"])
+            for member in row["members"]:
+                if member not in ignored and by_member.get(member) != expected_mark:
+                    raise ValueError(
+                        f"stable_core_mark_unresolved_or_conflicting:{row['current_egress']}"
+                    )
+        return stable
     by_member = {str(member): str(mark) for member, mark in actual_user_class}
     grouped: dict[str, list[str]] = {}
     for row in users:
@@ -331,11 +664,14 @@ def core_primary_apply() -> dict:
     if proc.returncode:
         return {"status": "STOP_SAFE", "blockers": ["nft_atomic_apply_failed", proc.stdout[-1000:]], "runtime_mutation": False}
     try:
-        for index, row in enumerate(classes):
+        for row in classes:
             result = run(["ip", "route", "replace", "default", "dev", row["interface"], "table", str(row["table"])])
             if result.returncode:
                 raise RuntimeError(result.stdout)
-            replace_rule(pref=RULE_PREF_BASE + index, selector=["fwmark", hex(row["mark"])], table=row["table"])
+            replace_rule(
+                pref=_rule_pref_for_mark(int(row["mark"])),
+                selector=["fwmark", hex(row["mark"])], table=row["table"],
+            )
     except RuntimeError as exc:
         core_primary_fallback()
         return {"status": "STOP_SAFE_FALLBACK_RESTORED", "blockers": [str(exc)], "runtime_mutation": False}
@@ -346,8 +682,8 @@ def core_primary_apply() -> dict:
 def core_primary_fallback() -> dict:
     run(["nft", "delete", "table", NFT_FAMILY, NFT_TABLE])
     _, classes = derived_classes()
-    for index, row in enumerate(classes):
-        while run(["ip", "rule", "del", "pref", str(RULE_PREF_BASE + index), "fwmark", hex(row["mark"]), "table", str(row["table"])]).returncode == 0:
+    for row in classes:
+        while run(["ip", "rule", "del", "pref", str(_rule_pref_for_mark(int(row["mark"]))), "fwmark", hex(row["mark"]), "table", str(row["table"])]).returncode == 0:
             pass
     legacy = legacy_sync()
     return {"status": "CORE_PRIMARY_FALLBACK_PASS", "legacy": legacy, "core_table_present": False}
@@ -416,7 +752,10 @@ def core_primary_cohort_commit(
     selected_actual = {
         entry for entry in actual_user_class if entry[0] in selected
     }
-    expected_marks = {mark for _, mark in expected_user_class}
+    # Stable identities remain present in ``classes`` even when their source
+    # just became empty.  Thus the cohort must not retire its class_egress
+    # entry merely because the last selected member left it.
+    expected_marks = {str(row["mark"]) for row in classes}
     retired_marks = {
         mark for _, mark in selected_actual if mark not in expected_marks
     }
@@ -586,7 +925,7 @@ def core_primary_cohort_admissible(
     prospective_outside = {
         entry for entry in prospective_user_class if entry[0] not in selected
     }
-    prospective_marks = {mark for _, mark in prospective_user_class}
+    prospective_marks = {str(row["mark"]) for row in prospective_classes}
     retired_marks = {
         mark for ip, mark in expected_current_user_class
         if ip in selected and mark not in prospective_marks
@@ -641,8 +980,14 @@ def verify(
         emergency_failover=emergency_failover, operation_id=operation_id,
         selected_move_hash=selected_move_hash, max_users=max_users,
     )
-    users = [row for row in rows(USERS) if row.get("enabled", "0") == "1"]
-    egress = enabled_egress()
+    try:
+        users, classes = derived_classes()
+    except ValueError as exc:
+        return {
+            "status": "STOP_SAFE",
+            "blockers": [str(exc)],
+            "runtime_mutation": False,
+        }
     nft = run(["nft", "-j", "list", "table", NFT_FAMILY, NFT_TABLE])
     rules = run(["ip", "-j", "rule", "show"])
     rule_rows = json.loads(rules.stdout or "[]") if rules.returncode == 0 else []
@@ -658,14 +1003,6 @@ def verify(
     actual_class_egress, class_egress_readable = nft_map_elements(
         nft_payload, "class_egress",
     )
-    try:
-        classes = live_classes_for_users(users, egress, actual_user_class)
-    except ValueError as exc:
-        return {
-            "status": "STOP_SAFE",
-            "blockers": [str(exc)],
-            "runtime_mutation": False,
-        }
     expected_user_class = {
         (str(member), str(row["mark"]))
         for row in classes for member in row["members"]
@@ -729,6 +1066,7 @@ def main() -> int:
     parser.add_argument("--core-primary-cohort-commit", action="store_true")
     parser.add_argument("--core-primary-cohort-admissible", action="store_true")
     parser.add_argument("--core-primary-fallback", action="store_true")
+    parser.add_argument("--core-primary-stable-class-migrate", action="store_true")
     parser.add_argument("--core-primary-verify", action="store_true")
     parser.add_argument("--core-primary-active", action="store_true")
     parser.add_argument("--user", default="")
@@ -762,6 +1100,8 @@ def main() -> int:
             result = core_primary_apply()
         elif args.core_primary_fallback:
             result = core_primary_fallback()
+        elif args.core_primary_stable_class_migrate:
+            result = core_primary_stable_class_migrate()
         elif args.core_primary_verify:
             result = verify()
         elif args.core_primary_active:

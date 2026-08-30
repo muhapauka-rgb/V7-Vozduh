@@ -106,6 +106,16 @@ DEFAULT_ROLE_COMMANDS = (
             "/usr/local/bin/v7-egress-diagnose",
             "--output", "/opt/v7/egress/state/egress-diagnose.state",
             "--fast-producer-only",
+            # The profile-required detector must complete within its existing
+            # five-second role window.  The legacy source-aggregate branch
+            # still starts one canonical Matrix process per source and then
+            # serialises its confirmation/wake work; on the live host that
+            # left this child running for minutes, so no fresh observation
+            # could lawfully reach the recovery owner.  Reuse the existing
+            # bounded batch mode: it performs one ephemeral, source-scoped
+            # sentinel pass under the same eight-way cap, then keeps Matrix as
+            # the sole writer and rejects unknown/stale evidence fail-closed.
+            "--lightweight-batch-producer",
             # A 2-vCPU Runtime cannot safely execute 128 one-second network
             # probes at once: the detector then manufactures timeouts on
             # healthy channels and blocks the same event loop it must wake.

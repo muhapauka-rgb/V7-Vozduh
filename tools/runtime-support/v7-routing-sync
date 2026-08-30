@@ -177,6 +177,59 @@ def derived_classes() -> tuple[list[dict], list[dict]]:
     return users, classes_for_users(users, egress)
 
 
+def enabled_egress() -> dict[str, dict[str, str]]:
+    """Return only the canonical enabled egress rows used by this owner."""
+    return {
+        row.get("id", ""): row
+        for row in rows(EGRESS)
+        if row.get("enabled", "0") == "1"
+    }
+
+
+def live_classes_for_users(
+    users: list[dict[str, str]], egress: dict[str, dict[str, str]],
+    actual_user_class: set[tuple[str, str]], *,
+    ignored_actual_members: set[str] | None = None,
+) -> list[dict]:
+    """Project current members onto their already-live Core-primary marks.
+
+    ``core_primary_apply`` remains the registry-wide bootstrap owner. A
+    bounded recovery must not renumber unaffected users merely because its
+    source becomes empty. The live Core-primary map is this owner's existing
+    kernel projection, not another desired-state source; it is read only to
+    retain marks already applied to the current registry.
+    """
+    ignored = ignored_actual_members or set()
+    by_member = {str(member): str(mark) for member, mark in actual_user_class}
+    grouped: dict[str, list[str]] = {}
+    for row in users:
+        name = str(row.get("current") or "")
+        ip = str(row.get("ip") or "")
+        if not name or not ip or name not in egress or not egress[name].get("interface"):
+            raise ValueError(f"unresolved_current_egress:{name or ip}")
+        grouped.setdefault(name, []).append(ip)
+    classes = []
+    for name, members in grouped.items():
+        evidence = {
+            by_member[ip] for ip in members
+            if ip not in ignored and ip in by_member
+        }
+        if len(evidence) != 1:
+            raise ValueError(f"live_core_mark_unresolved_or_conflicting:{name}")
+        mark = int(next(iter(evidence)), 0)
+        if mark < MARK_BASE:
+            raise ValueError(f"live_core_mark_out_of_range:{name}")
+        classes.append({
+            "class_id": "current_" + hashlib.sha256(name.encode()).hexdigest()[:16],
+            "current_egress": name,
+            "interface": egress[name]["interface"],
+            "mark": mark,
+            "table": TABLE_BASE + (mark - MARK_BASE),
+            "members": sorted(members),
+        })
+    return sorted(classes, key=lambda row: (int(row["mark"]), str(row["current_egress"])))
+
+
 def legacy_sync() -> dict:
     users, classes = derived_classes()
     by_egress = {row["current_egress"]: row for row in classes}
@@ -326,7 +379,8 @@ def core_primary_cohort_commit(
         return {"status": "STOP_SAFE", "blockers": ["exact_reset_core_primary_promotion_contract_required"], "runtime_mutation": False}
     if not 2 <= len(normalized) <= 4:
         return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_scope_must_be_2_to_4"], "runtime_mutation": False}
-    users, classes = derived_classes()
+    users = [row for row in rows(USERS) if row.get("enabled", "0") == "1"]
+    egress = enabled_egress()
     users_by_ip = {str(row.get("ip") or ""): row for row in users}
     if any(ip not in users_by_ip for ip in normalized):
         return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_registry_member_not_enabled"], "runtime_mutation": False}
@@ -337,6 +391,17 @@ def core_primary_cohort_commit(
         nft_payload = {}
     actual_user_class, user_class_readable = nft_map_elements(nft_payload, "user_class")
     actual_class_egress, class_egress_readable = nft_map_elements(nft_payload, "class_egress")
+    try:
+        classes = live_classes_for_users(
+            users, egress, actual_user_class,
+            ignored_actual_members=set(normalized),
+        )
+    except ValueError as exc:
+        return {
+            "status": "STOP_SAFE",
+            "blockers": [str(exc)],
+            "runtime_mutation": False,
+        }
     expected_user_class = {
         (str(member), str(row["mark"]))
         for row in classes for member in row["members"]
@@ -348,12 +413,21 @@ def core_primary_cohort_commit(
     actual_outside = {entry for entry in actual_user_class if entry[0] not in selected}
     expected_outside = {entry for entry in expected_user_class if entry[0] not in selected}
     expected_selected = sorted(entry for entry in expected_user_class if entry[0] in selected)
+    selected_actual = {
+        entry for entry in actual_user_class if entry[0] in selected
+    }
+    expected_marks = {mark for _, mark in expected_user_class}
+    retired_marks = {
+        mark for _, mark in selected_actual if mark not in expected_marks
+    }
+    retired_class_egress = {(mark, mark) for mark in retired_marks}
     if (
         not user_class_readable
         or not class_egress_readable
         or actual_outside != expected_outside
-        or actual_class_egress != expected_class_egress
+        or actual_class_egress != expected_class_egress | retired_class_egress
         or len(expected_selected) != len(normalized)
+        or any(entry[0] not in selected for entry in actual_user_class if entry[1] in retired_marks)
     ):
         return {
             "status": "STOP_SAFE",
@@ -363,6 +437,14 @@ def core_primary_cohort_commit(
     # This nft batch is one kernel-visible projection commit.  It never
     # recreates the table or touches entries outside ``normalized``.
     element_text = ", ".join(f"{ip} : 0x{int(mark):x}" for ip, mark in expected_selected)
+    retire_entries = ", ".join(
+        "0x" + format(int(mark), "x")
+        for mark in sorted(retired_marks, key=lambda value: int(value))
+    )
+    retire_class_text = (
+        f"delete element {NFT_FAMILY} {NFT_TABLE} class_egress {{ {retire_entries} }}\n"
+        if retire_entries else ""
+    )
     proc = run([
         "nft", "-f", "-",
     ], input_text=(
@@ -372,6 +454,7 @@ def core_primary_cohort_commit(
         # no table recreation or per-user full projection.
         f"delete element {NFT_FAMILY} {NFT_TABLE} user_class {{ {', '.join(ip for ip, _ in expected_selected)} }}\n"
         f"add element {NFT_FAMILY} {NFT_TABLE} user_class {{ {element_text} }}\n"
+        f"{retire_class_text}"
     ))
     if proc.returncode:
         return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_nft_atomic_commit_failed", proc.stdout[-1000:]], "runtime_mutation": False}
@@ -416,6 +499,7 @@ def core_primary_cohort_commit(
         "affected_scope_verified": True,
         "whole_system": whole_system,
         "retired_legacy_primary_routes": retired,
+        "retired_empty_class_marks": sorted(retired_marks, key=int),
         "runtime_mutation": True,
     }
 
@@ -445,15 +529,11 @@ def core_primary_cohort_admissible(
         return {"status": "STOP_SAFE", "blockers": ["exact_reset_core_primary_promotion_contract_required"], "runtime_mutation": False}
     if not 2 <= len(normalized) <= 4:
         return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_scope_must_be_2_to_4"], "runtime_mutation": False}
-    users, classes = derived_classes()
+    users = [row for row in rows(USERS) if row.get("enabled", "0") == "1"]
     users_by_ip = {str(row.get("ip") or ""): row for row in users}
     if any(ip not in users_by_ip for ip in normalized):
         return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_registry_member_not_enabled"], "runtime_mutation": False}
-    egress = {
-        row.get("id", ""): row
-        for row in rows(EGRESS)
-        if row.get("enabled", "0") == "1"
-    }
+    egress = enabled_egress()
     if target not in egress or not egress[target].get("interface"):
         return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_target_not_enabled"], "runtime_mutation": False}
     nft = run(["nft", "-j", "list", "table", NFT_FAMILY, NFT_TABLE])
@@ -463,6 +543,10 @@ def core_primary_cohort_admissible(
         nft_payload = {}
     actual_user_class, user_class_readable = nft_map_elements(nft_payload, "user_class")
     actual_class_egress, class_egress_readable = nft_map_elements(nft_payload, "class_egress")
+    try:
+        classes = live_classes_for_users(users, egress, actual_user_class)
+    except ValueError as exc:
+        return {"status": "STOP_SAFE", "blockers": [str(exc)], "runtime_mutation": False}
     expected_current_user_class = {
         (str(member), str(row["mark"]))
         for row in classes for member in row["members"]
@@ -482,7 +566,13 @@ def core_primary_cohort_admissible(
         {**row, "current": target} if str(row.get("ip") or "") in selected else dict(row)
         for row in users
     ]
-    prospective_classes = classes_for_users(prospective_users, egress)
+    try:
+        prospective_classes = live_classes_for_users(
+            prospective_users, egress, actual_user_class,
+            ignored_actual_members=selected,
+        )
+    except ValueError as exc:
+        return {"status": "CORE_PRIMARY_COHORT_NOT_ADMISSIBLE", "blockers": [str(exc)], "runtime_mutation": False}
     prospective_user_class = {
         (str(member), str(row["mark"]))
         for row in prospective_classes for member in row["members"]
@@ -496,9 +586,16 @@ def core_primary_cohort_admissible(
     prospective_outside = {
         entry for entry in prospective_user_class if entry[0] not in selected
     }
+    prospective_marks = {mark for _, mark in prospective_user_class}
+    retired_marks = {
+        mark for ip, mark in expected_current_user_class
+        if ip in selected and mark not in prospective_marks
+    }
+    retired_class_egress = {(mark, mark) for mark in retired_marks}
     if (
         current_outside != prospective_outside
-        or actual_class_egress != prospective_class_egress
+        or actual_class_egress != prospective_class_egress | retired_class_egress
+        or any(ip not in selected for ip, mark in expected_current_user_class if mark in retired_marks)
         or len([entry for entry in prospective_user_class if entry[0] in selected]) != len(normalized)
     ):
         return {"status": "CORE_PRIMARY_COHORT_NOT_ADMISSIBLE", "blockers": ["core_primary_cohort_changes_nonmember_class_or_class_egress"], "runtime_mutation": False}
@@ -508,6 +605,7 @@ def core_primary_cohort_admissible(
         "affected_user_fingerprint": canonical_hash(normalized),
         "target_egress": target,
         "authority_contract_id": authority.get("contract_id", ""),
+        "retired_empty_class_marks": sorted(retired_marks, key=int),
         "runtime_mutation": False,
     }
 
@@ -543,7 +641,8 @@ def verify(
         emergency_failover=emergency_failover, operation_id=operation_id,
         selected_move_hash=selected_move_hash, max_users=max_users,
     )
-    users, classes = derived_classes()
+    users = [row for row in rows(USERS) if row.get("enabled", "0") == "1"]
+    egress = enabled_egress()
     nft = run(["nft", "-j", "list", "table", NFT_FAMILY, NFT_TABLE])
     rules = run(["ip", "-j", "rule", "show"])
     rule_rows = json.loads(rules.stdout or "[]") if rules.returncode == 0 else []
@@ -559,6 +658,14 @@ def verify(
     actual_class_egress, class_egress_readable = nft_map_elements(
         nft_payload, "class_egress",
     )
+    try:
+        classes = live_classes_for_users(users, egress, actual_user_class)
+    except ValueError as exc:
+        return {
+            "status": "STOP_SAFE",
+            "blockers": [str(exc)],
+            "runtime_mutation": False,
+        }
     expected_user_class = {
         (str(member), str(row["mark"]))
         for row in classes for member in row["members"]

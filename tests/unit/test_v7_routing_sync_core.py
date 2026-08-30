@@ -115,8 +115,13 @@ class RoutingSyncCoreTests(unittest.TestCase):
                 return mock.Mock(returncode=0, stdout=__import__("json").dumps(payload))
             return mock.Mock(returncode=0, stdout="")
 
+        egress = [
+            {"id": "source", "enabled": "1", "interface": "wg-source"},
+            {"id": "target", "enabled": "1", "interface": "wg-target"},
+        ]
         with mock.patch.object(module, "exact_reset_authority", return_value=(True, {"contract_id": "rcpp-test"})), \
-             mock.patch.object(module, "derived_classes", return_value=(users, classes)), \
+             mock.patch.object(module, "rows", side_effect=[users, egress]), \
+             mock.patch.object(module, "live_classes_for_users", return_value=classes), \
              mock.patch.object(module, "run", side_effect=fake_run), \
              mock.patch.object(module, "verify", return_value={"status": "CORE_PRIMARY_VERIFY_PASS"}), \
              mock.patch.object(module, "retire_legacy_primary_routes", return_value={"rules_removed": 2, "routes_removed": 2}):
@@ -159,15 +164,67 @@ class RoutingSyncCoreTests(unittest.TestCase):
                 ]}},
             ],
         }
+        egress = [
+            {"id": "source", "enabled": "1", "interface": "wg-source"},
+            {"id": "target", "enabled": "1", "interface": "wg-target"},
+        ]
         with mock.patch.object(module, "exact_reset_authority", return_value=(True, {})), \
-             mock.patch.object(module, "derived_classes", return_value=(users, classes)), \
+             mock.patch.object(module, "rows", side_effect=[users, egress]), \
+             mock.patch.object(module, "live_classes_for_users", return_value=classes), \
              mock.patch.object(module, "run", return_value=mock.Mock(returncode=0, stdout=__import__("json").dumps(stale_payload))) as run_mock:
             result = module.core_primary_cohort_commit(["10.7.0.3", "10.7.0.4"])
 
         self.assertEqual(result["status"], "STOP_SAFE")
         self.assertIn("core_primary_cohort_baseline_not_exact_or_class_delta_required", result["blockers"])
 
-    def test_cohort_admissibility_refuses_class_removal_before_mutation(self):
+    def test_cohort_commit_retires_only_now_empty_source_class_atomically(self):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_routing_sync_empty_source", str(SCRIPT),
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        users = [
+            {"ip": "10.7.0.2", "current": "target", "table": "1002", "enabled": "1"},
+            {"ip": "10.7.0.3", "current": "target", "table": "1003", "enabled": "1"},
+            {"ip": "10.7.0.4", "current": "target", "table": "1004", "enabled": "1"},
+        ]
+        classes = [{"mark": 513, "members": ["10.7.0.2", "10.7.0.3", "10.7.0.4"]}]
+        egress = [
+            {"id": "source", "enabled": "1", "interface": "wg-source"},
+            {"id": "target", "enabled": "1", "interface": "wg-target"},
+        ]
+        payload = {"nftables": [
+            {"map": {"name": "user_class", "elem": [
+                ["10.7.0.2", "512"], ["10.7.0.3", "512"], ["10.7.0.4", "513"],
+            ]}},
+            {"map": {"name": "class_egress", "elem": [
+                ["512", "512"], ["513", "513"],
+            ]}},
+        ]}
+        calls = []
+
+        def fake_run(argv, *, input_text=""):
+            calls.append((argv, input_text))
+            if argv[:3] == ["nft", "-j", "list"]:
+                return mock.Mock(returncode=0, stdout=__import__("json").dumps(payload))
+            return mock.Mock(returncode=0, stdout="")
+
+        with mock.patch.object(module, "exact_reset_authority", return_value=(True, {"contract_id": "rcpp-test"})), \
+             mock.patch.object(module, "rows", side_effect=[users, egress]), \
+             mock.patch.object(module, "live_classes_for_users", return_value=classes), \
+             mock.patch.object(module, "run", side_effect=fake_run), \
+             mock.patch.object(module, "verify", return_value={"status": "CORE_PRIMARY_VERIFY_PASS"}), \
+             mock.patch.object(module, "retire_legacy_primary_routes", return_value={"rules_removed": 2, "routes_removed": 2}):
+            result = module.core_primary_cohort_commit(["10.7.0.2", "10.7.0.3"], "op-empty-source")
+
+        self.assertEqual(result["status"], "CORE_PRIMARY_COHORT_COMMIT_PASS")
+        self.assertEqual(result["retired_empty_class_marks"], ["512"])
+        batch = next(text for argv, text in calls if argv == ["nft", "-f", "-"])
+        self.assertIn("delete element inet v7_routing_core class_egress { 0x200 }", batch)
+        self.assertNotIn("10.7.0.4", batch)
+
+    def test_cohort_admissibility_allows_retiring_only_an_empty_source_class(self):
         loader = importlib.machinery.SourceFileLoader(
             "v7_routing_sync_cohort_admissibility", str(SCRIPT),
         )
@@ -184,7 +241,7 @@ class RoutingSyncCoreTests(unittest.TestCase):
             {"mark": 513, "members": ["10.7.0.4"]},
         ]
         prospective_classes = [
-            {"mark": 512, "members": ["10.7.0.2", "10.7.0.3", "10.7.0.4"]},
+            {"mark": 513, "members": ["10.7.0.2", "10.7.0.3", "10.7.0.4"]},
         ]
         payload = {
             "nftables": [
@@ -201,19 +258,15 @@ class RoutingSyncCoreTests(unittest.TestCase):
             {"id": "target", "enabled": "1", "interface": "wg-target"},
         ]
         with mock.patch.object(module, "exact_reset_authority", return_value=(True, {"contract_id": "rcpp-test"})), \
-             mock.patch.object(module, "derived_classes", return_value=(users, current_classes)), \
-             mock.patch.object(module, "rows", return_value=egress), \
-             mock.patch.object(module, "classes_for_users", return_value=prospective_classes), \
+             mock.patch.object(module, "rows", side_effect=[users, egress]), \
+             mock.patch.object(module, "live_classes_for_users", side_effect=[current_classes, prospective_classes]), \
              mock.patch.object(module, "run", return_value=mock.Mock(returncode=0, stdout=__import__("json").dumps(payload))) as run_mock:
             result = module.core_primary_cohort_admissible(
                 ["10.7.0.2", "10.7.0.3"], "target",
             )
 
-        self.assertEqual(result["status"], "CORE_PRIMARY_COHORT_NOT_ADMISSIBLE")
-        self.assertIn(
-            "core_primary_cohort_changes_nonmember_class_or_class_egress",
-            result["blockers"],
-        )
+        self.assertEqual(result["status"], "CORE_PRIMARY_COHORT_ADMISSIBLE")
+        self.assertEqual(result["retired_empty_class_marks"], ["512"])
         self.assertFalse(result["runtime_mutation"])
         self.assertEqual(run_mock.call_args_list[0].args[0][:3], ["nft", "-j", "list"])
         self.assertFalse(any(call.args[0] == ["nft", "-f", "-"] for call in run_mock.call_args_list))

@@ -856,7 +856,7 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertIn("profile_trigger_class=STALE_OR_UNKNOWN_STATE", state_text)
             self.assertFalse(receiver_log.exists())
 
-    def test_fast_producer_deduplicates_users_by_source_and_exact_service_contract(self):
+    def test_fast_producer_aggregates_current_profile_probes_per_source(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             bin_dir = root / "bin"
@@ -892,7 +892,10 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             state_text = output.read_text(encoding="utf-8")
             self.assertIn("fast_producer_active_source_count=1", state_text)
             self.assertIn("fast_producer_distinct_contract_count=2", state_text)
-            self.assertIn("fast_producer_observation_count=2", state_text)
+            self.assertIn("fast_producer_observation_count=1", state_text)
+            self.assertIn(
+                "profile_services=google,telegram,youtube", state_text
+            )
             self.assertIn("fast_producer_receiver_invocation_count=0", state_text)
 
     def test_fast_producer_excludes_certification_only_identity_from_ordinary_scope(self):

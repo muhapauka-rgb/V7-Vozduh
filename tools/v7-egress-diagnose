@@ -1282,34 +1282,52 @@ build_ready_fast_contract_workset() {
   # This is an immutable, per-process work list.  It is neither persisted nor a
   # state/registry owner: canonical source/profile truth remains in the two
   # existing state files used to build it.
+  #
+  # The source is the transport being observed, so probe its one exact union
+  # of currently declared ordinary services once.  Probing every profile
+  # contract independently made one failed source serialize Matrix writes and
+  # consumer wakes after otherwise parallel one-second probes.  The existing
+  # Matrix and Autoswitch owners still expand this source evidence back to
+  # each user's individual profile before Authority or Apply; ``__GLOBAL__``
+  # is only the existing source-scoped probe anchor and never a user decision.
   [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ] || return 0
   [ -r "$PROFILE_CONTRACTS_FILE" ] || return 0
-  previous_source=""
-  source_ready="0"
-  last_checked_iface=""
-  last_checked_iface_ready="0"
-  while IFS=$'\t' read -r source_id profile_user services _profile_count iface enabled state_key; do
-    [ -n "$source_id" ] || continue
-    if [ "$source_id" != "$previous_source" ]; then
-      previous_source="$source_id"
-      source_ready="0"
-      enabled="${enabled:-1}"
-      [ "$enabled" = "1" ] || continue
-      [ -n "$iface" ] || continue
-      if [ "$iface" = "$last_checked_iface" ]; then
-        source_ready="$last_checked_iface_ready"
-      elif interface_up "$iface"; then
-        source_ready="1"
-        last_checked_iface="$iface"
-        last_checked_iface_ready="1"
-      else
-        last_checked_iface="$iface"
-        last_checked_iface_ready="0"
-      fi
-    fi
-    [ "$source_ready" = "1" ] || continue
-    printf '%s\t%s\t%s\t%s\n' "$source_id" "$profile_user" "$services" "$state_key"
-  done < "$PROFILE_CONTRACTS_FILE"
+  python3 - "$PROFILE_CONTRACTS_FILE" <<'PY'
+import sys
+
+sources = {}
+try:
+    rows = open(sys.argv[1], encoding="utf-8")
+except OSError:
+    rows = []
+for raw in rows:
+    fields = raw.rstrip("\n").split("\t")
+    if len(fields) < 7:
+        continue
+    source, _profile, services, profile_count, iface, enabled, _state_key = fields[:7]
+    if not source or not services:
+        continue
+    row = sources.setdefault(source, {
+        "services": set(), "profile_count": 0,
+        "iface": iface, "enabled": enabled or "1",
+    })
+    row["services"].update(
+        service.strip() for service in services.split(",") if service.strip()
+    )
+    try:
+        row["profile_count"] += max(1, int(profile_count or 0))
+    except ValueError:
+        row["profile_count"] += 1
+for source in sorted(sources):
+    row = sources[source]
+    services = ",".join(sorted(row["services"]))
+    if services:
+        print(
+            f"{source}\t__GLOBAL__\t{services}\t{row['profile_count']}"
+            f"\t{row['iface']}\t{row['enabled']}"
+            f"\t{source}_profile_source_aggregate"
+        )
+PY
 }
 
 build_fast_matrix_fresh_failure_index() {
@@ -1441,10 +1459,25 @@ run_parallel_active_profile_suspicion_cycle() {
   work_profiles=()
   work_services=()
   work_state_keys=()
-  while IFS=$'\t' read -r source_id profile_user services state_key; do
+  last_checked_iface=""
+  last_checked_iface_ready="0"
+  while IFS=$'\t' read -r source_id profile_user services _profile_count iface enabled state_key; do
     [ -n "$source_id" ] || continue
     [ -n "$profile_user" ] || continue
     [ -n "$services" ] || continue
+    enabled="${enabled:-1}"
+    [ "$enabled" = "1" ] || continue
+    [ -n "$iface" ] || continue
+    if [ "$iface" = "$last_checked_iface" ]; then
+      [ "$last_checked_iface_ready" = "1" ] || continue
+    elif interface_up "$iface"; then
+      last_checked_iface="$iface"
+      last_checked_iface_ready="1"
+    else
+      last_checked_iface="$iface"
+      last_checked_iface_ready="0"
+      continue
+    fi
     work_sources+=("$source_id")
     work_profiles+=("$profile_user")
     work_services+=("$services")
@@ -1502,6 +1535,14 @@ run_active_profile_suspicion_cycle() {
   [ -r "$PROFILE_CONTRACTS_FILE" ] || return 0
   if [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ]; then
     run_lightweight_batch_profile_suspicion_cycle
+    return 0
+  fi
+  # The governed fast producer always consumes the source-aggregated workset,
+  # even when its configured fan-out is one.  The legacy sequential branch
+  # below iterates every profile contract and would reintroduce the very
+  # per-profile Matrix/wake serialization this bounded path removes.
+  if [ "$FAST_PRODUCER_ONLY" = "1" ]; then
+    run_parallel_active_profile_suspicion_cycle
     return 0
   fi
   if [ "$FAST_PRODUCER_CONCURRENCY" -gt 1 ] 2>/dev/null; then

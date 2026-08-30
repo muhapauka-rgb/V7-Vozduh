@@ -19644,6 +19644,7 @@ class AutoswitchPlanner:
                 action_class=action_class, selected_hash=selected_hash,
                 execution_control_bindings=execution_control_bindings,
                 bounded_checkpoint=bounded_checkpoint,
+                execution_control_operation_id=control_operation_id,
             )
         for move_index, move in enumerate(selected_moves):
             fresh_validation_started_ns = time.monotonic_ns()
@@ -22554,9 +22555,16 @@ class AutoswitchPlanner:
         self, plan: dict[str, Any], *, selected_moves: list[dict[str, Any]],
         entry_control: dict[str, Any], action_class: str, selected_hash: str,
         execution_control_bindings: dict[str, Any], bounded_checkpoint: dict[str, Any],
+        execution_control_operation_id: str = "",
     ) -> dict[str, Any]:
         """Consume one existing N10 cohort through one Core-primary map commit."""
         operation_id = str((plan.get("operation") or {}).get("operation_id") or "")
+        # A recovery checkpoint and its governed execution window deliberately
+        # carry different identities.  The checkpoint names the L3 operation;
+        # the window names the exact Packet-bound authority accepted by the
+        # route writer and Core-primary owner.  Reusing the checkpoint identity
+        # here made valid ordinary emergency cohorts fail closed at apply.
+        control_operation_id = str(execution_control_operation_id or operation_id)
         results: list[dict[str, Any]] = []
         circuit_breaker = {
             "owner": "tools/v7-users-autoswitch.apply",
@@ -22570,7 +22578,7 @@ class AutoswitchPlanner:
                 control = self._execution_control_decision(
                     mutation_kind="forward", action_class=action_class,
                     expected_generation=str(entry_control.get("generation") or ""),
-                    operation_id=operation_id, selected_move_hash=selected_hash,
+                    operation_id=control_operation_id, selected_move_hash=selected_hash,
                     source_bundle_hash=str(execution_control_bindings.get("source_bundle_hash") or ""),
                     snapshot_bundle_hash=str(execution_control_bindings.get("snapshot_bundle_hash") or ""),
                     max_users=to_int(execution_control_bindings.get("max_users"), 0),
@@ -22612,7 +22620,7 @@ class AutoswitchPlanner:
             if len(results) != len(selected_moves) or any(row["rc"] != 0 for row in results):
                 rollback = self._cohort_rollback_to_preimage(
                     rows=[row for row in results if row["rc"] == 0], entry_control=entry_control,
-                    action_class=action_class, operation_id=operation_id,
+                    action_class=action_class, operation_id=control_operation_id,
                     publish_projection=False,
                 ) if any(row["rc"] == 0 for row in results) else {"ok": True, "rows": []}
                 for row in results:
@@ -22621,7 +22629,7 @@ class AutoswitchPlanner:
                 plan.setdefault("safety", {})["core_primary_cohort_rollback"] = rollback
             else:
                 projection = self._core_primary_cohort_commit(
-                    [row["user_ip"] for row in results], operation_id,
+                    [row["user_ip"] for row in results], control_operation_id,
                     emergency_failover=action_class == "EMERGENCY_FAILOVER",
                     selected_move_hash=selected_hash,
                 )
@@ -22631,7 +22639,7 @@ class AutoswitchPlanner:
                     projection_payload = {}
                 plan.setdefault("safety", {})["core_primary_cohort_projection_commit"] = projection_payload
                 if projection.returncode != 0 or projection_payload.get("status") != "CORE_PRIMARY_COHORT_COMMIT_PASS":
-                    rollback = self._cohort_rollback_to_preimage(rows=results, entry_control=entry_control, action_class=action_class, operation_id=operation_id, selected_move_hash=selected_hash)
+                    rollback = self._cohort_rollback_to_preimage(rows=results, entry_control=entry_control, action_class=action_class, operation_id=control_operation_id, selected_move_hash=selected_hash)
                     for row in results:
                         row.update({"rollback_attempted": True, "rollback_result": "OK" if rollback.get("ok") else "FAIL", "terminal_outcome_classification": "ROLLBACK_SUCCESS" if rollback.get("ok") else "ROLLBACK_FAILURE"})
                     circuit_breaker.update({"tripped": True, "trigger_terminal": "CORE_PRIMARY_COHORT_COMMIT_FAILED"})

@@ -2289,11 +2289,15 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         planner._active_execution_control = {}
         staged = []
         commits = []
-        planner._execution_control_decision = lambda **kwargs: {
-            "allowed_forward_mutation": kwargs.get("mutation_kind") == "forward",
-            "rollback_only_allowed": kwargs.get("mutation_kind") == "rollback",
-            "generation": "g1",
-        }
+        controls = []
+        def control_decision(**kwargs):
+            controls.append(kwargs)
+            return {
+                "allowed_forward_mutation": kwargs.get("mutation_kind") == "forward",
+                "rollback_only_allowed": kwargs.get("mutation_kind") == "rollback",
+                "generation": "g1",
+            }
+        planner._execution_control_decision = control_decision
         planner._run_switch = lambda ip, egress, reason: (
             staged.append((ip, egress, reason, bool(getattr(planner, "_core_primary_cohort_defer", False))))
             or subprocess.CompletedProcess(["switch"], 0, stdout="ok")
@@ -2327,13 +2331,18 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             action_class=operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
             selected_hash="selected", execution_control_bindings={
                 "source_bundle_hash": "source", "snapshot_bundle_hash": "snapshot", "max_users": 2,
-            }, bounded_checkpoint={},
+            }, bounded_checkpoint={}, execution_control_operation_id="packet-window-op",
         )
 
         self.assertTrue(result["applied"])
         self.assertEqual([row["terminal_outcome_classification"] for row in result["results"]], ["SUCCESS", "SUCCESS"])
         self.assertEqual(len(commits), 1)
         self.assertEqual(commits[0][0], ["10.0.0.2", "10.0.0.3"])
+        self.assertEqual(commits[0][1], "packet-window-op")
+        self.assertEqual(
+            [row["operation_id"] for row in controls if row["mutation_kind"] == "forward"],
+            ["packet-window-op", "packet-window-op"],
+        )
         self.assertTrue(all(item[3] for item in staged))
         self.assertEqual(len(service_checks), 1)
         self.assertEqual(service_checks[0]["recommended_egress"], "vless")

@@ -20198,6 +20198,29 @@ def live_operational_truth():
     })
 
 
+LIVE_STATUS_CACHE_TTL_SEC = 1.0
+LIVE_STATUS_CACHE = {"body": b"", "ts": 0.0}
+LIVE_STATUS_CACHE_LOCK = threading.Lock()
+
+
+def live_operational_truth_json():
+    """Return a one-second cached Admin read-model response.
+
+    This is a transport cache, never a state owner: the body is rebuilt from
+    the canonical registries and Matrix at most once per second. It protects
+    the two-vCPU Runtime from duplicate browser polling while POST actions
+    continue to return their exact write result immediately.
+    """
+    now = time.monotonic()
+    with LIVE_STATUS_CACHE_LOCK:
+        body = LIVE_STATUS_CACHE.get("body") or b""
+        if body and now - float(LIVE_STATUS_CACHE.get("ts") or 0.0) < LIVE_STATUS_CACHE_TTL_SEC:
+            return body
+        body = json.dumps(redact(live_operational_truth()), ensure_ascii=False, indent=2).encode("utf-8")
+        LIVE_STATUS_CACHE.update({"body": body, "ts": now})
+        return body
+
+
 OVERVIEW_CACHE_TTL_SEC = 20
 OVERVIEW_CACHE = {"data": None, "ts": 0.0, "refreshing": False, "error": ""}
 OVERVIEW_CACHE_LOCK = threading.Lock()
@@ -37485,11 +37508,20 @@ def html_page():
 class Handler(BaseHTTPRequestHandler):
     server_version = "V7Admin/0.1"
 
+    def setup(self):
+        super().setup()
+        # A disconnected browser must not retain a request thread and a full
+        # live-status response indefinitely on the small Runtime.
+        self.connection.settimeout(10)
+
     def log_message(self, fmt, *args):
         return
 
     def send_json(self, data, status=200):
         body = json.dumps(redact(data), ensure_ascii=False, indent=2).encode("utf-8")
+        self.send_json_bytes(body, status=status)
+
+    def send_json_bytes(self, body, status=200):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
@@ -37497,7 +37529,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         try:
             self.wfile.write(body)
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, TimeoutError):
             return
 
     def send_redirect(self, location):
@@ -37818,7 +37850,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/live-status":
             if not self.require_auth(api=True):
                 return
-            self.send_json(live_operational_truth())
+            self.send_json_bytes(live_operational_truth_json())
         elif path == "/api/omp/dashboard":
             if not self.require_auth(api=True):
                 return

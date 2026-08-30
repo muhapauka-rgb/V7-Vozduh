@@ -57,6 +57,13 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertEqual(payload["channel_user_counts"], {"awg0": 1})
         self.assertFalse(payload["service_matrix"]["items"]["vless"]["services"]["telegram"]["ok"])
 
+    def test_live_status_transport_cache_is_short_and_not_a_state_owner(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+
+        self.assertIn("LIVE_STATUS_CACHE_TTL_SEC = 1.0", source)
+        self.assertIn("canonical registries and Matrix", source)
+        self.assertIn("self.send_json_bytes(live_operational_truth_json())", source)
+
     def test_admin_page_uses_lightweight_live_status_polling(self):
         page = self.admin.html_page_v2()
         self.assertIn("/api/live-status", page)

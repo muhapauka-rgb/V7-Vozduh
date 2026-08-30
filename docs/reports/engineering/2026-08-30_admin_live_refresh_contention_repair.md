@@ -32,3 +32,14 @@ the accumulated old request workers so only the new bounded cadence remains.
 - Next runtime check: API is active, active handler count/load returns to a
   stable level, and the health role has no contention-driven long tail before
   any fresh ordinary-recovery event is credited.
+
+## Compatibility for already-open browser tabs
+
+An already-open tab still contains its older half-second JavaScript timer until
+it is reloaded.  The server therefore also gains a one-second **transport
+cache** for `/api/live-status` and a ten-second socket timeout for disconnected
+browser responses.  The cache is rebuilt exclusively from the current users
+registry, egress registry and Matrix; it is not persistent and is not a new
+truth source.  Thus old tabs cannot repeatedly reparse and serialize the full
+read-model or retain request workers indefinitely, while a successful operator
+POST still returns its exact new row without waiting for the cache.

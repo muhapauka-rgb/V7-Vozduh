@@ -3074,7 +3074,10 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
             for key in (
                 "apply_command_ok", "apply_returncode", "apply_timed_out",
                 "child_final_verdict", "child_transaction_status",
-                "child_stop_reason", "child_stop_detail", "proof_blockers",
+                "child_stop_reason", "child_stop_detail",
+                "child_apply_reason", "child_unsafe_blocker",
+                "child_l3_eligibility_blockers",
+                "child_approved_plan_lock_reasons", "proof_blockers",
                 "route_apply_failure_count", "route_apply_failure_reasons",
                 "verification_failure_count", "verification_failure_reasons",
                 "route_verification_failure_categories",
@@ -7514,6 +7517,23 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "child_stop_detail": str(
             apply_payload.get("stop_detail") or ""
         ),
+        # The child may stop at its own final mutable validation without a
+        # top-level terminal field.  Keep only its bounded decision evidence,
+        # so Matrix can diagnose the automatic path without replaying it.
+        "child_apply_reason": str(apply_result.get("reason") or ""),
+        "child_unsafe_blocker": str(
+            apply_result.get("unsafe_blocker") or ""
+        ),
+        "child_l3_eligibility_blockers": list(
+            (apply_result.get("l3_execution_eligibility") or {}).get(
+                "blockers"
+            ) or []
+        )[:12],
+        "child_approved_plan_lock_reasons": list(
+            (apply_result.get("approved_plan_lock_validation") or {}).get(
+                "reasons"
+            ) or []
+        )[:12],
         "proof_blockers": list(
             production_proof_quality.get("blockers") or []
         )[:12],

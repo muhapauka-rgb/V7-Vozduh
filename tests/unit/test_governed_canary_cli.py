@@ -2557,6 +2557,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "apply_returncode": 2,
                 "apply_timed_out": False,
                 "child_stop_reason": "exact_child_terminal",
+                "child_apply_reason": "l3_execution_eligibility_stop_safe",
+                "child_l3_eligibility_blockers": ["target_lost_before_apply"],
                 "proof_blockers": ["runtime_apply_not_performed"],
                 "sensitive_payload": "must-not-project",
             },
@@ -2569,6 +2571,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             result["downstream_proof_diagnostic"]["child_stop_reason"],
             "exact_child_terminal",
+        )
+        self.assertEqual(
+            result["downstream_proof_diagnostic"]["child_apply_reason"],
+            "l3_execution_eligibility_stop_safe",
         )
         self.assertFalse(
             result["downstream_proof_diagnostic"]["apply_command_ok"]

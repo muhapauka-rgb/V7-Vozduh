@@ -5965,6 +5965,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "child_final_verdict": "STOP_SAFE",
                     "child_transaction_status": "STOP_SAFE",
                     "child_stop_reason": "route_visibility_not_confirmed",
+                    "child_apply_reason": "l3_execution_eligibility_stop_safe",
+                    "child_l3_eligibility_blockers": ["target_lost_before_apply"],
                     "proof_blockers": ["route_visibility_not_confirmed"],
                     "route_apply_failure_count": 1,
                     "route_apply_failure_reasons": ["route_writer_apply_failed"],
@@ -5988,6 +5990,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(
             diagnostic["child_stop_reason"],
             "route_visibility_not_confirmed",
+        )
+        self.assertEqual(
+            diagnostic["child_apply_reason"],
+            "l3_execution_eligibility_stop_safe",
         )
         self.assertEqual(
             diagnostic["verification_failure_reasons"],

@@ -144,7 +144,11 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("serialize_slow_roles=not any(controlled.values())", loop)
         self.assertIn('and role.name != "hard"', loop)
         self.assertIn('"--profile-service-failure-samples", "1"', loop)
-        self.assertIn('"--consumer-wake-command", "/bin/true"', loop)
+        self.assertIn(
+            '"--consumer-wake-command", '
+            '"/usr/local/bin/v7-service-matrix-refresh-all"',
+            loop,
+        )
 
     def test_prepared_path_timing_receipt_is_compact_and_non_authoritative(self):
         receipt = HEALTH_LOOP_MODULE.prepared_hot_target_timing_from_output(json.dumps({

@@ -115,11 +115,15 @@ DEFAULT_ROLE_COMMANDS = (
             "--fast-producer-concurrency", "8",
             "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
             "--shadow-trigger-command", "/usr/local/bin/v7-service-matrix-refresh-all",
-            # One bounded protocol-level observation never moves a user: it
-            # immediately enters independent Matrix confirmation. Waiting for
-            # another five-second detector pass makes the seven-second
-            # ordinary recovery contract physically impossible.
-            "--consumer-wake-command", "/bin/true",
+            # One bounded protocol-level observation never moves a user, but
+            # its fresh Matrix confirmation must immediately reach the
+            # existing governed consumer.  Leaving this wake as ``/bin/true``
+            # made a current profile-required failure wait for the whole
+            # batch to exit; on a busy Runtime the ten-second freshness window
+            # could expire before the persistent health owner read it.  The
+            # existing Matrix consumer still owns current scope, Authority,
+            # target selection and Apply; this producer only wakes it.
+            "--consumer-wake-command", "/usr/local/bin/v7-service-matrix-refresh-all",
             "--profile-service-failure-samples", "1",
             "--profile-service-cooldown-sec", "5",
             "--profile-service-shadow-matrix-samples", "1",

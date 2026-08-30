@@ -2055,16 +2055,41 @@ def run_bounded_delegated_service_failure_action(
             "reason": "ordinary_scope_has_no_controlled_certification_consumer",
         }
     else:
-        target_selection_diagnostic = read_controlled_target_selection_diagnostic(
-            state_dir=state_dir,
-            policy_file=policy_file,
-            audit_store=operator_execution_audit_store,
-        )
+        # First ask the existing audit-backed campaign owner whether this
+        # source has a *live* controlled campaign at all.  A finished or
+        # unrelated certification identity must not make an ordinary outage
+        # synchronously rebuild the expensive controlled-target inventory.
+        # If the campaign is genuinely active, retain the same strict
+        # target diagnostic and recompute its binding with that evidence
+        # before it can be actionable.  This is an ordering repair inside
+        # existing owners, not a relaxation of controlled certification.
         campaign_binding = controlled_certification_matrix_binding(
             audit_store=operator_execution_audit_store,
             source=source,
-            target_selection_diagnostic=target_selection_diagnostic,
         )
+        if campaign_binding.get("active"):
+            target_selection_diagnostic = (
+                read_controlled_target_selection_diagnostic(
+                    state_dir=state_dir,
+                    policy_file=policy_file,
+                    audit_store=operator_execution_audit_store,
+                )
+            )
+            campaign_binding = controlled_certification_matrix_binding(
+                audit_store=operator_execution_audit_store,
+                source=source,
+                target_selection_diagnostic=target_selection_diagnostic,
+            )
+        else:
+            target_selection_diagnostic = {
+                "schema_version": (
+                    "v7.controlled-campaign-target-selection-diagnostic.v1"
+                ),
+                "status": "NOT_REQUIRED_NO_ACTIVE_CONTROLLED_CAMPAIGN",
+                "ok": True,
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+            }
     ordinary_incident_actionable = (
         classification == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
         and recommendation_users > 0

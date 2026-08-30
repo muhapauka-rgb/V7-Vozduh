@@ -5095,18 +5095,31 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 encoding="utf-8",
             )
             executor.chmod(0o755)
+            # A completed certification identity can remain on the same
+            # failed source. It must not make ordinary recovery wait for a
+            # broad target diagnostic unless its campaign is still live.
+            mixed_obligation = json.loads(json.dumps(obligation))
+            mixed_obligation["current_source_scope"].update({
+                "scope_classification": "MIXED",
+                "controlled_certification_scope_count": 1,
+            })
             with mock.patch.object(
                 self.refresh,
                 "read_controlled_target_selection_diagnostic",
-            ) as controlled_diagnostic:
+            ) as controlled_diagnostic, mock.patch.object(
+                self.refresh,
+                "controlled_certification_matrix_binding",
+                return_value={"active": False, "ok": False},
+            ) as campaign_binding:
                 stop = self.refresh.run_bounded_delegated_service_failure_action(
                     str(executor),
                     state_dir=state_dir,
                     event_dir=event_dir,
                     policy_file=policy_file,
-                    service_failure_obligation=obligation,
+                    service_failure_obligation=mixed_obligation,
                 )
             controlled_diagnostic.assert_not_called()
+            campaign_binding.assert_called_once()
             self.assertTrue(stop["ok"])
             self.assertEqual(stop["status"], "STOP_SAFE")
             self.assertTrue(stop["action_attempted"])

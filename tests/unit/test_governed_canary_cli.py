@@ -2414,6 +2414,65 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(result["direct_l3_handoff"])
         self.assertEqual(result["source_event_id"], "sfrev_fresh")
 
+    def test_fresh_runtime_matrix_handoff_accepts_canonical_health_evidence(self):
+        """The live health caller is a canonical Matrix evidence producer."""
+        module = load_cli_module()
+        now = datetime.now(timezone.utc)
+        args = argparse.Namespace(
+            expected_service_failure_binding_kind="",
+            expected_service_failure_fresh_matrix_handoff=True,
+            expected_service_failure_obligation_id="sfaob_runtime",
+            expected_service_failure_incident_id="sfinc_runtime",
+            expected_service_failure_scope_fingerprint="scope-runtime",
+            approved_source="vless",
+        )
+        obligation = {
+            "object_type": "service_failure_automation_obligation",
+            "object_id": "sfaob_runtime",
+            "automation_obligation_id": "sfaob_runtime",
+            "closure_state": "READY_FOR_OMP_CONSUMPTION",
+            "source_incident_id": "sfinc_runtime",
+            "channel": "vless",
+            "stop_safe_classification": "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED",
+            "current_source_scope": {
+                "affected_scope_count": 2,
+                "unresolved_scope_count": 2,
+                "affected_scope_fingerprint": "scope-runtime",
+            },
+        }
+        event = {
+            "event_id": "sfe_runtime",
+            "event_type": "SERVICE_FAILURE_OBSERVED",
+            "channel": "vless",
+            "source_incident_id": "sfinc_runtime",
+            "capture_only": True,
+            "event_provenance": "V7_HEALTH_RUNTIME",
+            "timestamp": now.isoformat(),
+            "failure_episode_id": "sfep_runtime",
+            "source_scope": {
+                "affected_scope_count": 2,
+                "affected_scope_fingerprint": "scope-runtime",
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            events = Path(tmp) / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "closure-records.jsonl").write_text(
+                json.dumps(obligation) + "\n", encoding="utf-8",
+            )
+            (events / "service-failure-events.jsonl").write_text(
+                json.dumps(event) + "\n", encoding="utf-8",
+            )
+            result = module.service_failure_obligation_execution_binding(
+                args, state_dir=state, event_dir=events,
+            )
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["source_event_id"], "sfe_runtime")
+        self.assertEqual(result["event_provenance"], "V7_HEALTH_RUNTIME")
+
     def test_ct_m0f_reset_restores_owner_disabled_source_without_return_move(self):
         module = load_cli_module()
         reservation = {
@@ -7504,6 +7563,37 @@ class GovernedCanaryCliTest(unittest.TestCase):
             )
         self.assertTrue(result["allowed"], result)
         self.assertEqual(result["qualifying_service_failure_event"]["event_id"], "sfrev_unit")
+
+    def test_bounded_delegated_policy_accepts_canonical_health_matrix_event(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = self.transaction_args(root, open_control=True)
+            policy_root = json.loads(Path(args.policy_file).read_text(encoding="utf-8"))
+            cycle = self.ready_cycle()
+            cycle["event_consumer"] = {"events": [{
+                "event_id": "sfe_health_runtime",
+                "event_type": "SERVICE_FAILURE_OBSERVED",
+                "channel": "vless",
+                "observed_at": datetime.now(timezone.utc).isoformat(),
+                "capture_only": True,
+                "event_provenance": "V7_HEALTH_RUNTIME",
+                "source_incident_id": "sfinc_unit",
+                "failure_episode_id": "sfep_unit",
+            }]}
+            result = module.bounded_delegated_policy_admission(
+                cycle["packet_preview"],
+                cycle,
+                live_policy_contract=policy_root["delegated_autonomy_policy"],
+                authority_audit_records=module.operator_execution.read_audit_records(
+                    Path(args.operator_execution_audit_store),
+                ),
+            )
+        self.assertTrue(result["allowed"], result)
+        self.assertEqual(
+            result["qualifying_service_failure_event"]["event_provenance"],
+            "V7_HEALTH_RUNTIME",
+        )
 
     def test_bounded_delegated_policy_normalizes_raw_matrix_revalidation_at_consumer_boundary(self):
         module = load_cli_module()

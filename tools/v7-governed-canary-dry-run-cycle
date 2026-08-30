@@ -59,6 +59,13 @@ CONTROLLED_SUBSTRATE_EFFECT_RECORD_TYPE = (
 RECENT_MATRIX_EVENT_FILE_LIMIT = 8
 RECENT_MATRIX_EVENT_ROW_LIMIT = 64
 RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
+# These are evidence producers, not execution callers. Both are written by
+# the canonical Matrix/health path; accepting either preserves the requirement
+# that a governed ordinary recovery starts from fresh, capture-only evidence.
+OWNER_BACKED_MATRIX_FAILURE_PROVENANCES = frozenset({
+    "EXTERNAL_UNATTRIBUTED",
+    "V7_HEALTH_RUNTIME",
+})
 
 
 _IN_PROCESS_PLANNER_MODULE: Any = None
@@ -95,6 +102,11 @@ def bool_value(value: Any) -> bool:
     return str(value).strip().lower() in {
         "1", "true", "yes", "on", "enabled",
     }
+
+
+def owner_backed_matrix_failure_provenance(value: Any) -> bool:
+    """Return whether a failure event came from the canonical Matrix path."""
+    return str(value or "") in OWNER_BACKED_MATRIX_FAILURE_PROVENANCES
 
 
 def health_runtime_executable() -> Path:
@@ -4820,7 +4832,9 @@ def bounded_delegated_policy_admission(
             # provenance cannot manufacture the delegated-action trigger.
             if not bool(event.get("capture_only")):
                 continue
-            if str(event.get("event_provenance") or "") != "EXTERNAL_UNATTRIBUTED":
+            if not owner_backed_matrix_failure_provenance(
+                event.get("event_provenance")
+            ):
                 continue
             if not str(event.get("source_incident_id") or ""):
                 continue
@@ -5757,7 +5771,9 @@ def service_failure_obligation_execution_binding(
                 str(event.get("source_incident_id") or "") != expected_incident_id
                 or str(event.get("object") or "") != expected_source
                 or not bool(event.get("capture_only"))
-                or str(event.get("event_provenance") or "") != "EXTERNAL_UNATTRIBUTED"
+                or not owner_backed_matrix_failure_provenance(
+                    event.get("event_provenance")
+                )
             ):
                 continue
             scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}
@@ -5957,7 +5973,9 @@ def service_failure_obligation_execution_binding(
             continue
         if not bool(event.get("capture_only")):
             continue
-        if str(event.get("event_provenance") or "") != "EXTERNAL_UNATTRIBUTED":
+        if not owner_backed_matrix_failure_provenance(
+            event.get("event_provenance")
+        ):
             continue
         event_scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}
         if str(event_scope.get("affected_scope_fingerprint") or "") != expected_scope_fingerprint:

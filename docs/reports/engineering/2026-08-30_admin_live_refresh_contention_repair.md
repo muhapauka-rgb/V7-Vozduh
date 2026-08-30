@@ -72,3 +72,24 @@ Focused verification after this final edge-case closure:
 Next operational check after safe deployment: observe the existing health
 caller under the reduced UI CPU load.  No client recovery is induced or moved
 by this repair; any recovery evidence must originate from the live V7 Runtime.
+
+## Deployment and Runtime observation
+
+Commit `625ed18f3447772e437e026172fd90d203b531b7` was published to
+`Updatesystem` and deployed through the existing safe-deploy owner as
+`deploy-z8-14-Updatesystem-625ed18-20260830T223529`. Local, GitHub and
+production fingerprints matched; `v7-admin-api.service` and
+`v7-health.service` were both active.
+
+The deployed `/usr/local/bin/v7-admin-api` SHA-256 is
+`7abd77fb18501e9ea0a63478a0f661896098447958b4523a32bfd00f3d66ecab`, matching
+the local approved binary. A direct unauthenticated read-only transport check
+returned `401` from `/api/live-status` in 3–8 ms and `303` from `/` in 3 ms;
+the public gateway, rather than the admin process, owns the browser login
+boundary.
+
+After the restart and one-pass change, ten consecutive existing
+`other_required` health cycles completed in **2.028–3.306 s**. Earlier
+contention outliers were 13–19 s. This is runtime observation of the detector,
+not credited recovery evidence: no incident, candidate, packet, lease,
+barrier, assignment or route was created or advanced manually.

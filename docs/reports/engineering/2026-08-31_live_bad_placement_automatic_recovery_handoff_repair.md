@@ -171,3 +171,40 @@ Consequently the existing bounded-delegated action owner returned
 Lease or Apply was created.  This is the generic current-incident binding
 defect to repair.  It is not a target-capacity, routing, Matrix-write or
 detector-handoff failure.
+
+## Current-incident admission repair
+
+The second reconciliation isolated the defective condition.  A fresh,
+source-bound profile Matrix observation was deliberately allowed to defer the
+existing passive/L3 consumer even when no exact current L3 obligation existed.
+That made the following sequence impossible:
+
+```text
+fresh Matrix event -> existing passive/L3 projection -> existing advisory
+-> existing governed executor
+```
+
+Both later readers then failed closed, correctly, because neither a current
+projection nor an obligation had been materialized.  Historical passive rows
+were not used as a substitute.
+
+The repair is limited to the existing Matrix scheduler.  It now defers the
+passive/L3 consumer for a runtime profile event **only when** the exact current
+L3 obligation is already durable.  For a newly observed exact event it first
+uses the existing passive/L3 consumer, then the existing advisory and governed
+execution owners.  It creates no new state owner, Planner, Authority, route
+writer, queue, timer or target-selection path.
+
+Focused validation passed:
+
+- the new scheduling predicate accepts deferral only with an exact current L3
+  handoff;
+- the same fresh profile event without that handoff proceeds to existing
+  passive/L3 materialization;
+- the current-profile event admission regression remains green;
+- `git diff --check` passed.
+
+This change has not yet been deployed at the time of this report update.  The
+next step is safe deployment, alignment verification, then passive observation
+of the normal V7 Runtime handling the already-current VLESS failure.  Codex
+will not manually advance its transaction or move any user.

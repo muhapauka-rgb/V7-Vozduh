@@ -6656,16 +6656,18 @@ def fresh_runtime_profile_handoff_ready_for_passive_deferral(
     source_constraint: dict[str, Any],
     persistent_matrix_owner: bool,
     skip_passive_consumer: bool,
+    direct_handoff_ready: bool,
 ) -> bool:
-    """Let one exact fresh profile failure reach its existing executor first.
+    """Defer passive history only after an exact current L3 handoff exists.
 
-    The health owner has supplied a source that the current Matrix itself
-    resolves to exactly one active ordinary-failure scope.  Running the
-    retrospective passive reconciler first can consume the full current-data
-    window without contributing a safety fact to the already source-bound
-    governed attempt.  This admits no action by itself: the existing advisory
-    owner still creates the obligation and the existing executor performs all
-    mutable Packet/Lease/Barrier/Apply checks.
+    A fresh profile Matrix observation is not an obligation by itself.  If
+    the existing L3 projection has not materialized this exact source scope,
+    deferring its passive consumer creates a closed loop: there is neither a
+    direct handoff nor a current terminal for the existing advisory owner.
+    Consume that exact Matrix event first.  Once the current L3 handoff is
+    durable, retain retrospective passive history outside the governed path.
+    Candidate, Packet, Lease, Authority and route mutation remain downstream
+    existing owners in both cases.
     """
     return bool(
         runtime_hot_path_only
@@ -6680,6 +6682,7 @@ def fresh_runtime_profile_handoff_ready_for_passive_deferral(
             "ORDINARY_PRODUCTION_ONLY",
             "MIXED_ORDINARY_AND_CERTIFICATION",
         }
+        and direct_handoff_ready
         and not skip_passive_consumer
     )
 
@@ -7607,6 +7610,7 @@ def main() -> int:
                 os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
             ),
             skip_passive_consumer=bool(args.skip_passive_consumer),
+            direct_handoff_ready=bool(direct_service_failure_obligation),
         )
     )
     defer_passive_consumer_until_after_direct_execution = (

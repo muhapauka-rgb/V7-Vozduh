@@ -520,7 +520,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",
         )
 
-    def test_fresh_runtime_profile_handoff_defers_passive_history(self):
+    def test_fresh_runtime_profile_handoff_defers_passive_history_only_after_exact_l3_handoff(self):
         source = {
             "channel": "vless",
             "source_incident_id": "sfinc-current",
@@ -533,6 +533,16 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 source_constraint=source,
                 persistent_matrix_owner=True,
                 skip_passive_consumer=False,
+                direct_handoff_ready=True,
+            )
+        )
+        self.assertFalse(
+            self.refresh.fresh_runtime_profile_handoff_ready_for_passive_deferral(
+                runtime_hot_path_only=True,
+                source_constraint=source,
+                persistent_matrix_owner=True,
+                skip_passive_consumer=False,
+                direct_handoff_ready=False,
             )
         )
         self.assertFalse(
@@ -541,6 +551,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 source_constraint=source,
                 persistent_matrix_owner=False,
                 skip_passive_consumer=False,
+                direct_handoff_ready=True,
             )
         )
         self.assertFalse(
@@ -549,6 +560,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 source_constraint={**source, "source_incident_id": ""},
                 persistent_matrix_owner=True,
                 skip_passive_consumer=False,
+                direct_handoff_ready=True,
             )
         )
 

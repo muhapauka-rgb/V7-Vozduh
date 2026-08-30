@@ -20076,7 +20076,14 @@ def overview(session=None):
     egress = snapshot.egress_state
     route_rows = route_status(active_users)
     stale = run_readonly(["v7-state-stale-check", "180"], timeout=8)
-    killswitch = run_readonly(["v7-killswitch-check"], timeout=8)
+    # ``route_status(active_users)`` above is the current, per-user route
+    # read-model rendered by Admin. Asking the same checker to emit every
+    # policy table as a multi-megabyte shell report on each passive overview
+    # refresh starves the live health owner on the two-vCPU Runtime. Retain
+    # the existing checker and all global kill-switch invariants; defer only
+    # that duplicate per-user report to the already-exact route read-model.
+    # Full ``v7-killswitch-check`` remains the deploy/safety gate.
+    killswitch = run_readonly(["v7-killswitch-check", "--admin-summary"], timeout=8)
     capacity = run_readonly(["v7-capacity-check", "500"], timeout=8)
     capacity_readiness = run_readonly(["v7-capacity-readiness", "500"], timeout=10)
     ipam_preview = run_readonly(["v7-ipam-preview"], timeout=8)

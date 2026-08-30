@@ -64,6 +64,18 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("canonical registries and Matrix", source)
         self.assertIn("self.send_json_bytes(live_operational_truth_json())", source)
 
+    def test_overview_uses_existing_killswitch_summary_without_duplicate_user_report(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+        overview = source[source.index("def overview(session=None):"):source.index("def live_operational_truth():")]
+
+        self.assertIn('["v7-killswitch-check", "--admin-summary"]', overview)
+        self.assertIn("route_status(active_users)", overview)
+        checker = (ROOT / "hardening" / "v7-killswitch-check").read_text(encoding="utf-8")
+        self.assertIn("--admin-summary", checker)
+        self.assertIn("user_route_check=deferred_to_admin_route_reality", checker)
+        sync = (ROOT / "tools" / "v7_sync_lib.py").read_text(encoding="utf-8")
+        self.assertIn('"local_path": "hardening/v7-killswitch-check"', sync)
+
     def test_overview_smart_profiles_reuse_one_artifact_tree_scan(self):
         users = [
             {"ip": "10.7.0.125", "enabled": "1"},

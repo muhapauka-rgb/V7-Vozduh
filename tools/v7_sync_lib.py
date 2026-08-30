@@ -26278,6 +26278,16 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        # The Admin read-model invokes this existing runtime checker. Keep its
+        # deployed implementation in the safe-sync manifest so the overview
+        # cannot refer to an argument that exists only in the repository.
+        "name": "v7-killswitch-check",
+        "local_path": "hardening/v7-killswitch-check",
+        "remote_path": "/usr/local/bin/v7-killswitch-check",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-public-gateway.service",
         "local_path": "systemd/v7-public-gateway.service",
         "remote_path": "/etc/systemd/system/v7-public-gateway.service",

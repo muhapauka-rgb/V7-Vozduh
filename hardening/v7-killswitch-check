@@ -11,6 +11,23 @@ DIRECT_TABLE="70"
 DIRECT_RULE_PREF="50"
 EGRESS_IFS=()
 result="OK"
+summary_only=0
+
+# The full checker remains the deploy and safety authority.  The Admin
+# overview already obtains an exact per-user route read-model separately, so
+# making every open browser re-run and serialize the full per-user shell
+# report wastes CPU and can delay the health owner on the two-vCPU Runtime.
+# This is a read-only, same-owner summary mode: it retains all global
+# kill-switch/NAT/DNS invariants and deliberately omits only the duplicated
+# user-route report.
+case "${1:-}" in
+  "") ;;
+  --admin-summary) summary_only=1 ;;
+  *)
+    echo "usage: v7-killswitch-check [--admin-summary]" >&2
+    exit 2
+    ;;
+esac
 
 if [ -r "$EGRESS_REG" ]; then
   while read -r ifname; do
@@ -195,7 +212,9 @@ for egress_if in "${EGRESS_IFS[@]}"; do
 done
 
 
-if [ -f "$REG" ]; then
+if [ "$summary_only" = "1" ]; then
+  echo "user_route_check=deferred_to_admin_route_reality"
+elif [ -f "$REG" ]; then
   echo
   echo "===== USER ROUTE CHECK ====="
   while read -r line; do

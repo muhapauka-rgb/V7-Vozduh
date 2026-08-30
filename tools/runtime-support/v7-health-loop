@@ -101,7 +101,7 @@ DEFAULT_ROLE_COMMANDS = (
         ),
     ),
     (
-        "other_required", 5_000,
+        "other_required", 3_500,
         (
             "/usr/local/bin/v7-egress-diagnose",
             "--output", "/opt/v7/egress/state/egress-diagnose.state",
@@ -171,7 +171,14 @@ DEFAULT_ROLE_INITIAL_OFFSETS_MS = {
     "telegram": 250,
     "hot_target": 500,
     "hot_target_other": 1_000,
-    "other_required": 3_500,
+    # The ordinary source detector is the only regular recovery entry for a
+    # profile-required service.  Three and a half seconds removes the former
+    # five-second blind window while retaining a bounded idle window on the
+    # two-vCPU host for the prepared target lane. A one-second cadence would
+    # immediately restart its observed 1.8..3.4-second probe and permanently
+    # starve target readiness; this is the fastest measured stable interval
+    # inside the existing owner.
+    "other_required": 750,
     "planner_projection": 13_000,
     "deep": 20_000,
 }
@@ -1597,7 +1604,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--telegram-interval-ms", type=int, default=1_000)
     parser.add_argument("--hot-target-interval-ms", type=int, default=1_000)
     parser.add_argument("--hot-target-other-interval-ms", type=int, default=5_000)
-    parser.add_argument("--required-interval-ms", type=int, default=5_000)
+    parser.add_argument("--required-interval-ms", type=int, default=3_500)
     parser.add_argument("--planner-projection-interval-ms", type=int, default=30_000)
     parser.add_argument("--deep-interval-ms", type=int, default=60_000)
     parser.add_argument(

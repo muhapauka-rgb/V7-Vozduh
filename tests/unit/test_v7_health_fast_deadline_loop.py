@@ -146,7 +146,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("serialize_slow_roles=not any(controlled.values())", loop)
         self.assertIn('and role.name != "hard"', loop)
         self.assertIn('"--profile-service-failure-samples", "1"', loop)
-        other_required_command = loop.split('"other_required", 5_000,', 1)[1].split(
+        other_required_command = loop.split('"other_required", 3_500,', 1)[1].split(
             '"planner_projection", 30_000,', 1
         )[0]
         self.assertNotIn(
@@ -158,6 +158,11 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             "persistent Matrix parent could consume the result",
             other_required_command,
         )
+        self.assertIn('"other_required": 750', loop)
+
+    def test_production_required_detector_uses_measured_stable_3500ms_interval(self):
+        args = HEALTH_LOOP_MODULE.parse_args(["--role-based-fast"])
+        self.assertEqual(args.required_interval_ms, 3_500)
 
     def test_prepared_path_timing_receipt_is_compact_and_non_authoritative(self):
         receipt = HEALTH_LOOP_MODULE.prepared_hot_target_timing_from_output(json.dumps({

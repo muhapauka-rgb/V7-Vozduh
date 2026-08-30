@@ -5785,6 +5785,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "result": {
                     "active": False,
                     "reason": "no_open_unmaterialized_passive_terminal",
+                    "candidate_diagnostic": {
+                        "requested_source": "vless",
+                        "passive_source_row_count": 3,
+                        "candidate_count": 0,
+                    },
                 },
             },
         })["consumer_result"]
@@ -5794,6 +5799,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "no_open_unmaterialized_passive_terminal",
         )
         self.assertFalse(projected["service_failure_advisory"]["active"])
+        self.assertEqual(
+            projected["service_failure_advisory"]["candidate_diagnostic"]
+            ["passive_source_row_count"],
+            3,
+        )
 
     def test_matrix_projection_retains_governed_execution_timing(self):
         timing = {

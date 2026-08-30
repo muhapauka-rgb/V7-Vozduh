@@ -5367,6 +5367,12 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         obligation = obligation if isinstance(obligation, dict) else {}
         current_scope = obligation.get("current_source_scope")
         current_scope = current_scope if isinstance(current_scope, dict) else {}
+        candidate_diagnostic = advisory.get("candidate_diagnostic")
+        candidate_diagnostic = (
+            candidate_diagnostic
+            if isinstance(candidate_diagnostic, dict)
+            else {}
+        )
         compact_result["service_failure_advisory"] = {
             key: item
             for key, item in {
@@ -5394,6 +5400,16 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
                 "unresolved_scope_count": current_scope.get(
                     "unresolved_scope_count"
                 ),
+                "candidate_diagnostic": {
+                    key: candidate_diagnostic.get(key)
+                    for key in (
+                        "requested_source", "source_bound_live_recovery",
+                        "live_requested_incident_ids", "passive_source_row_count",
+                        "live_incident_mismatch_count", "already_terminal_count",
+                        "candidate_count",
+                    )
+                    if candidate_diagnostic.get(key) not in (None, "", [], {})
+                },
             }.items()
             if item not in (None, "", [], {})
         }

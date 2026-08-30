@@ -20708,6 +20708,15 @@ class AutoswitchPlanner:
                 or str(row.get("channel") or "") == requested_source
             )
         ]
+        candidate_diagnostic = {
+            "requested_source": requested_source,
+            "source_bound_live_recovery": source_bound_live_recovery,
+            "live_requested_incident_ids": sorted(live_requested_incident_ids),
+            "passive_source_row_count": len(passive),
+            "live_incident_mismatch_count": 0,
+            "already_terminal_count": 0,
+            "candidate_count": 0,
+        }
         candidate_selection_started_ns = time.monotonic_ns()
         candidates = []
         correct_terminals_skipped = 0
@@ -20717,6 +20726,7 @@ class AutoswitchPlanner:
             ) not in live_requested_incident_ids:
                 # No matching current Matrix event means this passive row is
                 # history, not the cause of the live source-bound wake.
+                candidate_diagnostic["live_incident_mismatch_count"] += 1
                 continue
             terminal = str(row.get("terminal_outcome_classification") or "").upper()
             if terminal.startswith(("RECOVERY", "EPISODE_EXPIRED")):
@@ -20724,6 +20734,7 @@ class AutoswitchPlanner:
                 # They must never outrank a newer open revalidation merely
                 # because they were appended later in the same batch.
                 correct_terminals_skipped += 1
+                candidate_diagnostic["already_terminal_count"] += 1
                 continue
             obligation_id = self._service_failure_automation_obligation_id(row)
             if obligation_id:
@@ -20794,6 +20805,7 @@ class AutoswitchPlanner:
                     obligation_id,
                     row,
                 ))
+        candidate_diagnostic["candidate_count"] = len(candidates)
         record_advisory_span(
             "advisory_passive_candidate_selection",
             candidate_selection_started_ns,
@@ -20805,6 +20817,7 @@ class AutoswitchPlanner:
                 "active": False,
                 "reason": "no_open_unmaterialized_passive_terminal",
                 "correct_terminals_skipped": correct_terminals_skipped,
+                "candidate_diagnostic": candidate_diagnostic,
                 "outcome_reconciliation": outcome_reconciliation,
                 "pre_obligation_scope_reconciliation": pre_obligation_scope_reconciliation,
                 "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False},

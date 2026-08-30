@@ -520,6 +520,38 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",
         )
 
+    def test_fresh_runtime_profile_handoff_defers_passive_history(self):
+        source = {
+            "channel": "vless",
+            "source_incident_id": "sfinc-current",
+            "affected_scope_count": 2,
+            "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+        }
+        self.assertTrue(
+            self.refresh.fresh_runtime_profile_handoff_ready_for_passive_deferral(
+                runtime_hot_path_only=True,
+                source_constraint=source,
+                persistent_matrix_owner=True,
+                skip_passive_consumer=False,
+            )
+        )
+        self.assertFalse(
+            self.refresh.fresh_runtime_profile_handoff_ready_for_passive_deferral(
+                runtime_hot_path_only=True,
+                source_constraint=source,
+                persistent_matrix_owner=False,
+                skip_passive_consumer=False,
+            )
+        )
+        self.assertFalse(
+            self.refresh.fresh_runtime_profile_handoff_ready_for_passive_deferral(
+                runtime_hot_path_only=True,
+                source_constraint={**source, "source_incident_id": ""},
+                persistent_matrix_owner=True,
+                skip_passive_consumer=False,
+            )
+        )
+
     def test_existing_planner_selection_drives_subset_then_full_matrix_comparison(self):
         plan = {
             "decisions": [

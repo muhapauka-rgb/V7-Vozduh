@@ -6614,6 +6614,40 @@ def ordinary_direct_handoff_ready_for_passive_deferral(
     )
 
 
+def fresh_runtime_profile_handoff_ready_for_passive_deferral(
+    *,
+    runtime_hot_path_only: bool,
+    source_constraint: dict[str, Any],
+    persistent_matrix_owner: bool,
+    skip_passive_consumer: bool,
+) -> bool:
+    """Let one exact fresh profile failure reach its existing executor first.
+
+    The health owner has supplied a source that the current Matrix itself
+    resolves to exactly one active ordinary-failure scope.  Running the
+    retrospective passive reconciler first can consume the full current-data
+    window without contributing a safety fact to the already source-bound
+    governed attempt.  This admits no action by itself: the existing advisory
+    owner still creates the obligation and the existing executor performs all
+    mutable Packet/Lease/Barrier/Apply checks.
+    """
+    return bool(
+        runtime_hot_path_only
+        and persistent_matrix_owner
+        and isinstance(source_constraint, dict)
+        and str(source_constraint.get("channel") or "")
+        and str(source_constraint.get("source_incident_id") or "")
+        and int(source_constraint.get("affected_scope_count") or 0) > 0
+        and str(source_constraint.get("scope_classification") or "")
+        in {
+            "ORDINARY_ONLY",
+            "ORDINARY_PRODUCTION_ONLY",
+            "MIXED_ORDINARY_AND_CERTIFICATION",
+        }
+        and not skip_passive_consumer
+    )
+
+
 def should_defer_certification_tail(
     *,
     event_only: bool,
@@ -7529,6 +7563,14 @@ def main() -> int:
             event_only=event_only,
             source_scope=source_scope,
             obligation=direct_service_failure_obligation,
+            skip_passive_consumer=bool(args.skip_passive_consumer),
+        )
+        or fresh_runtime_profile_handoff_ready_for_passive_deferral(
+            runtime_hot_path_only=bool(args.runtime_hot_path_only),
+            source_constraint=profile_source_constraint,
+            persistent_matrix_owner=(
+                os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+            ),
             skip_passive_consumer=bool(args.skip_passive_consumer),
         )
     )

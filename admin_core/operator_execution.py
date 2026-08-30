@@ -7356,6 +7356,18 @@ def approved_plan_lock_from_selected(selected, packet, packet_hash):
         "executor_may_replace_users": False,
         "executor_may_replace_targets": False,
     }
+    # A live Matrix incident is already independently validated before this
+    # Packet is created.  Preserve its compact causal identity in the same
+    # immutable Packet lock that reaches the sole route writer.  Otherwise
+    # Apply has to rediscover a lossy per-service Matrix projection after the
+    # Packet/Lease/Barrier boundary and can reject the very incident that
+    # admitted this exact move.  The binding contains no raw user list and is
+    # still revalidated against the canonical event ledger by the consumer.
+    causal_binding = packet.get("service_failure_causal_binding")
+    if isinstance(causal_binding, dict) and causal_binding:
+        payload["service_failure_causal_binding"] = copy.deepcopy(
+            causal_binding
+        )
     payload["lock_id"] = stable_id("apl", payload)
     payload["lock_hash"] = sha256_bytes(canonical_json(payload).encode("utf-8"))
     return payload

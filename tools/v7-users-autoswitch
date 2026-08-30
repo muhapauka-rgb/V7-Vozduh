@@ -10475,6 +10475,17 @@ class AutoswitchPlanner:
         )
         if exact_matrix_profile_failure.get("confirmed"):
             fresh_profile_failure = True
+        packet_bound_profile_failure = (
+            self._packet_bound_ordinary_service_failure_evidence(
+                plan,
+                user_ip=user_ip,
+                source=current_id,
+                target=target_id,
+                required_services=required_services,
+            )
+        )
+        if packet_bound_profile_failure.get("confirmed"):
+            fresh_profile_failure = True
         source_failure_confirmed = (
             bool_value(current_failure.get("confirmed"))
             or fresh_profile_failure
@@ -10516,10 +10527,163 @@ class AutoswitchPlanner:
             "profile_required_services": required_services,
             "profile_service_failure_confirmed": fresh_profile_failure,
             "exact_matrix_profile_failure": exact_matrix_profile_failure,
+            "packet_bound_profile_failure": packet_bound_profile_failure,
             "current_failures": [
                 {"service": row.get("service"), "status": row.get("status"), "truth_class": row.get("truth_class"), "freshness": row.get("freshness")}
                 for row in current_failures
             ],
+        }
+
+    def _packet_bound_ordinary_service_failure_evidence(
+        self,
+        plan: dict[str, Any],
+        *,
+        user_ip: str,
+        source: str,
+        target: str,
+        required_services: list[str],
+    ) -> dict[str, Any]:
+        """Revalidate the Matrix event frozen in the existing Packet lock.
+
+        The health/Matrix consumer has already established the exact incident
+        before Candidate and Packet creation.  The sole route writer must
+        still independently prove that this immutable binding matches its
+        current source, Packet scope, event ledger and Matrix service state.
+        This avoids treating a lossy per-service row as a second health owner;
+        neither target selection nor a route mutation is performed here.
+        """
+        if not bool_value(
+            getattr(self.args, "ordinary_service_failure_context", False)
+        ):
+            return {"confirmed": False, "reason": "ordinary_context_required"}
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        barrier = (
+            safety.get("restore_barrier")
+            if isinstance(safety.get("restore_barrier"), dict)
+            else {}
+        )
+        lock = (
+            barrier.get("approved_plan_lock")
+            if isinstance(barrier.get("approved_plan_lock"), dict)
+            else {}
+        )
+        binding = lock.get("service_failure_causal_binding")
+        binding = binding if isinstance(binding, dict) else {}
+        scope = (
+            binding.get("source_scope")
+            if isinstance(binding.get("source_scope"), dict)
+            else {}
+        )
+        event_ids = {
+            str(value) for value in (binding.get("source_event_ids") or [])
+            if str(value)
+        }
+        if str(binding.get("source_event_id") or ""):
+            event_ids.add(str(binding.get("source_event_id") or ""))
+        lock_move_matches = any(
+            isinstance(row, dict)
+            and str(row.get("user_ip") or "") == user_ip
+            and str(row.get("current_egress") or row.get("from") or "") == source
+            and str(row.get("recommended_egress") or row.get("to") or "") == target
+            for row in (lock.get("selected_moves") or [])
+        )
+        structural_ok = bool(
+            str(binding.get("source_incident_id") or "")
+            and event_ids
+            and str(binding.get("source_channel") or "") == source
+            and str(scope.get("source_channel") or "") == source
+            and int(scope.get("affected_scope_count") or 0) > 0
+            and str(scope.get("affected_scope_fingerprint") or "")
+            and not bool(scope.get("raw_user_list_stored"))
+            and lock_move_matches
+        )
+        if not structural_ok:
+            return {
+                "confirmed": False,
+                "reason": "packet_bound_service_failure_binding_invalid",
+            }
+
+        matrix_services = self._matrix_services(source)
+        failed_required = {
+            service for service in normalize_service_ids(required_services)
+            if isinstance(matrix_services.get(service), dict)
+            and (
+                matrix_services[service].get("ok") is False
+                or str(matrix_services[service].get("status") or "").upper()
+                in {"FAIL", "DOWN", "ERROR", "NOT_STARTED"}
+            )
+        }
+        if not failed_required:
+            return {
+                "confirmed": False,
+                "reason": "current_matrix_required_service_failure_missing",
+            }
+
+        now = datetime.now(timezone.utc)
+        event_match: dict[str, Any] = {}
+        for event in reversed(read_service_failure_event_window(
+            self.event_dir / "service-failure-events.jsonl",
+        )):
+            if str(event.get("event_id") or "") not in event_ids:
+                continue
+            if str(event.get("source_incident_id") or "") != str(
+                binding.get("source_incident_id") or ""
+            ):
+                continue
+            if str(event.get("channel") or event.get("object") or "") != source:
+                continue
+            if (
+                str(event.get("event_type") or "")
+                not in {"SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED"}
+                or not bool(event.get("capture_only"))
+                or str(event.get("event_provenance") or "")
+                not in EXECUTION_RECONCILABLE_SERVICE_FAILURE_PROVENANCES
+            ):
+                continue
+            event_scope = (
+                event.get("source_scope")
+                if isinstance(event.get("source_scope"), dict)
+                else {}
+            )
+            if (
+                str(event_scope.get("affected_scope_fingerprint") or "")
+                != str(scope.get("affected_scope_fingerprint") or "")
+                or int(event_scope.get("affected_scope_count") or 0)
+                != int(scope.get("affected_scope_count") or 0)
+            ):
+                continue
+            try:
+                observed_seconds = parse_ts(
+                    str(event.get("observed_at") or event.get("timestamp") or "")
+                )
+                age_seconds = now.timestamp() - float(observed_seconds)
+            except (TypeError, ValueError):
+                continue
+            if not 0 <= age_seconds <= 1800:
+                continue
+            event_services = {
+                str(service) for service in (event.get("correlated_services") or [])
+                if str(service)
+            }
+            if str(event.get("service") or ""):
+                event_services.add(str(event.get("service") or ""))
+            if event_services and not event_services.intersection(failed_required):
+                continue
+            event_match = {
+                "event_id": str(event.get("event_id") or ""),
+                "source_incident_id": str(event.get("source_incident_id") or ""),
+                "age_seconds": round(age_seconds, 3),
+                "failed_required_services": sorted(failed_required),
+            }
+            break
+        return {
+            "confirmed": bool(event_match),
+            "reason": (
+                "packet_bound_current_matrix_profile_failure"
+                if event_match else "packet_bound_service_failure_event_not_current"
+            ),
+            "event": event_match,
+            "owner": "existing Packet lock + Matrix event ledger + route writer",
         }
 
     def _exact_matrix_profile_failure(

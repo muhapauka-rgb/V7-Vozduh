@@ -231,3 +231,55 @@ current Matrix incident.
 Three focused regressions pass, including the strict fresh-binding case, the
 continuing-current-Matrix case, and the profile-event admission case.  This
 second repair is pending safe deployment and normal Runtime observation.
+
+## Deployed continuing-incident result and Packet-to-Apply repair
+
+The continuing-incident repair was committed as
+`d265e5c9f005098dcbacfa146873c90bfa3da61f` and safely deployed as
+`deploy-z8-14-Updatesystem-d265e5c-20260831T010249`.  Local, GitHub and
+Runtime copies of `v7-users-autoswitch` were then verified to have the same
+SHA-256 (`b1f22fbeb9a7165bb9e15e3b3f751264d09c0b4f2dcb62fe112df8ad02ba9d43`);
+`v7-health.service` remained active.
+
+The next normal V7 cycle proved the repair reached its intended consumer:
+Matrix kept the same current VLESS incident and one-user ordinary scope,
+the passive/L3 owner completed, the advisory created a one-user obligation,
+and the governed executor began an automatic transaction.  Codex did not
+select a target, create an incident, or invoke a route mutation.
+
+That transaction stopped safely before Apply.  Its exact child diagnosis was
+`l3_execution_eligibility_stop_safe` with the apparent blockers
+`fresh_profile_or_channel_failure_evidence_required`,
+`required_service_failure_required`, and `safe_target_required`.  This was
+not a real loss of the Matrix fact: the parent had already validated the
+current Matrix incident, source scope, Candidate and target before creating
+the Packet.  The independent route-writer recheck then tried to reconstruct
+the fact solely from a lossy per-service Matrix row, which does not retain
+the event identity used by the parent.  The immutable Packet did not carry
+that compact causal binding into its approved lock, so the route writer could
+not independently reconcile it and correctly stopped.
+
+The current bounded repair preserves the existing owners and the fail-closed
+law:
+
+```text
+Matrix current event
+-> existing obligation binding revalidated by governed executor
+-> immutable Packet + approved Packet lock
+-> route writer re-reads lock, current Matrix and canonical event ledger
+-> Apply only when all identities still match
+```
+
+It adds neither a new health truth source nor an alternate route writer.  The
+Packet lock now carries only compact incident/event/scope identity (never raw
+user lists); the route writer accepts it only for its exact locked
+user/source/target and only while both the event ledger and current Matrix
+still prove a failed required service.  A changed scope, source, target,
+event, stale event or recovered Matrix remains a safe refusal.
+
+Focused verification for the repair passed: five focused regression tests
+cover Packet-lock propagation, current Matrix/event revalidation, strict
+fresh handoff, continuing incident admission and existing tier-4 binding.
+`git diff --check` passed.  The next step is publish and safe deployment,
+then observe the next normal V7 cycle.  No success or seven-second credit is
+claimed until that live automatic chain reaches required-service S11.

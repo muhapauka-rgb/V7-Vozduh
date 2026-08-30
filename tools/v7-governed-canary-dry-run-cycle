@@ -6102,6 +6102,41 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         return transaction_stop("l3_production_validation_confirmation_required")
     requested_tier = resolved_l3_requested_max_users(args)
     requested_max_users = int(requested_tier["max_users"])
+    if bool(getattr(args, "ordinary_service_failure_only", False)):
+        # The outer Matrix consumer may already have performed this exact
+        # binding, but the L3 executor is also used through compatible
+        # delegated entrypoints.  Re-read it here before Packet creation so
+        # every ordinary recovery carries the same current Matrix event into
+        # its immutable Packet, regardless of which existing caller reached
+        # this executor.  A supplied binding must agree byte-for-byte with
+        # the revalidated owner result; it is never caller authority.
+        revalidated_causal_binding = service_failure_obligation_execution_binding(
+            args, state_dir=state_dir, event_dir=event_dir,
+        )
+        if not revalidated_causal_binding.get("ok"):
+            return transaction_stop(
+                "ordinary_service_failure_causal_binding_invalid",
+                service_failure_causal_binding=revalidated_causal_binding,
+            )
+        supplied_causal_binding = getattr(
+            args, "_service_failure_causal_binding", {},
+        )
+        if (
+            isinstance(supplied_causal_binding, dict)
+            and supplied_causal_binding
+            and operator_execution.sha256_json(supplied_causal_binding)
+            != operator_execution.sha256_json(revalidated_causal_binding)
+        ):
+            return transaction_stop(
+                "ordinary_service_failure_causal_binding_changed",
+                supplied_service_failure_causal_binding=(
+                    operator_execution.redact(supplied_causal_binding)
+                ),
+                current_service_failure_causal_binding=(
+                    operator_execution.redact(revalidated_causal_binding)
+                ),
+            )
+        args._service_failure_causal_binding = revalidated_causal_binding
     ct_m0f_validation_requested = bool(
         getattr(args, "ct_m0f_kernel_cutover_validation", False)
     )

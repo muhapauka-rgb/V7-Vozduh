@@ -134,6 +134,99 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(continuing_affected, 1)
         self.assertEqual(continuing_incidents, {"sfinc_current", "sfinc_old"})
 
+    def test_packet_bound_profile_failure_revalidates_current_matrix_event(self):
+        """The route writer may consume the exact Packet-bound Matrix fact."""
+        now = datetime.now(timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            event_dir = Path(tmp)
+            event_dir.joinpath("service-failure-events.jsonl").write_text(
+                json.dumps({
+                    "event_id": "sfe_packet_bound",
+                    "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "channel": "vless",
+                    "source_incident_id": "sfinc_packet_bound",
+                    "capture_only": True,
+                    "event_provenance": "V7_HEALTH_RUNTIME",
+                    "timestamp": now.isoformat(),
+                    "correlated_services": ["google"],
+                    "source_scope": {
+                        "source_channel": "vless",
+                        "affected_scope_count": 1,
+                        "affected_scope_fingerprint": "scope_packet_bound",
+                    },
+                }) + "\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.args = SimpleNamespace(ordinary_service_failure_context=True)
+            planner.event_dir = event_dir
+            planner.matrix = {"items": {"vless": {"services": {
+                "google": {"ok": False, "status": "FAIL"},
+            }}}}
+            plan = {"safety": {"restore_barrier": {"approved_plan_lock": {
+                "selected_moves": [{
+                    "user_ip": "10.7.0.125",
+                    "current_egress": "vless",
+                    "recommended_egress": "awg0",
+                }],
+                "service_failure_causal_binding": {
+                    "source_incident_id": "sfinc_packet_bound",
+                    "source_event_id": "sfe_packet_bound",
+                    "source_event_ids": ["sfe_packet_bound"],
+                    "source_channel": "vless",
+                    "source_scope": {
+                        "source_channel": "vless",
+                        "affected_scope_count": 1,
+                        "affected_scope_fingerprint": "scope_packet_bound",
+                        "raw_user_list_stored": False,
+                    },
+                },
+            }}}}
+
+            evidence = planner._packet_bound_ordinary_service_failure_evidence(
+                plan,
+                user_ip="10.7.0.125",
+                source="vless",
+                target="awg0",
+                required_services=["google"],
+            )
+
+        self.assertTrue(evidence["confirmed"], evidence)
+        self.assertEqual(evidence["event"]["event_id"], "sfe_packet_bound")
+
+    def test_approved_packet_lock_keeps_compact_service_failure_binding(self):
+        binding = {
+            "source_incident_id": "sfinc_lock",
+            "source_event_id": "sfe_lock",
+            "source_channel": "vless",
+            "source_scope": {
+                "source_channel": "vless",
+                "affected_scope_count": 1,
+                "affected_scope_fingerprint": "scope_lock",
+                "raw_user_list_stored": False,
+            },
+        }
+        lock = operator_execution.approved_plan_lock_from_selected(
+            {
+                "moves": [{
+                    "user_ip": "10.7.0.125",
+                    "current_egress": "vless",
+                    "recommended_egress": "awg0",
+                }],
+                "constraints": {"allowed_users": ["10.7.0.125"], "allowed_targets": ["awg0"]},
+                "selected_move_count": 1,
+                "selected_move_hash": "move-lock",
+            },
+            {
+                "packet_id": "pkt_lock",
+                "operation_id": "op_lock",
+                "service_failure_causal_binding": binding,
+            },
+            "packet-hash",
+        )
+
+        self.assertEqual(lock["service_failure_causal_binding"], binding)
+
     def test_exact_client_probe_owner_is_loaded_once_in_process(self):
         previous = self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE
         self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE = None

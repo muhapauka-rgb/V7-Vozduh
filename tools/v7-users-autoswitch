@@ -10074,14 +10074,17 @@ class AutoswitchPlanner:
         self,
         plan: dict[str, Any],
     ) -> dict[str, Any]:
-        """Validate one Matrix-confirmed ordinary failure before apply.
+        """Validate a bounded Matrix-confirmed ordinary failure before apply.
 
         Ordinary service-failure recovery is not an emergency-authority
         transaction, so it must not be forced through the emergency incident
         readiness gate.  This narrow owner check retains the independent
-        mutable checks needed by the existing route writer: one ordinary live
+        mutable checks needed by the existing route writer: each ordinary live
         identity, unchanged failed source, eligible target, fresh failure and
-        target service evidence, and no certification identity.
+        target service evidence, and no certification identity.  A live
+        failed-source cohort is allowed only inside the exact already-issued
+        delegated tier; this method neither widens that tier nor chooses its
+        members.
         """
         selected = [
             move for move in (plan.get("selected_moves") or [])
@@ -10091,8 +10094,32 @@ class AutoswitchPlanner:
         blockers: list[str] = []
         if not bool_value(getattr(self.args, "ordinary_service_failure_context", False)):
             blockers.append("ordinary_service_failure_context_required")
-        if len(selected) != 1:
-            blockers.append("ordinary_service_failure_requires_exactly_one_move")
+        runtime_axes = (
+            self.emergency_failover_policy.get("runtime_scope_axes")
+            if isinstance(self.emergency_failover_policy, dict)
+            else {}
+        )
+        runtime_axes = runtime_axes if isinstance(runtime_axes, dict) else {}
+        policy_max_users = max(
+            0,
+            to_int(
+                runtime_axes.get("ordinary_production_runtime_max"),
+                to_int(self.emergency_failover_policy.get("max_users_per_run"), 0),
+            ),
+        )
+        requested_max_users = max(
+            0,
+            to_int(getattr(self.args, "max_selected_moves", 0), 0),
+        )
+        authorized_max_users = (
+            min(policy_max_users, requested_max_users)
+            if requested_max_users > 0
+            else policy_max_users
+        )
+        if authorized_max_users not in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES:
+            blockers.append("ordinary_service_failure_authorized_tier_invalid")
+        if not 1 <= len(selected) <= authorized_max_users:
+            blockers.append("ordinary_service_failure_selected_scope_outside_authorized_tier")
         if not str(operation.get("selected_move_hash") or ""):
             blockers.append("selected_move_hash_missing")
         checked_moves: list[dict[str, Any]] = []
@@ -10139,6 +10166,10 @@ class AutoswitchPlanner:
             "decision": "EXECUTE_ORDINARY_SERVICE_FAILURE" if not blockers else "STOP_SAFE",
             "blockers": sorted(set(blockers)),
             "checked_moves": checked_moves,
+            "selected_move_count": len(selected),
+            "authorized_max_users": authorized_max_users,
+            "policy_max_users": policy_max_users,
+            "requested_max_users": requested_max_users,
             "owner": "tools/v7-users-autoswitch existing service-failure consumer",
             "runtime_mutation": False,
         }

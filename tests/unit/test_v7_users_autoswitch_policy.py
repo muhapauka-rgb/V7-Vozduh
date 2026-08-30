@@ -3642,6 +3642,61 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(evidence["ok"], evidence)
         self.assertTrue(evidence["exact_matrix_profile_failure"]["confirmed"])
 
+    def test_ordinary_service_failure_execution_allows_existing_bounded_cohort(self):
+        """The route consumer must not collapse a lawful tier-4 packet to one.
+
+        The existing Planner/Authority packet remains responsible for scope
+        selection.  This pre-Apply gate only rechecks every live ordinary
+        member and respects its already-issued tier.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=4,
+                egress_1_services={
+                    "instagram": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "score": 0,
+                        "failure_state": "OBSERVED_NEW",
+                        "source_incident_id": "unit-cohort-incident",
+                        "failure_event_id": "unit-cohort-event",
+                        "confirmed_hard_failure_monotonic_ns": 123456789,
+                    },
+                },
+            )
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"]["services"]["instagram"]["tested_at"] = self.tool.now_iso()
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (root / "state" / "service-preferences.json").write_text(
+                json.dumps({
+                    "users": {
+                        f"10.0.0.{index}": {"services": ["instagram"]}
+                        for index in range(2, 6)
+                    },
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(
+                root,
+                ["--ordinary-service-failure-context", "--max-selected-moves", "4"],
+            ))
+            planner.emergency_failover_policy["max_users_per_run"] = 4
+            plan = planner.plan()
+            move = plan["selected_moves"][0]
+            plan["selected_moves"] = [
+                {**move, "user_ip": f"10.0.0.{index}"}
+                for index in range(2, 6)
+            ]
+            eligibility = planner._ordinary_service_failure_execution_eligibility(plan)
+
+        self.assertTrue(eligibility["ok"], eligibility)
+        self.assertEqual(eligibility["selected_move_count"], 4)
+        self.assertEqual(eligibility["authorized_max_users"], 4)
+        self.assertTrue(all(not row["blockers"] for row in eligibility["checked_moves"]))
+
     def test_ordinary_profile_failure_defers_advisory_snapshot_stop_to_governed_rechecks(self):
         """A stale advisory read cannot suppress a fresh Matrix failure move."""
         with tempfile.TemporaryDirectory() as tmp:

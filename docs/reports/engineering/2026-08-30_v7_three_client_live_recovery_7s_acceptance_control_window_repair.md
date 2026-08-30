@@ -204,3 +204,56 @@ operator-provided source failure has recovered, it is closed without an
 unnecessary user move and cannot be counted as seven-second acceptance. If a
 fresh required-service failure remains actionable, V7—not Codex—must complete
 the automatic recovery and produce the full last-member timing record.
+
+## Fifth live reconciliation: the route consumer rejected its own lawful cohort
+
+The fourth repair was deployed as `066c18d7`. The normal `v7-health` caller
+then created a new current ordinary VLESS recovery operation itself. It passed
+Matrix, affected-scope discovery, Planner, Candidate, Packet, Lease, Barrier,
+and its exact operation window. The existing Planner selected four ordinary
+members from the same failed source, within the current delegated tier of
+four, and the existing owner selected `awg0` as target.
+
+No client was moved. The route consumer stopped the operation before calling
+`v7-user-switch` with `l3_execution_eligibility_stop_safe`. Its per-operation
+reason was `ordinary_service_failure_requires_exactly_one_move`.
+
+This was an internal contract contradiction: the existing source-scoped
+Planner and Packet/Lease/Barrier owners lawfully authorize a bounded cohort,
+but the final mutable pre-Apply check still insisted on exactly one member.
+It violates the product requirement to recover a compatible failed-source
+cohort rather than serializing every member into separate lifecycles.
+
+## Implemented fifth generic repair
+
+* The final ordinary service-failure check now accepts one through the exact
+  already-authorized delegated cohort size. The allowed size is the smaller of
+  the live ordinary-production policy ceiling and the existing caller's
+  `--max-selected-moves` narrowing value.
+* A missing, zero, or non-engineering-qualified tier remains `STOP_SAFE`.
+  The repair does not raise a policy ceiling or allow an arbitrary batch.
+* Every member still receives the same live mutable checks: enabled ordinary
+  identity, unchanged source, eligible distinct target, fresh required-service
+  failure, target readiness, and certification exclusion.
+* Planner, Matrix, Authority, Packet, Lease, Barrier, Core-primary, and
+  `v7-user-switch` remain the existing owners. The repair selects neither
+  clients nor targets and makes no direct runtime mutation.
+
+## Verification for the fifth repair
+
+* New focused test proves that a four-member ordinary profile-failure packet
+  passes only when every individual member's current evidence is valid and the
+  existing authorized tier is four.
+* Existing exact Matrix profile-failure and tier-four scope tests pass.
+* Focused result: 3 passed.
+* Service-failure episode regression: 128 passed.
+* Whitespace/diff validation: pass.
+
+## Next step
+
+Publish and safely deploy this fifth repair. Then observe only the normal
+`v7-health -> Matrix -> automatic governed recovery` chain. If the current
+Matrix evidence remains actionable, V7 must recover the selected current
+cohort itself and emit the last-member timing. If it does not, no one is moved
+and the current observation remains an invalid/non-creditable seven-second
+sample; the next fresh live owner-backed failure is required.

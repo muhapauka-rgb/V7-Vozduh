@@ -106,7 +106,6 @@ DEFAULT_ROLE_COMMANDS = (
             "/usr/local/bin/v7-egress-diagnose",
             "--output", "/opt/v7/egress/state/egress-diagnose.state",
             "--fast-producer-only",
-            "--lightweight-batch-producer",
             # A 2-vCPU Runtime cannot safely execute 128 one-second network
             # probes at once: the detector then manufactures timeouts on
             # healthy channels and blocks the same event loop it must wake.
@@ -114,6 +113,10 @@ DEFAULT_ROLE_COMMANDS = (
             # the host's scheduling/connection-pressure cliff.
             "--fast-producer-concurrency", "8",
             "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
+            # A failed one-second sentinel must be written through this same
+            # canonical Matrix owner before its governed consumer wakes.
+            # Shadow-only observation has no canonical state to hand off.
+            "--definitive-matrix-command", "/usr/local/bin/v7-service-matrix-test",
             "--shadow-trigger-command", "/usr/local/bin/v7-service-matrix-refresh-all",
             # One bounded protocol-level observation never moves a user, but
             # its fresh Matrix confirmation must immediately reach the

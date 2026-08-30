@@ -884,6 +884,31 @@ EOF
     trigger_status="PASS"
     trigger_rc="0"
     printf '%s_profile_matrix_confirmation=REUSED_CURRENT\n' "$state_key" >> "$TMP"
+  elif [ -n "$DEFINITIVE_MATRIX_COMMAND" ]; then
+    # The lightweight sentinel is only suspicion. On a failed exact profile
+    # contract, ask the existing canonical Matrix writer to confirm precisely
+    # those failed services before waking recovery. The former shadow-only
+    # observation never updated Matrix, leaving the consumer with an old
+    # failure that it correctly refused to act on.
+    PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=$((PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT + 1))
+    confirmed_services="$(printf '%s' "$failed_services" | tr ',' '\n' | cut -d: -f1 | awk 'NF && !seen[$0]++ { values = values (values ? "," : "") $0 } END { print values }')"
+    if [ -z "$confirmed_services" ]; then
+      confirmed_services="$services"
+    fi
+    if "$DEFINITIVE_MATRIX_COMMAND" "$source_id" all \
+      --services "$confirmed_services" \
+      --state-dir "$STATE_DIR" \
+      --event-dir "$CANONICAL_EVENT_DIR" \
+      --failure-persistence-samples 1 \
+      --failure-persistence-window-seconds 30 \
+      --timeout 1 >/dev/null 2>&1; then
+      trigger_status="PASS"
+      trigger_rc="0"
+      printf '%s_profile_matrix_confirmation=CANONICAL_EXACT_CURRENT\n' "$state_key" >> "$TMP"
+    else
+      trigger_rc="$?"
+      trigger_status="FAILED"
+    fi
   else
     PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=$((PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT + 1))
     # This is an independent canonical confirmation of the exact affected

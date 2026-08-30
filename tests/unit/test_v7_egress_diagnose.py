@@ -651,6 +651,51 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertIn("--shadow-trigger-profile-user profile-a", receiver_args)
             self.assertIn("--shadow-trigger-class REQUIRED_SERVICE_FAILURE", receiver_args)
 
+    def test_profile_failure_is_confirmed_by_canonical_matrix_before_wake(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgservice protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgservice_code=000\n", encoding="utf-8")
+            (state / "users.registry").write_text("ip=profile-a current=wgservice enabled=1\n", encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({
+                "required_services": ["google"],
+                "users": {"profile-a": {"services": ["google", "telegram"]}},
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            self.write_command(bin_dir, "profile-checker", "printf '%s\\n' '{\"status\":\"FAIL\",\"results\":{\"google\":{\"ok\":false,\"status\":\"DOWN\",\"reason\":\"HTTP_FAILURE\"},\"telegram\":{\"ok\":true,\"status\":\"OK\"}}}'\n")
+            definitive_log = root / "definitive.args"
+            shadow_log = root / "shadow.args"
+            wake_log = root / "wake.log"
+            self.write_command(bin_dir, "definitive-matrix", "printf '%s\\n' \"$*\" > \"$DEFINITIVE_LOG\"\nexit 0\n")
+            self.write_command(bin_dir, "shadow-receiver", "printf '%s\\n' \"$*\" > \"$SHADOW_LOG\"\nexit 0\n")
+            self.write_command(bin_dir, "wake-consumer", "printf 'wake\\n' >> \"$WAKE_LOG\"\nexit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["DEFINITIVE_LOG"] = str(definitive_log)
+            env["SHADOW_LOG"] = str(shadow_log)
+            env["WAKE_LOG"] = str(wake_log)
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state),
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--definitive-matrix-command", str(bin_dir / "definitive-matrix"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--consumer-wake-command", str(bin_dir / "wake-consumer"),
+                "--profile-service-failure-samples", "1",
+                "--profile-service-cooldown-sec", "0",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            self.assertIn("profile_matrix_confirmation=CANONICAL_EXACT_CURRENT", state_text)
+            self.assertIn("profile_consumer_wake=PASS", state_text)
+            confirmation_args = definitive_log.read_text(encoding="utf-8")
+            self.assertIn("wgservice all --services google", confirmation_args)
+            self.assertIn("--failure-persistence-samples 1", confirmation_args)
+            self.assertFalse(shadow_log.exists())
+
     def test_dns_profile_producer_has_dns_specific_class_and_cooldown(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -317,3 +317,31 @@ the whole chain (fresh Matrix T0 -> obligation -> Packet/Lease/Barrier ->
 Apply -> required-service S11).  Its full timing distribution, including any
 result above seven seconds, must be retained before the seven-second target
 can be claimed.
+
+## Correction: full observed operator-to-recovery latency
+
+The earlier `69.568 s` figure was an internal interval from a later Matrix T0
+in a different VLESS episode.  It was not the requested end-to-end time from
+the operator's incompatible placement.  It must not be used as the ordinary
+recovery result.
+
+For the last three-user live placement, the canonical switch history records:
+
+| User | Operator placed on VLESS (UTC) | V7 automatic return (UTC) | Full observed delay |
+| --- | --- | --- | ---: |
+| `10.7.0.125` | 21:43:29.384 | 21:51:37.969 | 488.585 s (8m 08.585s) |
+| `10.7.0.126` | 21:43:37.446 | 21:51:38.943 | 481.497 s (8m 01.497s) |
+| `10.7.0.127` | 21:43:41.366 | 21:51:39.847 | 478.482 s (7m 58.482s) |
+
+The first relevant Matrix observation was at `21:45:22.262 UTC`, around
+1m 41s to 1m 53s after placement.  The first actual automatic route change
+then happened 6m 15.707s after that observation.  Until that point, the
+passive consumer repeatedly recorded `STOP_SAFE_NO_ACTION` with the reason
+that a current Authority/Packet could not be reused.  Only later did the
+separate governed automatic transaction apply the recovery.
+
+Therefore the current full-path result is **about eight minutes**, not seven
+seconds and not 69 seconds.  It is an SLO failure.  The next repair must treat
+both the delayed first Matrix observation and the multi-minute
+Matrix-to-governed-execution gap as one end-to-end latency defect, while
+retaining normal V7-originated operation and all safety checks.

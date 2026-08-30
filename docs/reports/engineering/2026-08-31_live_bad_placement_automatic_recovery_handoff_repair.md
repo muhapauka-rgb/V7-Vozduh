@@ -99,3 +99,9 @@ ordinary failed-source event after deployment yet, so a seven-second result is
 not claimed.  The next new current Matrix failure must be observed through the
 normal V7 caller and retained in the full distribution whether it passes or
 fails.
+
+The first post-restart normal detector observation had three active sources,
+six profile contracts and three source-scoped observations.  Its first result
+was 1.826 s, P95 was 1.979 s and the maximum was 1.979 s.  This confirms the
+new streaming detector is active under the existing caller; it is not a
+failure/recovery sample and does not establish the seven-second SLO.

@@ -280,6 +280,40 @@ event, stale event or recovered Matrix remains a safe refusal.
 Focused verification for the repair passed: five focused regression tests
 cover Packet-lock propagation, current Matrix/event revalidation, strict
 fresh handoff, continuing incident admission and existing tier-4 binding.
-`git diff --check` passed.  The next step is publish and safe deployment,
-then observe the next normal V7 cycle.  No success or seven-second credit is
-claimed until that live automatic chain reaches required-service S11.
+`git diff --check` passed.
+
+## Packet-to-Apply repair deployment and repeated measurement status
+
+The bounded repair was committed as
+`2f4cc76dd427ed81a61c3eff58e1cb9690fc5c40`, published to `Updatesystem`,
+and deployed through `tools/v7-safe-deploy` as
+`deploy-z8-14-Updatesystem-2f4cc76-20260831T011648`.
+
+The deployment gate had no blockers.  The exact deployed SHA-256 values match
+the published sources for all three changed Runtime members:
+
+- `v7-users-autoswitch` — `5c60f8238473da1e67b89a7ed06e9ca1349a9bc1e10a758383b5ee07d4da2f79`;
+- `v7-governed-canary-dry-run-cycle` — `271eb43f781e0cbbaf20011e11e126b3e37837a160994ba6d8740d93f330951f`;
+- `admin_core/operator_execution.py` — `6847a9e3b8a39fd351168e0ae4df72c005a5ce10104d8a70ff0f6a4e7ef75227`.
+
+`v7-health.service` and `v7-admin-api.service` are active.  The repair keeps
+the existing route writer as the only writer: it can now consume an immutable,
+compact Packet binding only after it independently confirms the same current
+Matrix failure and canonical event.  A changed source, changed scope, stale
+event, recovered Matrix row, or absent required-service failure still blocks
+the route mutation.
+
+The requested repeated live measurement cannot truthfully be credited yet.
+At the observation time, the only `users.registry` entry still on VLESS was
+disabled (`10.7.0.7`); every active ordinary user had already left the source.
+The current Matrix summary therefore reports
+`STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION`, which is the correct
+non-action result.  Codex did not manufacture a failure or move an ordinary
+user to obtain a measurement.
+
+The exact next step is a new real operator-originated incompatible placement
+of an enabled ordinary user.  The unmodified V7 Runtime must then originate
+the whole chain (fresh Matrix T0 -> obligation -> Packet/Lease/Barrier ->
+Apply -> required-service S11).  Its full timing distribution, including any
+result above seven seconds, must be retained before the seven-second target
+can be claimed.

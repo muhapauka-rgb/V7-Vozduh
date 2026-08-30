@@ -2027,16 +2027,44 @@ def run_bounded_delegated_service_failure_action(
             "admitted_max_users": policy_max_users,
             "max_concurrent_transactions": policy_concurrency,
         }
-    target_selection_diagnostic = read_controlled_target_selection_diagnostic(
-        state_dir=state_dir,
-        policy_file=policy_file,
-        audit_store=operator_execution_audit_store,
+    # The controlled-certification target diagnostic is useful only to bind a
+    # certification campaign. It reconstructs a large read-only target
+    # picture and, when run for every ordinary failure, can consume a whole
+    # CPU core while the existing ordinary governed executor is waiting to
+    # protect customers. An ordinary scope has no certification consumer to
+    # bind: the executor below still performs its own current Matrix,
+    # Authority, Candidate, Packet, Lease, Barrier, route and S11 checks.
+    # Do not make the certification-only diagnostic an implicit prerequisite
+    # of the ordinary recovery path.
+    scope_classification = str(source_scope.get("scope_classification") or "")
+    ordinary_non_certification_scope = (
+        scope_classification in {"ORDINARY_ONLY", "ORDINARY_PRODUCTION_ONLY"}
+        and int(source_scope.get("controlled_certification_scope_count") or 0) == 0
     )
-    campaign_binding = controlled_certification_matrix_binding(
-        audit_store=operator_execution_audit_store,
-        source=source,
-        target_selection_diagnostic=target_selection_diagnostic,
-    )
+    if ordinary_non_certification_scope:
+        target_selection_diagnostic = {
+            "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
+            "status": "NOT_REQUIRED_ORDINARY_SERVICE_FAILURE",
+            "ok": True,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+        campaign_binding = {
+            "active": False,
+            "status": "NOT_REQUIRED_ORDINARY_SERVICE_FAILURE",
+            "reason": "ordinary_scope_has_no_controlled_certification_consumer",
+        }
+    else:
+        target_selection_diagnostic = read_controlled_target_selection_diagnostic(
+            state_dir=state_dir,
+            policy_file=policy_file,
+            audit_store=operator_execution_audit_store,
+        )
+        campaign_binding = controlled_certification_matrix_binding(
+            audit_store=operator_execution_audit_store,
+            source=source,
+            target_selection_diagnostic=target_selection_diagnostic,
+        )
     ordinary_incident_actionable = (
         classification == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
         and recommendation_users > 0
@@ -7602,6 +7630,52 @@ def main() -> int:
         and profile_source_constraint
         and os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
     )
+    # A newly affected ordinary profile can be assigned to a source whose
+    # Matrix failure was already known. In that case no new incident needs to
+    # be invented, but waiting for the capture-only passive history reader to
+    # create an L3 bridge leaves the customer exposed until a later periodic
+    # reconciliation. Ask the existing advisory owner for one exact
+    # obligation first, constrained by the current Matrix source binding. It
+    # still cannot create a Candidate, Packet, Lease or route; those stay with
+    # the existing governed executor below. If it cannot produce a matching
+    # obligation, retain the original capture-first STOP_SAFE flow.
+    fresh_profile_advisory: dict[str, Any] = {}
+    fresh_profile_obligation: dict[str, Any] = {}
+    if fresh_runtime_profile_handoff and not direct_service_failure_obligation:
+        fresh_profile_advisory = run_service_failure_automation_advisory(
+            str(args.passive_consumer),
+            state_dir=state_dir,
+            event_dir=Path(args.event_dir),
+            # A missing advisory must fail closed promptly; it may not turn a
+            # fresh Matrix T0 into a minute-scale wait before the existing
+            # fallback path can report its terminal state.
+            timeout_sec=max(5, min(int(args.passive_consumer_timeout_sec), 5)),
+            matrix_comparative_preflight=bool(args.matrix_comparative_preflight),
+            source_egress=str(profile_source_constraint.get("channel") or ""),
+            runtime_profile_handoff=True,
+        )
+        proposed_obligation = service_failure_obligation_from_advisory(
+            (fresh_profile_advisory.get("consumer_result") or {})
+            if isinstance(fresh_profile_advisory, dict) else {}
+        )
+        proposed_scope = (
+            proposed_obligation.get("current_source_scope")
+            if isinstance(proposed_obligation.get("current_source_scope"), dict)
+            else {}
+        )
+        if (
+            str(proposed_obligation.get("channel") or "")
+            == str(profile_source_constraint.get("channel") or "")
+            and str(proposed_obligation.get("source_incident_id") or "")
+            == str(profile_source_constraint.get("source_incident_id") or "")
+            and str(proposed_scope.get("affected_scope_fingerprint") or "")
+            == str(profile_source_constraint.get("source_scope_fingerprint") or "")
+            and int(proposed_scope.get("affected_scope_count") or 0) > 0
+            and str(proposed_obligation.get("stop_safe_classification") or "")
+            == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+        ):
+            fresh_profile_obligation = proposed_obligation
+            payload["service_failure_automation_advisory"] = fresh_profile_advisory
     fresh_runtime_profile_passive_deferral = (
         fresh_runtime_profile_handoff_ready_for_passive_deferral(
             runtime_hot_path_only=bool(args.runtime_hot_path_only),
@@ -7610,7 +7684,9 @@ def main() -> int:
                 os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
             ),
             skip_passive_consumer=bool(args.skip_passive_consumer),
-            direct_handoff_ready=bool(direct_service_failure_obligation),
+            direct_handoff_ready=bool(
+                direct_service_failure_obligation or fresh_profile_obligation
+            ),
         )
     )
     defer_passive_consumer_until_after_direct_execution = (
@@ -7780,6 +7856,11 @@ def main() -> int:
             "ok": True,
             "reason": "existing_l3_projection_proves_current_exact_handoff",
         }
+    elif payload.get("service_failure_automation_advisory"):
+        # The exact fresh profile advisory above already materialized one
+        # current obligation. Running it again would duplicate Planner work
+        # in the same Runtime transaction.
+        pass
     elif args.skip_service_failure_automation_advisory:
         payload["service_failure_automation_advisory"] = {
             "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
@@ -7834,7 +7915,9 @@ def main() -> int:
             "runtime_mutation_performed": False,
         }
     service_failure_obligation = (
-        fresh_service_failure_obligation or direct_service_failure_obligation
+        fresh_service_failure_obligation
+        or fresh_profile_obligation
+        or direct_service_failure_obligation
     )
     fresh_direct_l3_obligation_handoff = bool(
         direct_service_failure_obligation

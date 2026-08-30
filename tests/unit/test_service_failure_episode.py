@@ -5080,6 +5080,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "unresolved_scope_count": 4,
                     "explicitly_excluded_or_recovered_scope_count": 0,
                     "affected_scope_fingerprint": "scope-test-tier4",
+                    "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+                    "controlled_certification_scope_count": 0,
                     "raw_user_list_stored": False,
                 },
             }
@@ -5093,13 +5095,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 encoding="utf-8",
             )
             executor.chmod(0o755)
-            stop = self.refresh.run_bounded_delegated_service_failure_action(
-                str(executor),
-                state_dir=state_dir,
-                event_dir=event_dir,
-                policy_file=policy_file,
-                service_failure_obligation=obligation,
-            )
+            with mock.patch.object(
+                self.refresh,
+                "read_controlled_target_selection_diagnostic",
+            ) as controlled_diagnostic:
+                stop = self.refresh.run_bounded_delegated_service_failure_action(
+                    str(executor),
+                    state_dir=state_dir,
+                    event_dir=event_dir,
+                    policy_file=policy_file,
+                    service_failure_obligation=obligation,
+                )
+            controlled_diagnostic.assert_not_called()
             self.assertTrue(stop["ok"])
             self.assertEqual(stop["status"], "STOP_SAFE")
             self.assertTrue(stop["action_attempted"])
@@ -7087,6 +7094,19 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "fresh_service_failure_obligation",
             source[defer_marker:executor_call],
         )
+
+    def test_fresh_profile_handoff_materializes_exact_obligation_before_passive_history(self):
+        """A newly affected profile cannot wait for capture-only history."""
+        source = REFRESH_TOOL.read_text(encoding="utf-8")
+        fresh_advisory = source.index("fresh_profile_advisory = run_service_failure_automation_advisory(")
+        passive_branch = source.index("    if args.skip_passive_consumer:", fresh_advisory)
+        executor_call = source.index(
+            'payload["bounded_delegated_service_failure_action"] = run_bounded_delegated_service_failure_action(',
+            fresh_advisory,
+        )
+        self.assertLess(fresh_advisory, passive_branch)
+        self.assertIn("fresh_profile_obligation", source[fresh_advisory:executor_call])
+        self.assertIn("timeout_sec=max(5, min(int(args.passive_consumer_timeout_sec), 5))", source)
 
     def test_direct_l3_handoff_does_not_wait_for_omp_before_executor(self):
         """A validated fallback projection is a Runtime handoff, not an OMP wait."""

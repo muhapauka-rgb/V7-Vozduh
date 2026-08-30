@@ -345,3 +345,43 @@ seconds and not 69 seconds.  It is an SLO failure.  The next repair must treat
 both the delayed first Matrix observation and the multi-minute
 Matrix-to-governed-execution gap as one end-to-end latency defect, while
 retaining normal V7-originated operation and all safety checks.
+
+## Eight-minute causal repair: first bounded Runtime correction
+
+The initial diagnosis disproved the idea of a single slow timer.  During the
+same production window, source-health roles configured for one-to-five-second
+cadence repeatedly ran for roughly 31--65 seconds and missed their next
+deadlines.  The first raw VLESS failure appeared about 33 seconds after the
+first incompatible placement, while the exact profile-relevant source scope
+was not available until later.  The record also shows repeated capture-only
+`STOP_SAFE_NO_ACTION` outcomes before the governed transaction finally ran.
+
+One avoidable synchronous cost was proven in the ordinary path: every ordinary
+failure was first running the certification-only target-selection diagnostic.
+That diagnostic reconstructs a broad controlled-test target view, is not a
+safety condition for an ordinary customer recovery, and was observed consuming
+almost a full CPU core alongside the health loop.  The current correction:
+
+- skips that diagnostic only for a source scope explicitly classified as
+  ordinary-only with zero certification members;
+- leaves its existing execution intact for every controlled/certification or
+  ambiguous scope;
+- lets the existing advisory owner materialize one exact current profile
+  obligation before capture-only passive history, but only when source,
+  incident and affected-scope fingerprints all match the fresh Matrix binding;
+- keeps Candidate, Packet, Lease, Barrier, Apply, route verification and S11
+  with their existing governed owners; and
+- keeps the former capture-first flow whenever the bounded advisory cannot
+  return a matching obligation inside five seconds.
+
+This is a generic Runtime repair, not a Codex-operated recovery.  It does not
+choose a user or target, create an incident, mutate a registry, or invoke the
+route writer.  Five focused regressions pass, including ordinary diagnostic
+exclusion, exact fresh-profile handoff ordering, direct-L3 ordering, and the
+existing passive-deferral guard.  Syntax and whitespace checks also pass.
+
+At this checkpoint the repair is **not yet deployed and the seven-second SLO
+is not claimed**.  The next action is safe deployment followed by observation
+of the normal V7 caller on current owner-backed state.  The full historic test
+module was also sampled but has pre-existing independent failures; it is not
+being represented as verification of this repair.

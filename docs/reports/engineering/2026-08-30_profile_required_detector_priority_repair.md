@@ -49,3 +49,22 @@ only.  Measure first valid Matrix failure observation through all affected
 users' required-service S11.  The acceptance limit is `<= 7 s`; `> 8 s` fails.
 No synthetic replay, manual user movement or manual execution transition may
 receive credit.
+
+## Follow-up measurement and bounded batch refinement
+
+The deployed priority repair was observed in the existing health journal:
+`hot_target_other` was preempted before `other_required`, and the detector
+fell from the prior 43--78 second range to ordinary observed completions of
+2.409, 2.863, 4.241, 2.504, 3.029, 5.162, 3.871 and 6.320 seconds.  This
+confirmed that background contention was the first material cause, but the
+largest two samples still exceeded the detector's intended five-second role
+window.
+
+The existing batch telemetry then showed 12 short probes across three active
+source contracts, with an eight-way cap.  That necessarily used two one-second
+network waves.  The cap is therefore increased only to 12: one bounded wave,
+still below the already deployed 16-way prepared-target cap.  No service
+contract, Matrix semantics, user assignment, route or Authority behaviour is
+changed.  The next normal cycles must show whether this removes the remaining
+detector tail before a fresh automatic recovery generation is eligible for the
+seven-second end-to-end proof.

@@ -119,9 +119,11 @@ DEFAULT_ROLE_COMMANDS = (
             # A 2-vCPU Runtime cannot safely execute 128 one-second network
             # probes at once: the detector then manufactures timeouts on
             # healthy channels and blocks the same event loop it must wake.
-            # Eight retains bounded fan-out while keeping the producer below
-            # the host's scheduling/connection-pressure cliff.
-            "--fast-producer-concurrency", "8",
+            # Current ordinary source contracts contain twelve short probes.
+            # Twelve keeps one bounded network-I/O wave instead of forcing a
+            # second one-second wave, while remaining below the established
+            # 16-way prepared-target cap on this two-vCPU Runtime.
+            "--fast-producer-concurrency", "12",
             "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
             # A failed one-second sentinel must be written through this same
             # canonical Matrix owner before the health parent consumes its

@@ -6795,6 +6795,48 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
         self.assertEqual(result["final_verdict"], "READY", result)
 
+    def test_l3_direct_handoff_reuses_one_ready_obligation_before_omp_receipt(self):
+        """Fresh Matrix/L3 truth must not wait for its own historical receipt."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            scope = {
+                "status": "ACCOUNTED", "affected_scope_count": 2,
+                "protected_scope_count": 0, "unresolved_scope_count": 2,
+                "explicitly_excluded_or_recovered_scope_count": 0,
+                "affected_scope_fingerprint": "r" * 64,
+            }
+            obligation = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_fresh",
+                "automation_consumption_fingerprint": "f" * 64,
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "source_incident_id": "sfinc_fresh",
+                "situation_id": "sit_fresh",
+                "decision_trace_id": "dec_fresh",
+                "current_source_scope": scope,
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                json.dumps(obligation) + "\n", encoding="utf-8"
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"current": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                    "incident_id": "sfinc_fresh", "incident_state": "OPEN",
+                    "channel_incident_state": "OPEN", "obligation_id": "sfaob_fresh",
+                    "current_source_scope": scope,
+                }},
+            }), encoding="utf-8")
+            result = self.sync.service_failure_direct_execution_handoff(
+                state_dir=state_dir,
+                source_incident_id="sfinc_fresh",
+                source_scope_fingerprint="r" * 64,
+            )
+        self.assertEqual(result["final_verdict"], "READY", result)
+        self.assertEqual(
+            result["obligation"]["automation_obligation_id"], "sfaob_fresh"
+        )
+
     def test_l3_scope_reader_filters_historical_duplicate_by_matrix_fingerprint(self):
         """An exact Matrix fingerprint skips an older broken duplicate."""
         with tempfile.TemporaryDirectory() as tmp:

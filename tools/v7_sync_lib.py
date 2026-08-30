@@ -8018,15 +8018,67 @@ def service_failure_direct_execution_handoff(
     )
     state = _read_json_object(resolved_state_dir / "l3-runtime-state.json")
     incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
-    candidates = [
-        (str(key), record, record.get("direct_execution_handoff"))
-        for key, record in incidents.items()
-        if isinstance(record, dict)
-        and str(record.get("authority_object") or "") == "PASSIVE_SERVICE_FAILURE_CAPTURE"
-        and str(record.get("incident_state") or "") == "OPEN"
-        and isinstance(record.get("direct_execution_handoff"), dict)
-        and str((record.get("direct_execution_handoff") or {}).get("status") or "") == "READY"
-    ]
+    rows = _read_jsonl_records(resolved_state_dir / "closure-records.jsonl")
+    ready_obligations_by_id: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        if (
+            str(row.get("object_type") or "")
+            == "service_failure_automation_obligation"
+            and str(row.get("closure_state") or "")
+            == "READY_FOR_OMP_CONSUMPTION"
+            and str(row.get("automation_obligation_id") or "")
+        ):
+            ready_obligations_by_id.setdefault(
+                str(row.get("automation_obligation_id") or ""), []
+            ).append(row)
+
+    candidates = []
+    for key, record in incidents.items():
+        if (
+            not isinstance(record, dict)
+            or str(record.get("authority_object") or "")
+            != "PASSIVE_SERVICE_FAILURE_CAPTURE"
+            or str(record.get("incident_state") or "") != "OPEN"
+        ):
+            continue
+        direct = (
+            record.get("direct_execution_handoff")
+            if isinstance(record.get("direct_execution_handoff"), dict)
+            else {}
+        )
+        if str(direct.get("status") or "") == "READY":
+            candidates.append((str(key), record, direct))
+            continue
+        # A newly durable obligation and the compact L3 incident are already
+        # the existing Matrix-owned handoff.  Waiting for an OMP receipt to
+        # copy those exact fields back into ``direct_execution_handoff`` made
+        # the hot path circular: the Runtime required a direct handoff before
+        # it could safely defer receipt work, while the direct handoff was
+        # created only after that receipt.  Reuse the one exact ready
+        # obligation here, subject to the same identity and live-scope checks
+        # below.  This creates no state, Candidate, Packet, lease or route.
+        obligation_id = str(record.get("obligation_id") or "")
+        ready_rows = ready_obligations_by_id.get(obligation_id, [])
+        if len(ready_rows) != 1:
+            continue
+        obligation = ready_rows[0]
+        if str(obligation.get("source_incident_id") or "") != str(
+            record.get("incident_id") or ""
+        ):
+            continue
+        direct = {
+            "status": "READY",
+            "handoff_origin": "EXISTING_READY_L3_OBLIGATION_WITHOUT_RECEIPT",
+            "automation_obligation_id": obligation_id,
+            "automation_consumption_fingerprint": str(
+                obligation.get("automation_consumption_fingerprint") or ""
+            ),
+            "source_incident_id": str(obligation.get("source_incident_id") or ""),
+            "situation_id": str(obligation.get("situation_id") or ""),
+            "decision_trace_id": str(obligation.get("decision_trace_id") or ""),
+            "next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+        }
+        candidates.append((str(key), record, direct))
     # An unscoped reader intentionally remains fail-closed when historical
     # open incidents coexist.  The existing Matrix owner can supply the one
     # current active source identity, however; use that owner-backed fact to
@@ -8073,7 +8125,6 @@ def service_failure_direct_execution_handoff(
         "situation_id": str(direct.get("situation_id") or ""),
         "decision_trace_id": str(direct.get("decision_trace_id") or ""),
     }
-    rows = _read_jsonl_records(resolved_state_dir / "closure-records.jsonl")
     obligations = [
         row for row in rows
         if str(row.get("object_type") or "") == "service_failure_automation_obligation"

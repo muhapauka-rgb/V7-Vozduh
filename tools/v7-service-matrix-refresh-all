@@ -2141,10 +2141,24 @@ def run_bounded_delegated_service_failure_action(
             "error": f"{type(exc).__name__}:{exc}",
             "action_attempted": True,
         }
+    output = proc.stdout or ""
     try:
-        parsed = json.loads(proc.stdout or "")
+        parsed = json.loads(output)
     except json.JSONDecodeError:
+        # A governed child is required to emit one JSON receipt.  If an
+        # inherited library writes a short diagnostic before that receipt,
+        # recover the object instead of turning an otherwise explainable
+        # STOP_SAFE into an opaque failed wrapper.  This is parsing only;
+        # it cannot change child execution or any owner state.
         parsed = {}
+        decoder = json.JSONDecoder()
+        start = output.find("{")
+        if start >= 0:
+            try:
+                value, _end = decoder.raw_decode(output[start:])
+                parsed = value if isinstance(value, dict) else {}
+            except json.JSONDecodeError:
+                parsed = {}
     verdict = str(parsed.get("final_verdict") or "")
     transaction_status = str(parsed.get("transaction_status") or "")
     completed = proc.returncode == 0 and verdict in {
@@ -2186,7 +2200,8 @@ def run_bounded_delegated_service_failure_action(
         "controlled_certification_campaign": campaign_binding,
         "controlled_certification_stage_consumption": {},
         "snapshot_refresh": snapshot_refresh,
-        "output_tail": (proc.stdout or "")[-2000:] if not (completed or stop_safe) else "",
+        "output_tail": output[-2000:] if not (completed or stop_safe) else "",
+        "output_parse_failed": not bool(parsed),
     }
 
 
@@ -5242,6 +5257,12 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         )
         if result.get(key) not in (None, "", [], {})
     }
+    if not result and value.get("output_tail"):
+        # Keep a bounded failed-child diagnostic in the existing Matrix
+        # receipt. The full output remains process-local; this pointer-sized
+        # tail is necessary to distinguish a genuine executor stop from an
+        # output-contract failure on the live automatic path.
+        compact_result["output_tail"] = str(value.get("output_tail") or "")[-2000:]
     execution_timing = result.get("execution_timing")
     if not isinstance(execution_timing, dict) or not execution_timing:
         # CT-M0F may execute and close a sample in one bounded Matrix

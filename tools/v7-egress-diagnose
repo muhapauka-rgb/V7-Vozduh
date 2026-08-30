@@ -910,6 +910,18 @@ EOF
   # A targeted Matrix confirmation, or reuse of the current canonical Matrix
   # failure, only opens the existing governed consumer.  This producer never
   # plans or applies a route itself.
+  #
+  # The lightweight batch can contain several different profile contracts on
+  # one source.  Once the existing Matrix owner has independently confirmed
+  # one of them, make that *fresh canonical* evidence visible to the later
+  # contracts in this same ephemeral batch.  Without this refresh every
+  # profile waits for another synchronous Matrix process even when its exact
+  # failed service has already been confirmed.  The index is local to this
+  # invocation and is discarded with the batch; Matrix remains its sole
+  # persistent writer and unknown results still fail closed.
+  if [ "$trigger_status" = "PASS" ] && [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ] && [ "$matrix_failure_fallback" != "1" ]; then
+    build_fast_matrix_fresh_failure_index
+  fi
   if [ "$trigger_status" = "PASS" ] && [ -n "$CONSUMER_WAKE_COMMAND" ]; then
     if wake_existing_failure_consumer; then
       PROFILE_SERVICE_CONSUMER_WAKE_COUNT=$((PROFILE_SERVICE_CONSUMER_WAKE_COUNT + 1))
@@ -972,6 +984,19 @@ EOF
   if [ -n "$completion_ns" ] && [ "$completion_ns" -ge "$FAST_PRODUCER_STARTED_NS" ] 2>/dev/null; then
     completion_ms=$(( (completion_ns - FAST_PRODUCER_STARTED_NS) / 1000000 ))
     FAST_PRODUCER_COMPLETION_MS+=("$completion_ms")
+  fi
+  # A batch observation is not a reason to repeat an identical synchronous
+  # Matrix confirmation.  If the Matrix already owns fresh source-bound
+  # failure evidence for this contract, consume that evidence directly.  The
+  # fallback remains unavailable for stale or unknown Matrix rows.
+  if [ -n "$failed_services" ] && [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ]; then
+    matrix_failed_services="$(matrix_failed_services_for_source "$source_id" "$services")"
+    if [ -n "$matrix_failed_services" ]; then
+      failed_services="$matrix_failed_services"
+      failure_count="1"
+      matrix_failure_fallback="1"
+      printf '%s_profile_matrix_failure_fallback=USED\n' "${state_key:-${source_id}_profile}" >> "$TMP"
+    fi
   fi
   if [ -n "$unknown_services" ] && [ -z "$failed_services" ]; then
     # A stale Matrix failure is never sufficient evidence for a move.  It is

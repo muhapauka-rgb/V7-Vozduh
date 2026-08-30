@@ -132,3 +132,42 @@ fresh, owner-selected one-user Polygon context, then let the normal health
 caller observe its controlled Matrix failure.  That controlled result may
 validate the handoff repair, but it cannot replace a fresh ordinary-production
 seven-second sample.
+
+## Repeated live measurement after deployment
+
+A new ordinary VLESS event was observed after deployment; no action was
+started by Codex.  The three ordinary identities were already on VLESS through
+operator-originated profile rebinds.  The normal health Runtime then produced
+a new owner-backed correlated required-service failure for that current scope.
+
+The detector began at monotonic time `10054111500290338`.  Matrix confirmed
+the profile failure at `10054116135418789`, a 4.635 s source-scoped probe
+interval.  The health Runtime preempted the remaining unrelated detector work
+at the recorded 4.722 s duration.  Therefore the Matrix-to-consumer handoff
+was approximately 87 ms, rather than the old full-batch wait.
+
+This validates the narrow handoff repair, but the full recovery result is a
+failure: the same fresh event was classified `capture_only` with
+`candidate_or_execution_forbidden=true`.  The existing consumer therefore
+created no Candidate, Packet or Lease and performed no Apply.  More than
+thirty seconds after Matrix T0, all three identities were still on VLESS.
+
+The seven-second ordinary recovery target is consequently still **not met**.
+The dominant remaining blocker is now exact and separate from detection:
+the existing live-health event is incorrectly ineligible for the existing
+ordinary recovery Authority/Planner path despite its current ordinary scope.
+The next engineering action is to repair that generic admission classification
+through its existing owner, then observe a new live V7-originated event end to
+end.  No historical event, target or user assignment may be reused to claim
+the result.
+
+The repeated owner records make the failure point specific.  The Planner did
+derive two bounded classes and healthy target contracts for all three users,
+but marked both `execution_allowed=false`.  The live service-failure advisory
+then found `no_open_unmaterialized_passive_terminal`: its current-source
+incident could not be matched to any of 63 retained passive projection rows.
+Consequently the existing bounded-delegated action owner returned
+`STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION`; no Candidate, Packet,
+Lease or Apply was created.  This is the generic current-incident binding
+defect to repair.  It is not a target-capacity, routing, Matrix-write or
+detector-handoff failure.

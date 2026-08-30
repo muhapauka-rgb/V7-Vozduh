@@ -20928,6 +20928,43 @@ class AutoswitchPlanner:
                     require_current_observation=True,
                 )
             )
+        continuing_matrix_profile_binding = False
+        if source_bound_live_recovery and not live_requested_incident_ids:
+            # The Matrix caller can spend more than the strict ten-second
+            # observation window materializing the existing passive/L3
+            # closure.  Do not then discard that same still-open source
+            # incident merely because the advisory starts after the window.
+            # This is not a historical fallback: the current Matrix must
+            # still show a failed required service for a user who is still on
+            # this exact source, and the candidate below remains bound to the
+            # current incident/scope before the normal Authority and executor
+            # revalidation.  An absent current Matrix failure still fails
+            # closed exactly as before.
+            _affected, _t0_ns, continuing_incident_ids = (
+                live_profile_failure_evidence(
+                    users=list(getattr(self, "users", []) or []),
+                    matrix=(
+                        getattr(self, "matrix", {})
+                        if isinstance(getattr(self, "matrix", {}), dict)
+                        else {}
+                    ),
+                    service_preferences=(
+                        getattr(self, "service_prefs", {})
+                        if isinstance(getattr(self, "service_prefs", {}), dict)
+                        else {}
+                    ),
+                    source=requested_source,
+                    explicitly_required_services=(
+                        self._explicit_required_services()
+                        if callable(getattr(self, "_explicit_required_services", None))
+                        else []
+                    ),
+                    require_current_observation=False,
+                )
+            )
+            if _affected > 0 and continuing_incident_ids:
+                live_requested_incident_ids = continuing_incident_ids
+                continuing_matrix_profile_binding = True
         passive = [
             row for row in closures
             if str(row.get("object_type") or "") == "passive_production_event"
@@ -20940,6 +20977,7 @@ class AutoswitchPlanner:
             "requested_source": requested_source,
             "source_bound_live_recovery": source_bound_live_recovery,
             "live_requested_incident_ids": sorted(live_requested_incident_ids),
+            "continuing_matrix_profile_binding": continuing_matrix_profile_binding,
             "passive_source_row_count": len(passive),
             "live_incident_mismatch_count": 0,
             "already_terminal_count": 0,

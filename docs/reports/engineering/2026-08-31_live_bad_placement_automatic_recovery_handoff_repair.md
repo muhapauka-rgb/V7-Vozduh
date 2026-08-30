@@ -208,3 +208,26 @@ This change has not yet been deployed at the time of this report update.  The
 next step is safe deployment, alignment verification, then passive observation
 of the normal V7 Runtime handling the already-current VLESS failure.  Codex
 will not manually advance its transaction or move any user.
+
+## Continuing-incident reconciliation repair
+
+The first deployed scheduling correction exposed one further generic condition:
+the existing passive/L3 consumer successfully created the current VLESS
+closure, but its work took longer than the advisory's ten-second freshness
+window.  The advisory then discarded the same still-open Matrix incident as
+if it were historical, even though the Matrix continued to show that the
+remaining ordinary user required failed VLESS services and the closure carried
+the same source incident and current one-user scope.
+
+The second repair does not relax source or service safety.  When the narrow
+ten-second observation window has elapsed during that existing owner work, the
+same advisory may continue only if the **current Matrix** still confirms an
+explicitly required failed service for a user still assigned to that exact
+source.  It remains bound to the current incident and compact scope; the
+existing Authority, Planner target selection, Packet, Lease, Barrier, Apply
+and S11 checks are unchanged.  No old closure can qualify without a matching
+current Matrix incident.
+
+Three focused regressions pass, including the strict fresh-binding case, the
+continuing-current-Matrix case, and the profile-event admission case.  This
+second repair is pending safe deployment and normal Runtime observation.

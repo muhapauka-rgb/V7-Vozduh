@@ -125,6 +125,14 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
 
         self.assertEqual((affected, t0_ns), (1, 2_000))
         self.assertEqual(incidents, {"sfinc_current"})
+        continuing_affected, _continuing_t0_ns, continuing_incidents = (
+            self.autoswitch.live_profile_failure_evidence(
+                users=users, matrix=matrix, service_preferences=preferences,
+                source="vless", require_current_observation=False,
+            )
+        )
+        self.assertEqual(continuing_affected, 1)
+        self.assertEqual(continuing_incidents, {"sfinc_current", "sfinc_old"})
 
     def test_exact_client_probe_owner_is_loaded_once_in_process(self):
         previous = self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE

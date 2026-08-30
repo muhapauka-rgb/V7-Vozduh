@@ -5751,6 +5751,28 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             ["snapshot_mismatch:service-scores"],
         )
 
+    def test_consumer_projection_keeps_compact_ordinary_selection_stop(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "ordinary_selection_binding": {
+                    "ok": False,
+                    "status": "STOP_SAFE",
+                    "blockers": [
+                        "ordinary_service_failure_planner_has_no_ordinary_candidate"
+                    ],
+                    "planner_candidate_count": 0,
+                    "selected_count": 0,
+                    "selection_owner": "tools/v7-users-autoswitch",
+                    "raw_candidate_ids": ["must-not-project"],
+                },
+            }
+        })["consumer_result"]
+
+        binding = projected["ordinary_selection_binding"]
+        self.assertFalse(binding["ok"])
+        self.assertEqual(binding["planner_candidate_count"], 0)
+        self.assertNotIn("raw_candidate_ids", binding)
+
     def test_advisory_timing_projection_retains_only_compact_advisory_spans(self):
         projected = self.refresh._consumer_projection({
             "consumer_result": {

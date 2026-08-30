@@ -5329,6 +5329,29 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             )
             if packet_preparation_diagnostic.get(key) not in (None, "", [], {})
         }
+    ordinary_selection_binding = result.get("ordinary_selection_binding")
+    ordinary_selection_binding = (
+        ordinary_selection_binding
+        if isinstance(ordinary_selection_binding, dict)
+        else {}
+    )
+    if ordinary_selection_binding:
+        # Keep the executor's compact explanation of a pre-Packet ordinary
+        # recovery stop.  Matrix remains a pointer-only caller/consumer
+        # projection; it never gains the Planner's raw candidate list or any
+        # execution capability from this field.
+        compact_result["ordinary_selection_binding"] = {
+            key: ordinary_selection_binding.get(key)
+            for key in (
+                "ok", "status", "blockers", "planner_candidate_count",
+                "selected_count", "selection_owner", "selection_rule",
+            )
+            if key in ordinary_selection_binding
+            and (
+                ordinary_selection_binding.get(key) not in (None, "", [], {})
+                or key == "ok"
+            )
+        }
     snapshot_refresh = result.get("snapshot_refresh")
     if isinstance(snapshot_refresh, dict) and snapshot_refresh:
         compact_result["snapshot_refresh"] = {

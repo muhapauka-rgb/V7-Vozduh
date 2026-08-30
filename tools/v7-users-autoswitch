@@ -3446,7 +3446,13 @@ def read_live_owner_history_window(
     )
 
 
-def read_jsonl_exact_schema(path: Path, schema_version: str) -> tuple[list[dict[str, Any]], bool]:
+def read_jsonl_exact_schema(
+    path: Path,
+    schema_version: str,
+    *,
+    tail_limit: int = 0,
+    tail_max_bytes: int = 0,
+) -> tuple[list[dict[str, Any]], bool]:
     """Stream one immutable JSONL owner and materialize only one exact schema.
 
     The complete file remains the evidence owner and every matching line is
@@ -3454,6 +3460,23 @@ def read_jsonl_exact_schema(path: Path, schema_version: str) -> tuple[list[dict[
     JSON-decoding unrelated append-only history whose schema cannot satisfy
     this caller's contract; the parsed equality check remains authoritative.
     """
+    if tail_limit > 0 and tail_max_bytes > 0:
+        # Current Runtime reconciliation needs new packet outcomes only.  The
+        # existing compact L3 projection owns the already-consumed lineage;
+        # loading an unlimited execution ledger here can starve or OOM the
+        # health owner before it can process current Matrix evidence.
+        window = read_jsonl(
+            path,
+            tail_limit=tail_limit,
+            tail_max_bytes=tail_max_bytes,
+        )
+        return (
+            [
+                row for row in window
+                if str(row.get("schema_version") or "") == schema_version
+            ],
+            bool(window),
+        )
     rows: list[dict[str, Any]] = []
     active = False
     try:
@@ -8693,6 +8716,8 @@ class AutoswitchPlanner:
         execution_outcome_rows, ledger_active = read_jsonl_exact_schema(
             self.state_dir / "execution-events.jsonl",
             "v7.execution-outcome-record.v1",
+            tail_limit=LIVE_OWNER_HISTORY_WINDOW_LIMIT,
+            tail_max_bytes=LIVE_OWNER_HISTORY_WINDOW_MAX_BYTES,
         )
         record_passive_reconciliation_span(
             "passive_reconciliation_execution_ledger_load",

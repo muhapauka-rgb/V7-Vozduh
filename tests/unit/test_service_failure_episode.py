@@ -4636,6 +4636,35 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertTrue(active)
         self.assertEqual([row["feedback_id"] for row in result], ["first", "last"])
 
+    def test_jsonl_exact_schema_reader_can_bound_live_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "execution-events.jsonl"
+            rows = [
+                {"schema_version": "v7.execution-outcome-record.v1", "feedback_id": "old"},
+                {"schema_version": "v7.passive-production-event-decision-trace.v1", "id": "middle"},
+                {"schema_version": "v7.execution-outcome-record.v1", "feedback_id": "new"},
+            ]
+            path.write_text(
+                "".join(json.dumps(row) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                self.autoswitch,
+                "read_jsonl",
+                wraps=self.autoswitch.read_jsonl,
+            ) as bounded_reader:
+                result, active = self.autoswitch.read_jsonl_exact_schema(
+                    path,
+                    "v7.execution-outcome-record.v1",
+                    tail_limit=2,
+                    tail_max_bytes=1024,
+                )
+        self.assertTrue(active)
+        self.assertEqual([row["feedback_id"] for row in result], ["new"])
+        bounded_reader.assert_called_once_with(
+            path, tail_limit=2, tail_max_bytes=1024,
+        )
+
     def test_newer_owner_backed_scope_rotates_current_denominator_only(self):
         """A newer revalidation replaces only current scope, never Outcome history."""
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)

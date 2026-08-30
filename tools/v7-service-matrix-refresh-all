@@ -6605,7 +6605,11 @@ def ordinary_direct_handoff_ready_for_passive_deferral(
         == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
         and int(obligation.get("bounded_recommendation_users") or 0) > 0
         and str(direct_source.get("scope_classification") or "")
-        in {"ORDINARY_ONLY", "MIXED_ORDINARY_AND_CERTIFICATION"}
+        in {
+            "ORDINARY_ONLY",
+            "ORDINARY_PRODUCTION_ONLY",
+            "MIXED_ORDINARY_AND_CERTIFICATION",
+        }
         and not skip_passive_consumer
     )
 

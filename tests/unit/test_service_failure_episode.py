@@ -6949,6 +6949,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             obligation=obligation,
             skip_passive_consumer=False,
         ))
+        self.assertTrue(self.refresh.ordinary_direct_handoff_ready_for_passive_deferral(
+            event_only=True,
+            source_scope={"active_sources": [{
+                "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+            }]},
+            obligation=obligation,
+            skip_passive_consumer=False,
+        ))
         self.assertFalse(self.refresh.ordinary_direct_handoff_ready_for_passive_deferral(
             event_only=True,
             source_scope={"active_sources": [{"scope_classification": "CERTIFICATION_ONLY"}]},

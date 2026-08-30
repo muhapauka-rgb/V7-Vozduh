@@ -183,6 +183,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "ok": False, "status": "FAIL", "failure_samples": 3,
                 "failure_episode_id": "sfep_google",
             }
+            for service in ("telegram", "instagram", "youtube"):
+                matrix["items"]["vless"]["services"][service] = {
+                    "ok": True, "status": "OK",
+                }
             matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
             (state_dir / "service-preferences.json").write_text(
                 json.dumps({"users": {"10.0.0.2": {"services": ["google"]}}}),
@@ -196,6 +200,48 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
 
         self.assertTrue(scope["required_service_failure"])
         self.assertEqual(scope["all_assigned_users_count"], 2)
+        self.assertEqual(scope["affected_users"], ["10.0.0.2"])
+
+    def test_partial_service_failure_does_not_become_total_from_stale_fail_diagnosis(self):
+        """A stale generic FAIL diagnostic cannot evacuate unprofiled users.
+
+        The live Matrix is the health owner.  A service-specific failure must
+        remain profile-scoped even if the older state projection still labels
+        the protocol diagnostic as FAIL.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=2, current_egress="vless")
+            state_dir = root / "state"
+            state = json.loads((state_dir / "v7-state.json").read_text(encoding="utf-8"))
+            state["egress"]["vless"].update({
+                "diagnose_severity": "FAIL",
+                "diagnose_reason": "curl_failed_and_handshake_unsupported",
+            })
+            (state_dir / "v7-state.json").write_text(json.dumps(state), encoding="utf-8")
+            matrix_path = state_dir / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["vless"].update({
+                "checked_at": self.tool.now_iso(),
+                "updated": self.tool.now_iso(),
+            })
+            matrix["items"]["vless"]["services"]["google"] = {
+                "ok": False, "status": "FAIL", "failure_samples": 3,
+                "failure_episode_id": "sfep_google",
+            }
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (state_dir / "service-preferences.json").write_text(
+                json.dumps({"users": {"10.0.0.2": {"services": ["google"]}}}),
+                encoding="utf-8",
+            )
+
+            planner = self.tool.AutoswitchPlanner(self.args_for(
+                root, ["--ordinary-service-failure-context"],
+            ))
+            scope = planner._l3_failed_source_scope("vless")
+
+        self.assertTrue(scope["required_service_failure"])
+        self.assertFalse(scope["current_channel_failure"])
         self.assertEqual(scope["affected_users"], ["10.0.0.2"])
 
     def test_fresh_matrix_majority_failure_is_used_when_v7_state_projection_is_stale(self):

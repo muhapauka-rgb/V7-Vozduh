@@ -9140,7 +9140,37 @@ class AutoswitchPlanner:
         egress_state = str((egress.state if egress else "") or "").lower()
         enabled = bool(egress and egress.enabled and egress_state not in {"disabled", "down"})
         controlled_failure = self._controlled_certification_failure_context(source)
-        channel_failed = bool(egress and severity == "FAIL" and all_assigned_users)
+        # ``diagnose_severity == FAIL`` is an input to service diagnosis, not
+        # by itself proof that the *whole* channel is unavailable.  In
+        # particular, a protocol-level diagnostic may stay FAIL while Matrix
+        # still shows that some services work.  Treating that projection as a
+        # total outage widened a service-specific recovery to users with no
+        # failed required service, and the final per-member gate correctly
+        # stopped the entire Packet.  Reuse the existing Matrix-backed
+        # channel-evidence owner here: all assigned users are in scope only
+        # for a current explicit whole-channel failure; otherwise the
+        # profile-service branch below owns the scope.
+        channel_failure_evidence = self._current_channel_failure_evidence(
+            {
+                "egress": source,
+                "users": len(all_assigned_users),
+                "state": egress_state,
+                "severity_classification": {
+                    "severity": severity,
+                    "reason": diagnose_reason,
+                    # A real interface/state-down condition remains an
+                    # unambiguous whole-channel signal.  Generic protocol
+                    # diagnostics remain service evidence until Matrix proves
+                    # a majority/channel-level outage.
+                    "hard_block": (
+                        egress_state == "down"
+                        or diagnose_reason == "interface_down_or_missing"
+                    ),
+                },
+            },
+            user_ip="",
+        )
+        channel_failed = bool_value(channel_failure_evidence.get("confirmed"))
         service_failures = self._l3_required_service_failures_for_source(source, required_services=required_services)
         service_failed = (
             bool(service_failures)
@@ -9175,6 +9205,7 @@ class AutoswitchPlanner:
             "all_assigned_users_count": len(all_assigned_users),
             "source_failed": channel_failed or service_failed or controlled_channel_failed,
             "current_channel_failure": channel_failed or controlled_channel_failed,
+            "channel_failure_evidence": channel_failure_evidence,
             "required_service_failure": service_failed,
             "diagnose_severity": severity,
             "diagnose_reason": diagnose_reason,

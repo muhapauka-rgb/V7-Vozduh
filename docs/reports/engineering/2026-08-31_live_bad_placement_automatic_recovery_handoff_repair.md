@@ -80,3 +80,22 @@ only be credited when its full chain originates from the ordinary health
 Runtime and records first valid observation, Matrix T0, governed action,
 member S11 and all-affected completion.  No manual customer switch may supply
 that credit.
+
+## Deployment and immediate Runtime verification
+
+The repair was committed as `093fcdcb6abc4230717af8d49436fef62432889a`,
+published to `Updatesystem`, and deployed by the existing safe-deploy owner as
+`deploy-z8-14-Updatesystem-093fcdc-20260831T003256`.
+
+The deployment gate reported GitHub alignment and no blockers.  The deployed
+`/usr/local/bin/v7-health-loop` SHA-256 is
+`486a6af86a91f1bd66dc8131cc1fe0744e2b226450e71af41416d86b91525071`,
+matching the approved local binary.  `v7-health.service` restarted normally
+and is active.  No standalone Matrix or Telegram timer is installed.
+
+The three users from the pre-repair VLESS event remain on `awg0`; the deploy
+did not create or manually advance any new user operation.  There is no fresh
+ordinary failed-source event after deployment yet, so a seven-second result is
+not claimed.  The next new current Matrix failure must be observed through the
+normal V7 caller and retained in the full distribution whether it passes or
+fails.

@@ -28,6 +28,11 @@ still requires the exact source-incident identity, source-scope fingerprint,
 unresolved current scope, and a unique ready obligation.  Any ambiguity or
 drift remains fail-closed.
 
+The handoff carries its existing-owner origin.  The governed executor uses the
+no-receipt ordering only for this exact fresh-L3 origin; ordinary
+receipt-backed handoffs retain their previous ordering.  This closes the
+otherwise circular `fresh obligation -> receipt -> direct handoff` dependency.
+
 The change reuses the existing Matrix, L3 state and closure-record owners.  It
 creates no new state source and performs no operational action itself.
 

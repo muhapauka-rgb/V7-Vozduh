@@ -7832,6 +7832,11 @@ def main() -> int:
     service_failure_obligation = (
         fresh_service_failure_obligation or direct_service_failure_obligation
     )
+    fresh_direct_l3_obligation_handoff = bool(
+        direct_service_failure_obligation
+        and str((direct_handoff or {}).get("handoff_origin") or "")
+        == "EXISTING_READY_L3_OBLIGATION_WITHOUT_RECEIPT"
+    )
     # A fresh advisory obligation is passed directly to the existing governed
     # executor below.  OMP is its exact-once receipt/evidence consumer, not
     # the producer of that object, so do not put the receipt wait in front of
@@ -7925,6 +7930,7 @@ def main() -> int:
             service_failure_obligation=service_failure_obligation,
             fresh_matrix_runtime_handoff=bool(
                 fresh_service_failure_obligation
+                or fresh_direct_l3_obligation_handoff
             ),
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )

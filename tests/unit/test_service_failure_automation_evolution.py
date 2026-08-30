@@ -6836,6 +6836,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(
             result["obligation"]["automation_obligation_id"], "sfaob_fresh"
         )
+        self.assertEqual(
+            result["handoff_origin"],
+            "EXISTING_READY_L3_OBLIGATION_WITHOUT_RECEIPT",
+        )
 
     def test_l3_scope_reader_filters_historical_duplicate_by_matrix_fingerprint(self):
         """An exact Matrix fingerprint skips an older broken duplicate."""

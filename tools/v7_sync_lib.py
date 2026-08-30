@@ -8197,6 +8197,9 @@ def service_failure_direct_execution_handoff(
         "final_verdict": "READY",
         "obligation": obligation,
         "incident_key": incident_key,
+        "handoff_origin": str(
+            direct.get("handoff_origin") or "EXISTING_OMP_RECEIPT"
+        ),
         "runtime_mutation_performed": False,
         "new_registry_created": False,
     }

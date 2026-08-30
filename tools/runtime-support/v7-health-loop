@@ -1275,6 +1275,9 @@ class RoleHealthLoop:
             if role.name in {"hard", "telegram", "other_required"} and self.persistent_matrix_ready:
                 environment = os.environ.copy()
                 environment["V7_HEALTH_PERSISTENT_MATRIX_CONSUMER"] = "1"
+                # This is evidence provenance for the existing Matrix writer,
+                # not Authority or a route instruction.
+                environment["V7_HEALTH_RUNTIME_ROLE"] = role.name
             # A prepared PATH run already emits one small Matrix receipt. Keep
             # it in this existing owner only until exit so the journal can
             # expose the measured critical-path split. Other roles retain

@@ -1540,6 +1540,10 @@ PASSIVE_EVENT_PROVENANCE_CONTRACT = {
         "evidence_class": "NATURAL_PRODUCTION_CANDIDATE",
         "natural_eligibility": "OWNER_RECONCILIATION_REQUIRED",
     },
+    "V7_HEALTH_RUNTIME": {
+        "evidence_class": "V7_RUNTIME_HEALTH_OBSERVATION",
+        "natural_eligibility": "INELIGIBLE",
+    },
     "SYNTHETIC_ENGINEERING": {
         "evidence_class": "SYNTHETIC_ENGINEERING_EVENT",
         "natural_eligibility": "INELIGIBLE",
@@ -1549,6 +1553,14 @@ PASSIVE_EVENT_PROVENANCE_CONTRACT = {
         "natural_eligibility": "INELIGIBLE",
     },
 }
+
+# Both forms are Matrix observations. The V7-owned form is allowed to reach
+# ordinary recovery reconciliation because its producer is known; neither
+# form grants Candidate, Packet, Lease, Barrier, Authority or routing.
+EXECUTION_RECONCILABLE_SERVICE_FAILURE_PROVENANCES = frozenset({
+    "EXTERNAL_UNATTRIBUTED",
+    "V7_HEALTH_RUNTIME",
+})
 
 
 def passive_event_provenance_classification(row: dict[str, Any]) -> dict[str, Any]:
@@ -2330,7 +2342,7 @@ def current_profile_required_matrix_event(
     """
     if not isinstance(event, dict):
         return False
-    if str(event.get("event_provenance") or event.get("provenance") or "") != "EXTERNAL_UNATTRIBUTED":
+    if str(event.get("event_provenance") or event.get("provenance") or "") not in EXECUTION_RECONCILABLE_SERVICE_FAILURE_PROVENANCES:
         return False
     if str(event.get("evidence_class") or "") != "PROBE_OBSERVED_PRODUCTION_EVENT":
         return False
@@ -4014,7 +4026,11 @@ def ct_m0f_active_service_failure_binding_projection(
                 continue
             if str(event.get("channel") or event.get("object") or "") != str(source_id or ""):
                 continue
-            if not bool(event.get("capture_only")) or str(event.get("event_provenance") or "") != "EXTERNAL_UNATTRIBUTED":
+            if (
+                not bool(event.get("capture_only"))
+                or str(event.get("event_provenance") or "")
+                not in EXECUTION_RECONCILABLE_SERVICE_FAILURE_PROVENANCES
+            ):
                 continue
             event_scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}
             if (
@@ -20069,7 +20085,7 @@ class AutoswitchPlanner:
                 and bool(source_incident_id)
             )
             persistent_failure = (
-                provenance == "EXTERNAL_UNATTRIBUTED"
+                provenance in EXECUTION_RECONCILABLE_SERVICE_FAILURE_PROVENANCES
                 and evidence_class == "PROBE_OBSERVED_PRODUCTION_EVENT"
                 and (
                     to_int(row.get("failure_samples"), 0) >= persistence_samples
@@ -20328,9 +20344,10 @@ class AutoswitchPlanner:
                     })
                     continue
             event_provenance = str(provenance_contract["observation_provenance"])
+            runtime_health_event = event_provenance == "V7_HEALTH_RUNTIME"
             evidence_class = (
                 str(provenance_contract["evidence_class"])
-                if operator_induced else
+                if operator_induced or runtime_health_event else
                 (
                     "PASSIVE_RECOVERY_OBSERVATION" if recovery_observed
                     else "PASSIVE_EPISODE_EXPIRY_OBSERVATION" if expiry_observed
@@ -20341,7 +20358,8 @@ class AutoswitchPlanner:
                 "NO_ACTION_EXTERNAL_OPERATOR_INDUCED_EVENT"
                 if operator_induced else
                 (
-                    "NO_ACTION_RECOVERY_OBSERVATION_CONSUMED" if recovery_observed
+                    "NO_ACTION_V7_RUNTIME_HEALTH_RECONCILIATION" if runtime_health_event
+                    else "NO_ACTION_RECOVERY_OBSERVATION_CONSUMED" if recovery_observed
                     else "NO_ACTION_EPISODE_EXPIRY_CONSUMED" if expiry_observed
                     else
                     "NO_ACTION_NATURAL_EVENT_PENDING_PROVENANCE_AND_LEGAL_OUTCOME"
@@ -20350,7 +20368,8 @@ class AutoswitchPlanner:
             closure_reason = (
                 "operator-induced external event consumed without execution"
                 if operator_induced else (
-                    "passive recovery consumed and linked to the original source incident" if recovery_observed
+                    "V7 health observation captured; existing governed Authority and execution owners remain required" if runtime_health_event
+                    else "passive recovery consumed and linked to the original source incident" if recovery_observed
                     else "episode expiry consumed and linked to the original source incident" if expiry_observed
                     else
                     "persistent external service incident captured; natural provenance and legal outcome remain required"

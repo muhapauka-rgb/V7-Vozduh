@@ -3,6 +3,7 @@ import importlib.machinery
 import importlib.util
 import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -3100,6 +3101,36 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(row["failure_samples"], 0)
             self.assertEqual(row["recovery_samples"], 1)
 
+    def test_resident_health_matrix_writer_marks_its_own_observation(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(
+            os.environ,
+            {
+                "V7_HEALTH_PERSISTENT_MATRIX_CONSUMER": "1",
+                "V7_HEALTH_RUNTIME_ROLE": "other_required",
+            },
+            clear=False,
+        ):
+            matrix_file = Path(tmp) / "service-matrix.json"
+            event_dir = Path(tmp) / "events"
+            failure = {
+                "ok": False,
+                "status": "FAIL",
+                "tested_at": "2026-07-25T08:00:00+00:00",
+            }
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0", {"youtube": failure}, 1,
+                event_dir=event_dir, persistence_samples=1,
+            )
+            events = [
+                json.loads(line)
+                for line in (event_dir / "service-failure-events.jsonl").read_text(
+                    encoding="utf-8"
+                ).splitlines()
+            ]
+        self.assertEqual(events[0]["event_provenance"], "V7_HEALTH_RUNTIME")
+        self.assertTrue(events[0]["capture_only"])
+        self.assertTrue(events[0]["candidate_or_execution_forbidden"])
+
     def test_availability_first_stage_receipt_is_exact_once_and_compact(self):
         with tempfile.TemporaryDirectory() as tmp:
             audit_store = Path(tmp) / "operator-execution-audit.jsonl"
@@ -3877,6 +3908,13 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
 
         self.assertTrue(self.autoswitch.current_profile_required_matrix_event(
             event=event,
+            users=[user],
+            matrix=matrix,
+            service_preferences=preferences,
+        ))
+        runtime_event = dict(event, event_provenance="V7_HEALTH_RUNTIME")
+        self.assertTrue(self.autoswitch.current_profile_required_matrix_event(
+            event=runtime_event,
             users=[user],
             matrix=matrix,
             service_preferences=preferences,

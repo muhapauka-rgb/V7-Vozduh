@@ -52,6 +52,27 @@ SERVICE_MATRIX_BATCH_BUDGET_SECONDS = 120
 SERVICE_MATRIX_CONTINUITY_SAFETY_SECONDS = 120
 
 
+def matrix_event_provenance(
+    environment: Optional[dict[str, str]] = None,
+) -> str:
+    """Identify the existing V7 health caller without granting execution.
+
+    Matrix events normally remain unattributed observations. The one exception
+    is a check started by the resident ``v7-health`` owner itself: that caller
+    supplies both its persistent-owner marker and bounded role. This label is
+    evidence provenance only; downstream still validates scope, Authority,
+    target, Packet, Lease, Barrier and S11 before any route can change.
+    """
+    source = environment if environment is not None else os.environ
+    if (
+        str(source.get("V7_HEALTH_PERSISTENT_MATRIX_CONSUMER") or "") == "1"
+        and str(source.get("V7_HEALTH_RUNTIME_ROLE") or "")
+        in {"hard", "telegram", "other_required"}
+    ):
+        return "V7_HEALTH_RUNTIME"
+    return "EXTERNAL_UNATTRIBUTED"
+
+
 def failure_episode_continuity_seconds() -> int:
     """Derive continuity from the production timer and bounded batch contract.
 
@@ -1500,6 +1521,7 @@ def update_matrix(
     skip_network_path_projection: bool = False,
     direct_local_validation_reason: str = "definitive_local_hard_failure_critical_path",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    event_provenance = matrix_event_provenance()
     with service_matrix_writer_lock(matrix_file, lock_timeout_sec) as lock_info:
         data = read_json(matrix_file, {"items": {}})
         if not isinstance(data, dict):
@@ -1546,7 +1568,7 @@ def update_matrix(
                     "event_id": expiry_event_id,
                     "event_type": "SERVICE_FAILURE_EPISODE_EXPIRED",
                     "capture_only": True,
-                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "event_provenance": event_provenance,
                     "evidence_class": "PROBE_OBSERVED_EPISODE_EXPIRY",
                     "natural_production_credit": False,
                     "channel": egress_id,
@@ -1578,7 +1600,7 @@ def update_matrix(
                     "event_id": recovery_event_id,
                     "event_type": "SERVICE_RECOVERY_OBSERVED",
                     "capture_only": True,
-                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "event_provenance": event_provenance,
                     "evidence_class": "PROBE_OBSERVED_RECOVERY_EVENT",
                     "natural_production_credit": False,
                     "channel": egress_id,
@@ -1663,7 +1685,7 @@ def update_matrix(
                     "event_id": event_id,
                     "event_type": "SERVICE_FAILURE_OBSERVED",
                     "capture_only": True,
-                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "event_provenance": event_provenance,
                     "evidence_class": (
                         "MATRIX_VALIDATED_DEFINITIVE_LOCAL_HARD_FAILURE"
                         if str(merged.get("evidence_class") or "") == "DEFINITIVE_LOCAL_HARD_FAILURE"
@@ -1765,7 +1787,7 @@ def update_matrix(
                 "event_id": observation_generation,
                 "event_type": "SERVICE_FAILURE_REVALIDATED",
                 "capture_only": True,
-                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "event_provenance": event_provenance,
                 "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
                 "natural_production_credit": False,
                 "channel": egress_id,

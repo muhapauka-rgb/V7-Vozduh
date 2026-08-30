@@ -23,6 +23,17 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_operation_window_binds_packet_scope_not_policy_ceiling(self):
+        module = load_cli_module()
+
+        # The standing policy may admit four users, but a fresh Packet can
+        # lawfully select only one.  The execution control window must bind
+        # that one-user Packet or the later route-writer check rejects it.
+        self.assertEqual(module.exact_packet_scope_max_users(1), 1)
+        self.assertEqual(module.exact_packet_scope_max_users(3), 3)
+        with self.assertRaises(ValueError):
+            module.exact_packet_scope_max_users(0)
+
     def test_valid_foreign_operation_window_is_never_reopened_by_competing_transaction(self):
         module = load_cli_module()
         active_window = {

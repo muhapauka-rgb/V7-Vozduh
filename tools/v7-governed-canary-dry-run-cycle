@@ -4001,6 +4001,19 @@ def run_autoswitch_apply(
     }
 
 
+def exact_packet_scope_max_users(selected_move_count: int) -> int:
+    """Return the immutable Packet scope used by the operation window.
+
+    A delegated policy's max-users value is an admission ceiling, not a route
+    mutation scope.  The control window and the sole route writer must bind
+    the same selected Packet cohort.
+    """
+    selected = int(selected_move_count or 0)
+    if selected < 1:
+        raise ValueError("packet_selected_move_count_missing")
+    return selected
+
+
 def open_packet_bound_execution_control_window(
     control_file: Path,
     *,
@@ -6684,7 +6697,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             action_class="EMERGENCY_FAILOVER",
             source_bundle_hash=str(selected.get("source_bundle_hash") or ""),
             snapshot_bundle_hash=str(selected.get("snapshot_bundle_hash") or ""),
-            max_users=requested_max_users,
+            max_users=exact_packet_scope_max_users(selected_count),
         )
         try:
             packet = operator_execution.packet_from_plan(

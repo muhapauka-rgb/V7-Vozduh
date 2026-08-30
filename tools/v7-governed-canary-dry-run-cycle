@@ -6335,17 +6335,27 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             )
         ),
         controlled_user=planner_user,
+        # A live ordinary failure already carries one exact Matrix
+        # source/incident/scope obligation.  Preserve its existing Planner
+        # instance through Candidate -> governed Apply, so Apply revalidates
+        # that committed plan instead of reconstructing a second full Planner
+        # world after Packet/Lease/Barrier.  All mutable checks and the sole
+        # route writer remain unchanged; only duplicate reconstruction leaves
+        # the recovery critical path.
         in_process=bool(
-            ct_m0f_standing_requested
-            and str(
-                getattr(
-                    args,
-                    "expected_service_failure_binding_kind",
-                    "",
+            getattr(args, "ordinary_service_failure_only", False)
+            or (
+                ct_m0f_standing_requested
+                and str(
+                    getattr(
+                        args,
+                        "expected_service_failure_binding_kind",
+                        "",
+                    )
+                    or ""
                 )
-                or ""
+                == "CERTIFICATION_ONLY_MATRIX_FAILURE"
             )
-            == "CERTIFICATION_ONLY_MATRIX_FAILURE"
         ),
         matrix_pre_execution_timing=list(
             getattr(args, "ct_m0f_matrix_pre_execution_timing", []) or []

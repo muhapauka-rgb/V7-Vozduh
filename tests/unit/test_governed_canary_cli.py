@@ -1616,7 +1616,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
     def test_availability_first_subtransaction_reuses_standing_and_substrate_owners(self):
         module = load_cli_module()
-        now = datetime(2026, 7, 30, tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             state = root / "state"
@@ -1739,7 +1739,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
     def test_availability_policy_ceiling_admits_exact_certification_only_benchmark_subset(self):
         module = load_cli_module()
-        now = datetime(2026, 7, 30, tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             state = root / "state"
@@ -8019,6 +8019,42 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
         self.assertEqual(result["stop_reason"], "l3_production_validation_confirmation_required")
         self.assertFalse(result["apply_executed"])
+
+    def test_ordinary_service_failure_reuses_its_existing_planner_instance(self):
+        """Live recovery must not reconstruct Planner again before Apply."""
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root, open_control=True)
+            args.confirm_l3_production_validation = (
+                "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            )
+            args.ordinary_service_failure_only = True
+            captured = {}
+            original_plan = module.run_l3_production_validation_plan
+            try:
+                def unavailable_plan(**kwargs):
+                    captured.update(kwargs)
+                    return {"ok": False, "returncode": 2, "payload": {}}
+
+                module.run_l3_production_validation_plan = unavailable_plan
+                result = module.execute_l3_production_validation(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.run_l3_production_validation_plan = original_plan
+
+        self.assertTrue(captured["in_process"])
+        self.assertTrue(captured["ordinary_service_failure_only"])
+        self.assertEqual(
+            result["stop_reason"], "l3_production_validation_plan_unavailable"
+        )
 
     def test_l3_production_validation_open_breaker_creates_one_operation_window(self):
         module = load_cli_module()

@@ -7527,6 +7527,24 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "apply_command_ok": bool(apply_run.get("ok")),
         "apply_returncode": apply_run.get("returncode"),
         "apply_timed_out": bool(apply_run.get("timed_out")),
+        # Keep only structural child-receipt facts.  When the existing
+        # Planner/route writer returns successfully but has no terminal
+        # apply result, these fields identify the missing handoff without
+        # embedding a child payload or creating another execution record.
+        "child_payload_keys": sorted(
+            str(key) for key in apply_payload.keys()
+        )[:24],
+        "child_apply_result_present": isinstance(
+            apply_payload.get("apply_result"), dict,
+        ),
+        "child_apply_result_keys": sorted(
+            str(key) for key in reported_apply.keys()
+        )[:24],
+        "child_existing_planner_reused": bool(
+            (apply_run.get("performance_forensics") or {}).get(
+                "existing_planner_owner_reused"
+            )
+        ),
         "child_final_verdict": str(
             apply_payload.get("final_verdict") or ""
         ),

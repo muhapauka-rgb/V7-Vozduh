@@ -5761,6 +5761,8 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         key: downstream.get(key)
         for key in (
             "apply_command_ok", "apply_returncode", "apply_timed_out",
+            "child_payload_keys", "child_apply_result_present",
+            "child_apply_result_keys", "child_existing_planner_reused",
             "child_final_verdict", "child_transaction_status",
             "child_stop_reason", "child_stop_detail",
             "child_apply_reason", "child_unsafe_blocker",
@@ -5862,6 +5864,8 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
                 for key in (
                     "apply_command_ok", "apply_returncode",
                     "apply_timed_out", "child_final_verdict",
+                    "child_payload_keys", "child_apply_result_present",
+                    "child_apply_result_keys", "child_existing_planner_reused",
                     "child_transaction_status", "child_stop_reason",
                     "child_stop_detail", "child_apply_reason",
                     "child_unsafe_blocker", "child_l3_eligibility_blockers",

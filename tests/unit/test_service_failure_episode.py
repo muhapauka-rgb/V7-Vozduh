@@ -6073,6 +6073,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "apply_command_ok": True,
                     "apply_returncode": 0,
                     "apply_timed_out": False,
+                    "child_payload_keys": ["apply_result", "operation"],
+                    "child_apply_result_present": True,
+                    "child_apply_result_keys": ["applied", "reason"],
+                    "child_existing_planner_reused": True,
                     "child_final_verdict": "STOP_SAFE",
                     "child_transaction_status": "STOP_SAFE",
                     "child_stop_reason": "route_visibility_not_confirmed",
@@ -6094,6 +6098,12 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
 
         diagnostic = projected["downstream_proof_diagnostic"]
         self.assertTrue(diagnostic["apply_command_ok"])
+        self.assertEqual(
+            diagnostic["child_payload_keys"],
+            ["apply_result", "operation"],
+        )
+        self.assertTrue(diagnostic["child_apply_result_present"])
+        self.assertTrue(diagnostic["child_existing_planner_reused"])
         self.assertEqual(diagnostic["route_apply_failure_count"], 1)
         self.assertEqual(
             diagnostic["route_apply_failure_reasons"],

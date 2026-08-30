@@ -57,3 +57,14 @@ The repair has not itself mutated Runtime routes.  After safe deployment, the
 still-actionable VLESS incident must be re-entered by the normal health/Matrix
 caller.  Only a V7-originated run that reaches per-member route/kernel and
 required-service S11 can credit the seven-second recovery contract.
+
+## Follow-up observation instrumentation
+
+The first post-deploy automatic run again reached the downstream handoff but
+reported no child Apply result.  Current read-only inspection confirmed that
+the latest Packet lock contains two members and its independently rebuilt
+operation binding is `BOUND`; therefore a route change was still not inferred
+or performed.  The compact Matrix receipt now also carries only the structural
+child receipt facts (payload keys, Apply-result presence/keys and whether the
+existing in-process Planner was reused).  This makes the next normal V7 retry
+diagnostic without logging an unbounded child payload or adding a state owner.

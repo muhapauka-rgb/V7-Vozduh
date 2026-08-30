@@ -93,3 +93,18 @@ After the restart and one-pass change, ten consecutive existing
 contention outliers were 13–19 s. This is runtime observation of the detector,
 not credited recovery evidence: no incident, candidate, packet, lease,
 barrier, assignment or route was created or advanced manually.
+
+## Current automatic-recovery readiness check
+
+The subsequent owner-backed read-only reconciliation found that the latest
+`other_required` batch had three active source contracts, twelve bounded probes
+in one wave, no failed services, zero Matrix receiver invocations and zero
+consumer wakes.  A short-lived `awg0` Google/YouTube/Instagram observation was
+already replaced by fresh healthy Matrix observations before the check, so
+there was no current failed source and no lawful automatic recovery to execute.
+
+Accordingly, no user was moved by Codex and no missing recovery was masked.
+The next valid acceptance event is a fresh, current Matrix-confirmed required
+service failure affecting an assigned ordinary profile; the existing health
+caller must then originate `T0 -> automatic scope -> Planner -> governed
+apply -> required-service S11` without any operator or Codex transition.

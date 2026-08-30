@@ -135,7 +135,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn('"hot_target": 5', loop)
         self.assertIn('"hot_target_other": 19', loop)
         self.assertIn('"other_required": 0', loop)
-        self.assertIn('"--lightweight-batch-producer",', loop)
+        self.assertNotIn('"--lightweight-batch-producer",', loop)
         self.assertIn('"--fast-producer-concurrency", "12"', loop)
         self.assertEqual(loop.count('"--lock-timeout-sec", "1"'), 2)
         self.assertIn('"hard": -20', loop)
@@ -900,6 +900,39 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertEqual(terminate.call_count, 2)
         self.assertIsNone(target_probe.process)
         self.assertIsNone(deep_probe.process)
+
+    def test_running_detector_hands_new_matrix_t0_to_existing_consumer(self):
+        """A fresh Matrix T0 must not wait for unrelated detector probes."""
+        detector_process = mock.Mock()
+        detector_process.poll.return_value = None
+        detector_process.pid = 1234
+        detector = HEALTH_LOOP_MODULE.ManagedRole(
+            name="other_required",
+            cadence_ns=5_000_000_000,
+            command=("/bin/true",),
+            process=detector_process,
+            started_ns=1_000,
+        )
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=(detector,))
+        loop.persistent_matrix_ready = True
+        with mock.patch.object(
+            HEALTH_LOOP_MODULE,
+            "canonical_profile_service_failure_bindings",
+            return_value=[{
+                "source_egress": "vless",
+                "t0_ns": 4_000,
+                "dedupe_identity": "fresh-vless-scope",
+            }],
+        ), mock.patch.object(
+            HEALTH_LOOP_MODULE, "terminate_process_group"
+        ) as terminate, mock.patch.object(
+            loop, "_consume_new_persistent_matrix_t0", return_value=True
+        ) as consume:
+            loop._collect_roles(5_000)
+
+        terminate.assert_called_once_with(detector_process)
+        consume.assert_called_once()
+        self.assertIsNone(detector.process)
 
     def test_service_failure_detector_preempts_projection_and_is_not_preempted(self):
         """The recovery detector must get the shared Matrix lock first."""

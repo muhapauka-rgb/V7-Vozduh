@@ -104,3 +104,34 @@ This block is not yet production SLO evidence.  After safe deployment, the
 normal V7 Runtime must produce the next real current failure transaction.  Its
 receipt will retain the full timeline so the remaining mandatory work can be
 classified from measured intervals rather than inferred from a later summary.
+
+## Deployment and immediate Runtime observation
+
+The second block was published as commit `7923987460cadd5a771a8206f4ea61628b471069`
+and safely deployed as `deploy-z8-14-Updatesystem-7923987-20260831T232042`.
+The deployed copies of `v7-egress-diagnose`, `v7-users-autoswitch`,
+`v7-service-matrix-refresh-all`, and `v7-health-loop` have the same hashes as
+their current local sources.  `v7-health.service` and `v7-admin-api.service`
+are both active.
+
+The immediately following normal Runtime cycles show the ordinary required
+service role completing in `2.036--2.548 s`; the previous observed
+`3.7--5.6 s` overshoots have not recurred in this observation window.  This is
+operational evidence for removal of the duplicate consumer boundary, but it is
+not yet a recovery-SLO credit because no customer was moved in the window.
+
+At the observation point VLESS had zero enabled assigned users, so no new
+VLESS recovery transaction existed to certify.  A separate current awg0
+incident has nine affected assignments, but its existing advisory owner
+returned `STOP_SAFE_NO_SAFE_TARGET`; its measured `3.593 s` planning span
+therefore cannot be credited as a successful recovery or used to weaken target
+eligibility.  The normal V7 caller retains this state and will retry only when
+an owner-admitted target exists.
+
+**Exact re-entry condition:** a fresh current Matrix profile-failure with an
+ordinary affected scope and at least one owner-admitted target.  The already
+deployed V7 health caller—not Engineering—must then produce the first new
+receipt with the complete `T0 -> all affected S11` timeline.  If its measured
+critical path still exceeds seven seconds, that receipt identifies the next
+remaining mandatory span; no further speculative change is admitted before
+then.

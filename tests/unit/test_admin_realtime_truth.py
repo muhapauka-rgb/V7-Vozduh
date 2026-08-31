@@ -3,6 +3,7 @@ import importlib.util
 import json
 import tempfile
 import unittest
+from datetime import timedelta
 from unittest import mock
 from pathlib import Path
 
@@ -311,6 +312,62 @@ class AdminRealtimeTruthTest(unittest.TestCase):
             self.assertTrue(enabled["enabled"])
             disabled = self.admin.set_admin_safe_mode("admin", False, "done")
             self.assertFalse(disabled["enabled"])
+
+    def test_expired_exact_operation_window_is_reconciled_before_admin_action(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            safe_mode = Path(tmp) / "safe-mode.json"
+            control = self.admin.operator_execution.build_autonomous_execution_control_state(
+                False,
+                actor="runtime",
+                reason="one_user_operation",
+                operation_id="operation-1",
+                selected_move_hash="move-hash",
+                action_class="USER_SWITCH",
+                source_bundle_hash="source-hash",
+                snapshot_bundle_hash="snapshot-hash",
+                max_users=1,
+                now=self.admin.operator_execution.utc_now() - timedelta(seconds=901),
+            )
+            self.admin.write_json_atomic(safe_mode, control)
+            previous = self.admin.SAFE_MODE_FILE
+            self.addCleanup(setattr, self.admin, "SAFE_MODE_FILE", previous)
+            self.admin.SAFE_MODE_FILE = safe_mode
+
+            recovered = self.admin.reconcile_expired_operation_execution_control("operator")
+
+            after = self.admin.operator_execution.autonomous_execution_control_state(safe_mode)
+            self.assertTrue(recovered["attempted"])
+            self.assertTrue(recovered["recovered"])
+            self.assertTrue(after["valid"])
+            self.assertEqual(after["state"], "OPEN")
+            self.assertFalse(self.admin.admin_safe_mode_enabled())
+
+    def test_expired_operation_window_with_explicit_admin_freeze_stays_blocked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            safe_mode = Path(tmp) / "safe-mode.json"
+            control = self.admin.operator_execution.build_autonomous_execution_control_state(
+                False,
+                actor="runtime",
+                reason="one_user_operation",
+                operation_id="operation-1",
+                selected_move_hash="move-hash",
+                action_class="USER_SWITCH",
+                source_bundle_hash="source-hash",
+                snapshot_bundle_hash="snapshot-hash",
+                max_users=1,
+                now=self.admin.operator_execution.utc_now() - timedelta(seconds=901),
+            )
+            control["admin_safe_mode"] = {"enabled": True, "reason": "maintenance"}
+            self.admin.write_json_atomic(safe_mode, control)
+            previous = self.admin.SAFE_MODE_FILE
+            self.addCleanup(setattr, self.admin, "SAFE_MODE_FILE", previous)
+            self.admin.SAFE_MODE_FILE = safe_mode
+
+            recovered = self.admin.reconcile_expired_operation_execution_control("operator")
+
+            after = self.admin.operator_execution.autonomous_execution_control_state(safe_mode)
+            self.assertFalse(recovered["attempted"])
+            self.assertEqual(after["state"], "CLOSED")
 
 
 if __name__ == "__main__":

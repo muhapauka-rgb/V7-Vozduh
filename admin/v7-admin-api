@@ -16640,6 +16640,55 @@ def admin_safe_mode_state():
     })
 
 
+def reconcile_expired_operation_execution_control(actor):
+    """Return one conclusively expired operation window to the resting state.
+
+    A governed action opens a short, exact operation-scoped control window and
+    its owner normally finalizes it back to the global resting ``OPEN`` state.
+    If a process is interrupted after the window expires, the old CLOSED
+    record can no longer authorize a route mutation, but previously also
+    blocked every Admin write forever. Recover only that precise terminal
+    shape through the existing execution-control finalizer. Active windows,
+    explicit Admin Safe Mode, and every malformed or otherwise invalid record
+    remain fail-closed.
+    """
+    before = operator_execution.autonomous_execution_control_state(SAFE_MODE_FILE)
+    raw = read_json(SAFE_MODE_FILE, {})
+    manual = raw.get("admin_safe_mode") if isinstance(raw, dict) else {}
+    manual = manual if isinstance(manual, dict) else {}
+    blockers = sorted(set(before.get("blockers") or []))
+    eligible = (
+        before.get("state") == "CLOSED"
+        and before.get("scope") == "operation"
+        and before.get("enabled") is False
+        and blockers == ["execution_control_closed_expired"]
+        and not bool(manual.get("enabled"))
+        and bool(str(before.get("generation") or "").strip())
+        and bool(str(before.get("operation_id") or "").strip())
+    )
+    if not eligible:
+        return {
+            "attempted": False,
+            "recovered": False,
+            "before": before,
+            "reason": "not_exactly_expired_operation_window",
+        }
+    result = operator_execution.finalize_autonomous_execution_control_window(
+        SAFE_MODE_FILE,
+        expected_generation=str(before.get("generation") or ""),
+        operation_id=str(before.get("operation_id") or ""),
+        actor=f"admin/v7-admin-api:{str(actor or 'admin').strip() or 'admin'}",
+        reason="expired_operation_window_reconciled_before_admin_action",
+    )
+    return {
+        "attempted": True,
+        "recovered": bool(result.get("ok") and result.get("final_open")),
+        "before": before,
+        "after": result.get("after") or operator_execution.autonomous_execution_control_state(SAFE_MODE_FILE),
+        "finalization": result,
+    }
+
+
 def admin_safe_mode_enabled():
     state = admin_safe_mode_state()
     return bool(state.get("enabled")) or not bool(state.get("valid"))
@@ -38860,29 +38909,48 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_connect(result=result, error=error, status=status, form_data=data)
             return
         safe_mode = admin_safe_mode_state()
-        if path in SAFE_MODE_BLOCKED_ACTIONS and (bool(safe_mode.get("enabled")) or not bool(safe_mode.get("valid"))):
+        if path in SAFE_MODE_BLOCKED_ACTIONS:
             session = self.require_auth(api=True)
             if not session:
                 return
             if not self.require_csrf(session):
                 return
             actor = session.get("sub", "admin")
-            audit_admin(
-                actor,
-                "admin_safe_mode_blocked",
-                f"path={path} state={safe_mode.get('state')} generation={safe_mode.get('generation')} reason={safe_mode.get('reason')} updated_by={safe_mode.get('updated_by')}",
-                object_type="admin_safe_mode",
-                object_id=path,
-                result="BLOCKED",
-                severity="warning",
-            )
-            self.send_json({
-                "error": "safe_mode_enabled",
-                "message": "Admin Safe Mode is enabled. This action is blocked until Safe Mode is disabled.",
-                "path": path,
-                "safe_mode": safe_mode,
-            }, status=423)
-            return
+            if not self.require_action_access(session, path):
+                return
+            recovery = reconcile_expired_operation_execution_control(actor)
+            if recovery.get("recovered"):
+                audit_admin(
+                    actor,
+                    "admin_expired_operation_window_reconciled",
+                    (
+                        "state=CLOSED "
+                        f"generation={str((recovery.get('before') or {}).get('generation') or '')} "
+                        f"operation_id={str((recovery.get('before') or {}).get('operation_id') or '')}"
+                    ),
+                    object_type="admin_safe_mode",
+                    object_id=path,
+                    result="OK",
+                    severity="warning",
+                )
+            safe_mode = admin_safe_mode_state()
+            if bool(safe_mode.get("enabled")) or not bool(safe_mode.get("valid")):
+                audit_admin(
+                    actor,
+                    "admin_safe_mode_blocked",
+                    f"path={path} state={safe_mode.get('state')} generation={safe_mode.get('generation')} reason={safe_mode.get('reason')} updated_by={safe_mode.get('updated_by')}",
+                    object_type="admin_safe_mode",
+                    object_id=path,
+                    result="BLOCKED",
+                    severity="warning",
+                )
+                self.send_json({
+                    "error": "safe_mode_enabled",
+                    "message": "Admin Safe Mode is enabled. This action is blocked until Safe Mode is disabled.",
+                    "path": path,
+                    "safe_mode": safe_mode,
+                }, status=423)
+                return
         if path in ACTION_MIN_ROLE:
             session = self.require_auth(api=True)
             if not session:

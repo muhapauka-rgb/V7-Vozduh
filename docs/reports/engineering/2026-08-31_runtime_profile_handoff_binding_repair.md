@@ -86,3 +86,52 @@ functional evidence only, not 7-second acceptance evidence.
 The next action is one new operator-created bad placement.  V7's normal health
 caller, not Codex, must then discover and recover it.  The new live sample must
 retain every slow result and will be judged against the 7 s / 8 s law.
+
+## Follow-up: repeated placement on the same continuing failed source
+
+At 13:20 MSK the normal `v7-health.service` caller emitted
+`PROFILE_MATRIX_T0_CONSUMED` for three ordinary identities newly assigned to
+the still-failed `vless` source. Matrix had a fresh three-member failed-source
+scope and healthy eligible alternatives. No governed recovery was admitted.
+
+Cause: the existing compact L3 incident for the *same* continuing source
+incident remained closed after its earlier successful recovery. The runtime
+hot path correctly avoids a slow historical scan, but consequently treated the
+old zero-unresolved scope as current and passed no affected identities to the
+existing governed executor.
+
+Bounded repair prepared locally:
+
+- Matrix passes its exact current source scope to the existing autoswitch
+  advisory process only for the in-process profile handoff;
+- autoswitch independently proves the source, incident, current Matrix scope
+  count and registry-derived affected count agree;
+- only the matching existing compact incident is reopened, with no stored raw
+  user list, no target selection and no execution authority;
+- Candidate, Packet, Lease, Barrier, Apply and every route mutation remain
+  exclusively with the normal existing V7 governed caller.
+
+Focused verification passed: five tests, including scope re-entry isolation,
+the process-local handoff boundary, source-fallback behavior, exact ordering
+and fresh-obligation materialization. The full two-module historical suite
+also exposed pre-existing fixture errors unrelated to these changed paths;
+they access partially constructed planners without their required Matrix or
+policy inputs. They do not fail in the focused repaired paths.
+
+Deployment and live proof remain pending safe publication of the repair. The
+required next action after deployment is to leave the three already placed
+identities untouched and observe the normal V7 caller recover them; Codex must
+not advance that recovery manually.
+
+At 13:39:45 MSK the production registry still showed the three test identities
+`10.7.0.125`, `10.7.0.126` and `10.7.0.127` on `vless`; `v7-health.service`
+was active. They were deliberately left in place so that the next valid proof
+can originate entirely from the deployed V7 caller. The safe-deploy gate was
+locally aligned but returned `NO-GO` solely because GitHub truth was unreadable;
+no deployment was attempted or bypassed.
+
+Fresh Matrix reading at 13:40 MSK continued to show current VLESS failures for
+Google, Google Auth, Instagram and YouTube under the same active source
+incident. It also retained older failures for several other services. Thus the
+three identities are correctly left as a live acceptance condition: the source
+is not suitable for profiles requiring any of the currently failed services.

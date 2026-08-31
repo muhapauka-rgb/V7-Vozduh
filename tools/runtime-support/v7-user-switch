@@ -13,7 +13,19 @@ v7_route_timing_now() {
 if [ "${V7_LOCKED_USER_SWITCH:-0}" != "1" ]; then
   export V7_LOCKED_USER_SWITCH=1
   export V7_ROUTE_TIMING_LOCK_STARTED="$(v7_route_timing_now)"
-  exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
+  # The only route writer remains globally serialised.  A caller that is
+  # explicitly latency-bounded (the operator UI) must be able to distinguish
+  # a held writer from a failed route mutation, so it can safely retry through
+  # the same owner instead of reporting a false failed switch.
+  if flock -E 75 -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"; then
+    exit 0
+  else
+    lock_rc=$?
+    if [ "$lock_rc" = "75" ]; then
+      echo "V7_ROUTE_WRITE_FAILURE=ROUTE_WRITE_LOCK_BUSY"
+    fi
+    exit "$lock_rc"
+  fi
 fi
 
 V7_ROUTE_TIMING_ENTERED="$(v7_route_timing_now)"

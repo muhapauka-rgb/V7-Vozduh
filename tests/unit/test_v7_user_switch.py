@@ -53,6 +53,12 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertNotIn("route replace", calls)
 
+    def test_route_writer_lock_timeout_has_a_retryable_stable_failure_code(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn('flock -E 75 -w "${V7_LOCK_WAIT:-20}"', source)
+        self.assertIn("V7_ROUTE_WRITE_FAILURE=ROUTE_WRITE_LOCK_BUSY", source)
+
     def test_owner_context_reaches_route_replace_after_validator_allows(self):
         with tempfile.TemporaryDirectory() as tmp:
             env, ip_log = self.fixture(Path(tmp))

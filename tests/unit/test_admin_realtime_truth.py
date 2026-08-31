@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 import json
+import subprocess
 import tempfile
 import unittest
 from datetime import timedelta
@@ -176,7 +177,9 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("USER_SWITCH_DEADLINE_MS = 7000", inline)
         self.assertIn("requestOperatorProfileEgressRebind(ip, egress)", inline)
         self.assertIn("operator_profile_execution_control_unavailable", inline)
+        self.assertIn("operator_profile_route_writer_busy", inline)
         self.assertIn("USER_SWITCH_RETRY_MS = 140", inline)
+        self.assertIn("USER_SWITCH_RETRY_MAX_MS = 700", inline)
         self.assertNotIn("openGovernedMovementRequired", inline)
         operation = source[
             source.index("def operator_profile_egress_rebind"):
@@ -184,6 +187,57 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         ]
         self.assertIn('timeout=7', operation)
         self.assertIn('writer_deadline_exceeded_7s', operation)
+        self.assertIn('"V7_LOCK_WAIT": "1"', operation)
+        self.assertIn('route_writer_busy', operation)
+        self.assertIn('operator_profile_route_writer_busy', operation)
+        self.assertIn('with OPERATOR_PROFILE_REBIND_CONTROL_LOCK:', operation)
+        self.assertIn('replaced_by_current_operation', operation)
+
+    def test_operator_rebind_reports_held_route_writer_as_retryable_and_reopens_control(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "users.registry").write_text(
+                "ip=10.7.0.125 current=awg0 table=1125 enabled=1\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=awg0 interface=awg0 enabled=1\n"
+                "id=vless interface=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            control_path = state / "safe-mode.json"
+            self.admin.operator_execution.write_json_atomic(
+                control_path,
+                self.admin.operator_execution.build_autonomous_execution_control_state(
+                    True, actor="test", reason="open",
+                ),
+            )
+            previous_state, previous_control = self.admin.STATE_DIR, self.admin.SAFE_MODE_FILE
+            self.addCleanup(setattr, self.admin, "STATE_DIR", previous_state)
+            self.addCleanup(setattr, self.admin, "SAFE_MODE_FILE", previous_control)
+            self.admin.STATE_DIR, self.admin.SAFE_MODE_FILE = state, control_path
+            busy = subprocess.CompletedProcess(
+                ["v7-user-switch", "10.7.0.125", "vless"],
+                75,
+                stdout="V7_ROUTE_WRITE_FAILURE=ROUTE_WRITE_LOCK_BUSY\n",
+            )
+            with mock.patch.object(self.admin, "admin_safe_mode_enabled", return_value=False), \
+                 mock.patch.object(self.admin, "identity_egress_issuance_binding", return_value={"ok": True}), \
+                 mock.patch.object(self.admin.subprocess, "run", return_value=busy), \
+                 mock.patch.object(self.admin, "audit_admin"):
+                payload, error, status = self.admin.operator_profile_egress_rebind({
+                    "ip": "10.7.0.125", "egress": "vless",
+                    "confirm": "OPERATOR_PROFILE_EGRESS_REBIND",
+                }, "test")
+
+            after = self.admin.operator_execution.autonomous_execution_control_state(control_path)
+
+        self.assertIsNone(payload)
+        self.assertEqual(status, 409)
+        self.assertEqual(error["error"], "operator_profile_route_writer_busy")
+        self.assertTrue(error["retryable"])
+        self.assertTrue(after["valid"])
+        self.assertEqual(after["state"], "OPEN")
 
     def test_operator_rebind_uses_core_primary_commit_as_authoritative_kernel_evidence(self):
         source = ADMIN_API.read_text(encoding="utf-8")

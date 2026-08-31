@@ -1148,6 +1148,7 @@ class RoleHealthLoop:
                 self._fallback_matrix_consumer(t0_ns, health_dispatch_context)
             else:
                 self._fallback_matrix_consumer(t0_ns)
+        consumer_completed_ns = monotonic_ns()
         delegated = self.persistent_matrix_last_result.get(
             "bounded_delegated_service_failure_action"
         )
@@ -1182,7 +1183,16 @@ class RoleHealthLoop:
             "schema": "v7.health-persistent-matrix-consumer-receipt.v1",
             "role": key,
             "source": str((health_dispatch_context or {}).get("profile_source_egress") or ""),
-            "t0_to_consumer_complete_ms": elapsed_ms(consumer_started_ns, monotonic_ns()),
+            # These three spans are deliberately retained in the existing
+            # health receipt: they distinguish Matrix/consumer scheduling
+            # delay from the governed transaction itself without creating a
+            # second timing owner or changing any recovery decision.
+            "t0_monotonic_ns": int(t0_ns),
+            "consumer_started_monotonic_ns": int(consumer_started_ns),
+            "consumer_completed_monotonic_ns": int(consumer_completed_ns),
+            "t0_to_consumer_started_ms": elapsed_ms(t0_ns, consumer_started_ns),
+            "t0_to_consumer_complete_ms": elapsed_ms(t0_ns, consumer_completed_ns),
+            "consumer_execution_ms": elapsed_ms(consumer_started_ns, consumer_completed_ns),
             "consumer_rc": int(persistent_rc),
             "matrix_status": str(self.persistent_matrix_last_result.get("status") or ""),
             "next_output": str(self.persistent_matrix_last_result.get("next_output") or ""),

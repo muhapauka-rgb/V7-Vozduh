@@ -609,6 +609,16 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertEqual(receipt["affected_scope_count"], 2)
         self.assertTrue(receipt["action_completed"])
         self.assertEqual(receipt["users_moved"], 2)
+        self.assertLessEqual(
+            receipt["t0_monotonic_ns"],
+            receipt["consumer_started_monotonic_ns"],
+        )
+        self.assertLessEqual(
+            receipt["consumer_started_monotonic_ns"],
+            receipt["consumer_completed_monotonic_ns"],
+        )
+        self.assertGreaterEqual(receipt["t0_to_consumer_complete_ms"], 0)
+        self.assertGreaterEqual(receipt["consumer_execution_ms"], 0)
 
     def test_known_incomplete_downstream_validation_is_reconsumed_by_live_owner(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())

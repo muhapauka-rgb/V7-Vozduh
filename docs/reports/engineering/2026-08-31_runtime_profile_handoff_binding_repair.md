@@ -63,15 +63,26 @@ Passed focused tests:
 - fast-path passive-history deferral law;
 - obligation-before-passive-history ordering.
 
-The safe-deploy gate accepted the deploy allowlist but correctly returned
-`NO-GO` until the changed implementation is committed and GitHub truth can be
-read.  Its current external blocker is `github_remote_unreadable`; no deploy
-was attempted through that gate.
+Focused tests passed: three tests, 0.497 s, no failures.  The committed change
+is `46f57e9a Preserve runtime profile failure binding`; the independent GitHub
+branch check returned the same commit.  After GitHub truth became available,
+the existing safe-deploy gate returned `PASS` and deployed the approved
+implementation.
+
+Post-deploy Runtime evidence:
+
+- local and deployed Matrix implementation SHA-256 both equal
+  `2a24d21a63ff7cf38f35159b19ceeec526d1336e34163da5f51ca1c0e063a899`;
+- `v7-health.service` is active;
+- `v7-admin-api.service` is active;
+- standalone Matrix and Telegram timers remain inactive.
 
 ## Current status and next frontier
 
-The repair is locally implemented and tested, but not deployed.  The next
-action is to commit it, publish it when the existing GitHub truth check becomes
-available, run the safe deploy, then wait for a new operator-created bad
-placement and observe a fully automatic V7 recovery.  The new live sample
-must retain every slow result and will be judged against the 7 s / 8 s law.
+The repair is deployed and the previous three-user event is complete: all three
+identities are now on `awg0`.  It was completed before this repair and remains
+functional evidence only, not 7-second acceptance evidence.
+
+The next action is one new operator-created bad placement.  V7's normal health
+caller, not Codex, must then discover and recover it.  The new live sample must
+retain every slow result and will be judged against the 7 s / 8 s law.

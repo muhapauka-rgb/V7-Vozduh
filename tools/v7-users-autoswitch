@@ -1033,17 +1033,23 @@ def reuse_current_prepared_class_projection(args: argparse.Namespace) -> dict[st
     current_contingency_sources = sorted(
         ordinary_contingency_source_ids(Path(args.state_dir))
     )
-    if (
+    coverage_upgrade_required = (
         str(coverage.get("mode") or "")
         != "ALL_NON_CERTIFICATION_EGRESS_SOURCES_V1"
         or sorted(str(item) for item in (coverage.get("sources") or []))
         != current_contingency_sources
-    ):
+    )
+    if coverage_upgrade_required:
         # Older projections were valid for a source that had members at their
         # build time, but not for an operator's later ordinary placement.  A
-        # one-time existing Planner rebuild is safer than silently treating
-        # such a projection as source-complete.
-        blockers.append("prepared_contingency_source_coverage_upgrade_required")
+        # background existing-Planner rebuild remains required.  The exact
+        # runtime-profile consumer can meanwhile derive a transient
+        # same-profile source binding from an already selected class and still
+        # revalidate the live Matrix failure plus every mutable execution
+        # gate.  It never treats this legacy projection as source-complete.
+        coverage_warning = "prepared_contingency_source_coverage_upgrade_required"
+    else:
+        coverage_warning = ""
     if list(declared or []) != list(PREPARED_SELECTION_INVALIDATOR_KEYS):
         blockers.append("selection_invalidation_contract_upgrade_required")
     hot_target_set = (
@@ -1077,6 +1083,10 @@ def reuse_current_prepared_class_projection(args: argparse.Namespace) -> dict[st
         "ok": ok,
         "status": "PREPARED_CLASS_PROJECTION_REUSED" if ok else "PREPARED_CLASS_PROJECTION_REBUILD_REQUIRED",
         "blockers": sorted(set(blockers)),
+        "warnings": [coverage_warning] if coverage_warning else [],
+        "ordinary_contingency_source_coverage_upgrade_required": (
+            coverage_upgrade_required
+        ),
         "age_seconds": round(age_seconds, 3),
         "maximum_reuse_seconds": PREPARED_PROJECTION_PERIODIC_REBUILD_SECONDS,
         "prepared_class_decisions": projection if ok else {},
@@ -18259,6 +18269,23 @@ class AutoswitchPlanner:
             if isinstance(row, dict)
             and str(row.get("source_channel") or "") == source
         ]
+        source_binding_mode = "EXACT_PREPARED_SOURCE_CLASS"
+        if not classes:
+            # A pre-upgrade projection may have been built before an operator
+            # placed an ordinary identity on this source.  Do not rerank the
+            # world or invent a target: retain only existing classes and let
+            # the per-user function below intersect the identical profile and
+            # route class with current Candidate gates.  The derived binding
+            # lives in this process only and is never written as a new source
+            # of truth.  A full projection rebuild remains the steady-state
+            # owner path.
+            classes = [
+                row for row in (projection.get("classes") or [])
+                if isinstance(row, dict)
+                and str(row.get("source_binding_mode") or "")
+                != "ORDINARY_CONTINGENCY_SOURCE"
+            ]
+            source_binding_mode = "TRANSIENT_SAME_PROFILE_CONTINGENCY_ADAPTER"
         if not classes or not contracts:
             return {
                 "ok": False,
@@ -18272,6 +18299,7 @@ class AutoswitchPlanner:
             "classes": classes,
             "contracts": contracts,
             "projection_fingerprint": sha256_json(projection),
+            "source_binding_mode": source_binding_mode,
             "selection_owner": "existing Matrix prepared_class_decisions",
             "fallback": "EXISTING_BOUNDED_SOURCE_PLANNER",
         }
@@ -18327,6 +18355,10 @@ class AutoswitchPlanner:
                 )
                 if target_id and target_id in contracts and target_id not in target_ids:
                     target_ids.append(target_id)
+        target_ids.sort(key=lambda target: (
+            -to_float((contracts.get(target) or {}).get("planner_score"), 0.0),
+            target,
+        ))
         for target in target_ids:
             candidate = self._candidate(
                 user, self.egress[target], important, route_class,
@@ -18344,6 +18376,13 @@ class AutoswitchPlanner:
                 "current_egress_not_eligible",
                 "prepared_source_scoped_target_passed_mutable_validation",
             ]
+            if (
+                str(context.get("source_binding_mode") or "")
+                == "TRANSIENT_SAME_PROFILE_CONTINGENCY_ADAPTER"
+            ):
+                reasons.append(
+                    "same_profile_prepared_contingency_source_binding"
+                )
             if not cooldown_ok:
                 reasons.append(cooldown_reason or "l3_failed_source_cooldown_override")
             return {

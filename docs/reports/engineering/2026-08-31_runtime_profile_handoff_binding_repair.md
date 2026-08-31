@@ -307,6 +307,36 @@ role to rebuild the now source-complete projection, verify Runtime alignment,
 then observe a new operator-created bad placement.  Only a recovery triggered
 by the normal V7 Runtime may establish seven-second evidence.
 
+## Follow-up: background preparation was deferred under live health load
+
+Immediately after the source-coverage deployment the Runtime was on the new
+binary and `v7-health.service` was active, but its stored prepared projection
+was from 29 August and had no VLESS class.  The health journal showed why:
+the existing `planner_projection` role was repeatedly deferred while the
+ordinary required-service detector was active.  Waiting for that background
+work would make a customer recovery depend on minutes of unrelated load.
+
+The repair therefore adds a narrow in-process compatibility adapter inside the
+same existing prepared-projection consumer.  If an older projection lacks the
+current source class, V7 may use only the already prepared classes with the
+identical required-service set and route class; it uses no target outside
+those existing classes and performs the unchanged current Candidate,
+Authority, Packet, Lease, Barrier, route and S11 checks.  It is not persisted,
+does not rank the world, does not select a user, and cannot execute by itself.
+Once the background Planner role runs, the full source-complete projection
+replaces this temporary compatibility path.
+
+The former missing-coverage indication is now an explicit warning rather than
+a block for this exact runtime-profile adapter.  Direct prepared handoffs and
+all other consumers remain source-bound and retain their full fallback.
+
+Verification after the compatibility repair: 251 tests across the policy and
+prepared-target suites passed, plus focused runtime-profile tests and source
+compilation/whitespace checks.  No client or route was changed during testing.
+Next is a second safe deployment and an observation-only live acceptance
+sample, originated solely by the normal V7 health caller after an operator
+placement.
+
 It is **not** seven-second acceptance evidence.  The observed confirmed
 Matrix T0 to operation completion is about **32.4 seconds**.  The operation
 feedback did not retain the original monotonic clocks, so first-observation to

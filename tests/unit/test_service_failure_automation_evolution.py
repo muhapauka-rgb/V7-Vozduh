@@ -853,7 +853,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(decision["recommended_egress"], "awg0")
         self.assertEqual(planner._candidate.call_count, 2)
 
-    def test_runtime_profile_prepared_target_reuses_contingency_source_class(self):
+    def test_runtime_profile_prepared_target_reuses_legacy_contingency_source(self):
         """A later operator placement must not force a world-model rebuild."""
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)
         planner.args = SimpleNamespace(
@@ -882,8 +882,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "ok": True,
             "prepared_class_decisions": {
                 "classes": [{
-                    "source_channel": "vless",
-                    "source_binding_mode": "ORDINARY_CONTINGENCY_SOURCE",
+                    "source_channel": "awg3",
                     "service_routing_compatibility": ["telegram"],
                     "route_class": "TELEGRAM_CRITICAL",
                     "ordinary_member_slice": [],
@@ -898,10 +897,18 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
 
         self.assertTrue(context["ok"])
         self.assertEqual(
+            context["source_binding_mode"],
+            "TRANSIENT_SAME_PROFILE_CONTINGENCY_ADAPTER",
+        )
+        self.assertEqual(
             decision["decision_construction"],
             "PREPARED_SOURCE_TARGET_MUTABLE_VALIDATION_ONLY",
         )
         self.assertEqual(decision["recommended_egress"], "awg0")
+        self.assertIn(
+            "same_profile_prepared_contingency_source_binding",
+            decision["reason"],
+        )
 
     def test_runtime_profile_prepared_target_miss_returns_bounded_fallback_signal(self):
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)

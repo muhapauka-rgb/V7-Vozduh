@@ -365,3 +365,31 @@ V7 detected and prepared recovery but did not route the user because of this
 now-repaired defect.  After safe deployment, the live V7 caller—not Codex—must
 consume the still-current Matrix scope.  The resulting route and S11 evidence
 will be recorded separately, with no retroactive seven-second claim.
+
+### Production result after deployment
+
+The normal V7 Runtime re-consumed the live obligation after the health-service
+restart. It created a new Packet `pkt_aeee70e1230d1cfed900084d`, selected
+`awg0` through the existing Planner and completed the governed transaction for
+`10.7.0.125` without any Codex route, user, Candidate, Packet, Lease or
+Barrier action. The canonical registry now reads
+`ip=10.7.0.125 current=awg0 table=1123 enabled=1`; the existing execution
+lease is terminal `EXECUTION_FINISHED / selected_moves_applied` with
+`apply_executed=true`.
+
+| Boundary | UTC | Elapsed from fresh Matrix observation |
+| --- | --- | ---: |
+| Matrix scope observation | 16:03:42.489 | 0.0 s |
+| Packet/Lease created | 16:04:25.434 | 42.9 s |
+| Route assignment committed | 16:04:27.411 | 44.9 s |
+| Runtime success evidence written | 16:04:45.544 | 63.1 s |
+| Execution lease finished | 16:04:55.133 | 72.6 s |
+
+This is valid proof that the repaired automatic path no longer strands the
+user, but it is a **failed 7-second latency acceptance**. The dominant
+measured interval is Matrix observation to Packet creation (42.9 seconds),
+not route writing (about 2 seconds). The current feedback record drops the
+monotonic clocks, so it cannot prove a more precise first-observation-to-S11
+claim. The next engineering frontier is to instrument and collapse the
+existing source-scoped Matrix-to-Packet interval while preserving the normal
+runtime origin and all current safety gates.

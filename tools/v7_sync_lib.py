@@ -2419,6 +2419,7 @@ def delegated_policy_live_state_consistency(
     v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
     v5_3_phase_g_frontier = _is_v5_3_phase_g_frontier(live)
     v5_3_t0_t11_latency_track_frontier = _is_v5_3_t0_t11_latency_track_frontier(live)
+    recovery_latency_slo_frontier = _is_recovery_latency_slo_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
@@ -2485,7 +2486,7 @@ def delegated_policy_live_state_consistency(
         f"ENGINEERING_AUTHORITY_FOR_{program_frontier}_ONLY"
         if safe_deploy_frontier else
         "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
-        if independent_program_frontier else
+        if independent_program_frontier or recovery_latency_slo_frontier else
         "YES_OUTSIDE_ACTIVE_POLICY" if external_program_terminal else
         "NO_INSIDE_APPROVED_POLICY"
     )
@@ -2595,7 +2596,7 @@ def delegated_policy_live_state_consistency(
             or external_owner_terminal
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or recovery_latency_slo_frontier) and wip_stop == "NONE"
         )
         and (
             not independent_program_frontier
@@ -2609,7 +2610,7 @@ def delegated_policy_live_state_consistency(
             or safe_reentry_frontier
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or recovery_latency_slo_frontier) and wip_stop == "NONE"
             or rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
@@ -2843,6 +2844,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 or _is_v5_3_system_revalidation_frontier(live)
                 or _is_v5_3_phase_g_frontier(live)
                 or _is_v5_3_t0_t11_latency_track_frontier(live)
+                or _is_recovery_latency_slo_frontier(live)
                 or _is_rs7_physical_admission_frontier(live)
             )
             else
@@ -6732,6 +6734,11 @@ def _plain_live_value(live: dict[str, str], key: str) -> str:
 
 
 SERVICE_FAILURE_AUTOMATION_PROGRAM_ID = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+RECOVERY_LATENCY_SLO_MISSION_ID = "V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE"
+RECOVERY_LATENCY_SLO_FRONTIER = "V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE"
+RECOVERY_LATENCY_SLO_REPORT = (
+    "docs/reports/engineering/2026-09-01_recovery_latency_slo_reentry_and_causal_baseline.md"
+)
 V5_3_MATRIX_DECISION_MISSION_ID = "V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1"
 V5_3_MATRIX_DECISION_ACTION = "EXECUTE_V5_3_MATRIX_HEALTH_PHASE_C_D_E_DECISION"
 V5_3_MATRIX_FIRST_IMPLEMENTATION_MISSION_ID = (
@@ -6812,6 +6819,31 @@ def _is_v5_3_implementation_frontier(live: dict[str, str]) -> bool:
         value("CURRENT_EXECUTION_MISSION_ID") == mission_id,
         value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_ADMITTED",
         value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
+    ))
+
+
+def _is_recovery_latency_slo_frontier(live: dict[str, str]) -> bool:
+    """Return true only for the owner-authorized unfinished product SLO lane.
+
+    Functional service-failure recovery and the wider historical OMP program
+    may both be consumed while the user-visible recovery-latency contract is
+    still open.  This narrow predicate keeps that residual visible through the
+    existing CPS/OMP atomic owner.  It grants no Runtime authority and does
+    not create a new Program or consumer.
+    """
+    value = lambda key: str(live.get(key) or "").strip().strip("`")
+    return all((
+        value("ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        value("CURRENT_PROGRAM_STAGE") == "V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION",
+        value("CURRENT_ACTIVE_SCOPE") == "V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION",
+        value("CURRENT_PROGRAM_EXECUTION_FRONTIER") == RECOVERY_LATENCY_SLO_FRONTIER,
+        value("CURRENT_EXECUTION_FRONTIER") == RECOVERY_LATENCY_SLO_FRONTIER,
+        value("CURRENT_EXECUTION_MISSION_ID") == RECOVERY_LATENCY_SLO_MISSION_ID,
+        value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_ACTIVE",
+        value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
+        value("CURRENT_MISSION_ID") == RECOVERY_LATENCY_SLO_MISSION_ID,
+        value("CURRENT_MISSION_STATE") == "MISSION_ACTIVE",
+        value("RECOVERY_LATENCY_SLO") == "ACTIVE",
     ))
 
 
@@ -7419,6 +7451,172 @@ def reconcile_v5_3_phase_g_to_t0_t11_latency_track(
         "errors": [] if ok else (
             atomic.get("errors") or omp_pointer.get("errors")
             or ["atomic_cps_or_omp_phase_g_projection_failed"]
+        ),
+    }
+
+
+def reconcile_recovery_latency_slo_reentry_to_cps(
+    *, root: Path = ROOT,
+    report_path: str = RECOVERY_LATENCY_SLO_REPORT,
+) -> dict[str, Any]:
+    """Activate the still-unmet V5.3 recovery-latency product contract.
+
+    The function is intentionally a CPS/OMP lifecycle operation only.  It
+    preserves every consumed functional-recovery terminal and does not run
+    Matrix, Planner, Authority or a route writer.  Runtime recovery remains
+    solely with the already deployed health owner and its normal consumer.
+    """
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    program_path = root / "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md"
+    resolved_report_path = root / report_path
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+        program = program_path.read_text(encoding="utf-8")
+        report = resolved_report_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema": "v7-recovery-latency-slo-reentry/v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": [f"recovery_latency_slo_reentry_input_unreadable:{exc}"],
+        }
+
+    required_program_tokens = (
+        "V5.3 N0–N11 ROLE-BASED FAST RECOVERY ARCHITECTURE",
+        "current two-vCPU rollout contract P95 `<=7 s`, max `<=8 s`",
+        "WHOLE_SYSTEM_ZERO_RESIDUE_RECONCILIATION",
+    )
+    required_report_tokens = (
+        "# Recovery-latency SLO re-entry and causal baseline",
+        "T_FIRST_VALID_FAILURE_OBSERVATION",
+        "T_GLOBAL_ALL_AFFECTED_RECOVERED",
+        "P95 <= 7000 ms",
+        "MAX <= 8000 ms",
+    )
+    errors = [
+        f"recovery_latency_slo_program_requirement_missing:{token}"
+        for token in required_program_tokens if token not in program
+    ]
+    errors.extend(
+        f"recovery_latency_slo_report_requirement_missing:{token}"
+        for token in required_report_tokens if token not in report
+    )
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    if _plain_live_value(live, "ACTIVE_PROGRAM") != SERVICE_FAILURE_AUTOMATION_PROGRAM_ID:
+        errors.append("recovery_latency_slo_active_program_mismatch")
+    if errors:
+        return {
+            "schema": "v7-recovery-latency-slo-reentry/v1",
+            "final_verdict": "STOP_SAFE",
+            "binding_owner": "existing OMP/CPS atomic reconciliation owner",
+            "errors": sorted(set(errors)),
+        }
+
+    report_sha256 = hashlib.sha256(report.encode("utf-8")).hexdigest()
+    state = _normalized_state_from_live_cps(cps_text)
+    state.update({
+        "state_captured": utc_now(),
+        "current_state_generation": (
+            f"cpsgen_SFA_RECOVERY_LATENCY_SLO_{report_sha256[:12].upper()}"
+        ),
+        "current_transition_id": "RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1",
+        "current_active_scope": "V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION",
+        "current_scope_class": "RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT",
+        "current_safe_next_action": (
+            "Use only the normal V7 Runtime health caller to obtain one fresh "
+            "current failure-to-all-affected-required-service-S11 causal sample; "
+            "repair a measured generic residual before a further sample."
+        ),
+        "current_next_action_id": RECOVERY_LATENCY_SLO_FRONTIER,
+        "current_program_stage": "V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION",
+        "current_program_execution_frontier": RECOVERY_LATENCY_SLO_FRONTIER,
+        "current_execution_frontier": RECOVERY_LATENCY_SLO_FRONTIER,
+        "current_execution_mission_id": RECOVERY_LATENCY_SLO_MISSION_ID,
+        "current_execution_mission_state": "MISSION_ACTIVE",
+        "current_mission_role": "ACTIVE_MISSION",
+        "current_mission_id": RECOVERY_LATENCY_SLO_MISSION_ID,
+        "current_mission_state": "MISSION_ACTIVE",
+        "current_mission_report": report_path,
+        "current_completion_contract": "RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT",
+        "current_completion_verdict": "ACTIVE_NOT_CONSUMED",
+        "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+        "program_terminal_class": "NONE",
+        "program_terminal_state": "NONE_RECOVERY_LATENCY_SLO_ACTIVE",
+        "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+        "transaction_terminal_class": "FUNCTIONAL_RECOVERY_CONSUMED_LATENCY_SLO_ACTIVE",
+        "omp_continuation_required": "TRUE",
+        "external_input_required": "FALSE",
+        "external_input_type": "NONE",
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE_PROGRAM_TRACK_ONLY",
+        "wip_current_primary_stop": "NONE",
+        "wip_smallest_existing_next_action_id": RECOVERY_LATENCY_SLO_FRONTIER,
+        "wip_smallest_existing_next_action": RECOVERY_LATENCY_SLO_FRONTIER,
+        "smallest_existing_next_action": RECOVERY_LATENCY_SLO_FRONTIER,
+        "source_summary": (
+            "Functional automatic recovery remains consumed. The owner-authorized "
+            "V5.3 recovery-latency product contract is active until fresh automatic "
+            "V7 Runtime samples prove P95 <= 7000 ms and max <= 8000 ms from first "
+            "valid failure observation to all affected required-service S11."
+        ),
+    })
+    atomic = atomic_reconcile_cps(
+        cps_path,
+        state=state,
+        request_external_wake=False,
+        expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+        section0_field_overrides={
+            "RECOVERY_LATENCY_SLO": "`ACTIVE`",
+            "RECOVERY_LATENCY_SLO_MISSION": f"`{RECOVERY_LATENCY_SLO_MISSION_ID}`",
+            "RECOVERY_LATENCY_SLO_CONTRACT": (
+                "`T_FIRST_VALID_FAILURE_OBSERVATION -> "
+                "T_GLOBAL_ALL_AFFECTED_RECOVERED; P95 <= 7000 ms; MAX <= 8000 ms`"
+            ),
+            "RECOVERY_LATENCY_SLO_REPORT": f"`{report_path}`",
+            "RECOVERY_LATENCY_SLO_REPORT_SHA256": f"`{report_sha256}`",
+            "RECOVERY_LATENCY_SLO_EXECUTION_LAW": (
+                "`CODEX_REPAIRS_AND_OBSERVES_ONLY; NORMAL_V7_RUNTIME_DETECTS_DECIDES_GOVERNS_APPLIES_AND_VERIFIES`"
+            ),
+        },
+    )
+    omp_pointer = (
+        atomic_reconcile_omp_current_pointer_from_cps(root=root)
+        if atomic.get("ok") is True
+        else {
+            "ok": False,
+            "status": "OMP_POINTER_NOT_ATTEMPTED_CPS_RECONCILIATION_FAILED",
+            "errors": atomic.get("errors") or [],
+        }
+    )
+    ok = atomic.get("ok") is True and omp_pointer.get("ok") is True
+    return {
+        "schema": "v7-recovery-latency-slo-reentry/v1",
+        "final_verdict": "PASS" if ok else "STOP_SAFE",
+        "recovery_latency_slo": "ACTIVE" if ok else "UNCHANGED",
+        "real_caller": "tools/v7-truth-check --reconcile-recovery-latency-slo-reentry",
+        "real_consumer": "existing OMP/CPS atomic reconciliation owner",
+        "next_output": RECOVERY_LATENCY_SLO_FRONTIER,
+        "report": report_path,
+        "report_sha256": report_sha256,
+        "atomic_update": atomic,
+        "omp_pointer_update": omp_pointer,
+        "runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "authority_impact": "NONE",
+        "forbidden_effects": {
+            "matrix_run": False,
+            "planner_run": False,
+            "route_writer_run": False,
+            "routing_mutation": False,
+            "user_movement": False,
+        },
+        "errors": [] if ok else (
+            atomic.get("errors") or omp_pointer.get("errors")
+            or ["atomic_cps_or_omp_recovery_latency_slo_reentry_failed"]
         ),
     }
 
@@ -24771,6 +24969,7 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     next_action = live.get("CURRENT_NEXT_ACTION_ID", "").strip("`")
     mission_state = live.get("CURRENT_MISSION_STATE", "").strip("`")
     v5_3_t0_t11_program_track = _is_v5_3_t0_t11_latency_track_frontier(live)
+    recovery_latency_slo_program_track = _is_recovery_latency_slo_frontier(live)
     bounded_program_terminal = program_terminal == "BOUNDED_INVOCATION_BUDGET_REACHED"
     if continuation not in {"TRUE", "FALSE"}:
         errors.append("omp_continuation_required_invalid")
@@ -24786,7 +24985,7 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         if external != "FALSE" or program_terminal not in {"NONE", "BOUNDED_INVOCATION_BUDGET_REACHED"}:
             errors.append("omp_continuation_program_terminal_conflict")
         if (
-            not v5_3_t0_t11_program_track
+            not (v5_3_t0_t11_program_track or recovery_latency_slo_program_track)
             and (next_formed != "TRUE" or values["NEXT_MISSION_ID"] in {"", "NONE"})
         ):
             errors.append("omp_next_mission_not_formed")
@@ -25200,6 +25399,21 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             "mission_completion_evidence_gate_status": "V5_3_PHASE_G_CONSUMED_T0_T11_TRACK_ACTIVE",
             "current_completion_contract": "ANALYSIS_COMPLETION",
             "current_completion_verdict": "PHASE_G_CONSUMED_T0_T11_TRACK_ACTIVE",
+            "completion_gate": {},
+            **calls,
+            "errors": [],
+        }
+    if _is_recovery_latency_slo_frontier(live):
+        return {
+            "schema": "v7-omp-functional-footprint-consistency/v1",
+            "final_verdict": "PASS",
+            "program_reconciliation_footprint_class": live.get("PROGRAM_RECONCILIATION_FOOTPRINT_CLASS", "").strip("`"),
+            "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
+            "heartbeat_status": heartbeat_status,
+            "automation_enabled": heartbeat_active,
+            "mission_completion_evidence_gate_status": "RECOVERY_LATENCY_SLO_RUNTIME_EVIDENCE_REQUIRED",
+            "current_completion_contract": "RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT",
+            "current_completion_verdict": "ACTIVE_NOT_CONSUMED",
             "completion_gate": {},
             **calls,
             "errors": [],
@@ -25637,7 +25851,7 @@ def cps_live_state_consistency(
             and not engineering_authority_terminal
             and not safe_reentry_frontier
             and not (rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
-            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier) and wip_stop == "NONE")
+            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or _is_recovery_latency_slo_frontier(live)) and wip_stop == "NONE")
             and not (rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
             and "REAL_WORLD_LIMIT" not in wip_stop
         )

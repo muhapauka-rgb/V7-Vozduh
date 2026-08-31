@@ -205,6 +205,42 @@ server-side recovery only and never relabels itself as T11.
 
 #### Binding SLO classes and asymmetric recovery policy
 
+#### Recovery-latency SLO continuation law
+
+Functional recovery evidence and a historical Program terminal do not consume
+the current product contract by themselves.  While CPS projects
+`RECOVERY_LATENCY_SLO=ACTIVE`, the existing V5.3 owner chain remains at this
+single executable engineering frontier:
+
+```text
+DETECTOR LATENCY
+-> MATRIX TO EXECUTION READINESS
+-> APPLY TO REQUIRED-SERVICE S11
+-> REPEATABLE 7S ACCEPTANCE
+-> N11 HOT-PATH CLOSURE
+-> FINAL PROGRAM TERMINAL
+```
+
+The binding result is measured only from
+`T_FIRST_VALID_FAILURE_OBSERVATION` to
+`T_GLOBAL_ALL_AFFECTED_RECOVERED`: nearest-rank P95 `<= 7000 ms`, maximum
+`<= 8000 ms`.  Operator placement to first observation remains a separately
+reported detector-blind-time clock and may not be hidden inside that SLO.
+
+Codex may repair, test, deploy and observe the existing owners; it must not
+perform an operational recovery transition.  The only valid acceptance origin
+is the ordinary live V7 Runtime chain:
+
+```text
+health -> Matrix -> affected scope -> Authority -> Planner
+-> Candidate -> Packet -> Lease -> Barrier -> Apply -> required-service S11
+```
+
+Any sample with a manual user move, injected target or directly invoked route
+writer is invalid acceptance evidence.  A continuing current Matrix failure
+with an affected ordinary scope must be re-entered by the normal level-
+triggered Runtime consumer, not by Codex.
+
 #### Current 2-vCPU rollout-contract amendment
 
 The historical `<=3 s` / `<=5 s` controlled target remains the future

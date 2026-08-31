@@ -578,6 +578,38 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         ])
         self.assertEqual(loop.persistent_matrix_last_consumed_t0_ns, 123_457)
 
+    def test_persistent_consumer_emits_outcome_receipt_without_operational_effect(self):
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
+        loop.persistent_matrix_ready = True
+        loop.persistent_matrix_last_result = {
+            "status": "PASS",
+            "next_output": "SERVICE_FAILURE_EVENT_CONSUMED",
+            "current_failed_source_scope": {
+                "active": True,
+                "active_sources": [{"affected_scope_count": 2}],
+            },
+            "bounded_delegated_service_failure_action": {
+                "status": "PASS",
+                "action_attempted": True,
+                "action_completed": True,
+                "runtime_mutation_performed": True,
+                "users_moved": 2,
+                "consumer_result": {"stop_reason": ""},
+            },
+        }
+        with mock.patch.object(loop, "_run_persistent_matrix_consumer", return_value=0), \
+             mock.patch("builtins.print") as printed:
+            self.assertTrue(loop._consume_new_persistent_matrix_t0(123_456))
+        receipt_lines = [
+            str(call.args[0]) for call in printed.call_args_list
+            if str(call.args[0]).startswith("V7_HEALTH_RECOVERY_CONSUMER_RECEIPT ")
+        ]
+        self.assertEqual(len(receipt_lines), 1)
+        receipt = json.loads(receipt_lines[0].split(" ", 1)[1])
+        self.assertEqual(receipt["affected_scope_count"], 2)
+        self.assertTrue(receipt["action_completed"])
+        self.assertEqual(receipt["users_moved"], 2)
+
     def test_known_incomplete_downstream_validation_is_reconsumed_by_live_owner(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
         loop.persistent_matrix_ready = True

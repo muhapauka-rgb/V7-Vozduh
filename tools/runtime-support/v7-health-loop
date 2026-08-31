@@ -1137,6 +1137,7 @@ class RoleHealthLoop:
         ):
             return False
         self._hard_recovery_takeover(monotonic_ns())
+        consumer_started_ns = monotonic_ns()
         persistent_rc = (
             self._run_persistent_matrix_consumer(t0_ns, health_dispatch_context)
             if isinstance(health_dispatch_context, dict) and health_dispatch_context
@@ -1149,6 +1150,55 @@ class RoleHealthLoop:
                 self._fallback_matrix_consumer(t0_ns)
         delegated = self.persistent_matrix_last_result.get(
             "bounded_delegated_service_failure_action"
+        )
+        source_scope = self.persistent_matrix_last_result.get(
+            "current_failed_source_scope"
+        )
+        consumer_result = (
+            delegated.get("consumer_result")
+            if isinstance(delegated, dict)
+            and isinstance(delegated.get("consumer_result"), dict)
+            else {}
+        )
+        # The existing health owner used to suppress the Matrix consumer's
+        # structured result after an in-process call. That obscured whether a
+        # live confirmed failure stopped in scope, Authority, Planner or the
+        # governed executor, and made a current continuing incident look like
+        # an unexplained non-recovery. Emit one compact journal receipt.  It
+        # contains no user identities and neither changes admission nor
+        # retries an action; Matrix and the downstream owners remain the only
+        # sources of the underlying state.
+        source_rows = (
+            source_scope.get("active_sources")
+            if isinstance(source_scope, dict)
+            and isinstance(source_scope.get("active_sources"), list)
+            else []
+        )
+        affected_count = sum(
+            int(row.get("affected_scope_count") or 0)
+            for row in source_rows if isinstance(row, dict)
+        )
+        receipt = {
+            "schema": "v7.health-persistent-matrix-consumer-receipt.v1",
+            "role": key,
+            "source": str((health_dispatch_context or {}).get("profile_source_egress") or ""),
+            "t0_to_consumer_complete_ms": elapsed_ms(consumer_started_ns, monotonic_ns()),
+            "consumer_rc": int(persistent_rc),
+            "matrix_status": str(self.persistent_matrix_last_result.get("status") or ""),
+            "next_output": str(self.persistent_matrix_last_result.get("next_output") or ""),
+            "failed_scope_active": bool(source_scope.get("active")) if isinstance(source_scope, dict) else False,
+            "affected_scope_count": affected_count,
+            "action_status": str(delegated.get("status") or "") if isinstance(delegated, dict) else "MISSING",
+            "action_attempted": bool(delegated.get("action_attempted")) if isinstance(delegated, dict) else False,
+            "action_completed": bool(delegated.get("action_completed")) if isinstance(delegated, dict) else False,
+            "runtime_mutation_performed": bool(delegated.get("runtime_mutation_performed")) if isinstance(delegated, dict) else False,
+            "users_moved": int(delegated.get("users_moved") or 0) if isinstance(delegated, dict) else 0,
+            "stop_reason": str(consumer_result.get("stop_reason") or delegated.get("reason") or "") if isinstance(delegated, dict) else "",
+        }
+        print(
+            "V7_HEALTH_RECOVERY_CONSUMER_RECEIPT "
+            + json.dumps(receipt, sort_keys=True, separators=(",", ":")),
+            flush=True,
         )
         retryable_incomplete_action = bool(
             isinstance(delegated, dict)

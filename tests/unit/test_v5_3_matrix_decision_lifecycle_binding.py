@@ -1,4 +1,5 @@
 import importlib.util
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -291,6 +292,27 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
                 "EXISTING_V5_3_HEALTH_TEST_STABILITY_OWNERS",
             )
             self.assertFalse(continuation["forbidden_effects"]["runtime_mutation"])
+
+    def test_recovery_latency_slo_reentry_preserves_runtime_ownership(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for relative in (
+                "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+                "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md",
+                self.lib.RECOVERY_LATENCY_SLO_REPORT,
+            ):
+                source = ROOT / relative
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, target)
+            result = self.lib.reconcile_recovery_latency_slo_reentry_to_cps(root=root)
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertEqual(result["runtime_impact"], "NONE")
+            self.assertEqual(result["routing_impact"], "NONE")
+            self.assertEqual(result["user_movement"], 0)
+            updated = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+            self.assertIn("RECOVERY_LATENCY_SLO` | `ACTIVE`", updated)
+            self.assertIn(self.lib.RECOVERY_LATENCY_SLO_MISSION_ID, updated)
 
     def test_continue_omp_keeps_active_system_revalidation_ahead_of_generic_work(self):
         with tempfile.TemporaryDirectory() as directory:

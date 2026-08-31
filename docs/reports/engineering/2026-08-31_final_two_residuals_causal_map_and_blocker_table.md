@@ -153,13 +153,16 @@ any user effect.  Its focused batch regression and shell syntax validation
 pass.  The next normal cycle will make the remaining peak either a measured
 network/substrate limit or a concrete removable local processing span.
 
-The block is published as `103df8ae0be7fe2e1d67e83ec15d2d111f2f1d05` but is
-**not yet deployed**.  `v7-safe-deploy` correctly retained its no-copy gate:
-the machine could not resolve `github.com` during two independent current
-checks, while its own GitHub-truth check is a mandatory prerequisite for a
-production copy.  Direct Runtime hash comparison confirms that the server is
-still on the preceding detector binary, so its next observations cannot be
-mistaken for evidence from the new counters.  Manual copying is deliberately
-not used.  Re-entry is automatic and bounded: once the existing safe-deploy
-gate can again read the published branch, deploy this already-tested commit,
-verify its remote hash, then read the next normal detector state.
+The block is published as `103df8ae0be7fe2e1d67e83ec15d2d111f2f1d05`.
+The initial GitHub read failure was local to the restricted Codex execution
+environment: an independent unrestricted read verified the exact branch and
+the pending report commit was then published as `0f6c21060369395f61b9d7f860d816c45634dd7e`.
+
+The subsequent safe deploy entered its existing Matrix-locked write window,
+but the production host stopped answering SSH before its final Runtime hash
+could be read (`Connection timed out during banner exchange` on two bounded
+retries).  Therefore deployment of the new counters is **unverified**, not
+credited, and no manual copy is used.  Re-entry is exact: when the existing
+SSH/deploy owner can again reach the host, rerun the safe deploy, compare the
+remote detector hash with `c43088a5…`, then read the next normal detector
+state.  This is a host-access boundary, not a GitHub boundary.

@@ -64,3 +64,21 @@ fingerprint and service, then observe a real operator click. The real click
 must be accepted without CSRF failure; V7 must execute the user-selected
 governed path and report its actual completion time. Three seconds remains a
 measurement goal, not an unproven promise.
+
+## Deployment and runtime verification
+
+- Commit published: `ea632b6a7f5189707e5af27c19f53b61b0249732`
+  (`Repair admin manual switch session retry`) on `Updatesystem`.
+- `tools/v7-safe-deploy` gate: PASS; GitHub and local workspace aligned.
+- Safe deployment applied with only the existing Admin service restart.
+- Runtime `/usr/local/bin/v7-admin-api` SHA-256:
+  `366ee5340df5397de0d0a52292aa065b838d6b02da2d20a77624b42cb199f97b`,
+  equal to the deployed source.
+- `v7-admin-api.service`: active.
+- `v7-health.service`: active.
+- Runtime source contains both `refreshCsrfToken` and
+  `requestOperatorProfileEgressRebind`.
+
+The final behavioural proof is intentionally left to a fresh real operator
+click. Codex did not select a user or a target and did not invoke the route
+writer, preserving the live-runtime provenance rule.

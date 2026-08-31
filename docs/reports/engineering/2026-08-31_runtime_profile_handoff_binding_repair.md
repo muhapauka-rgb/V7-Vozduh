@@ -235,3 +235,37 @@ Focused regression now proves that the live handoff gives the existing L3
 owner the exact VLESS incident identity.  After safe deployment V7, not Codex,
 must reconcile the three current assignments and decide whether to execute the
 already governed bounded recovery.
+
+## Outcome: automatic ordinary recovery after the incident-bound repair
+
+The repair was committed as `8b843851 Bind profile handoff to source incident`,
+published on `Updatesystem`, and safely deployed.  The local and deployed
+`v7-users-autoswitch` SHA-256 both equal
+`cda852c824d77c455f1c9d105063157eb69b5efa86b9c4bef1bc1e3f9663813e`;
+`v7-health.service` is active.
+
+With no operator or Codex execution command, the normal health Runtime
+received the fresh VLESS profile failure at **14:55:07.873 MSK**.  Its existing
+Matrix consumer created one governed operation at **14:55:40.315 MSK** and
+automatically moved all three affected ordinary identities:
+
+| Identity | Source | Automatically selected target | Route and required-service result |
+| --- | --- | --- | --- |
+| `10.7.0.125` | `vless` | `awg0` | pass |
+| `10.7.0.126` | `vless` | `awg0` | pass |
+| `10.7.0.127` | `vless` | `awg0` | pass |
+
+The current canonical registry confirms all three are now on `awg0`.  This is
+valid functional evidence of the live V7 caller: no target was selected,
+Candidate/Packet/Lease/Barrier created, or route written by Codex.
+
+It is **not** seven-second acceptance evidence.  The observed confirmed
+Matrix T0 to operation completion is about **32.4 seconds**.  The operation
+feedback did not retain the original monotonic clocks, so first-observation to
+S11 cannot be reconstructed honestly from this record.  The measured causal
+gap is that the current hot path still performs full Planner/advisory
+construction before it can turn the exact re-opened source scope into the
+existing governed transaction.  The next bounded repair must remove that
+full-world advisory work from the already exact current-source path while
+retaining the existing Planner's current target admission, Authority,
+Candidate, Packet, Lease, Barrier, route and S11 gates.

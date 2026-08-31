@@ -115,3 +115,28 @@ placement -> first probe -> Matrix T0 -> current scope -> Authority
 All timing samples, including failures, must remain in the distribution.  The
 terminal may be emitted only after repeatable `P95 <= 7 s` and `MAX <= 8 s`;
 until then the Program remains at `IMPLEMENTATION_RESIDUAL / evidence required`.
+
+## Final fresh reconciliation after deployment
+
+At `2026-08-31 03:04 MSK` (the Matrix file uses UTC, therefore this is
+`00:04 UTC`) the current Runtime was read again.  `v7-health.service` and
+`v7-admin-api.service` were active.  The role loop was continuously completing
+the profile-required ordinary detector in `1.95--2.37 s` on its `3.5 s`
+cadence, while the canonical Matrix itself was being written on each cycle.
+
+There is no current enabled ordinary affected scope from which a valid product
+recovery measurement can be taken.  The only current ordinary registry entry
+on VLESS is disabled.  Its Matrix failure is consequently correctly retained
+as history and does not permit a production route change.
+
+The existing Polygon identities are also not a lawful substitute at this
+moment: no certification identity is currently bound to the live source of
+its matching certification group, and the execution-only source is not marked
+as an active controlled source.  Rebinding either by hand would manufacture
+the test, bypass the existing reservation/Authority lifecycle, and make any
+seven-second result invalid.
+
+Therefore no fresh controlled or ordinary end-to-end timing was claimed in
+this report.  The implementation is deployed and live; the only remaining
+boundary is an owner-admitted fresh ordinary incident or a newly admitted
+controlled certification context created by its existing lifecycle owner.

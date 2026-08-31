@@ -259,6 +259,54 @@ The current canonical registry confirms all three are now on `awg0`.  This is
 valid functional evidence of the live V7 caller: no target was selected,
 Candidate/Packet/Lease/Barrier created, or route written by Codex.
 
+## Follow-up: prepared coverage for a later ordinary source placement
+
+At 16:03 MSK an operator placed ordinary identity `10.7.0.125` on the failed
+`vless` source.  The normal Runtime detected the failure and completed a
+governed recovery to `awg0`; no operational transition was run by Codex.
+The route was committed 44.9 seconds after Matrix observation and the
+operation finished after 72.6 seconds, so this is valid functional evidence
+but fails the binding seven-second service objective.
+
+The direct cause was measured: the then-current prepared decision projection
+contained a source class only for `awg0`.  It had no class for `vless`, because
+no ordinary user had been assigned to VLESS when background preparation ran.
+The existing Planner therefore took the `CURRENT_FULL_DECISION_CONSTRUCTION`
+fallback for the otherwise already-known source/profile case.
+
+The bounded repair extends the existing Matrix/Planner prepared projection,
+not the incident executor.  For every non-certification egress in the
+canonical egress registry it now stores an empty-member **contingency source
+class** using only targets already selected by the normal Planner for the same
+profile/route semantic class.  A contingency class is not an assignment,
+target choice, Authority grant or health conclusion.  It can be consumed only
+after the existing Runtime has confirmed the exact current source failure;
+Candidate, Packet, Lease, Barrier, route writer and required-service S11
+retain their unchanged mutable checks.
+
+The projection also declares its exact ordinary-source coverage.  Older
+source-incomplete projections are deliberately rejected and rebuilt by the
+existing Matrix/Planner projection lifecycle rather than silently reused.
+Certification-reserved and canary execution sources remain excluded.
+
+Verification after the change:
+
+- 236 `test_v7_users_autoswitch_policy` tests passed;
+- 15 N5/N6 prepared-target and Matrix tests passed;
+- two focused runtime-profile tests passed, including a user later placed on
+  VLESS with zero stored VLESS members;
+- `py_compile` and whitespace validation passed.
+
+The broader historical evolution suite still has five pre-existing fixture
+errors in tests that construct a Planner without its required `matrix` or
+`switch_policy` fields.  Those errors occur before this projection code and
+are not used as evidence for the repair.
+
+Next: commit, safe-deploy, allow the existing background Matrix projection
+role to rebuild the now source-complete projection, verify Runtime alignment,
+then observe a new operator-created bad placement.  Only a recovery triggered
+by the normal V7 Runtime may establish seven-second evidence.
+
 It is **not** seven-second acceptance evidence.  The observed confirmed
 Matrix T0 to operation completion is about **32.4 seconds**.  The operation
 feedback did not retain the original monotonic clocks, so first-observation to

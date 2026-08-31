@@ -853,6 +853,56 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(decision["recommended_egress"], "awg0")
         self.assertEqual(planner._candidate.call_count, 2)
 
+    def test_runtime_profile_prepared_target_reuses_contingency_source_class(self):
+        """A later operator placement must not force a world-model rebuild."""
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        planner.args = SimpleNamespace(
+            runtime_profile_handoff_only=True,
+            source_egress="vless",
+            route_class="",
+        )
+        planner.egress = {"vless": object(), "awg0": object()}
+        planner._important_services = lambda _user: ["telegram"]
+        planner._profile_required_services = lambda _user: ["telegram"]
+        planner._route_class_for_services = lambda _services: "TELEGRAM_CRITICAL"
+        planner._exact_matrix_profile_failure = lambda *_args: {"confirmed": False}
+        planner._cooldown_ok = lambda _user: (True, "")
+        planner._l3_failed_source_cooldown_override_context = lambda *_args: {
+            "allowed": False,
+        }
+        planner._candidate_json = lambda row: {"eligible": row.eligible}
+        planner._explanation = lambda *_args: {"owner": "existing Planner"}
+        current = SimpleNamespace(eligible=False, reasons=[])
+        target = SimpleNamespace(eligible=True, reasons=[])
+        planner._candidate = mock.Mock(side_effect=[current, target])
+        user = SimpleNamespace(
+            ip="10.7.0.125", current="vless", group="ordinary", raw={},
+        )
+        reuse = {
+            "ok": True,
+            "prepared_class_decisions": {
+                "classes": [{
+                    "source_channel": "vless",
+                    "source_binding_mode": "ORDINARY_CONTINGENCY_SOURCE",
+                    "service_routing_compatibility": ["telegram"],
+                    "route_class": "TELEGRAM_CRITICAL",
+                    "ordinary_member_slice": [],
+                    "hot_targets": [{"target_id": "awg0"}],
+                }],
+                "hot_target_set": {"contracts": [{"target_id": "awg0"}]},
+            },
+        }
+
+        context = planner._prepared_runtime_profile_execution_context(reuse)
+        decision = planner._prepared_runtime_profile_decision_for_user(user, context)
+
+        self.assertTrue(context["ok"])
+        self.assertEqual(
+            decision["decision_construction"],
+            "PREPARED_SOURCE_TARGET_MUTABLE_VALIDATION_ONLY",
+        )
+        self.assertEqual(decision["recommended_egress"], "awg0")
+
     def test_runtime_profile_prepared_target_miss_returns_bounded_fallback_signal(self):
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)
         planner.args = SimpleNamespace(

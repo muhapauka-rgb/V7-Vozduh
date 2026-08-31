@@ -545,6 +545,38 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(projection["status"], "NO_COMPATIBLE_PREPARED_CLASS")
         self.assertEqual(projection["stale_registry_source_exclusions"], 1)
 
+    def test_prepared_projection_covers_later_ordinary_source_without_member(self):
+        projection = self.tool.build_prepared_class_decision_projection({
+            "decisions": [{
+                "user_ip": "10.7.0.2", "certification_user": False,
+                "current_egress": "awg0", "recommended_egress": "awg3",
+                "profile_required_services": ["telegram", "google"],
+                "route_class": "TELEGRAM_CRITICAL",
+                "candidates": [{
+                    "egress": "awg3", "eligible": True, "score": 10,
+                }],
+            }],
+            "safety": {"generation": {"inputs": {}, "volatile_inputs": {}}},
+        }, ordinary_contingency_sources={"awg0", "awg3", "vless"})
+
+        contingency = [
+            row for row in projection["classes"]
+            if row["source_channel"] == "vless"
+        ]
+        self.assertEqual(len(contingency), 1)
+        self.assertEqual(
+            contingency[0]["source_binding_mode"],
+            "ORDINARY_CONTINGENCY_SOURCE",
+        )
+        self.assertEqual(contingency[0]["ordinary_member_slice"], [])
+        self.assertEqual(
+            contingency[0]["hot_targets"][0]["target_id"], "awg3",
+        )
+        self.assertEqual(
+            projection["ordinary_contingency_source_coverage"]["sources"],
+            ["awg0", "awg3", "vless"],
+        )
+
     def test_n10_source_generation_ignores_matrix_envelope_but_not_source_health(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -8629,6 +8661,12 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     self.tool.PREPARED_SELECTION_INVALIDATOR_KEYS
                 ),
                 "invalidators": self.tool.current_prepared_selection_invalidators(args),
+                "ordinary_contingency_source_coverage": {
+                    "mode": "ALL_NON_CERTIFICATION_EGRESS_SOURCES_V1",
+                    "sources": sorted(
+                        self.tool.ordinary_contingency_source_ids(root / "state")
+                    ),
+                },
                 "classes": [{
                     "source_channel": "1",
                     "hot_targets": [{"target_id": "vless"}],

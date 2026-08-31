@@ -543,6 +543,7 @@ def sha256_json(payload: Any) -> str:
 def build_prepared_class_decision_projection(
     plan: dict[str, Any], *, ordinary_user_ips: Optional[set[str]] = None,
     ordinary_user_assignments: Optional[dict[str, str]] = None,
+    ordinary_contingency_sources: Optional[set[str]] = None,
 ) -> dict[str, Any]:
     """Compact the existing Planner result for pre-incident fast validation.
 
@@ -560,6 +561,19 @@ def build_prepared_class_decision_projection(
     volatile_inputs = generation.get("volatile_inputs") if isinstance(generation.get("volatile_inputs"), dict) else {}
     groups: dict[str, dict[str, Any]] = {}
     global_hot_contracts: dict[str, dict[str, Any]] = {}
+    # A customer can be placed by the operator onto any ordinary-capable
+    # egress after the periodic Planner projection was produced.  Retaining
+    # only the sources that happened to have customers during that refresh
+    # made that legitimate operator action force a full world-model rebuild
+    # after a later failure.  These are *contingency source bindings*, not
+    # source health or target eligibility grants: incident use still requires
+    # the exact fresh Matrix failure and all current Candidate/Packet/Lease/
+    # Barrier/Apply checks below the projection consumer.
+    contingency_sources = sorted({
+        str(item).strip() for item in (ordinary_contingency_sources or set())
+        if str(item).strip()
+    })
+    contingency_templates: list[dict[str, Any]] = []
     exclusions = 0
     stale_registry_source_exclusions = 0
     for row in decisions:
@@ -683,6 +697,54 @@ def build_prepared_class_decision_projection(
             }
             item["hot_targets"][contract_fingerprint] = contract
             global_hot_contracts[contract_fingerprint] = contract
+        if candidates:
+            contingency_templates.append({
+                "source": source,
+                "target": target,
+                "services": services,
+                "route_class": str(row.get("route_class") or ""),
+                "policy_set": str(row.get("policy_set") or row.get("policy_class") or ""),
+                "correlation_domain": str(row.get("correlation_domain") or target),
+                "capacity_bucket": str(capacity.get("status") or capacity.get("decision") or "UNKNOWN"),
+                "exception_boundary": str(row.get("exception_boundary") or "NONE"),
+                "hot_targets": [
+                    contract for contract in item["hot_targets"].values()
+                ],
+            })
+    # Reuse only targets that the normal Planner has already selected for the
+    # same service/route semantic class.  A contingency class has no stored
+    # members and never creates a Packet itself; it merely avoids reconstructing
+    # the ranking if an ordinary user is later placed on this known source.
+    # Certification-reserved sources are excluded by the caller and cannot
+    # enter this ordinary recovery projection.
+    for template in contingency_templates:
+        for source in contingency_sources:
+            if source in {str(template["source"]), str(template["target"])}:
+                continue
+            semantic = {
+                "source_channel": source,
+                "target_channel": str(template["target"]),
+                "service_routing_compatibility": list(template["services"]),
+                "route_class": str(template["route_class"]),
+                "policy_set": str(template["policy_set"]),
+                "correlation_domain": str(template["correlation_domain"]),
+                "capacity_bucket": str(template["capacity_bucket"]),
+                "exception_boundary": str(template["exception_boundary"]),
+            }
+            class_id = "pcd_" + sha256_json(semantic)[:24]
+            item = groups.setdefault(
+                class_id,
+                {
+                    "semantic": semantic,
+                    "members": [],
+                    "hot_targets": {},
+                    "source_binding_mode": "ORDINARY_CONTINGENCY_SOURCE",
+                },
+            )
+            for contract in template["hot_targets"]:
+                item["hot_targets"][
+                    str(contract.get("target_service_fingerprint") or "")
+                ] = contract
     prepared = []
     for class_id, item in sorted(groups.items()):
         members = sorted(set(item["members"]))
@@ -718,6 +780,9 @@ def build_prepared_class_decision_projection(
             "ordinary_member_slice_limit": 4,
             "ordinary_member_slice_policy": "ORDINARY_NON_CERTIFICATION_ONLY_V1",
             "raw_member_list_stored": False,
+            "source_binding_mode": str(
+                item.get("source_binding_mode") or "CURRENT_ASSIGNMENT"
+            ),
             "prepared_action": "FAILOVER_TO_EXISTING_PLANNER_TARGET",
             "hot_target_limit": 4,
             "hot_targets": hot_target_refs,
@@ -784,6 +849,15 @@ def build_prepared_class_decision_projection(
         "produced_at": str(plan.get("updated") or now_iso()),
         "classes": prepared,
         "class_count": len(prepared),
+        "ordinary_contingency_source_coverage": {
+            "mode": "ALL_NON_CERTIFICATION_EGRESS_SOURCES_V1",
+            "sources": contingency_sources,
+            "source_count": len(contingency_sources),
+            "law": (
+                "source_binding_is_advisory_only; exact_fresh_matrix_failure_and_"
+                "all_current_governed_execution_checks_remain_required"
+            ),
+        },
         "excluded_decision_count": exclusions,
         "stale_registry_source_exclusions": stale_registry_source_exclusions,
         "invalidators": invalidators,
@@ -951,6 +1025,25 @@ def reuse_current_prepared_class_projection(args: argparse.Namespace) -> dict[st
         blockers.append("prepared_projection_missing")
     if str(projection.get("status") or "") != "PREPARED_CLASS_DECISION_AVAILABLE":
         blockers.append("prepared_projection_not_ready")
+    coverage = (
+        projection.get("ordinary_contingency_source_coverage")
+        if isinstance(projection.get("ordinary_contingency_source_coverage"), dict)
+        else {}
+    )
+    current_contingency_sources = sorted(
+        ordinary_contingency_source_ids(Path(args.state_dir))
+    )
+    if (
+        str(coverage.get("mode") or "")
+        != "ALL_NON_CERTIFICATION_EGRESS_SOURCES_V1"
+        or sorted(str(item) for item in (coverage.get("sources") or []))
+        != current_contingency_sources
+    ):
+        # Older projections were valid for a source that had members at their
+        # build time, but not for an operator's later ordinary placement.  A
+        # one-time existing Planner rebuild is safer than silently treating
+        # such a projection as source-complete.
+        blockers.append("prepared_contingency_source_coverage_upgrade_required")
     if list(declared or []) != list(PREPARED_SELECTION_INVALIDATOR_KEYS):
         blockers.append("selection_invalidation_contract_upgrade_required")
     hot_target_set = (
@@ -1604,6 +1697,32 @@ def parse_registry(path: Path) -> list[dict[str, str]]:
         if row:
             rows.append(row)
     return rows
+
+
+def ordinary_contingency_source_ids(state_dir: Path) -> set[str]:
+    """Return ordinary-capable source identities from the canonical registry.
+
+    This is deliberately a topology read, not a health or target-selection
+    decision.  A source may later be down (that is the very event the prepared
+    class handles), but a certification-reserved egress may never enter the
+    ordinary recovery surface.
+    """
+    excluded_markers = (
+        "controlled_certification_source",
+        "execution_reserved",
+        "canary_reserved",
+    )
+    sources: set[str] = set()
+    for row in parse_registry(state_dir / "egress.registry"):
+        source = str(row.get("id") or "").strip()
+        if not source:
+            continue
+        if any(bool_value(row.get(marker)) for marker in excluded_markers):
+            continue
+        if str(row.get("certification_group") or "").strip():
+            continue
+        sources.add(source)
+    return sources
 
 
 def prepared_target_topology_generation(path: Path) -> str:
@@ -24938,6 +25057,9 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         plan,
         ordinary_user_ips=ordinary_user_ips,
         ordinary_user_assignments=ordinary_user_assignments,
+        ordinary_contingency_sources=ordinary_contingency_source_ids(
+            Path(args.state_dir)
+        ),
     )
     prepared_freshness = validate_prepared_class_decision_projection(
         prepared_class_decisions,
@@ -32445,6 +32567,9 @@ def main() -> int:
             plan,
             ordinary_user_ips=ordinary_user_ips,
             ordinary_user_assignments=ordinary_user_assignments,
+            ordinary_contingency_sources=ordinary_contingency_source_ids(
+                Path(args.state_dir)
+            ),
         )
         freshness = validate_prepared_class_decision_projection(
             projection, projection.get("invalidators") or {},

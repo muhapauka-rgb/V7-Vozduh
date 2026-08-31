@@ -158,3 +158,32 @@ Focused tests prove both sides: a fresh Matrix result is reused, while an
 can progress. A historical test expecting a shadow call after fresh reuse fails
 unchanged against the pre-repair version and was not treated as evidence for
 this repair.
+
+## Follow-up: delayed profile detector after a fresh ordinary placement
+
+The current three-user VLESS observation exposed a separate general defect.
+Matrix correctly recorded a current three-member ordinary scope, but the
+required-service detector's individual checks completed in roughly 2.1--2.3
+seconds and then serialised their canonical confirmation.  The parent role
+therefore remained active for 12--47 seconds, repeatedly missing its 3.5-second
+deadline.  This can make a current Matrix binding stale before the governed
+recovery handoff and is incompatible with the seven-second production limit.
+
+The existing fast batch producer is now the Runtime command for the
+`other_required` role.  It collects the current source/profile contracts into
+one temporary source-aggregated workset and uses the same Matrix sentinel
+owner with the existing 1-second bound.  The Matrix writer, health caller,
+Planner, standing Authority, Candidate, Packet, Lease, Barrier, route writer
+and S11 remain unchanged.  No client is selected or moved by this change.
+
+Focused checks cover the new Runtime command, the one-second bounded batch
+sentinel and reconfirmation of an older continuing Matrix failure.  The wider
+historical scheduler suite has timing-sensitive expectations that assume the
+former longer `other_required` invocation; those assertions require separate
+reconciliation and are not claimed as a pass for this change.  The known
+historical fresh-reuse test also remains unrelated to the new runtime command.
+
+Next: safe-deploy this bounded detector replacement, verify the Runtime hash
+and health service, then observe only the normal V7 caller.  The three VLESS
+users remain untouched until that caller either creates the governed recovery
+transaction or exposes one remaining generic blocker.

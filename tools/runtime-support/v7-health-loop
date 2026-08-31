@@ -106,6 +106,16 @@ DEFAULT_ROLE_COMMANDS = (
             "/usr/local/bin/v7-egress-diagnose",
             "--output", "/opt/v7/egress/state/egress-diagnose.state",
             "--fast-producer-only",
+            # Keep one bounded Matrix-owned sentinel batch for the current
+            # source/profile contracts.  The former per-contract workers were
+            # parallel only for their first probe, then serially entered the
+            # same canonical confirmation path.  Four independent profiles
+            # could consequently keep this role alive for tens of seconds and
+            # prevent the next current observation.  This existing batch mode
+            # still uses the same Matrix writer and processes only its one
+            # ephemeral source-aggregated workset; it changes neither cadence,
+            # source selection, Authority nor route execution.
+            "--lightweight-batch-producer",
             # A confirmed source is handed to Matrix as soon as its own
             # bounded probe returns.  The existing parallel producer keeps
             # unrelated source probes in flight, instead of making a failed

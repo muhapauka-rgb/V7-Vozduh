@@ -135,7 +135,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn('"hot_target": 5', loop)
         self.assertIn('"hot_target_other": 19', loop)
         self.assertIn('"other_required": 0', loop)
-        self.assertNotIn('"--lightweight-batch-producer",', loop)
+        self.assertIn('"--lightweight-batch-producer",', loop)
         self.assertIn('"--fast-producer-concurrency", "12"', loop)
         self.assertEqual(loop.count('"--lock-timeout-sec", "1"'), 2)
         self.assertIn('"hard": -20', loop)
@@ -149,6 +149,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         other_required_command = loop.split('"other_required", 3_500,', 1)[1].split(
             '"planner_projection", 30_000,', 1
         )[0]
+        self.assertIn('"--lightweight-batch-producer",', other_required_command)
         self.assertNotIn(
             '"--consumer-wake-command", '
             '"/usr/local/bin/v7-service-matrix-refresh-all"',

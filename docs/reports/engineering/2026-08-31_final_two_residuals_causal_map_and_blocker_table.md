@@ -135,3 +135,20 @@ receipt with the complete `T0 -> all affected S11` timeline.  If its measured
 critical path still exceeds seven seconds, that receipt identifies the next
 remaining mandatory span; no further speculative change is admitted before
 then.
+
+## Current detector peak measurement
+
+A later normal observation showed that the ordinary detector is not uniformly
+fast: although many passes remain near two seconds, some completed in
+`9.641--11.989 s` and caused cadence misses.  The current diagnostic state
+proves a bounded twelve-probe batch with no Matrix receiver invocation, but
+did not separate the batch network wall time from post-probe canonical
+handling.  No routing conclusion can be drawn from that aggregate.
+
+The next compact diagnostic block therefore records, in the already-existing
+detector state file only, three monotonic measurements: batch probe wall time,
+post-probe processing wall time, and their total.  It does not change probe
+membership, timeout, cadence, Matrix state, caller, eligibility, Authority or
+any user effect.  Its focused batch regression and shell syntax validation
+pass.  The next normal cycle will make the remaining peak either a measured
+network/substrate limit or a concrete removable local processing span.

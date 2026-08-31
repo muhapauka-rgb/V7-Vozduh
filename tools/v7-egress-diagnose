@@ -1410,6 +1410,7 @@ PY
 }
 
 run_lightweight_batch_profile_suspicion_cycle() {
+  batch_started_ns="$(python3 -c 'import time; print(time.time_ns())')"
   work_dir="$(mktemp -d "${TMPDIR:-/tmp}/v7-fast-batch.XXXXXX")"
   work_file="$work_dir/active-contract-set.tsv"
   result_file="$work_dir/batch-result.json"
@@ -1432,6 +1433,7 @@ run_lightweight_batch_profile_suspicion_cycle() {
     rm -rf "$work_dir"
     return 0
   fi
+  batch_probe_completed_ns="$(python3 -c 'import time; print(time.time_ns())')"
   python3 - "$result_file" > "$parsed_file" <<'PY'
 import json
 import sys
@@ -1481,6 +1483,15 @@ PY
     probe="OK|${failure_count}|${dns_services}|${degraded_services}|${failed_services}|${unknown_services}|${completion_ns}"
     process_profile_service_probe "$source_id" "$profile_user" "$services" "$probe" "$state_key"
   done < "$parsed_file"
+  batch_postprocess_completed_ns="$(python3 -c 'import time; print(time.time_ns())')"
+  # The batch probe and its canonical Matrix consequence handling are
+  # intentionally separate.  These diagnostic-only spans expose whether a
+  # slow ordinary detection cycle is network sampling or repeated local
+  # confirmation/record work.  They do not participate in admission, do not
+  # persist a new truth source and do not change the existing caller.
+  printf 'fast_producer_batch_probe_wall_ms=%s\n' "$(( (batch_probe_completed_ns - batch_started_ns) / 1000000 ))" >> "$TMP"
+  printf 'fast_producer_batch_postprocess_wall_ms=%s\n' "$(( (batch_postprocess_completed_ns - batch_probe_completed_ns) / 1000000 ))" >> "$TMP"
+  printf 'fast_producer_batch_total_wall_ms=%s\n' "$(( (batch_postprocess_completed_ns - batch_started_ns) / 1000000 ))" >> "$TMP"
   printf 'fast_producer_batch_status=PASS\n' >> "$TMP"
   printf 'fast_producer_batch_probe_count=%s\n' "$batch_probe_count" >> "$TMP"
   rm -rf "$work_dir"

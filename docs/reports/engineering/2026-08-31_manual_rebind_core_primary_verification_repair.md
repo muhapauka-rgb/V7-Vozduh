@@ -54,3 +54,16 @@ is unhealthy, the separate live V7 health caller may subsequently move the
 user to an admitted healthy channel; that automatic recovery must retain its
 own provenance and timing evidence.
 
+## Deployment and Runtime verification
+
+- Published commit: `06e5d0d5e612b5df6a9e36ac112de9da20ec85af`
+  (`Fix manual rebind Core-primary verification`) on `Updatesystem`.
+- Existing `tools/v7-safe-deploy` gate: PASS; local and GitHub commits aligned.
+- Safe deployment completed with the existing Admin restart path.
+- Deployed `/usr/local/bin/v7-admin-api` SHA-256:
+  `651db390b065f6eecb3bf360e6ec89f8bf8cfc43abc1867d4c0aaff00230381c`,
+  equal to the deployed source.
+- `v7-admin-api.service`: active.
+- `v7-health.service`: active.
+- Runtime source contains both the Core-primary completion token handling and
+  the explicit response verification mode.

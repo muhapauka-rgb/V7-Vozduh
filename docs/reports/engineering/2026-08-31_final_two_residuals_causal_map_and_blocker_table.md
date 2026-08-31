@@ -152,3 +152,14 @@ membership, timeout, cadence, Matrix state, caller, eligibility, Authority or
 any user effect.  Its focused batch regression and shell syntax validation
 pass.  The next normal cycle will make the remaining peak either a measured
 network/substrate limit or a concrete removable local processing span.
+
+The block is published as `103df8ae0be7fe2e1d67e83ec15d2d111f2f1d05` but is
+**not yet deployed**.  `v7-safe-deploy` correctly retained its no-copy gate:
+the machine could not resolve `github.com` during two independent current
+checks, while its own GitHub-truth check is a mandatory prerequisite for a
+production copy.  Direct Runtime hash comparison confirms that the server is
+still on the preceding detector binary, so its next observations cannot be
+mistaken for evidence from the new counters.  Manual copying is deliberately
+not used.  Re-entry is automatic and bounded: once the existing safe-deploy
+gate can again read the published branch, deploy this already-tested commit,
+verify its remote hash, then read the next normal detector state.

@@ -6628,6 +6628,43 @@ def runtime_profile_source_constraint(
     return selected
 
 
+def runtime_profile_handoff_source_constraint(
+    *,
+    state_dir: Path,
+    source_scope: dict[str, Any],
+    runtime_hot_path_only: bool,
+    persistent_matrix_owner: bool,
+) -> dict[str, Any]:
+    """Return one exact current source for the existing profile hot path.
+
+    The health handoff is the preferred provenance. It is intentionally not
+    the only way to retain the same Matrix fact: its environment label may be
+    unavailable while the identical current Matrix, assignment and
+    required-service join remains unambiguous. Reusing that existing selector
+    prevents a lawful ordinary recovery from falling into historical advisory
+    work. Planner and the governed executor still select and revalidate every
+    target and execution object.
+    """
+    if not runtime_hot_path_only or not persistent_matrix_owner:
+        return {}
+    health_bound = runtime_profile_source_constraint(source_scope)
+    if health_bound:
+        return health_bound
+    active_sources = source_scope.get("active_sources")
+    if not isinstance(active_sources, list):
+        return {}
+    fallback = automatically_prioritized_failed_source(
+        state_dir=state_dir,
+        active_sources=[row for row in active_sources if isinstance(row, dict)],
+    )
+    if not fallback:
+        return {}
+    fallback["source_selection"] = (
+        "CURRENT_MATRIX_PROFILE_REQUIRED_SERVICE_FALLBACK_BINDING"
+    )
+    return fallback
+
+
 def direct_service_failure_handoff_for_scope(
     *, state_dir: Path, source_scope: dict[str, Any], source_constraint: Optional[dict[str, Any]] = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -7642,7 +7679,14 @@ def main() -> int:
     # passive-first path, so no fast path can invent a Candidate or bypass
     # current-scope reconciliation.
     source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
-    profile_source_constraint = runtime_profile_source_constraint(source_scope)
+    profile_source_constraint = runtime_profile_handoff_source_constraint(
+        state_dir=state_dir,
+        source_scope=source_scope,
+        runtime_hot_path_only=bool(args.runtime_hot_path_only),
+        persistent_matrix_owner=(
+            os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+        ),
+    )
     direct_handoff, direct_service_failure_obligation = (
         direct_service_failure_handoff_for_scope(
             state_dir=state_dir,
@@ -7851,7 +7895,14 @@ def main() -> int:
         # Passive reconciliation may have materialized the first current L3
         # handoff. Re-read only through the same existing Matrix/L3 owners.
         source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
-        profile_source_constraint = runtime_profile_source_constraint(source_scope)
+        profile_source_constraint = runtime_profile_handoff_source_constraint(
+            state_dir=state_dir,
+            source_scope=source_scope,
+            runtime_hot_path_only=bool(args.runtime_hot_path_only),
+            persistent_matrix_owner=(
+                os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+            ),
+        )
         direct_handoff, direct_service_failure_obligation = (
             direct_service_failure_handoff_for_scope(
                 state_dir=state_dir,

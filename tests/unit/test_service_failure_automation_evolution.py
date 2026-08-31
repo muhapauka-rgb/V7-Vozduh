@@ -665,6 +665,44 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
         )
 
+    def test_runtime_profile_handoff_recovers_exact_matrix_source_when_env_label_is_lost(self):
+        """An unambiguous current Matrix binding must retain the fast path."""
+        source_scope = {
+            "active_sources": [{
+                "channel": "vless",
+                "source_incident_id": "sfinc-current",
+                "affected_scope_count": 2,
+            }],
+        }
+        fallback = {
+            **source_scope["active_sources"][0],
+            "profile_affected_count": 2,
+            "profile_failure_monotonic_ns": 42,
+            "source_selection": "CURRENT_MATRIX_PROFILE_REQUIRED_SERVICE_IMPACT",
+        }
+        with mock.patch.object(
+            self.refresh,
+            "runtime_profile_source_constraint",
+            return_value={},
+        ), mock.patch.object(
+            self.refresh,
+            "automatically_prioritized_failed_source",
+            return_value=fallback,
+        ) as prioritized:
+            result = self.refresh.runtime_profile_handoff_source_constraint(
+                state_dir=Path("/state"),
+                source_scope=source_scope,
+                runtime_hot_path_only=True,
+                persistent_matrix_owner=True,
+            )
+
+        prioritized.assert_called_once()
+        self.assertEqual(result["channel"], "vless")
+        self.assertEqual(
+            result["source_selection"],
+            "CURRENT_MATRIX_PROFILE_REQUIRED_SERVICE_FALLBACK_BINDING",
+        )
+
     def test_existing_planner_selection_drives_subset_then_full_matrix_comparison(self):
         plan = {
             "decisions": [

@@ -46,6 +46,19 @@ Authority was changed during this repair.
 - Safe-deploy preflight — allowlist and GitHub truth **PASS**; the expected
   local Runtime changes require commit/publish before deployment.
 
+## Publication and Runtime verification
+
+- Commit: `2de154265723522fd98b563c04ce2037d0440c60`
+  (`Stabilize parallel admin channel switches`), published to `Updatesystem`.
+- Safe deploy: `deploy-z8-14-Updatesystem-2de1542-20260901T005009` — **PASS**.
+- The deployed hashes match the committed runtime files:
+  - `/usr/local/bin/v7-admin-api` —
+    `c12e999119c28bab1dfa1a2494c1fd1aafe8e91fa476ae7f8827862b51c25faf`;
+  - `/usr/local/bin/v7-user-switch` —
+    `a9e530ad5d87e84640bb5987e06326f27e05b543a7eee33b9c4de40b09499fbf`.
+- `v7-admin-api.service` and `v7-health.service` are both **active**.
+- The existing execution-control owner is safely `OPEN/global` after deploy.
+
 ## Expected production effect and limit
 
 Several clicks can now be made immediately.  They are not permitted to write

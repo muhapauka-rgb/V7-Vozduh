@@ -16377,11 +16377,21 @@ def operator_profile_egress_rebind(data, actor):
         assign = read_text(STATE_DIR / f"user-{user_ip}.assign", "")
         expected_dev = str(target.get("interface") or "")
         writer_output = str(writer.get("output") or "")
+        # Core-primary routing deliberately owns the effective kernel path as
+        # a class map, so a legacy per-user `ip route get` line is not its
+        # authoritative completion signal.  v7-user-switch prints this token
+        # only after its existing Core-primary apply has committed.  Keep the
+        # legacy observation for non-Core-primary installations.
+        core_primary_committed = "V7_CORE_PRIMARY_SYNC=PASS" in writer_output
+        legacy_route_observed = f"dev {expected_dev}" in writer_output
+        kernel_route_observed = core_primary_committed or legacy_route_observed
         verification = {
-            "ok": bool(writer.get("rc") == 0 and len(current_rows) == 1 and safe_egress_id(current_rows[0].get("current") or "") == requested and f"egress={requested}" in assign and f"dev {expected_dev}" in writer_output),
+            "ok": bool(writer.get("rc") == 0 and len(current_rows) == 1 and safe_egress_id(current_rows[0].get("current") or "") == requested and f"egress={requested}" in assign and kernel_route_observed),
             "registry_assignment": safe_egress_id((current_rows[0] if current_rows else {}).get("current") or "") == requested,
             "assignment_state": f"egress={requested}" in assign,
-            "kernel_route_observed": f"dev {expected_dev}" in writer_output,
+            "kernel_route_observed": kernel_route_observed,
+            "core_primary_committed": core_primary_committed,
+            "verification_mode": "CORE_PRIMARY_COMMIT" if core_primary_committed else "LEGACY_ROUTE_OUTPUT",
             "expected_interface": expected_dev,
         }
         if not verification["ok"]:
@@ -16400,7 +16410,7 @@ def operator_profile_egress_rebind(data, actor):
                     rollback = {"attempted": True, "rc": 124, "output": "rollback_deadline_exceeded_7s"}
                 except OSError as exc:
                     rollback = {"attempted": True, "rc": 127, "output": f"rollback_failed:{type(exc).__name__}"}
-            audit_admin(actor, "admin_action_operator_profile_egress_rebind", f"ip={user_ip} source={source} target={requested} verification=fail rollback_attempted={str(rollback.get('attempted')).lower()}", object_type="user", object_id=user_ip, result="FAIL", severity="warning")
+            audit_admin(actor, "admin_action_operator_profile_egress_rebind", f"ip={user_ip} source={source} target={requested} verification=fail writer_rc={writer.get('rc')} core_primary_committed={str(core_primary_committed).lower()} rollback_attempted={str(rollback.get('attempted')).lower()}", object_type="user", object_id=user_ip, result="FAIL", severity="warning")
             return None, {"error": "operator_profile_rebind_verification_failed", "writer": writer, "verification": verification, "rollback": rollback}, 409
         audit_admin(actor, "admin_action_operator_profile_egress_rebind", f"ip={user_ip} source={source} target={requested} health_checked=false", object_type="user", object_id=user_ip, result="OK")
         return {

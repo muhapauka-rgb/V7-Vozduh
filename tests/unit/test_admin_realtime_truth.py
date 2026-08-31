@@ -184,6 +184,17 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn('timeout=7', operation)
         self.assertIn('writer_deadline_exceeded_7s', operation)
 
+    def test_operator_rebind_uses_core_primary_commit_as_authoritative_kernel_evidence(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+        operation = source[
+            source.index("def operator_profile_egress_rebind"):
+            source.index("def autoswitch_read_only_plan_command")
+        ]
+
+        self.assertIn('core_primary_committed = "V7_CORE_PRIMARY_SYNC=PASS" in writer_output', operation)
+        self.assertIn('kernel_route_observed = core_primary_committed or legacy_route_observed', operation)
+        self.assertIn('"verification_mode": "CORE_PRIMARY_COMMIT" if core_primary_committed else "LEGACY_ROUTE_OUTPUT"', operation)
+
     def test_mutating_requests_refresh_a_stale_csrf_token_once_before_failing(self):
         page = self.admin.html_page_v2()
         start = page.index("async function refreshCsrfToken")

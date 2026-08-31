@@ -3730,6 +3730,7 @@ def run_autoswitch_apply(
     controlled_engineering_setup: bool = False,
     controlled_engineering_cleanup: bool = False,
     ordinary_service_failure_only: bool = False,
+    runtime_hot_path_only: bool = False,
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
@@ -3809,6 +3810,14 @@ def run_autoswitch_apply(
         # stale N10 product-contract materializer, which can reject a valid
         # ordinary incident before the canonical writer is reached.
         command.append("--ordinary-service-failure-context")
+    if (
+        runtime_hot_path_only
+        and ordinary_service_failure_only
+        and os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+    ):
+        # The existing persistent Matrix/health caller alone enables this
+        # bounded post-S11 ordering mode; an operator CLI cannot request it.
+        command.append("--defer-noncritical-finalization")
     if ct_m0f_kernel_cutover_validation:
         command.extend([
             "--ct-m0f-kernel-cutover-validation",
@@ -8798,6 +8807,9 @@ def _execute_governed_transaction_with_guards_inner(
         controlled_engineering_cleanup=bool(cleanup_mode),
         ordinary_service_failure_only=bool(
             getattr(args, "ordinary_service_failure_only", False)
+        ),
+        runtime_hot_path_only=bool(
+            getattr(args, "runtime_hot_path_only", False)
         ),
         **apply_options,
     )
@@ -15248,6 +15260,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--ordinary-service-failure-only", action="store_true")
+    parser.add_argument(
+        "--runtime-hot-path-only",
+        action="store_true",
+        help=(
+            "Permit the existing Matrix Runtime to defer only non-critical "
+            "post-S11 finalization for an ordinary service-failure action."
+        ),
+    )
     parser.add_argument(
         "--controlled-certification-campaign-request-id",
         default="",

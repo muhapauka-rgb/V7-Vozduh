@@ -20752,11 +20752,9 @@ class AutoswitchPlanner:
         }
 
     def finalize_operation(self, plan: dict[str, Any]) -> dict[str, Any]:
-        # Keep durable closure intact, but expose which existing finalization
-        # operation follows the already-completed apply/verification result.
-        # This is observation only: no output is deferred, reordered or given
-        # a new owner until a real bounded latency measurement identifies a
-        # safe separation candidate.
+        # Route/kernel and required-service verification define the product
+        # recovery terminal. Passive history and learning are evidence
+        # consumers, not route-safety or S11 gates.
         def record_finalization_span(stage: str, started_ns: int) -> None:
             if isinstance(getattr(self, "_performance_spans", None), list):
                 self._record_performance_span(
@@ -20787,13 +20785,6 @@ class AutoswitchPlanner:
         plan["closure_target"] = self._closure_target(operation, audit)
         record_finalization_span("finalization_closure_target", closure_started_ns)
 
-        passive_started_ns = time.monotonic_ns()
-        plan["passive_production_event_consumption"] = self._consume_passive_production_events()
-        record_finalization_span("finalization_passive_event_consumption", passive_started_ns)
-
-        learning_started_ns = time.monotonic_ns()
-        plan["l3_learning_closure"] = self._l3_materialize_learning_closure(plan)
-        record_finalization_span("finalization_learning_closure", learning_started_ns)
         n10_lease_file = str(getattr(self, "_n10_packet_lease_file", "") or "")
         if n10_lease_file:
             lease_finalization_started_ns = time.monotonic_ns()
@@ -20829,6 +20820,63 @@ class AutoswitchPlanner:
                 control_finalization_started_ns,
             )
             self._operation_execution_control_window = {}
+
+        apply_result = (
+            plan.get("apply_result")
+            if isinstance(plan.get("apply_result"), dict)
+            else {}
+        )
+        result_rows = [
+            row for row in (apply_result.get("results") or [])
+            if isinstance(row, dict)
+        ]
+        successful_s11 = bool(apply_result.get("applied")) and bool(
+            result_rows
+        ) and len(result_rows) == len(apply_result.get("results") or []) and all(
+            str(row.get("terminal_outcome_classification") or "") == "SUCCESS"
+            for row in result_rows
+        )
+        defer_noncritical = bool(
+            getattr(self.args, "defer_noncritical_finalization", False)
+            and getattr(self.args, "ordinary_service_failure_context", False)
+            and successful_s11
+        )
+        if defer_noncritical:
+            deferred = {
+                "status": "DEFERRED_AFTER_REQUIRED_SERVICE_S11",
+                "owner": "existing Matrix/health passive and learning consumers",
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "reason": (
+                    "passive history and learning are not synchronous "
+                    "ordinary-recovery safety prerequisites"
+                ),
+            }
+            plan["passive_production_event_consumption"] = {
+                **deferred,
+                "consumer": "tools/v7-users-autoswitch._consume_passive_production_events",
+            }
+            plan["l3_learning_closure"] = {
+                **deferred,
+                "consumer": "tools/v7-users-autoswitch._l3_materialize_learning_closure",
+            }
+            plan.setdefault("safety", {})[
+                "noncritical_finalization_deferral"
+            ] = {
+                "status": "DEFERRED_AFTER_REQUIRED_SERVICE_S11",
+                "required_service_s11_preserved": True,
+                "rollback_semantics_changed": False,
+                "new_owner_created": False,
+            }
+            return plan
+
+        passive_started_ns = time.monotonic_ns()
+        plan["passive_production_event_consumption"] = self._consume_passive_production_events()
+        record_finalization_span("finalization_passive_event_consumption", passive_started_ns)
+
+        learning_started_ns = time.monotonic_ns()
+        plan["l3_learning_closure"] = self._l3_materialize_learning_closure(plan)
+        record_finalization_span("finalization_learning_closure", learning_started_ns)
         return plan
 
     def _consume_passive_production_events(self) -> dict[str, Any]:
@@ -23556,6 +23604,27 @@ class AutoswitchPlanner:
                     "terminal_outcome_classification": "COHORT_PROJECTION_PENDING" if proc.returncode == 0 else "APPLY_FAILURE",
                     "rollback_attempted": False,
                 }
+                route_writer_diagnostics = route_writer_diagnostic_timings(
+                    proc.stdout or ""
+                )
+                if route_writer_diagnostics:
+                    row["route_writer_timing"].setdefault("details", {})[
+                        "writer_stage_timings_ms"
+                    ] = route_writer_diagnostics
+                low_level_match = re.search(
+                    r"^V7_TIMING_ROUTE_WRITE_MS=([0-9]+(?:\.[0-9]+)?)$",
+                    proc.stdout or "",
+                    flags=re.MULTILINE,
+                )
+                row["low_level_route_mutation_timing"] = {
+                    "clock_source": "linux_monotonic_uptime",
+                    "duration_ms": (
+                        float(low_level_match.group(1))
+                        if low_level_match else None
+                    ),
+                    "owner": "tools/runtime-support/v7-user-switch",
+                    "status": "PASS" if low_level_match else "UNMEASURED",
+                }
                 results.append(row)
                 if proc.returncode != 0:
                     circuit_breaker.update({"tripped": True, "trigger_user": row["user_ip"], "trigger_terminal": "APPLY_FAILURE", "remaining_not_attempted": len(selected_moves) - index - 1})
@@ -23571,10 +23640,19 @@ class AutoswitchPlanner:
                         row.update({"rollback_attempted": True, "rollback_result": "OK" if rollback.get("ok") else "FAIL", "terminal_outcome_classification": "ROLLBACK_SUCCESS" if rollback.get("ok") else "ROLLBACK_FAILURE"})
                 plan.setdefault("safety", {})["core_primary_cohort_rollback"] = rollback
             else:
+                core_primary_started_ns = time.monotonic_ns()
                 projection = self._core_primary_cohort_commit(
                     [row["user_ip"] for row in results], control_operation_id,
                     emergency_failover=action_class == "EMERGENCY_FAILOVER",
                     selected_move_hash=selected_hash,
+                )
+                core_primary_span = self._record_performance_span(
+                    "affected_cohort_core_primary_commit",
+                    core_primary_started_ns,
+                    owner="existing v7-routing-sync Core-primary owner",
+                    status="PASS" if projection.returncode == 0 else "FAIL",
+                    parent="apply_and_verification",
+                    details={"member_count": len(results)},
                 )
                 try:
                     projection_payload = json.loads(projection.stdout or "{}")
@@ -23602,12 +23680,22 @@ class AutoswitchPlanner:
                     failed = False
                     target_rows: dict[str, list[dict[str, Any]]] = {}
                     for row in results:
+                        route_verify_started_ns = time.monotonic_ns()
                         verify = self._verify_routes_for_apply(row["user_ip"], row["to"])
+                        route_verify_span = self._record_performance_span(
+                            "route_visibility_verification",
+                            route_verify_started_ns,
+                            owner="tools/v7-users-autoswitch._verify_routes_for_apply",
+                            status="PASS" if verify.returncode == 0 else "FAIL",
+                            parent="apply_and_verification",
+                        )
                         row.update({
                             "verify_rc": verify.returncode,
                             "verify_output": (verify.stdout or "")[-4000:],
                             "route_verification_scope": "selected_user_then_whole_system",
                             "core_primary_projection": "COMMITTED",
+                            "core_primary_commit_timing": core_primary_span,
+                            "route_verification_timing": route_verify_span,
                         })
                         if verify.returncode != 0:
                             failed = True
@@ -24540,6 +24628,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--ordinary-service-failure-context",
         action="store_true",
         help="Mark the current Planner read as the existing ordinary service-failure consumer context.",
+    )
+    parser.add_argument(
+        "--defer-noncritical-finalization",
+        action="store_true",
+        help=(
+            "Return an already route- and required-service-verified ordinary "
+            "service-failure recovery before passive history and learning "
+            "reconciliation; those existing consumers remain asynchronous."
+        ),
     )
     parser.add_argument("--apply", action="store_true", help="Apply selected moves. Default is read-only dry-run.")
     parser.add_argument(

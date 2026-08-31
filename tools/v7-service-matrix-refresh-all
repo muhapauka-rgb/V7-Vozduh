@@ -1900,6 +1900,7 @@ def run_bounded_delegated_service_failure_action(
     operator_execution_audit_store: Path = DEFAULT_OPERATOR_EXECUTION_AUDIT_STORE,
     service_failure_obligation: Optional[dict[str, Any]] = None,
     fresh_matrix_runtime_handoff: bool = False,
+    runtime_hot_path_only: bool = False,
     timeout_sec: int = 180,
 ) -> dict[str, Any]:
     """Close the existing event -> planner -> bounded executor consumer link.
@@ -2320,6 +2321,8 @@ def run_bounded_delegated_service_failure_action(
     ]
     if ordinary_execution:
         command.append("--ordinary-service-failure-only")
+    if runtime_hot_path_only and ordinary_execution:
+        command.append("--runtime-hot-path-only")
     if fresh_matrix_runtime_handoff:
         # Matrix has just produced this exact durable obligation and passes it
         # straight to the governed owner.  Its OMP receipt is deliberately
@@ -8112,6 +8115,7 @@ def main() -> int:
                 fresh_service_failure_obligation
                 or fresh_direct_l3_obligation_handoff
             ),
+            runtime_hot_path_only=bool(args.runtime_hot_path_only),
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]

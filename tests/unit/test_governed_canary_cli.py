@@ -6945,6 +6945,35 @@ class GovernedCanaryCliTest(unittest.TestCase):
         timeout_index = captured["command"].index("--service-matrix-lock-timeout-sec")
         self.assertEqual(captured["command"][timeout_index + 1], "5")
 
+    def test_runtime_hot_path_propagates_only_to_ordinary_autoswitch_apply(self):
+        module = load_cli_module()
+        captured = {}
+
+        class FakeProc:
+            returncode = 0
+            stdout = "{}"
+            stderr = ""
+
+        def fake_run(command, **_kwargs):
+            captured["command"] = command
+            return FakeProc()
+
+        with mock.patch.dict(
+            module.os.environ, {"V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1"},
+        ), mock.patch.object(module.subprocess, "run", side_effect=fake_run):
+            module.run_autoswitch_apply(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path("/state/autoswitch-restore-barrier.json"),
+                max_users=1,
+                ordinary_service_failure_only=True,
+                runtime_hot_path_only=True,
+            )
+
+        self.assertIn("--ordinary-service-failure-context", captured["command"])
+        self.assertIn("--defer-noncritical-finalization", captured["command"])
+
     def test_run_autoswitch_apply_reuses_planner_owner_in_process(self):
         module = load_cli_module()
         created = []

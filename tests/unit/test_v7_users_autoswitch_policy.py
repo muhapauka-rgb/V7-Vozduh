@@ -146,6 +146,49 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tool = load_tool_module()
 
+    def test_hot_path_defers_only_noncritical_finalization_after_s11(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        planner.args = SimpleNamespace(
+            apply=True,
+            ordinary_service_failure_context=True,
+            defer_noncritical_finalization=True,
+        )
+        planner._performance_spans = []
+        planner._n10_packet_lease_file = ""
+        planner._operation_execution_control_window = {}
+        planner._terminal_verdict = lambda _plan: {
+            "terminal_state": "SUCCESS",
+            "terminal_reason": "all_members_verified",
+        }
+        planner._rollback_verdict = lambda _plan: {}
+        planner._terminal_audit_reference = lambda _plan, _rollback: {
+            "object_type": "operation", "object_id": "op-unit",
+        }
+        planner._emit_terminal_audit = lambda audit: {**audit, "emitted": True}
+        planner._closure_target = lambda _operation, _audit: {"status": "READY"}
+        planner._consume_passive_production_events = mock.Mock()
+        planner._l3_materialize_learning_closure = mock.Mock()
+        plan = {
+            "operation": {"operation_id": "op-unit"},
+            "apply_result": {
+                "applied": True,
+                "results": [{"terminal_outcome_classification": "SUCCESS"}],
+            },
+        }
+
+        planner.finalize_operation(plan)
+
+        planner._consume_passive_production_events.assert_not_called()
+        planner._l3_materialize_learning_closure.assert_not_called()
+        self.assertEqual(
+            plan["passive_production_event_consumption"]["status"],
+            "DEFERRED_AFTER_REQUIRED_SERVICE_S11",
+        )
+        self.assertTrue(
+            plan["safety"]["noncritical_finalization_deferral"]
+            ["required_service_s11_preserved"]
+        )
+
     def test_fast_profile_services_are_explicit_and_telegram_is_not_universal(self):
         # Planner ranking retains its historical best-effort defaults.
         self.assertEqual(

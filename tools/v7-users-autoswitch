@@ -2264,6 +2264,27 @@ def live_profile_failure_evidence(
         else {}
     )
     baseline = normalize_service_ids(explicitly_required_services or [])
+    # The existing health owner accepts a profile failure only while its
+    # Matrix observation is current, then immediately hands that *exact* T0
+    # to this existing advisory consumer.  On a contended two-vCPU Runtime
+    # the consumer can reach this read after the ordinary ten-second wall
+    # clock window even though the health owner already proved the same
+    # source/service/incident binding.  Do not re-admit arbitrary old Matrix
+    # rows: retain that one binding only when the in-process owner supplied
+    # its exact monotonic T0 for this one transaction.  The caller process
+    # and its environment end with the transaction; Planner and Apply still
+    # revalidate all mutable facts.
+    handed_off_t0_ns = 0
+    if (
+        require_current_observation
+        and os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+    ):
+        try:
+            handed_off_t0_ns = int(
+                str(os.environ.get("V7_SERVICE_T0_MONOTONIC_NS") or "0")
+            )
+        except (TypeError, ValueError):
+            handed_off_t0_ns = 0
     affected_profiles = 0
     newest_t0_ns = 0
     incident_ids: set[str] = set()
@@ -2306,7 +2327,19 @@ def live_profile_failure_evidence(
                 except (TypeError, ValueError):
                     continue
                 if age_seconds < 0 or age_seconds > 10.0:
-                    continue
+                    try:
+                        evidence_t0_ns = int(str(
+                            evidence.get("confirmed_hard_failure_monotonic_ns")
+                            or evidence.get("observation_monotonic_ns")
+                            or "0"
+                        ))
+                    except (TypeError, ValueError):
+                        evidence_t0_ns = 0
+                    if (
+                        handed_off_t0_ns <= 0
+                        or evidence_t0_ns != handed_off_t0_ns
+                    ):
+                        continue
             try:
                 t0_ns = int(str(
                     evidence.get("confirmed_hard_failure_monotonic_ns")

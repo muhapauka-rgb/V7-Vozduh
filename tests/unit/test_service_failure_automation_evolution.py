@@ -134,6 +134,40 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(continuing_affected, 1)
         self.assertEqual(continuing_incidents, {"sfinc_current", "sfinc_old"})
 
+    def test_live_profile_failure_evidence_retains_only_exact_health_handoff_t0(self):
+        """A delayed consumer may use only the T0 that its health owner saw."""
+        users = [self.autoswitch.User(
+            ip="10.7.0.127", current="vless", enabled=True,
+        )]
+        old = datetime.now(timezone.utc) - timedelta(seconds=30)
+        matrix = {"items": {"vless": {"services": {"google": {
+            "ok": False, "status": "FAIL", "failure_state": "OBSERVED_CONTINUING",
+            "source_incident_id": "sfinc_exact",
+            "confirmed_hard_failure_monotonic_ns": 2_000,
+            "observed_at": old.isoformat(),
+        }}}}}
+        preferences = {"users": {"10.7.0.127": {"services": ["google"]}}}
+
+        with mock.patch.dict(self.autoswitch.os.environ, {
+            "V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1",
+            "V7_SERVICE_T0_MONOTONIC_NS": "2000",
+        }, clear=False):
+            affected, t0_ns, incidents = self.autoswitch.live_profile_failure_evidence(
+                users=users, matrix=matrix, service_preferences=preferences,
+                source="vless", require_current_observation=True,
+            )
+        self.assertEqual((affected, t0_ns, incidents), (1, 2_000, {"sfinc_exact"}))
+
+        with mock.patch.dict(self.autoswitch.os.environ, {
+            "V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1",
+            "V7_SERVICE_T0_MONOTONIC_NS": "2001",
+        }, clear=False):
+            affected, t0_ns, incidents = self.autoswitch.live_profile_failure_evidence(
+                users=users, matrix=matrix, service_preferences=preferences,
+                source="vless", require_current_observation=True,
+            )
+        self.assertEqual((affected, t0_ns, incidents), (0, 0, set()))
+
     def test_packet_bound_profile_failure_revalidates_current_matrix_event(self):
         """The route writer may consume the exact Packet-bound Matrix fact."""
         now = datetime.now(timezone.utc)

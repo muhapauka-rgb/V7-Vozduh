@@ -187,3 +187,29 @@ Next: safe-deploy this bounded detector replacement, verify the Runtime hash
 and health service, then observe only the normal V7 caller.  The three VLESS
 users remain untouched until that caller either creates the governed recovery
 transaction or exposes one remaining generic blocker.
+
+## Follow-up: exact health handoff survived a delayed consumer read
+
+Live Runtime evidence after the batch deployment exposed the next causal
+boundary.  The health owner accepted a fresh VLESS profile failure and passed
+its exact monotonic T0 to the persistent Matrix consumer.  On the constrained
+Runtime, the existing consumer reached its profile read after the normal
+ten-second wall-clock freshness window and returned
+`STOP_SAFE_NO_CURRENT_PROFILE_FAILURE`.  It therefore threw away the exact
+fact that its own health caller had just admitted, while correctly leaving all
+three ordinary users on the failed source.
+
+The repair preserves one exact Matrix fact only for that existing in-process
+transaction: if the environment contains the health owner's profile T0, an
+otherwise aged row is eligible solely when its Matrix monotonic T0 is exactly
+equal.  A different T0, missing T0, non-health caller, unknown state and all
+ordinary historical reads still fail closed.  The binding disappears when the
+existing consumer process returns; it is neither persisted nor a new state
+source.  Planner, Authority, Candidate, Packet, Lease, Barrier, route writer
+and S11 validation remain unchanged and independently revalidate before any
+movement.
+
+Focused tests prove both branches: the precise health handoff remains usable
+after a delayed read, whereas an older record with a different T0 remains
+ineligible.  The next action is publication, safe deployment and observation
+of the ordinary V7 Runtime caller; no manual client recovery is permitted.

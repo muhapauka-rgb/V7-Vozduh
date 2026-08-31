@@ -703,6 +703,101 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "CURRENT_MATRIX_PROFILE_REQUIRED_SERVICE_FALLBACK_BINDING",
         )
 
+    def test_runtime_profile_scope_reentry_reopens_only_matching_compact_incident(self):
+        """A renewed assignment must not stay hidden behind an old closure."""
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        previous_scope = {
+            "affected_scope_count": 2,
+            "affected_scope_fingerprint": "old-scope",
+            "unresolved_scope_count": 0,
+            "protected_scope_count": 0,
+            "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+        }
+        planner.l3_runtime_state = {
+            "incidents": {
+                "l3-vless-current": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                    "incident_id": "sfinc-current",
+                    "channel": "vless",
+                    "incident_state": "INTENT_CLOSED",
+                    "current_source_scope": previous_scope,
+                    "historical_packet_outcome": "KEPT_UNCHANGED",
+                },
+                "l3-other": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                    "incident_id": "sfinc-other",
+                    "channel": "awg0",
+                    "incident_state": "INTENT_CLOSED",
+                },
+            }
+        }
+        planner._l3_failed_source_scope = mock.Mock(return_value={
+            "source_failed": True,
+            "affected_users_count": 2,
+        })
+        planner._write_l3_runtime_state = mock.Mock()
+
+        result = planner.reconcile_runtime_profile_source_scope_reentry({
+            "source": "vless",
+            "source_incident_id": "sfinc-current",
+            "t0_monotonic_ns": 123,
+            "source_scope": {
+                "affected_scope_count": 2,
+                "affected_scope_fingerprint": "fresh-scope",
+                "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+            },
+        })
+
+        self.assertEqual(result["status"], "CURRENT_PROFILE_SCOPE_REENTRY_RECONCILED")
+        self.assertTrue(result["updated"])
+        self.assertEqual(result["users_moved"], 0)
+        updated = planner.l3_runtime_state["incidents"]["l3-vless-current"]
+        self.assertEqual(updated["incident_state"], "OPEN")
+        self.assertEqual(
+            updated["current_source_scope"]["affected_scope_fingerprint"],
+            "fresh-scope",
+        )
+        self.assertEqual(
+            updated["current_source_scope"]["unresolved_scope_count"], 2,
+        )
+        self.assertEqual(updated["historical_packet_outcome"], "KEPT_UNCHANGED")
+        self.assertEqual(
+            planner.l3_runtime_state["incidents"]["l3-other"]["incident_state"],
+            "INTENT_CLOSED",
+        )
+        planner._write_l3_runtime_state.assert_called_once()
+
+    def test_matrix_handoff_passes_exact_current_scope_only_to_existing_owner(self):
+        completed = SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({"ok": True, "status": "PASS"}),
+        )
+        with mock.patch.object(
+            self.refresh.subprocess, "run", return_value=completed,
+        ) as run:
+            result = self.refresh.run_service_failure_automation_advisory(
+                "v7-users-autoswitch",
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                source_egress="vless",
+                runtime_profile_handoff=True,
+                runtime_profile_source_scope={
+                    "channel": "vless",
+                    "source_incident_id": "sfinc-current",
+                    "source_scope_fingerprint": "fresh-scope",
+                    "affected_scope_count": 2,
+                    "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+                    "ignored": "must-not-cross-owner-boundary",
+                },
+            )
+
+        self.assertTrue(result["ok"])
+        environment = run.call_args.kwargs["env"]
+        scope = json.loads(environment["V7_SERVICE_PROFILE_FAILURE_SCOPE"])
+        self.assertEqual(scope["channel"], "vless")
+        self.assertEqual(scope["affected_scope_count"], 2)
+        self.assertNotIn("ignored", scope)
+
     def test_existing_planner_selection_drives_subset_then_full_matrix_comparison(self):
         plan = {
             "decisions": [

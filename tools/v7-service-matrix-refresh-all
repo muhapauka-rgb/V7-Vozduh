@@ -5156,6 +5156,7 @@ def run_service_failure_automation_advisory(
     matrix_comparative_preflight: bool = False,
     source_egress: str = "",
     runtime_profile_handoff: bool = False,
+    runtime_profile_source_scope: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Invoke the existing autoswitch owner in bounded advisory-only mode.
 
@@ -5179,6 +5180,20 @@ def run_service_failure_automation_advisory(
     if matrix_comparative_preflight:
         command.append("--matrix-comparative-preflight")
     started_at = now_iso()
+    environment = None
+    if runtime_profile_handoff and isinstance(runtime_profile_source_scope, dict):
+        # Pass Matrix's existing current source binding to the advisory owner
+        # in-process only.  The child independently compares it with the
+        # current registry and Matrix before it may refresh a stale compact
+        # L3 scope; it is neither a new state source nor execution authority.
+        environment = os.environ.copy()
+        environment["V7_SERVICE_PROFILE_FAILURE_SCOPE"] = json.dumps({
+            key: runtime_profile_source_scope.get(key)
+            for key in (
+                "channel", "source_incident_id", "source_scope_fingerprint",
+                "affected_scope_count", "scope_classification",
+            )
+        }, sort_keys=True)
     try:
         proc = subprocess.run(
             command,
@@ -5187,6 +5202,7 @@ def run_service_failure_automation_advisory(
             stderr=subprocess.STDOUT,
             check=False,
             timeout=max(5, min(int(timeout_sec or 45), 120)),
+            env=environment,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {
@@ -7722,6 +7738,7 @@ def main() -> int:
             matrix_comparative_preflight=bool(args.matrix_comparative_preflight),
             source_egress=str(profile_source_constraint.get("channel") or ""),
             runtime_profile_handoff=True,
+            runtime_profile_source_scope=profile_source_constraint,
         )
         proposed_obligation = service_failure_obligation_from_advisory(
             (fresh_profile_advisory.get("consumer_result") or {})

@@ -20968,6 +20968,169 @@ class AutoswitchPlanner:
             "users_moved": 0,
         }
 
+    def reconcile_runtime_profile_source_scope_reentry(
+        self, binding: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Refresh one stale compact scope from an exact current Matrix binding.
+
+        A customer can be assigned again to a source whose same service-failure
+        episode was previously recovered.  Packet outcomes from that earlier
+        placement must remain history, but cannot make the currently assigned
+        customer invisible.  This is a compact reconciliation inside the
+        existing L3 owner: Matrix supplies the exact source/incident/scope and
+        this owner verifies the current registry-derived affected count before
+        reopening only that current scope.  It creates neither a Candidate nor
+        execution authority.
+        """
+        source = str(binding.get("source") or "")
+        incident_id = str(binding.get("source_incident_id") or "")
+        scope = binding.get("source_scope")
+        scope = scope if isinstance(scope, dict) else {}
+        fingerprint = str(scope.get("affected_scope_fingerprint") or "")
+        try:
+            affected_count = int(scope.get("affected_scope_count") or 0)
+        except (TypeError, ValueError):
+            affected_count = 0
+        if not source or not incident_id or not fingerprint or affected_count <= 0:
+            return {"status": "NO_EXACT_RUNTIME_PROFILE_SCOPE", "updated": False}
+        live_scope = self._l3_failed_source_scope(source)
+        if (
+            not bool_value(live_scope.get("source_failed"))
+            or int(live_scope.get("affected_users_count") or 0) != affected_count
+        ):
+            return {
+                "status": "STOP_SAFE_RUNTIME_PROFILE_SCOPE_NOT_CURRENT",
+                "updated": False,
+            }
+        incidents = (
+            self.l3_runtime_state.get("incidents")
+            if isinstance(self.l3_runtime_state.get("incidents"), dict)
+            else {}
+        )
+        matches = [
+            (key, record)
+            for key, record in incidents.items()
+            if isinstance(record, dict)
+            and str(record.get("authority_object") or "")
+            == "PASSIVE_SERVICE_FAILURE_CAPTURE"
+            and str(record.get("incident_id") or record.get("source_incident_id") or "")
+            == incident_id
+            and str(record.get("channel") or record.get("source_channel") or "")
+            == source
+        ]
+        if len(matches) != 1:
+            return {
+                "status": "STOP_SAFE_RUNTIME_PROFILE_SCOPE_INCIDENT_AMBIGUOUS",
+                "updated": False,
+                "matching_incident_count": len(matches),
+            }
+        key, record = matches[0]
+        previous_scope = (
+            record.get("current_source_scope")
+            if isinstance(record.get("current_source_scope"), dict)
+            else record.get("scope_accounting")
+            if isinstance(record.get("scope_accounting"), dict)
+            else {}
+        )
+        try:
+            previous_unresolved = int(
+                previous_scope.get("unresolved_scope_count") or 0
+            )
+        except (TypeError, ValueError):
+            previous_unresolved = 0
+        if (
+            str(previous_scope.get("affected_scope_fingerprint") or "")
+            == fingerprint
+            and int(previous_scope.get("affected_scope_count") or 0)
+            == affected_count
+            and previous_unresolved == affected_count
+            and str(record.get("incident_state") or "") != "INTENT_CLOSED"
+        ):
+            return {"status": "CURRENT_SCOPE_ALREADY_OPEN", "updated": False}
+        current_scope = {
+            **previous_scope,
+            "schema_version": "v7.service-failure-incident-scope-accounting.v2",
+            "status": "ACCOUNTED",
+            "affected_scope_count": affected_count,
+            "affected_scope_fingerprint": fingerprint,
+            "protected_scope_count": 0,
+            "protected_scope_fingerprint": sha256_json({
+                "incident": incident_id, "users": [],
+            }),
+            "unresolved_scope_count": affected_count,
+            "unresolved_scope_fingerprint": fingerprint,
+            "explicitly_excluded_or_recovered_scope_count": 0,
+            "explicitly_excluded_or_recovered_scope_fingerprint": sha256_json({
+                "incident": incident_id, "reentered_source": source,
+            }),
+            "accounted_scope_count": affected_count,
+            "live_registry_available": True,
+            "raw_user_list_stored": False,
+            "scope_classification": str(
+                scope.get("scope_classification")
+                or previous_scope.get("scope_classification")
+                or "ORDINARY_PRODUCTION_ONLY"
+            ),
+            "ordinary_customer_reclassification_allowed": False,
+            "scope_membership_law": (
+                "CURRENT_MATRIX_PROFILE_SCOPE_REENTRY_REVALIDATED_BY_USERS_REGISTRY"
+            ),
+            "runtime_profile_reentry_generation": str(
+                binding.get("t0_monotonic_ns") or ""
+            ),
+        }
+        updated = {
+            **record,
+            "status": "OPEN",
+            "incident_state": "OPEN",
+            "channel_incident_state": "OPEN",
+            "attempt_terminal": "CURRENT_PROFILE_SOURCE_SCOPE_REENTERED",
+            "closed_at": "",
+            "current_source_scope": current_scope,
+            "scope_accounting": current_scope,
+            "affected_scope_count": affected_count,
+            "affected_scope_fingerprint": fingerprint,
+            "protected_scope_count": 0,
+            "unresolved_scope_count": affected_count,
+            "unresolved_scope_fingerprint": fingerprint,
+            "next_required_consumer": (
+                "tools/v7-users-autoswitch.materialize_service_failure_automation_advisory"
+            ),
+            "reentry_condition": (
+                "current Matrix failure and current registry scope remain exact; "
+                "existing governed executor revalidates before any action"
+            ),
+            "causal_invariant": {
+                "name": "CURRENT_PROFILE_SCOPE_REENTRY_REOPENS_EXISTING_INCIDENT",
+                "valid": True,
+            },
+            "execution_performed": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+            "apply_executed": False,
+            "authority_expanded": False,
+            "production_maturity_changed": False,
+            "consumer": (
+                "tools/v7-users-autoswitch."
+                "reconcile_runtime_profile_source_scope_reentry"
+            ),
+            "updated_at": now_iso(),
+        }
+        incidents[key] = updated
+        self.l3_runtime_state["incidents"] = incidents
+        self._write_l3_runtime_state(self.l3_runtime_state)
+        return {
+            "status": "CURRENT_PROFILE_SCOPE_REENTRY_RECONCILED",
+            "updated": True,
+            "source": source,
+            "source_incident_id": incident_id,
+            "affected_scope_count": affected_count,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+
     def materialize_service_failure_automation_advisory(
         self, plan: dict[str, Any], *, source_egress: str = "",
     ) -> dict[str, Any]:
@@ -24312,6 +24475,40 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
                 "ok": False,
                 "mode": "INCIDENT_ADVISORY_AND_SHADOW_ONLY",
             }
+        try:
+            matrix_scope_binding = json.loads(
+                os.environ.get("V7_SERVICE_PROFILE_FAILURE_SCOPE", "")
+            )
+        except (TypeError, ValueError, json.JSONDecodeError):
+            matrix_scope_binding = {}
+        matrix_scope_binding = (
+            matrix_scope_binding if isinstance(matrix_scope_binding, dict) else {}
+        )
+        try:
+            matrix_scope_count = int(
+                matrix_scope_binding.get("affected_scope_count") or 0
+            )
+        except (TypeError, ValueError):
+            matrix_scope_count = 0
+        matrix_scope_fingerprint = str(
+            matrix_scope_binding.get("source_scope_fingerprint") or ""
+        )
+        matrix_scope_incident = str(
+            matrix_scope_binding.get("source_incident_id") or ""
+        )
+        if (
+            str(matrix_scope_binding.get("channel") or "") == requested_source
+            and matrix_scope_incident in incident_ids
+            and matrix_scope_count == affected
+            and bool(matrix_scope_fingerprint)
+        ):
+            args.runtime_profile_failure_binding["source_scope"] = {
+                "affected_scope_count": matrix_scope_count,
+                "affected_scope_fingerprint": matrix_scope_fingerprint,
+                "scope_classification": str(
+                    matrix_scope_binding.get("scope_classification") or ""
+                ),
+            }
     bounded_closure_reconciliation_started_ns = time.monotonic_ns()
     if runtime_profile_handoff:
         # A fresh source/profile/Matrix binding is already held by the
@@ -24331,6 +24528,18 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         }
     else:
         bounded_closure_reconciliation = planner.reconcile_bounded_cohort_closure_obligations()
+    runtime_profile_scope_reconciliation = {
+        "status": "NOT_REQUESTED", "updated": False,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+    if runtime_profile_handoff:
+        runtime_profile_scope_reconciliation = (
+            planner.reconcile_runtime_profile_source_scope_reentry(
+                args.runtime_profile_failure_binding
+            )
+        )
     planner._record_performance_span(
         "advisory_bounded_closure_reconciliation",
         bounded_closure_reconciliation_started_ns,
@@ -24415,6 +24624,7 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         "matrix_comparative_preflight": matrix_comparative_preflight,
         "execution_outcome_reconciliation": execution_outcome_reconciliation,
         "bounded_closure_reconciliation": bounded_closure_reconciliation,
+        "runtime_profile_scope_reconciliation": runtime_profile_scope_reconciliation,
         "performance_timeline": planner.performance_timeline(),
         "forbidden_effects": {
             "runtime_apply": False,

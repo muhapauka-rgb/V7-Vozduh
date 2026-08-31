@@ -39,9 +39,22 @@ appeared.
   failures unrelated to this path; they occur while the persistent Matrix is
   unavailable in those fixtures and concern background role preemption.
 
-## Production proof still required
+## Production result
 
-After safe deployment, only the normal `v7-health.service` caller may consume
-the already-live incident.  Successful proof requires its own Matrix,
-Candidate, Packet, Lease, Barrier, Apply and required-service verification;
-no manual user switch or user-specific recovery command is valid evidence.
+After safe deployment and restart of only the existing `v7-health.service`,
+the normal Runtime itself reconsumed the still-live VLESS incident and
+completed the governed recovery for three ordinary users.  It recorded Matrix
+to Candidate, Packet, Lease, Barrier, Apply and required-service verification;
+no manual route or user-specific recovery command was used.
+
+The governed transaction started at 18:04:56 UTC and completed at 18:05:41
+UTC on 2026-08-31: 41.827 seconds total.  The largest measured interval was
+Apply and verification at 39.037 seconds.  This is valid functional recovery,
+but it does **not** meet the seven-second product limit.
+
+## Exact successor
+
+Instrument and reduce the existing Apply-and-verification interval without
+weakening route or required-service proof.  The automatic source-detection and
+governed target-selection path must remain untouched; the live Runtime must
+continue to be the operational actor.

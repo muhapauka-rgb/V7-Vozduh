@@ -7573,6 +7573,19 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     capability_state = l3_learning.get("capability_state") if isinstance(l3_learning.get("capability_state"), dict) else {}
     production_proof_quality = l3_production_validation_proof_quality(apply_run, apply_payload)
     production_proven = bool(capability_state.get("production_proven")) and bool(production_proof_quality.get("ok"))
+    # The ordinary recovery product terminal is required-service S11, not
+    # passive learning/capability promotion.  The persistent Matrix/health
+    # caller is allowed to defer that Engineering-plane work only after the
+    # exact route and all required services have passed.  Requiring the
+    # deferred projection here used to turn a successful live recovery into
+    # ``l3_production_validation_downstream_proof_failed`` and strand the
+    # still-failed source behind repeated long STOP_SAFE retries.
+    ordinary_runtime_s11_proven = bool(
+        getattr(args, "ordinary_service_failure_only", False)
+        and getattr(args, "runtime_hot_path_only", False)
+        and production_proof_quality.get("ok")
+    )
+    terminal_success = bool(production_proven or ordinary_runtime_s11_proven)
     downstream_proof_diagnostic = {
         "apply_command_ok": bool(apply_run.get("ok")),
         "apply_returncode": apply_run.get("returncode"),
@@ -7828,9 +7841,15 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     }
     return {
         "schema_version": "v7.l3-production-validation-execution.v1",
-        "transaction_status": "COMPLETED" if production_proven else "STOP_SAFE",
-        "final_verdict": "L3_PRODUCTION_PROVEN" if production_proven else "STOP_SAFE",
-        "stop_reason": "" if production_proven else "l3_production_validation_downstream_proof_failed",
+        "transaction_status": "COMPLETED" if terminal_success else "STOP_SAFE",
+        "final_verdict": (
+            "L3_PRODUCTION_PROVEN"
+            if production_proven
+            else "GOVERNED_TRANSACTION_COMPLETED"
+            if ordinary_runtime_s11_proven
+            else "STOP_SAFE"
+        ),
+        "stop_reason": "" if terminal_success else "l3_production_validation_downstream_proof_failed",
         "fresh_packet_id": packet.get("packet_id", ""),
         "decision_id": packet.get("decision_id", ""),
         "operation_id": packet.get("operation_id", ""),
@@ -7861,6 +7880,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "l3_learning_closure": l3_learning,
         "capability_state": capability_state,
         "production_proven": production_proven,
+        "ordinary_runtime_required_service_s11_proven": ordinary_runtime_s11_proven,
         "certified": bool(capability_state.get("certified")),
         "active_capability": bool(capability_state.get("active_capability")),
         "users_moved": int(production_proof_quality.get("verified_success_count") or 0) if apply_result.get("applied") else 0,

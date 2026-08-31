@@ -8410,6 +8410,119 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(locked_move["candidates"][0]["egress"], "awg3")
         self.assertTrue(apply_calls[0]["emergency_failover_autonomy"])
 
+    def test_runtime_hot_ordinary_recovery_uses_s11_not_deferred_learning_as_terminal(self):
+        """A verified ordinary recovery must not wait for passive learning."""
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root, open_control=True)
+            args.execute_l3_production_validation = True
+            args.confirm_l3_production_validation = (
+                "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            )
+            args.ordinary_service_failure_only = True
+            args.runtime_hot_path_only = True
+            causal_binding = {
+                "schema_version": "v7.service-failure-causal-binding.v1",
+                "status": "BOUND",
+                "ok": True,
+                "binding_kind": "ORDINARY_SERVICE_FAILURE_OBLIGATION",
+                "automation_obligation_id": "sfaob_test",
+                "source_incident_id": "sfinc_test",
+                "source_event_id": "sfe_test",
+                "source_event_ids": ["sfe_test"],
+                "source_channel": "vless",
+                "event_type": "SERVICE_FAILURE_OBSERVED",
+                "source_scope": {
+                    "affected_scope_count": 1,
+                    "affected_scope_fingerprint": "scope-test",
+                    "source_channel": "vless",
+                    "raw_user_list_stored": False,
+                },
+                "first_failed_observation_monotonic_ns": 101,
+                "confirmed_hard_failure_monotonic_ns": 202,
+            }
+            original_plan = module.run_l3_production_validation_plan
+            original_apply = module.run_autoswitch_apply
+            original_binding = module.operation_scoped_binding.read_binding
+            try:
+                module.run_l3_production_validation_plan = lambda **kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "command": ["l3-plan"],
+                    "payload": self.ready_l3_plan(),
+                }
+                module.run_autoswitch_apply = lambda **kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "payload": {
+                        "operation": {
+                            "operation_id": "ordinary-runtime-apply",
+                            "terminal_state": "SUCCESS",
+                            "terminal_reason": "all_members_verified",
+                        },
+                        "apply_result": {
+                            "applied": True,
+                            "results": [{
+                                "user_ip": "10.7.0.5",
+                                "from": "vless",
+                                "to": "awg3",
+                                "rc": 0,
+                                "verify_rc": 0,
+                                "service_verify_rc": 0,
+                            }],
+                        },
+                        "l3_learning_closure": {
+                            "status": "DEFERRED_AFTER_REQUIRED_SERVICE_S11",
+                        },
+                    },
+                }
+                module.operation_scoped_binding.read_binding = lambda **kwargs: {
+                    "schema_version": module.operation_scoped_binding.SCHEMA_VERSION,
+                    "status": "BOUND",
+                    "selected_identity": {
+                        "user": "10.7.0.5",
+                        "source": "vless",
+                        "target": "awg3",
+                    },
+                    "source_hashes": {
+                        "users_registry": "users-binding",
+                        "egress_registry": "egress-binding",
+                        "runtime_state": "runtime-binding",
+                        "candidate_suitability": "candidate-binding",
+                    },
+                    "source_bundle_hash": "binding-bundle",
+                    "snapshot_bundle_hash": "binding-bundle",
+                }
+                with mock.patch.object(
+                    module,
+                    "service_failure_obligation_execution_binding",
+                    return_value=causal_binding,
+                ):
+                    result = module.execute_l3_production_validation(
+                        args,
+                        state_dir=root / "state",
+                        event_dir=root / "events",
+                        snapshot_root=root / "state" / "intelligence",
+                        audit_dir=root / "audit",
+                        lease_file=root / "state" / "operator-execution-lease.json",
+                    )
+            finally:
+                module.run_l3_production_validation_plan = original_plan
+                module.run_autoswitch_apply = original_apply
+                module.operation_scoped_binding.read_binding = original_binding
+
+        self.assertEqual(
+            result["final_verdict"],
+            "GOVERNED_TRANSACTION_COMPLETED",
+            result,
+        )
+        self.assertEqual(result["transaction_status"], "COMPLETED")
+        self.assertEqual(result["stop_reason"], "")
+        self.assertTrue(result["ordinary_runtime_required_service_s11_proven"])
+        self.assertFalse(result["production_proven"])
+
     def test_l3_reconciles_route_mutation_when_child_terminal_payload_is_missing(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

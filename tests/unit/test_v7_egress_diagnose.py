@@ -463,7 +463,7 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertFalse(shadow_log.exists())
             self.assertTrue(wake_log.exists())
 
-    def test_health_profile_wake_keeps_exact_source_binding(self):
+    def test_persistent_health_profile_producer_leaves_exact_binding_for_parent(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             bin_dir = root / "bin"
@@ -495,7 +495,12 @@ class V7EgressDiagnoseTest(unittest.TestCase):
                 "--profile-service-failure-samples", "1", "--profile-service-cooldown-sec", "0"],
                 text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
             self.assertEqual(proc.returncode, 0, proc.stderr)
-            self.assertEqual(wake_log.read_text(encoding="utf-8").split("|")[0:2], ["1", "vless"])
+            self.assertFalse(
+                wake_log.exists(),
+                "the persistent health parent must be the sole Matrix consumer",
+            )
+            state_text = (state / "fast.state").read_text(encoding="utf-8")
+            self.assertIn("profile_consumer_wake=PASS", state_text)
 
     def test_fast_batch_reuses_fresh_matrix_for_explicit_failure(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -369,32 +369,20 @@ wake_existing_failure_consumer() {
   profile_t0_ns="${2:-}"
   [ -n "$CONSUMER_WAKE_COMMAND" ] || return 0
   if [ "${V7_HEALTH_PERSISTENT_MATRIX_CONSUMER:-0}" = "1" ]; then
-    # A direct local-interface event has no profile binding, so the parent
-    # remains its single consumer.  A profile failure is different: waiting
-    # for the whole parallel probe batch to exit can make the already-written
-    # Matrix observation older than the bounded live-handoff window. Reuse
-    # the same existing Matrix consumer immediately, with only the exact
-    # source binding produced by this child.  This is not a route action and
-    # cannot select a user or target; the consumer revalidates all mutable
-    # state before Apply. The health parent later observes the same durable
-    # generation and its process-local de-duplication prevents a second
-    # transaction.
+    # This producer is not an operational recovery caller.  Once it has
+    # written canonical Matrix evidence, the already-running health owner
+    # observes that exact binding within its bounded poll and is the one
+    # persistent Matrix consumer.  Starting a second external Matrix process
+    # here duplicated advisory/Planner initialization and raced the same
+    # Packet/Lease chain, adding seconds to an ordinary recovery while
+    # providing no new evidence.  A direct local-interface event also has no
+    # profile binding, so it has always remained parent-consumed.
+    #
+    # Keep the historical external wake for callers that do *not* run inside
+    # the persistent health owner.  That is the compatibility fallback, not
+    # a second consumer for the normal production path.
     if [ -n "$profile_source_id" ] && [ "$(basename "$CONSUMER_WAKE_COMMAND")" = "v7-service-matrix-refresh-all" ]; then
-      if [ -n "$profile_t0_ns" ]; then
-        V7_SERVICE_PERSISTENT_MATRIX_OWNER=1 \
-          V7_SERVICE_PROFILE_SOURCE_EGRESS="$profile_source_id" \
-          V7_SERVICE_T0_MONOTONIC_NS="$profile_t0_ns" \
-          "$CONSUMER_WAKE_COMMAND" \
-            --consume-existing-service-failure-events-only \
-            --runtime-hot-path-only >/dev/null 2>&1
-      else
-        V7_SERVICE_PERSISTENT_MATRIX_OWNER=1 \
-          V7_SERVICE_PROFILE_SOURCE_EGRESS="$profile_source_id" \
-          "$CONSUMER_WAKE_COMMAND" \
-            --consume-existing-service-failure-events-only \
-            --runtime-hot-path-only >/dev/null 2>&1
-      fi
-      return $?
+      return 0
     fi
     return 0
   fi

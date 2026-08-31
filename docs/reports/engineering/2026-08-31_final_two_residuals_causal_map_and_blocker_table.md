@@ -71,3 +71,36 @@ Implemented the admitted block in the existing owners:
 - the existing cohort receipt now retains route-writer subspans, one affected-cohort Core-primary span and exact member route-verification spans for the next live sample.
 
 Focused regressions: 2/2 passed. Full autoswitch policy suite: 237/237 passed. A combined broad regression command exposed three unrelated existing assertions in other suites; none refer to finalization ordering, the new flag, or the cohort timing receipt. They are retained as non-credit diagnostics and were not hidden or changed.
+
+## Second residual A repair: one live Matrix consumer, not two
+
+Fresh Runtime inspection after the first block found the ordinary detector
+regularly exceeding its `3.5 s` cadence: recent completed `other_required`
+passes were `3.7--5.6 s`, with repeated `PREVIOUS_INVOCATION_RUNNING` deadline
+misses.  The source probe itself remains bounded; the avoidable boundary was a
+second Matrix/Planner process that could be started by the detector after it
+had already written a canonical profile failure, while the persistent health
+owner was independently polling that same Matrix binding for the same live
+recovery.
+
+The repair keeps Matrix as the only writer and the health loop as the normal
+Runtime caller.  Under the persistent-health environment, the detector now
+only records the exact Matrix fact and returns; the running health owner reads
+the same fresh binding within its existing `250 ms` bound and runs the one
+loaded Matrix consumer.  The historical external wake remains unchanged for
+non-persistent compatibility callers.  No route, user assignment, target,
+Authority, Candidate, Packet, Lease, Barrier or verification behavior is
+performed by the detector or changed by this repair.
+
+Focused verification passes:
+
+- the persistent-health detector leaves the source-bound Matrix fact for the
+  parent and does not start a second consumer;
+- the existing health-loop unit coverage still proves fresh exact binding,
+  bounded parent polling and one-time parent consumption;
+- whitespace validation passes.
+
+This block is not yet production SLO evidence.  After safe deployment, the
+normal V7 Runtime must produce the next real current failure transaction.  Its
+receipt will retain the full timeline so the remaining mandatory work can be
+classified from measured intervals rather than inferred from a later summary.

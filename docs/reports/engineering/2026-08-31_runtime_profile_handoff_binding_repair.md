@@ -337,6 +337,24 @@ Next is a second safe deployment and an observation-only live acceptance
 sample, originated solely by the normal V7 health caller after an operator
 placement.
 
+## Deployment status
+
+The compatibility repair was committed as `f788eeed Reuse prepared profile
+targets during projection refresh`, independently published to `Updatesystem`
+and deployed through `tools/v7-safe-deploy`.  Local, GitHub and Runtime all
+refer to this commit; the deployed `v7-users-autoswitch` SHA-256 is
+`2b32df42f8cf3f294bee76c3fbda8542cba95eb6ba46f229e9427baee1fd7f84` and
+`v7-health.service` is active and enabled.
+
+The Runtime already shows the fast prepared-target health role completing in
+roughly 64--275 ms.  At post-deploy observation there was no enabled ordinary
+customer on VLESS: the only VLESS registry entry was disabled.  Therefore no
+new recovery operation was created, which is the correct normal Runtime
+behavior.  No seven-second claim is made yet.  The outstanding independent
+input is one operator placement of an enabled ordinary client with a
+profile-required service unavailable on VLESS; V7, not Codex, must then
+produce the complete measured recovery.
+
 It is **not** seven-second acceptance evidence.  The observed confirmed
 Matrix T0 to operation completion is about **32.4 seconds**.  The operation
 feedback did not retain the original monotonic clocks, so first-observation to

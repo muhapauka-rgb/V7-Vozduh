@@ -4720,10 +4720,37 @@ class AutoswitchPlanner:
         )
         self.intelligence_snapshot_root = Path(args.intelligence_snapshot_root)
         refresh_started_ns = time.monotonic_ns()
-        self.pre_planner_refresh = self._run_pre_planner_refresh()
-        self._reload_intelligence_sources_after_pre_planner_refresh()
-        self._retry_pre_planner_refresh_after_source_reload()
-        self.intelligence_snapshots = self._load_intelligence_snapshots()
+        runtime_profile_handoff = bool_value(
+            getattr(args, "runtime_profile_handoff_only", False)
+        )
+        if runtime_profile_handoff:
+            # A fresh profile-required Matrix failure already has its source,
+            # affected scope and mandatory service proof.  Ranking/trust/
+            # prediction snapshots are advisory for this bounded recovery and
+            # the governed executor revalidates every mutable execution fact.
+            # Refreshing or reconstructing those broad snapshots here used to
+            # make their engineering cost a synchronous outage prerequisite.
+            # Keep their existing owner and normal periodic lifecycle; this
+            # exact source-scoped Planner invocation deliberately consumes no
+            # advisory snapshot before Candidate construction.
+            self.pre_planner_refresh = {
+                "schema": "v7.pre-planner-intelligence-refresh.v1",
+                "enabled": False,
+                "mode": "off",
+                "state": "DEFERRED_ADVISORY_OUTSIDE_RUNTIME_HOT_PATH",
+                "decision": "fresh_profile_matrix_handoff_uses_current_mandatory_owners",
+                "stop_required": False,
+                "runtime_profile_handoff": True,
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
+            self.intelligence_snapshots = {}
+        else:
+            self.pre_planner_refresh = self._run_pre_planner_refresh()
+            self._reload_intelligence_sources_after_pre_planner_refresh()
+            self._retry_pre_planner_refresh_after_source_reload()
+            self.intelligence_snapshots = self._load_intelligence_snapshots()
         self._record_performance_span(
             "pre_planner_refresh_and_snapshot_reads",
             refresh_started_ns,
@@ -15518,18 +15545,40 @@ class AutoswitchPlanner:
         prepared_execution = self._prepared_incident_execution_context(
             prepared_handoff,
         )
+        prepared_runtime_profile_execution = (
+            self._prepared_runtime_profile_execution_context(prepared_reuse)
+        )
         self._prepared_decision_diagnostic["execution"] = copy.deepcopy(
             prepared_execution
         )
+        self._prepared_decision_diagnostic["runtime_profile_execution"] = (
+            copy.deepcopy(prepared_runtime_profile_execution)
+        )
         candidate_started_ns = time.monotonic_ns()
-        decisions = [
-            (
-                self._prepared_incident_decision_for_user(user, prepared_execution)
-                if prepared_execution.get("ok")
-                else self._decision_for_user(user)
-            )
-            for user in active
-        ]
+        decisions = []
+        prepared_runtime_profile_reused = 0
+        prepared_runtime_profile_fallbacks = 0
+        for user in active:
+            if prepared_execution.get("ok"):
+                decision = self._prepared_incident_decision_for_user(
+                    user, prepared_execution,
+                )
+            elif prepared_runtime_profile_execution.get("ok"):
+                decision = self._prepared_runtime_profile_decision_for_user(
+                    user, prepared_runtime_profile_execution,
+                )
+                if decision is None:
+                    # The existing Planner retains the constrained fallback:
+                    # only users on this already-known failed source are in
+                    # ``active``.  A stale/missing prepared target therefore
+                    # cannot broaden recovery to unrelated customers.
+                    prepared_runtime_profile_fallbacks += 1
+                    decision = self._decision_for_user(user)
+                else:
+                    prepared_runtime_profile_reused += 1
+            else:
+                decision = self._decision_for_user(user)
+            decisions.append(decision)
         self._record_performance_span(
             "candidate_eligibility_and_target_freshness",
             candidate_started_ns,
@@ -15537,10 +15586,19 @@ class AutoswitchPlanner:
             critical_path=True,
             details={
                 "decision_count": len(decisions),
-                "prepared_decision_reused": bool(prepared_execution.get("ok")),
+                "prepared_decision_reused": bool(prepared_execution.get("ok"))
+                or prepared_runtime_profile_reused > 0,
+                "prepared_runtime_profile_reused_users": (
+                    prepared_runtime_profile_reused
+                ),
+                "prepared_runtime_profile_fallback_users": (
+                    prepared_runtime_profile_fallbacks
+                ),
                 "classification": (
                     "BOUNDED_PREPARED_TARGET_EXECUTION_VALIDATION"
                     if prepared_execution.get("ok")
+                    else "CURRENT_FAILED_SOURCE_PREPARED_TARGET_VALIDATION"
+                    if prepared_runtime_profile_reused > 0
                     else "CURRENT_FULL_DECISION_CONSTRUCTION"
                 ),
             },
@@ -17939,6 +17997,161 @@ class AutoswitchPlanner:
             "mutable_validation_owner": "tools/v7-users-autoswitch Candidate/Packet/Lease/Barrier/Apply",
             "ordinary_user_eligible": False,
         }
+
+    def _prepared_runtime_profile_execution_context(
+        self, reuse: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Expose a fresh source-specific prepared target set to this Planner.
+
+        The Matrix/Planner projection remains the selection owner.  This
+        helper does not select a user, create an execution object or relax a
+        mutable gate: it merely makes the already-ranked targets for the
+        exact failed source available for per-user current-data validation.
+        Any missing, stale or nonmatching prepared class falls back to the
+        existing bounded source Planner path for that user.
+        """
+        source = str(getattr(self.args, "source_egress", "") or "").strip()
+        if not bool_value(getattr(self.args, "runtime_profile_handoff_only", False)):
+            return {"ok": False, "status": "NOT_RUNTIME_PROFILE_HANDOFF"}
+        if not source:
+            return {
+                "ok": False,
+                "status": "PREPARED_RUNTIME_PROFILE_SOURCE_MISSING",
+            }
+        if not bool_value(reuse.get("ok")):
+            return {
+                "ok": False,
+                "status": "PREPARED_RUNTIME_PROFILE_FALLBACK_REQUIRED",
+                "blockers": list(reuse.get("blockers") or []),
+            }
+        projection = reuse.get("prepared_class_decisions")
+        projection = projection if isinstance(projection, dict) else {}
+        contracts = {
+            str(row.get("target_id") or ""): row
+            for row in ((projection.get("hot_target_set") or {}).get("contracts") or [])
+            if isinstance(row, dict) and str(row.get("target_id") or "")
+        }
+        classes = [
+            row for row in (projection.get("classes") or [])
+            if isinstance(row, dict)
+            and str(row.get("source_channel") or "") == source
+        ]
+        if not classes or not contracts:
+            return {
+                "ok": False,
+                "status": "PREPARED_RUNTIME_PROFILE_FALLBACK_REQUIRED",
+                "blockers": ["prepared_runtime_profile_source_class_or_target_missing"],
+            }
+        return {
+            "ok": True,
+            "status": "READY_FOR_SOURCE_SCOPED_PREPARED_TARGET_VALIDATION",
+            "source": source,
+            "classes": classes,
+            "contracts": contracts,
+            "projection_fingerprint": sha256_json(projection),
+            "selection_owner": "existing Matrix prepared_class_decisions",
+            "fallback": "EXISTING_BOUNDED_SOURCE_PLANNER",
+        }
+
+    def _prepared_runtime_profile_decision_for_user(
+        self, user: User, context: dict[str, Any],
+    ) -> Optional[dict[str, Any]]:
+        """Revalidate a prepared target for one affected ordinary identity.
+
+        ``None`` is intentional: it tells the existing Planner to perform its
+        normal *source-bounded* target reconstruction.  It never widens the
+        source scope and never treats a prepared target as an Apply grant.
+        """
+        source = str(context.get("source") or "")
+        if not source or str(user.current or "") != source:
+            return None
+        important = self._important_services(user)
+        profile_required = self._profile_required_services(user)
+        route_class = self.args.route_class or self._route_class_for_services(important)
+        required_key = sorted(normalize_service_ids(profile_required))
+        matching = [
+            row for row in (context.get("classes") or [])
+            if sorted(normalize_service_ids(
+                row.get("service_routing_compatibility") or []
+            )) == required_key
+            and (
+                not str(row.get("route_class") or "")
+                or str(row.get("route_class") or "") == str(route_class)
+            )
+        ]
+        if not matching:
+            return None
+        current = self._candidate(
+            user, self.egress[source], important, route_class,
+            purpose="current", include_scoring=False,
+        ) if source in self.egress else None
+        # This helper is reached only after the Matrix join has confirmed the
+        # exact profile-required source failure.  Preserve the same local
+        # current-source block used by the normal Planner before checking a
+        # prepared target.
+        exact_failure = self._exact_matrix_profile_failure(source, profile_required)
+        if current and exact_failure.get("confirmed"):
+            self._block(current, "profile_required_service_matrix_confirmed_failure")
+            current.reasons.append("current_profile_required_service_matrix_confirmed_failure")
+        if not current or current.eligible:
+            return None
+        contracts = context.get("contracts") if isinstance(context.get("contracts"), dict) else {}
+        target_ids: list[str] = []
+        for row in matching:
+            for target_ref in (row.get("hot_targets") or []):
+                target_id = str(
+                    target_ref.get("target_id") if isinstance(target_ref, dict) else ""
+                )
+                if target_id and target_id in contracts and target_id not in target_ids:
+                    target_ids.append(target_id)
+        for target in target_ids:
+            candidate = self._candidate(
+                user, self.egress[target], important, route_class,
+                purpose="failover", include_scoring=False,
+            ) if target in self.egress else None
+            if not candidate or not candidate.eligible:
+                continue
+            cooldown_ok, cooldown_reason = self._cooldown_ok(user)
+            cooldown_override = self._l3_failed_source_cooldown_override_context(
+                user.ip, source,
+            )
+            if not cooldown_ok and not bool_value(cooldown_override.get("allowed")):
+                return None
+            reasons = [
+                "current_egress_not_eligible",
+                "prepared_source_scoped_target_passed_mutable_validation",
+            ]
+            if not cooldown_ok:
+                reasons.append(cooldown_reason or "l3_failed_source_cooldown_override")
+            return {
+                "user_ip": user.ip,
+                "certification_user": bool_value((user.raw or {}).get("certification_user")),
+                "group": user.group,
+                "route_class": route_class,
+                "important_services": important,
+                "profile_required_services": profile_required,
+                "candidate_scope": "CURRENT_FAILED_SOURCE_PREPARED_TARGET_SET",
+                "decision_construction": "PREPARED_SOURCE_TARGET_MUTABLE_VALIDATION_ONLY",
+                "prepared_projection_fingerprint": str(
+                    context.get("projection_fingerprint") or ""
+                ),
+                "current_egress": user.current,
+                "recommended_egress": target,
+                "action": "switch",
+                "move_type": "failover",
+                "reason": reasons,
+                "current_score": None,
+                "recommended_score": None,
+                "candidates": [
+                    self._candidate_json(row)
+                    for row in (current, candidate) if row is not None
+                ],
+                "explanation": self._explanation(
+                    user, target, "switch", "failover", current,
+                    [current, candidate], reasons,
+                ),
+            }
+        return None
 
     def _prepared_incident_decision_for_user(
         self, user: User, context: dict[str, Any]

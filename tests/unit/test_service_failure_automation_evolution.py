@@ -804,6 +804,75 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         planner._write_l3_runtime_state.assert_called_once()
 
+    def test_runtime_profile_prepared_target_reuses_matching_source_class(self):
+        """A fresh Matrix projection may avoid broad reranking per affected user."""
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        planner.args = SimpleNamespace(
+            runtime_profile_handoff_only=True,
+            source_egress="vless",
+            route_class="",
+        )
+        planner.egress = {"vless": object(), "awg0": object()}
+        planner._important_services = lambda _user: ["telegram"]
+        planner._profile_required_services = lambda _user: ["telegram"]
+        planner._route_class_for_services = lambda _services: "TELEGRAM_CRITICAL"
+        planner._exact_matrix_profile_failure = lambda *_args: {"confirmed": False}
+        planner._cooldown_ok = lambda _user: (True, "")
+        planner._l3_failed_source_cooldown_override_context = lambda *_args: {
+            "allowed": False,
+        }
+        planner._candidate_json = lambda row: {"eligible": row.eligible}
+        planner._explanation = lambda *_args: {"owner": "existing Planner"}
+        current = SimpleNamespace(eligible=False, reasons=[])
+        target = SimpleNamespace(eligible=True, reasons=[])
+        planner._candidate = mock.Mock(side_effect=[current, target])
+        user = SimpleNamespace(
+            ip="10.7.0.125", current="vless", group="ordinary", raw={},
+        )
+        reuse = {
+            "ok": True,
+            "prepared_class_decisions": {
+                "classes": [{
+                    "source_channel": "vless",
+                    "service_routing_compatibility": ["telegram"],
+                    "route_class": "TELEGRAM_CRITICAL",
+                    "hot_targets": [{"target_id": "awg0"}],
+                }],
+                "hot_target_set": {"contracts": [{"target_id": "awg0"}]},
+            },
+        }
+
+        context = planner._prepared_runtime_profile_execution_context(reuse)
+        decision = planner._prepared_runtime_profile_decision_for_user(user, context)
+
+        self.assertTrue(context["ok"])
+        self.assertEqual(
+            decision["decision_construction"],
+            "PREPARED_SOURCE_TARGET_MUTABLE_VALIDATION_ONLY",
+        )
+        self.assertEqual(decision["recommended_egress"], "awg0")
+        self.assertEqual(planner._candidate.call_count, 2)
+
+    def test_runtime_profile_prepared_target_miss_returns_bounded_fallback_signal(self):
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        planner.args = SimpleNamespace(
+            runtime_profile_handoff_only=True,
+            source_egress="vless",
+        )
+        context = planner._prepared_runtime_profile_execution_context({
+            "ok": False,
+            "blockers": ["selection_input_changed:service_routing_generation"],
+        })
+
+        self.assertFalse(context["ok"])
+        self.assertEqual(
+            context["status"], "PREPARED_RUNTIME_PROFILE_FALLBACK_REQUIRED",
+        )
+        self.assertIn(
+            "selection_input_changed:service_routing_generation",
+            context["blockers"],
+        )
+
     def test_matrix_handoff_passes_exact_current_scope_only_to_existing_owner(self):
         completed = SimpleNamespace(
             returncode=0,

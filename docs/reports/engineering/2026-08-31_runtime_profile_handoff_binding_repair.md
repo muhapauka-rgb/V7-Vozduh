@@ -269,3 +269,30 @@ existing governed transaction.  The next bounded repair must remove that
 full-world advisory work from the already exact current-source path while
 retaining the existing Planner's current target admission, Authority,
 Candidate, Packet, Lease, Barrier, route and S11 gates.
+
+## Prepared source-target handoff: implementation awaiting live Runtime proof
+
+The next repair is intentionally a **source-scoped Planner mode**, not a new
+Planner, target registry or execution path. Once Matrix has already supplied a
+fresh failed source and exact affected scope, the existing Planner now defers
+ranking, trust and prediction snapshot reconstruction out of the recovery
+critical path. It consumes the current Matrix-owned prepared classes only when
+their declared generations still match, matches each user's required-service
+class to the existing prepared target order, and applies the existing mutable
+source and target checks. If preparation is missing, stale, ambiguous or a
+target no longer passes a mutable check, the existing Planner performs its
+normal reconstruction for that same failed source only.
+
+Matrix remains the health owner and the existing Planner remains the selection
+owner. Authority, Candidate, Packet, Lease, Barrier, `v7-user-switch`, route
+verification and required-service S11 remain mandatory. This change has no
+user movement by itself and does not make advisory data an Apply exemption.
+
+Focused tests cover prepared target reuse, stale-preparation fallback, exact
+scope re-entry and Matrix handoff. The first pre-deploy gate correctly stayed
+`NO-GO` while the workspace was dirty; its GitHub read was temporarily
+unavailable, so no deployment claim is made from it. Next: commit and publish,
+re-run the safe-deploy gate, deploy only if its GitHub and Runtime checks pass,
+then obtain a fresh normal V7 recovery event. That event must retain monotonic
+clocks from first observation through S11 before the seven-second objective
+can be assessed.

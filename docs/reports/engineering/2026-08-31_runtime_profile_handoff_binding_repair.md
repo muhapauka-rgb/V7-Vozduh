@@ -296,3 +296,15 @@ re-run the safe-deploy gate, deploy only if its GitHub and Runtime checks pass,
 then obtain a fresh normal V7 recovery event. That event must retain monotonic
 clocks from first observation through S11 before the seven-second objective
 can be assessed.
+
+### Deployment result
+
+Commit `3520eaaa046e38774720df0511ce3cfe5d03d82d` passed the safe-deploy
+GitHub and local truth gates, was deployed through `tools/v7-safe-deploy`, and
+restarted the existing health service. The local and deployed
+`v7-users-autoswitch` SHA-256 are both
+`3371e45c3db1594c81e555f4597549d903715c2e3c433dc2f7ff7c22fb561a81`.
+`v7-health.service` is `active` and `enabled`. No client assignment or route
+was changed during deployment. The next valid evidence must come from the
+normal V7 health caller after a fresh current bad-placement or source-failure
+event; Codex must only observe it.

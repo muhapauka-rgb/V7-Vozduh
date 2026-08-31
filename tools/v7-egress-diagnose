@@ -38,6 +38,13 @@ FAST_PRODUCER_STARTED_NS="0"
 FAST_PRODUCER_COMPLETION_MS=()
 PROFILE_SERVICE_PROBE_TIMEOUT_ARGS=(--timeout 5)
 FAST_MATRIX_FRESH_FAILURES_FILE=""
+# The health owner accepts a profile-required Matrix observation for ten
+# seconds. Reusing a two-minute-old failure in this producer left the normal
+# caller with a correctly stale T0 and made a new placement on an already bad
+# source invisible. Keep the reuse budget identical to the consumer's live
+# evidence law; older results are only a probe hint and must be reconfirmed by
+# the existing Matrix writer.
+PROFILE_MATRIX_REUSE_MAX_AGE_SEC="10"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -636,7 +643,7 @@ matrix_failed_services_for_source() {
     ' "$FAST_MATRIX_FRESH_FAILURES_FILE" | sort | paste -sd, -
     return 0
   fi
-  python3 - "$STATE_DIR/service-matrix.json" "$source_id" "$services" <<'PY'
+  python3 - "$STATE_DIR/service-matrix.json" "$source_id" "$services" "$PROFILE_MATRIX_REUSE_MAX_AGE_SEC" <<'PY'
 import json
 import sys
 from datetime import datetime, timezone
@@ -650,6 +657,10 @@ items = payload.get("items") if isinstance(payload, dict) else {}
 source = items.get(str(sys.argv[2] or "")) if isinstance(items, dict) else {}
 rows = source.get("services") if isinstance(source, dict) else {}
 expected = [item.strip() for item in str(sys.argv[3] or "").split(",") if item.strip()]
+try:
+    max_age = max(1, int(sys.argv[4]))
+except (IndexError, TypeError, ValueError):
+    max_age = 10
 now = datetime.now(timezone.utc)
 failed = []
 for service in expected:
@@ -667,7 +678,7 @@ for service in expected:
     # Matrix is the canonical failure owner.  Only a recent, explicitly
     # observed failure may unblock a probe-budget timeout; stale/unknown
     # evidence remains fail-closed in profile_service_trigger().
-    if age < 0 or age > 120:
+    if age < 0 or age > max_age:
         continue
     status = str(row.get("status") or "").upper()
     severity = str(row.get("severity") or "").upper()
@@ -1368,7 +1379,7 @@ PY
 
 build_fast_matrix_fresh_failure_index() {
   FAST_MATRIX_FRESH_FAILURES_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-fast-matrix-failures.XXXXXX")"
-  python3 - "$STATE_DIR/service-matrix.json" > "$FAST_MATRIX_FRESH_FAILURES_FILE" <<'PY'
+  python3 - "$STATE_DIR/service-matrix.json" "$PROFILE_MATRIX_REUSE_MAX_AGE_SEC" > "$FAST_MATRIX_FRESH_FAILURES_FILE" <<'PY'
 import json
 import sys
 import time
@@ -1380,6 +1391,10 @@ try:
 except (OSError, ValueError, TypeError):
     items = {}
 now = time.time()
+try:
+    max_age = max(1, int(sys.argv[2]))
+except (IndexError, TypeError, ValueError):
+    max_age = 10
 for source_id, source in items.items():
     if not isinstance(source, dict):
         continue
@@ -1394,7 +1409,7 @@ for source_id, source in items.items():
             age = now - at.timestamp()
         except (TypeError, ValueError, OverflowError):
             continue
-        if age < 0 or age > 120:
+        if age < 0 or age > max_age:
             continue
         if not str(row.get("source_incident_id") or ""):
             continue

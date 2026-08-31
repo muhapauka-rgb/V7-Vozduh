@@ -135,3 +135,26 @@ Google, Google Auth, Instagram and YouTube under the same active source
 incident. It also retained older failures for several other services. Thus the
 three identities are correctly left as a live acceptance condition: the source
 is not suitable for profiles requiring any of the currently failed services.
+
+## Follow-up: stale fast-producer reuse boundary
+
+After the first deployed scope repair, the ordinary required-service detector
+continued to run every 3.5 seconds, but it reused a Matrix service row for up
+to 120 seconds. The health handoff correctly admits a row for only 10 seconds.
+That mismatch meant a newly placed profile could receive a stale reuse receipt
+instead of a new canonical Matrix confirmation, so no valid current T0 reached
+the normal recovery caller.
+
+The bounded repair makes the fast-producer reuse interval exactly 10 seconds,
+the same as the health consumer's existing live-evidence law. A result older
+than that is never used to start recovery; it causes the existing exact Matrix
+writer to reconfirm the affected source/service contract. The health service
+also emits one startup line stating whether its existing in-process Matrix
+consumer loaded successfully. No cadence, policy, target selection, Authority,
+route writer or client assignment logic changed.
+
+Focused tests prove both sides: a fresh Matrix result is reused, while an
+11-second continuing result must invoke the canonical confirmation before it
+can progress. A historical test expecting a shadow call after fresh reuse fails
+unchanged against the pre-repair version and was not treated as evidence for
+this repair.

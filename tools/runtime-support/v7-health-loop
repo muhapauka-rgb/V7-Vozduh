@@ -1559,6 +1559,12 @@ class RoleHealthLoop:
 
     def run(self) -> int:
         self._load_persistent_matrix_runtime()
+        print(
+            "V7_HEALTH_PERSISTENT_MATRIX "
+            f"status={'READY' if self.persistent_matrix_ready else 'UNAVAILABLE'} "
+            f"error={self.persistent_matrix_load_error or 'NONE'}",
+            flush=True,
+        )
         started = monotonic_ns()
         for role in self.roles:
             role.next_due_ns = started + role.initial_offset_ns

@@ -2486,6 +2486,16 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(argv[argv.index("--selected-move-hash") + 1], "selection-live")
         self.assertEqual(argv[argv.index("--cohort-size") + 1], "2")
 
+    def test_multi_target_recovery_retains_existing_per_member_path(self):
+        self.assertTrue(self.tool.core_primary_single_target_cohort([
+            {"recommended_egress": "awg0"},
+            {"recommended_egress": "awg0"},
+        ]))
+        self.assertFalse(self.tool.core_primary_single_target_cohort([
+            {"recommended_egress": "awg0"},
+            {"recommended_egress": "awg3"},
+        ]))
+
     def test_bounded_cohort_checkpoint_blocks_duplicate_forward_apply_after_restart(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

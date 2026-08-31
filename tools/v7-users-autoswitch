@@ -2361,6 +2361,21 @@ def normalize_service_ids(values: Any) -> list[str]:
     return result
 
 
+def core_primary_single_target_cohort(selected_moves: list[dict[str, Any]]) -> bool:
+    """Return whether one Core-primary cohort commit can represent this plan.
+
+    The existing cohort owner atomically publishes one target class. A
+    Planner-selected ordinary recovery may correctly contain several targets
+    because profiles require different service sets. That is not an invalid
+    recovery plan: it retains the existing per-member governed route path.
+    """
+    targets = {
+        str(row.get("recommended_egress") or "").strip()
+        for row in selected_moves if isinstance(row, dict)
+    }
+    return bool(targets) and "" not in targets and len(targets) == 1
+
+
 def live_profile_failure_evidence(
     *,
     users: list["User"],
@@ -20184,9 +20199,15 @@ class AutoswitchPlanner:
         # would vanish or a neighbouring class would be renumbered, the
         # existing full projection owner would be required; stopping here
         # avoids staging any ordinary assignment.
-        bounded_cohort_size = 2 <= len(plan.get("selected_moves") or []) <= 4
+        selected_moves = list(plan.get("selected_moves") or [])
+        bounded_cohort_size = 2 <= len(selected_moves) <= 4
+        single_target_cohort = core_primary_single_target_cohort(selected_moves)
         emergency_core_primary = {}
-        if action_class == "EMERGENCY_FAILOVER" and bounded_cohort_size:
+        if (
+            action_class == "EMERGENCY_FAILOVER"
+            and bounded_cohort_size
+            and single_target_cohort
+        ):
             # Existing ordinary recovery retains its historical per-member
             # writer path unless the already-installed Core-primary owner
             # explicitly declares this exact cohort optimisation available.
@@ -20202,13 +20223,22 @@ class AutoswitchPlanner:
             (
                 action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
                 and bounded_cohort_size
+                and single_target_cohort
             )
             or (
                 action_class == "EMERGENCY_FAILOVER"
                 and bounded_cohort_size
+                and single_target_cohort
                 and emergency_core_primary.get("ok") is True
             )
         )
+        if bounded_cohort_size and not single_target_cohort:
+            plan.setdefault("safety", {})["core_primary_cohort_admissibility"] = {
+                "ok": True,
+                "status": "FALLBACK_EXISTING_PER_MEMBER_GOVERNED_PATH",
+                "reason": "planner_selected_multiple_targets",
+                "runtime_mutation": False,
+            }
         if core_primary_cohort_projection:
             admissibility = self._core_primary_cohort_admissible(
                 list(plan.get("selected_moves") or []),

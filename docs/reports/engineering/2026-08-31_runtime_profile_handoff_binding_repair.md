@@ -213,3 +213,25 @@ Focused tests prove both branches: the precise health handoff remains usable
 after a delayed read, whereas an older record with a different T0 remains
 ineligible.  The next action is publication, safe deployment and observation
 of the ordinary V7 Runtime caller; no manual client recovery is permitted.
+
+## Follow-up: current scope was not keyed to its incident during re-entry
+
+After the exact-T0 deployment, V7 independently produced an eligible
+three-user VLESS recovery obligation and planned healthy targets for all three
+profiles.  The bounded executor then returned
+`STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY`: its compact L3 record still held the
+old terminal `unresolved=0` count even though the current registry and Matrix
+both proved three users remain on the failed source.
+
+Cause: the profile handoff carried a compatibility list of Matrix incident
+identities but omitted the single exact `source_incident_id` required by the
+existing L3 re-entry owner.  That owner consequently rejected the otherwise
+exact source scope rather than reopening it.  The repair supplies that field
+only when the Matrix evidence has exactly one incident identity and requires
+the forwarded Matrix source scope to match it exactly.  Multiple identities
+remain STOP_SAFE; no target, Authority, route or user is selected here.
+
+Focused regression now proves that the live handoff gives the existing L3
+owner the exact VLESS incident identity.  After safe deployment V7, not Codex,
+must reconcile the three current assignments and decide whether to execute the
+already governed bounded recovery.

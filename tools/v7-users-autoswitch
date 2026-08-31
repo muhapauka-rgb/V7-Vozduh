@@ -24500,6 +24500,15 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
             "affected_profiles": affected,
             "t0_monotonic_ns": t0_ns,
             "incident_ids": sorted(incident_ids),
+            # The compact L3 re-entry owner is intentionally keyed by one
+            # source incident.  Keep that exact identity alongside the
+            # compatibility list so it can refresh a closed historical scope
+            # when current users are again assigned to the same failed
+            # source.  Several incident identities remain ambiguous and are
+            # rejected below instead of selecting one.
+            "source_incident_id": (
+                next(iter(incident_ids)) if len(incident_ids) == 1 else ""
+            ),
         }
         if not affected or not incident_ids:
             return {
@@ -24531,7 +24540,10 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         )
         if (
             str(matrix_scope_binding.get("channel") or "") == requested_source
-            and matrix_scope_incident in incident_ids
+            and len(incident_ids) == 1
+            and matrix_scope_incident == str(
+                args.runtime_profile_failure_binding.get("source_incident_id") or ""
+            )
             and matrix_scope_count == affected
             and bool(matrix_scope_fingerprint)
         ):

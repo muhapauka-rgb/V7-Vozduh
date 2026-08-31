@@ -650,6 +650,9 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             result = self.autoswitch.consume_service_failure_automation_only(args)
 
         planner.reconcile_bounded_cohort_closure_obligations.assert_not_called()
+        profile_binding = planner.reconcile_runtime_profile_source_scope_reentry.call_args.args[0]
+        self.assertEqual(profile_binding["source"], "vless")
+        self.assertEqual(profile_binding["source_incident_id"], "sfinc-current")
         self.assertEqual(
             result["bounded_closure_reconciliation"]["status"],
             "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",

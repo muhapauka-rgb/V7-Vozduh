@@ -165,14 +165,17 @@ class AdminRealtimeTruthTest(unittest.TestCase):
     def test_inline_channel_choice_starts_governed_rebind_without_intermediate_drawer(self):
         source = ADMIN_API.read_text(encoding="utf-8")
         page = self.admin.html_page_v2()
-        start = page.index("async function switchV2UserEgressInline")
+        start = page.index("const USER_SWITCH_DEADLINE_MS")
         end = page.index("function v2PostEnableNextActions", start)
         inline = page[start:end]
 
         self.assertIn("setUserSwitchOptimistic(ip, egress, previous)", inline)
         self.assertIn("/api/actions/operator-profile-egress-rebind", inline)
         self.assertIn("OPERATOR_PROFILE_EGRESS_REBIND", inline)
-        self.assertIn("7000", inline)
+        self.assertIn("USER_SWITCH_DEADLINE_MS = 7000", inline)
+        self.assertIn("requestOperatorProfileEgressRebind(ip, egress)", inline)
+        self.assertIn("operator_profile_execution_control_unavailable", inline)
+        self.assertIn("USER_SWITCH_RETRY_MS = 140", inline)
         self.assertNotIn("openGovernedMovementRequired", inline)
         operation = source[
             source.index("def operator_profile_egress_rebind"):
@@ -180,6 +183,17 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         ]
         self.assertIn('timeout=7', operation)
         self.assertIn('writer_deadline_exceeded_7s', operation)
+
+    def test_mutating_requests_refresh_a_stale_csrf_token_once_before_failing(self):
+        page = self.admin.html_page_v2()
+        start = page.index("async function refreshCsrfToken")
+        end = page.index("function showToast", start)
+        post = page[start:end]
+
+        self.assertIn("api('/api/session')", post)
+        self.assertIn("r.status === 403 && data?.error === 'csrf_failed'", post)
+        self.assertIn("return postJson(path, body, {csrfRetry:false})", post)
+        self.assertIn("The server checks CSRF before dispatching", post)
 
     def test_priority_save_surfaces_rejection_and_reuses_written_preference_state(self):
         page = self.admin.html_page_v2()

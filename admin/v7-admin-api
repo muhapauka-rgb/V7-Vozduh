@@ -22442,6 +22442,7 @@ def html_page_v2():
 
   <script>
     let csrf = '';
+    let csrfRefreshInFlight = null;
     let overview = {};
     let overviewRefreshInFlight = false;
     let overviewRefreshQueued = false;
@@ -25008,7 +25009,23 @@ def html_page_v2():
       if (!r.ok) throw new Error(data?.message || data?.error || `API error ${r.status}`);
       return data;
     }
-    async function postJson(path, body) {
+    async function refreshCsrfToken() {
+      // A page may remain open across an authentication refresh.  A rejected
+      // CSRF token means the mutation was not entered, so one session refresh
+      // and one retry are safe; repeated retries would hide a real problem.
+      if (!csrfRefreshInFlight) {
+        csrfRefreshInFlight = api('/api/session')
+          .then(session => {
+            const token = String(session?.csrf || '');
+            if (!token) throw new Error('Сессия не дала защитный ключ. Обновите страницу и войдите снова.');
+            csrf = token;
+            return token;
+          })
+          .finally(() => { csrfRefreshInFlight = null; });
+      }
+      return csrfRefreshInFlight;
+    }
+    async function postJson(path, body, {csrfRetry=true}={}) {
       const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body || {})});
       if (r.status === 401) { location.href = '/login'; return {}; }
       const text = await r.text();
@@ -25031,6 +25048,13 @@ def html_page_v2():
       }
       data._http_ok = r.ok;
       data._http_status = r.status;
+      // The server checks CSRF before dispatching any mutating action.  Retry
+      // exactly once after refreshing the signed session token, so a stale
+      // open tab cannot turn an operator click into a spurious hard failure.
+      if (csrfRetry && r.status === 403 && data?.error === 'csrf_failed') {
+        await refreshCsrfToken();
+        return postJson(path, body, {csrfRetry:false});
+      }
       if (r.ok && shouldRefreshAfterPost(path, data)) scheduleOverviewRefresh(250, `post:${path}`);
       return data;
     }
@@ -27826,6 +27850,34 @@ def html_page_v2():
       if (!ip || !egress) return;
       await switchV2UserEgressInline(ip, egress, userEffectiveChannel(userRowByIp(ip)) || '');
     }
+    const USER_SWITCH_DEADLINE_MS = 7000;
+    const USER_SWITCH_RETRY_MS = 140;
+    const pause = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+    function operatorRebindControlBusy(d={}) {
+      return String(d?.error || '') === 'operator_profile_execution_control_unavailable';
+    }
+    function operatorRebindApplied(d={}) {
+      return !!d?._http_ok && !d.error && ['APPLIED_AND_VERIFIED', 'ALREADY_BOUND'].includes(String(d.status || ''));
+    }
+    async function requestOperatorProfileEgressRebind(ip='', egress='', deadlineAt=Date.now() + USER_SWITCH_DEADLINE_MS) {
+      let last = {};
+      while (Date.now() < deadlineAt) {
+        last = await postJson('/api/actions/operator-profile-egress-rebind', {
+          ip, egress, confirm:'OPERATOR_PROFILE_EGRESS_REBIND'
+        });
+        if (operatorRebindApplied(last) || !operatorRebindControlBusy(last)) return last;
+        // The existing execution-control owner permits one exact route writer
+        // window at a time.  Independent operator clicks are accepted at once
+        // in the UI; a busy window is retried briefly rather than dropped.
+        await pause(Math.min(USER_SWITCH_RETRY_MS, Math.max(0, deadlineAt - Date.now())));
+      }
+      return {
+        ...last,
+        error: 'operator_profile_rebind_deadline_exceeded',
+        message: 'Предыдущее защищённое переключение не освободило окно за 7 секунд.',
+        _http_ok: false,
+      };
+    }
     function closeInlineEgressMenu() {
       document.querySelectorAll('.inline-egress-menu').forEach(el => el.remove());
     }
@@ -27859,12 +27911,10 @@ def html_page_v2():
         if (pending?.egress === egress) {
           showToast('Переключение требует проверки', `${egress}: подтверждение не получено за 7 секунд.`, 'warn');
         }
-      }, 7000);
+      }, USER_SWITCH_DEADLINE_MS);
       try {
-        const d = await postJson('/api/actions/operator-profile-egress-rebind', {
-          ip, egress, confirm:'OPERATOR_PROFILE_EGRESS_REBIND'
-        });
-        if (!d._http_ok || d.error || d.status !== 'APPLIED_AND_VERIFIED') {
+        const d = await requestOperatorProfileEgressRebind(ip, egress);
+        if (!operatorRebindApplied(d)) {
           rollbackUserSwitchOptimistic(ip);
           showToast('Канал не переключён', actionErrorReason(d), 'bad');
           return;

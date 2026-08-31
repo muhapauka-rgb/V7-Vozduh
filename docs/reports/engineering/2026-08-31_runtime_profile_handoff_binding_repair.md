@@ -308,3 +308,13 @@ restarted the existing health service. The local and deployed
 was changed during deployment. The next valid evidence must come from the
 normal V7 health caller after a fresh current bad-placement or source-failure
 event; Codex must only observe it.
+
+### Current live-evidence boundary
+
+After deployment, Matrix has no active ordinary failed-source scope. VLESS has
+one registry row (`10.7.0.7`), but that row is disabled and has no
+service-preferences profile, so it is not a lawful ordinary recovery subject.
+The remaining active Matrix failure belongs only to a certification source and
+is deliberately excluded from ordinary recovery. No route was changed during
+this inspection. A seven-second ordinary result therefore cannot be claimed
+until the live Runtime receives a newly current affected ordinary scope.

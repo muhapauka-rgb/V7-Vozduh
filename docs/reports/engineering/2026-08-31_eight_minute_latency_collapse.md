@@ -57,9 +57,12 @@ Deployed commits and safe-deploy records:
 | `b10fb860c973ce221ddd08edb3af9d92eeb51f0e` | keep Admin overview off the recovery hot path | `deploy-z8-14-Updatesystem-b10fb86-20260831T024725` |
 | `d68908f1d203e010a3c94035e23638f42219230d` | reduce ordinary detector blind window | `deploy-z8-14-Updatesystem-d68908f-20260831T025344` |
 
-Final direct Runtime checks:
+Final direct Runtime checks (the report-only commit following this deployment
+does not change Runtime code):
 
-- local, GitHub and deployed commit: `d68908f1d203e010a3c94035e23638f42219230d`;
+- deployed Runtime implementation commit:
+  `d68908f1d203e010a3c94035e23638f42219230d`;
+- report commit: `b2c2c69c`; it contains evidence only and was not deployed;
 - `v7-health.service` and `v7-admin-api.service`: `active`;
 - Runtime health-loop SHA-256:
   `3857d642900c216283b72b2cc65519024d30421c195d644d0b174a5e1ae7476e`;

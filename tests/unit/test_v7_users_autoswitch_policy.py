@@ -8656,6 +8656,21 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         )
         self.assertNotIn("decision_construction", plan["decisions"][0])
 
+    def test_committed_apply_revalidation_rejects_missing_plan_explicitly(self):
+        """A missing Packet-bound plan must fail safely, never as NameError."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=1)
+            args = self.args_for(root, ["--apply", "--mode", "guarded"])
+            planner = self.tool.AutoswitchPlanner(args)
+
+            with self.assertRaisesRegex(
+                RuntimeError, "committed_apply_plan_missing"
+            ):
+                planner.revalidate_committed_apply_plan(
+                    args, committed_plan=None
+                )
+
     def test_committed_apply_revalidation_blocks_live_assignment_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

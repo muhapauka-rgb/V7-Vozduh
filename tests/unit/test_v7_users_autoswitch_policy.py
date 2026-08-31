@@ -3918,7 +3918,21 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             plan = planner.plan()
             move = plan["selected_moves"][0]
             plan["selected_moves"] = [
-                {**move, "user_ip": f"10.0.0.{index}"}
+                (
+                    {**move, "user_ip": "10.0.0.2"}
+                    if index == 2
+                    else {
+                        # Packet locks may retain full candidate diagnostics
+                        # only once for a homogeneous cohort.  Every later
+                        # member must still revalidate the same locked pair
+                        # against current Matrix/registry owners, rather
+                        # than rejecting it as a missing target.
+                        "user_ip": f"10.0.0.{index}",
+                        "current_egress": move["current_egress"],
+                        "recommended_egress": move["recommended_egress"],
+                        "important_services": move["important_services"],
+                    }
+                )
                 for index in range(2, 6)
             ]
             eligibility = planner._ordinary_service_failure_execution_eligibility(plan)

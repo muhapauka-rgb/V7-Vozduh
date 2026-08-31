@@ -10614,21 +10614,90 @@ class AutoswitchPlanner:
             target_id = str(move.get("recommended_egress") or "")
             move_blockers: list[str] = []
             user = live_users.get(user_ip)
-            source = live_egress.get(source_id)
-            target = live_egress.get(target_id)
+            live_source = live_egress.get(source_id)
+            live_target = live_egress.get(target_id)
+            # The Packet remains the sole selector.  Its compact cohort lock
+            # may legitimately carry full candidate diagnostics for only one
+            # representative member, however.  Treating the absent duplicate
+            # diagnostics as an absent target made a lawful multi-member
+            # recovery stop after Matrix, Candidate, Packet, Lease and
+            # Barrier.  Rebuild no Candidate here: use the already locked
+            # source/target pair and re-read only their current Matrix and
+            # registry evidence through the existing owners.
+            required_services = normalize_service_ids(
+                move.get("profile_required_services")
+                if "profile_required_services" in move
+                else move.get("important_services") or []
+            )
+            current_candidate = next(
+                (
+                    row for row in (move.get("candidates") or [])
+                    if str(row.get("egress") or "") == source_id
+                ),
+                {},
+            )
+            target_candidate = next(
+                (
+                    row for row in (move.get("candidates") or [])
+                    if str(row.get("egress") or "") == target_id
+                ),
+                {},
+            )
+            if not current_candidate and live_source:
+                current_candidate = {
+                    "egress": source_id,
+                    "state": str(live_source.state or ""),
+                    "users": sum(
+                        1 for candidate_user in live_users.values()
+                        if str(candidate_user.current) == source_id
+                    ),
+                    "service_suitability": self._service_suitability(
+                        live_source,
+                        required_services,
+                        "",
+                        required_services=required_services,
+                    ),
+                }
+            if not target_candidate and live_target:
+                target_candidate = {
+                    "egress": target_id,
+                    "state": str(live_target.state or ""),
+                    "eligible": bool(
+                        live_target.enabled
+                        and str(live_target.state or "").lower()
+                        not in {"disabled", "down"}
+                    ),
+                    "service_suitability": self._service_suitability(
+                        live_target,
+                        required_services,
+                        "",
+                        required_services=required_services,
+                    ),
+                }
             if not user or not user.enabled:
                 move_blockers.append("user_not_live_or_disabled")
             elif bool_value((user.raw or {}).get("certification_user")):
                 move_blockers.append("certification_identity_not_allowed")
             elif user.current != source_id:
                 move_blockers.append("source_user_state_changed_before_apply")
-            if not source:
+            if not live_source:
                 move_blockers.append("source_channel_missing_before_apply")
-            if not target or not target.enabled or str(target.state).lower() in {"disabled", "down"}:
+            if (
+                not live_target
+                or not live_target.enabled
+                or str(live_target.state).lower() in {"disabled", "down"}
+            ):
                 move_blockers.append("target_not_eligible_before_apply")
             if source_id == target_id:
                 move_blockers.append("source_target_same_before_apply")
-            evidence = self._ordinary_service_failure_move_evidence(plan, move)
+            evidence_move = dict(move)
+            evidence_move["candidates"] = [
+                row for row in (current_candidate, target_candidate)
+                if isinstance(row, dict) and row
+            ]
+            evidence = self._ordinary_service_failure_move_evidence(
+                plan, evidence_move,
+            )
             move_blockers.extend(str(item) for item in (evidence.get("blockers") or []))
             checked_moves.append({
                 "user_ip": user_ip,

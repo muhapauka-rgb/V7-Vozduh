@@ -578,6 +578,33 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         ])
         self.assertEqual(loop.persistent_matrix_last_consumed_t0_ns, 123_457)
 
+    def test_known_incomplete_downstream_validation_is_reconsumed_by_live_owner(self):
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
+        loop.persistent_matrix_ready = True
+        incomplete = {
+            "bounded_delegated_service_failure_action": {
+                "action_attempted": True,
+                "action_completed": False,
+                "runtime_mutation_performed": False,
+                "status": "STOP_SAFE",
+                "consumer_result": {
+                    "stop_reason": "l3_production_validation_downstream_proof_failed",
+                },
+            },
+        }
+
+        def incomplete_consumer(*_args):
+            loop.persistent_matrix_last_result = incomplete
+            return 0
+
+        with mock.patch.object(
+            loop, "_run_persistent_matrix_consumer", side_effect=incomplete_consumer,
+        ) as consumer:
+            self.assertTrue(loop._consume_new_persistent_matrix_t0(123_456))
+            self.assertTrue(loop._consume_new_persistent_matrix_t0(123_456))
+        self.assertEqual(consumer.call_count, 2)
+        self.assertEqual(loop.persistent_matrix_last_consumed_t0_ns_by_role, {})
+
     def test_profile_t0_is_not_suppressed_by_newer_unrelated_role_t0(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
         loop.persistent_matrix_ready = True

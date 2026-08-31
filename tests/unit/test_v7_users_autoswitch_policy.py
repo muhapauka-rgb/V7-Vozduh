@@ -27,6 +27,45 @@ def load_tool_module():
 
 
 class V7UsersAutoswitchPolicyTest(unittest.TestCase):
+    def test_packet_bound_ordinary_failure_context_survives_transient_flag_loss(self):
+        plan = {
+            "selected_moves": [{
+                "user_ip": "10.7.0.125",
+                "current_egress": "vless",
+                "recommended_egress": "awg3",
+            }],
+            "safety": {
+                "restore_barrier": {
+                    "approved_plan_lock": {
+                        "service_failure_causal_binding": {
+                            "binding_kind": "ORDINARY_SERVICE_FAILURE_OBLIGATION",
+                            "source_channel": "vless",
+                            "source_incident_id": "sfinc-current",
+                            "source_event_id": "sfrev-current",
+                            "source_scope": {
+                                "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+                                "affected_scope_count": 1,
+                            },
+                        },
+                    },
+                },
+            },
+        }
+
+        self.assertTrue(
+            self.tool.AutoswitchPlanner._packet_bound_ordinary_service_failure_context(
+                plan
+            )
+        )
+        plan["safety"]["restore_barrier"]["approved_plan_lock"][
+            "service_failure_causal_binding"
+        ]["binding_kind"] = "CERTIFICATION_ONLY_MATRIX_FAILURE"
+        self.assertFalse(
+            self.tool.AutoswitchPlanner._packet_bound_ordinary_service_failure_context(
+                plan
+            )
+        )
+
     def test_reverse_jsonl_reader_yields_latest_without_materializing_history(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "events.jsonl"
@@ -8422,6 +8461,16 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "packet_id": "pkt-bounded-unit",
                 "operation_id": operation_id,
                 "authority_generation": generation,
+                "service_failure_causal_binding": {
+                    "binding_kind": "ORDINARY_SERVICE_FAILURE_OBLIGATION",
+                    "source_incident_id": "sfinc-unit",
+                    "source_event_id": "sfrev-unit",
+                    "source_channel": committed["selected_moves"][0]["current_egress"],
+                    "source_scope": {
+                        "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+                        "affected_scope_count": 2,
+                    },
+                },
             })
             barrier["approved_plan_lock"].update({
                 "packet_id": "pkt-bounded-unit",
@@ -8441,7 +8490,6 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "--approved-execution-lease-id", "lease-bounded-unit",
                 "--approved-selected-move-hash", committed["operation"]["selected_move_hash"],
                 "--approved-authority-generation", generation,
-                "--ordinary-service-failure-context",
             ])
             with mock.patch.object(
                 planner, "plan",
@@ -8463,6 +8511,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(
             [move["user_ip"] for move in revalidated["selected_moves"]],
             [move["user_ip"] for move in packet_lock["selected_moves"]],
+        )
+        self.assertTrue(apply_args.ordinary_service_failure_context)
+        self.assertEqual(
+            revalidated["safety"]["packet_bound_ordinary_service_failure_context"]["status"],
+            "RECOVERED_FROM_IMMUTABLE_PACKET_BINDING",
         )
         timing = next(
             row for row in planner._performance_spans

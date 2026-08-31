@@ -5116,6 +5116,24 @@ class AutoswitchPlanner:
             if isinstance(approved_plan_lock, dict)
             else {}
         )
+        # The governed caller normally forwards this marker over its process
+        # boundary.  The immutable Packet is also its durable, exact owner:
+        # recover a lost transient marker before deciding whether broad state
+        # reconstruction is permitted.  This does not authorise execution;
+        # the Packet/Lease/Barrier and all live mutable gates remain below.
+        if (
+            not bool_value(
+                getattr(apply_args, "ordinary_service_failure_context", False)
+            )
+            and self._packet_bound_ordinary_service_failure_context({
+                "safety": {"restore_barrier": {
+                    "approved_plan_lock": supplied_packet_lock,
+                }},
+                "selected_moves": supplied_packet_lock.get("selected_moves") or [],
+            })
+        ):
+            apply_args.ordinary_service_failure_context = True
+            apply_args.packet_bound_ordinary_service_failure_context = True
         packet_bound_apply = bool(
             bool_value(getattr(apply_args, "apply", False))
             and str(getattr(apply_args, "approved_packet_id", "") or "")
@@ -5416,6 +5434,33 @@ class AutoswitchPlanner:
             plan["selected_moves"] = committed_moves
             summary["selected_moves"] = len(committed_moves)
             summary["selected_move_count"] = len(committed_moves)
+        if (
+            bool_value(
+                getattr(
+                    apply_args,
+                    "packet_bound_ordinary_service_failure_context",
+                    False,
+                )
+            )
+            or (
+                not bool_value(
+                    getattr(apply_args, "ordinary_service_failure_context", False)
+                )
+                and self._packet_bound_ordinary_service_failure_context(plan)
+            )
+        ):
+            # This is a local recovery of a flag that has already been proven
+            # by the immutable Packet lock.  The following ordinary-path
+            # validation still independently reloads Matrix, registry, target,
+            # Authority, Barrier and execution-control state before the sole
+            # route writer can mutate anything.
+            apply_args.ordinary_service_failure_context = True
+            safety["packet_bound_ordinary_service_failure_context"] = {
+                "status": "RECOVERED_FROM_IMMUTABLE_PACKET_BINDING",
+                "owner": "existing Packet/Lease/Barrier owner",
+                "runtime_mutation": False,
+            }
+            plan["safety"] = safety
         return plan
 
     def performance_timeline(self) -> dict[str, Any]:
@@ -10479,6 +10524,65 @@ class AutoswitchPlanner:
             "owner": "tools/v7-users-autoswitch existing service-failure consumer",
             "runtime_mutation": False,
         }
+
+    @staticmethod
+    def _packet_bound_ordinary_service_failure_context(
+        plan: dict[str, Any],
+    ) -> bool:
+        """Recognise one immutable ordinary-failure Packet at Apply.
+
+        The normal Matrix -> governed-executor caller carries the ordinary
+        service-failure flag over two existing process boundaries.  Apply must
+        still fail closed if that transient flag is lost: the already-issued
+        Packet lock is the durable owner of the exact source, incident and
+        affected scope.  Reading it here neither selects a user/target nor
+        grants Authority; it prevents the last route-writer guard from
+        mistakenly treating a proven ordinary service failure as a generic L3
+        emergency incident.
+        """
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        barrier = (
+            safety.get("restore_barrier")
+            if isinstance(safety.get("restore_barrier"), dict)
+            else {}
+        )
+        lock = (
+            barrier.get("approved_plan_lock")
+            if isinstance(barrier.get("approved_plan_lock"), dict)
+            else {}
+        )
+        binding = (
+            lock.get("service_failure_causal_binding")
+            if isinstance(lock.get("service_failure_causal_binding"), dict)
+            else {}
+        )
+        scope = (
+            binding.get("source_scope")
+            if isinstance(binding.get("source_scope"), dict)
+            else {}
+        )
+        source = str(binding.get("source_channel") or "")
+        selected = [
+            row for row in (plan.get("selected_moves") or [])
+            if isinstance(row, dict)
+        ]
+        return bool(
+            str(binding.get("binding_kind") or "")
+            == "ORDINARY_SERVICE_FAILURE_OBLIGATION"
+            and str(binding.get("source_incident_id") or "")
+            and str(binding.get("source_event_id") or "")
+            and source
+            and str(scope.get("scope_classification") or "")
+            in {"ORDINARY_ONLY", "ORDINARY_PRODUCTION_ONLY"}
+            and int(scope.get("affected_scope_count") or 0) > 0
+            and selected
+            and all(
+                str(row.get("current_egress") or "") == source
+                and str(row.get("recommended_egress") or "")
+                and str(row.get("recommended_egress") or "") != source
+                for row in selected
+            )
+        )
 
     def _ordinary_service_failure_move_evidence(
         self,

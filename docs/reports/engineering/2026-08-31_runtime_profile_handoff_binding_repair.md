@@ -318,3 +318,50 @@ The remaining active Matrix failure belongs only to a certification source and
 is deliberately excluded from ordinary recovery. No route was changed during
 this inspection. A seven-second ordinary result therefore cannot be claimed
 until the live Runtime receives a newly current affected ordinary scope.
+
+## Live ordinary recovery correction: immutable Packet binding survived the final Apply boundary
+
+### Observed live Runtime evidence
+
+On 2026-08-31 an operator placed ordinary identity `10.7.0.125` onto `vless`.
+This was an operator input, not a Codex route mutation.  The normal
+`v7-health.service` then independently consumed a fresh Matrix failure:
+
+- Matrix T0: `2026-08-31T15:50:30.702548+00:00`;
+- one ordinary affected identity on `vless`;
+- existing Planner selected `awg3`;
+- the normal V7 caller created Candidate, Packet
+  `pkt_ff31e038914e613b7717c59d`, Lease and Barrier;
+- the Packet held the exact ordinary-service-failure binding for the current
+  source incident and one-member scope.
+
+No route was changed because the final executor returned
+`l3_execution_eligibility_stop_safe`.  Its generic L3 incident projection was
+empty even though the immutable Packet and current Matrix proved the ordinary
+profile-service failure.  This was a false rejection at the final process
+boundary, not an unsafe target, missing Authority or a failed service gate.
+
+### Repair
+
+`v7-users-autoswitch` now restores the transient ordinary-failure context only
+from an immutable Packet that proves all of the following: the exact binding
+kind, source incident and event identities, ordinary-only scope, non-empty
+affected count, and a non-empty set of moves from that exact failed source to
+distinct targets.  The marker is recovered before broad state reconstruction
+and recorded in the revalidated plan.  It creates no owner, state source,
+target or Authority.  The existing Matrix, registry, current target,
+Authority, Lease, Barrier, execution control, route writer and required-service
+S11 checks remain mandatory.
+
+Focused tests passed for loss of the transient marker, immutable Packet
+rehydration without replanning, target-loss STOP_SAFE behaviour and caller flag
+forwarding.  The broader role and episode suites ran 160 relevant tests
+successfully; one existing source-format assertion failed because it expects a
+single-line source-code call that was already formatted across lines before
+this repair.  It does not exercise or fail runtime behaviour.
+
+The first observed event remains a failed seven-second acceptance attempt:
+V7 detected and prepared recovery but did not route the user because of this
+now-repaired defect.  After safe deployment, the live V7 caller—not Codex—must
+consume the still-current Matrix scope.  The resulting route and S11 evidence
+will be recorded separately, with no retroactive seven-second claim.

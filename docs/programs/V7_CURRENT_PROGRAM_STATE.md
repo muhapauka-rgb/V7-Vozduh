@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-31T22:23:02+00:00
+State captured: 2026-08-31T22:58:31+00:00
 Latest terminal Mission: `V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1`
 Latest terminal Mission state: `COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
@@ -13,7 +13,7 @@ Source: Functional automatic recovery remains consumed. The owner-authorized V5.
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-31T22:23:02+00:00`
+Captured: `2026-08-31T22:58:31+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -45,7 +45,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION` |
 | `CURRENT_SAFE_NEXT_ACTION` | `Use only the normal V7 Runtime health caller to obtain one fresh current failure-to-all-affected-required-service-S11 causal sample; repair a measured generic residual before a further sample.` |
 | `CURRENT_SCOPE_CLASS` | `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_LATENCY_SLO_4B463F70D7F6` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_LATENCY_SLO_B95F8C5326E8` |
 | `CURRENT_TRANSITION_ID` | `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION` |
@@ -721,7 +721,7 @@ This section is the single live volatile current-state surface. Older production
 | `RECOVERY_LATENCY_SLO_EXECUTION_LAW` | `CODEX_REPAIRS_AND_OBSERVES_ONLY; NORMAL_V7_RUNTIME_DETECTS_DECIDES_GOVERNS_APPLIES_AND_VERIFIES` |
 | `RECOVERY_LATENCY_SLO_MISSION` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `RECOVERY_LATENCY_SLO_REPORT` | `docs/reports/engineering/2026-09-01_recovery_latency_slo_reentry_and_causal_baseline.md` |
-| `RECOVERY_LATENCY_SLO_REPORT_SHA256` | `4b463f70d7f6928f72c8217a83c4684f95c76a2502734f3f06ae22f4f8f3b9dd` |
+| `RECOVERY_LATENCY_SLO_REPORT_SHA256` | `b95f8c5326e81d9d840064de87841cdb3d34a767b479eb80228d9f5b66167d0f` |
 
 ## Authoritative Unfinished Capability Closure Registry
 
@@ -733,7 +733,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-08-31T22:23:02+00:00`
+Generated At: `2026-08-31T22:58:31+00:00`
 
 Runtime Authority: `NONE`
 
@@ -746,7 +746,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_LATENCY_SLO_4B463F70D7F6` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_LATENCY_SLO_B95F8C5326E8` |
 | `CURRENT_TRANSITION_ID` | `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
@@ -777,7 +777,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_RECOVERY_LATENCY_SLO_4B463F70D7F6` |
+| `current_state_generation` | `cpsgen_SFA_RECOVERY_LATENCY_SLO_B95F8C5326E8` |
 | `current_transition_id` | `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1` |
 | `smallest_existing_next_action_id` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `active_mission_id` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
@@ -864,7 +864,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION` program frontier; `cpsgen_SFA_RECOVERY_LATENCY_SLO_4B463F70D7F6`; `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` | existing V5.3 Program, OMP lifecycle, current route/projection owner and Health/Test/Stability owners | `REAL_WORLD_LIMIT` | fresh input -> OMP reconciliation -> exact owner-backed frontier |
+| `1` | `V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION` program frontier; `cpsgen_SFA_RECOVERY_LATENCY_SLO_B95F8C5326E8`; `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` | existing V5.3 Program, OMP lifecycle, current route/projection owner and Health/Test/Stability owners | `REAL_WORLD_LIMIT` | fresh input -> OMP reconciliation -> exact owner-backed frontier |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

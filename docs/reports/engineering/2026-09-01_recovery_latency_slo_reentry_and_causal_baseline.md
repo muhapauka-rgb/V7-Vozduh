@@ -1,3 +1,6 @@
+Mission ID: `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE`
+Run Nonce: `V7_PHASE6_PHASE7_BOUNDARY_20260827_01`
+
 # Recovery-latency SLO re-entry and causal baseline
 
 Date: 2026-09-01

@@ -6691,6 +6691,44 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "raw_user_list_stored": False,
         }])
 
+    def test_causal_integrity_historical_open_anomaly_does_not_block_new_runtime_event(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {
+                    "old-open": {
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "incident_id": "sfinc_old_open",
+                        "channel": "old-source",
+                        "incident_state": "OPEN",
+                        "last_observed_at": "2020-01-01T00:00:00+00:00",
+                        "next_required_consumer": "existing-consumer",
+                        "reentry_condition": "existing-reentry",
+                        "current_source_scope": {
+                            "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                            "affected_scope_count": 2,
+                            "protected_scope_count": 1,
+                            "unresolved_scope_count": 0,
+                            "explicitly_excluded_or_recovered_scope_count": 0,
+                        },
+                    },
+                },
+            }), encoding="utf-8")
+            status = self.autoswitch.service_failure_causal_integrity_status(state_dir)
+        self.assertEqual(status["final_verdict"], "PASS", status)
+        self.assertEqual(status["open_incident_count"], 0)
+        self.assertEqual(status["historical_open_incident_count"], 1)
+        self.assertEqual(status["open_incident_projections"], [])
+        warning = status["historical_open_incident_warnings"]
+        self.assertEqual(len(warning), 1)
+        self.assertEqual(warning[0]["source_channel"], "old-source")
+        self.assertEqual(warning[0]["record_count"], 1)
+        self.assertEqual(
+            warning[0]["warning_states"], ["INCIDENT_SCOPE_ACCOUNTING_BROKEN"]
+        )
+        self.assertGreater(warning[0]["oldest_scope_observation_seconds"], 900)
+        self.assertFalse(warning[0]["blocks_live_execution"])
+
     def test_recovery_receipt_closes_older_broken_open_intent_same_source_generation(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)

@@ -3762,7 +3762,9 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
 
     invalid_states: set[str] = set()
     historical_integrity_warnings: list[dict[str, Any]] = []
+    historical_open_incidents: dict[str, dict[str, Any]] = {}
     open_incidents = 0
+    historical_open_incident_count = 0
     checked_incidents = 0
     open_incident_projections: list[dict[str, Any]] = []
     for record in incidents.values():
@@ -3778,8 +3780,37 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
         # such defects visible as a bounded warning; only a live incident
         # makes the runtime safety gate STOP_SAFE.
         record_invalid_states: set[str] = set()
-        if not closed:
+        scope = (
+            record.get("current_source_scope")
+            if isinstance(record.get("current_source_scope"), dict)
+            else (record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {})
+        )
+        source_channel = str(record.get("channel") or record.get("source_channel") or "")
+        scope_observed_at = str(
+            scope.get("baseline_observed_at")
+            or record.get("last_observed_at")
+            or record.get("opened_at")
+            or ""
+        )
+        # This is a status projection, not a recovery decision.  An old OPEN
+        # record is not evidence that its source still fails now: the Matrix
+        # owns that answer.  Retaining such historical defects as a global
+        # STOP_SAFE would prevent a new, unrelated real failure from reaching
+        # the Matrix/Planner path forever.  Missing or malformed timestamps
+        # deliberately remain live and fail closed.
+        scope_age_seconds: float | None = None
+        historical_open = False
+        if not closed and scope_observed_at:
+            try:
+                scope_age_seconds = max(0.0, time.time() - parse_ts(scope_observed_at))
+                historical_open = scope_age_seconds > 900
+            except (TypeError, ValueError):
+                historical_open = False
+        if not closed and not historical_open:
             open_incidents += 1
+        elif not closed:
+            historical_open_incident_count += 1
+        if not closed:
             next_consumer = str(record.get("next_required_consumer") or "")
             reentry = str(record.get("reentry_condition") or "")
             if not next_consumer:
@@ -3794,11 +3825,6 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
             } and not next_consumer:
                 record_invalid_states.add("NONTERMINAL_RESULT_WITHOUT_DURABLE_SUCCESSOR")
 
-        scope = (
-            record.get("current_source_scope")
-            if isinstance(record.get("current_source_scope"), dict)
-            else (record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {})
-        )
         if scope:
             affected = to_int(scope.get("affected_scope_count"), -1)
             protected = to_int(scope.get("protected_scope_count"), -1)
@@ -3847,9 +3873,24 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
                     "blocks_live_execution": False,
                     "raw_user_list_stored": False,
                 })
+        elif historical_open:
+            bucket = historical_open_incidents.setdefault(source_channel or "UNKNOWN", {
+                "source_channel": source_channel,
+                "record_count": 0,
+                "warning_states": set(),
+                "oldest_scope_observation_seconds": 0.0,
+            })
+            bucket["record_count"] += 1
+            bucket["warning_states"].update(record_invalid_states)
+            bucket["oldest_scope_observation_seconds"] = max(
+                float(bucket["oldest_scope_observation_seconds"]),
+                float(scope_age_seconds or 0.0),
+            )
         else:
             invalid_states.update(record_invalid_states)
         if not closed:
+            if historical_open:
+                continue
             lineage = record.get("causal_lineage") if isinstance(record.get("causal_lineage"), dict) else {}
             open_incident_projections.append({
                 "incident_id": str(record.get("incident_id") or ""),
@@ -3887,6 +3928,7 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
         "state_path": str(state_path),
         "incident_count": checked_incidents,
         "open_incident_count": open_incidents,
+        "historical_open_incident_count": historical_open_incident_count,
         "open_incident_projections": sorted(
             open_incident_projections,
             key=lambda item: (
@@ -3896,6 +3938,23 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
             ),
         ),
         "invalid_states": sorted(invalid_states),
+        "historical_open_incident_warnings": sorted(
+            [
+                {
+                    "source_channel": item["source_channel"],
+                    "record_count": int(item["record_count"]),
+                    "warning_states": sorted(item["warning_states"]),
+                    "oldest_scope_observation_seconds": round(
+                        float(item["oldest_scope_observation_seconds"]), 3
+                    ),
+                    "owner": "existing l3-runtime-state historical open projection",
+                    "blocks_live_execution": False,
+                    "raw_user_list_stored": False,
+                }
+                for item in historical_open_incidents.values()
+            ],
+            key=lambda item: str(item["source_channel"]),
+        ),
         "historical_integrity_warnings": sorted(
             historical_integrity_warnings,
             key=lambda item: (

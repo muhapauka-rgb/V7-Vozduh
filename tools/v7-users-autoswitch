@@ -24183,7 +24183,14 @@ class AutoswitchPlanner:
             # a governed recovery after all mandatory Telegram endpoints have
             # succeeded.  The existing Matrix owner enforces this exact scope
             # as observation-only, preserving canonical Matrix semantics.
-            if services == ["telegram"]:
+            # A profile can require Telegram together with other applications.
+            # Its S11 contract still needs every *required* Telegram DC, but
+            # must not serially wait for optional diagnostic endpoints just
+            # because the profile has more than one required service.  The
+            # Matrix verifier runs the complete selected profile subset in
+            # parallel and remains observation-only here; canonical Matrix
+            # diagnostics retain their full endpoint sweep separately.
+            if "telegram" in services:
                 command.extend([
                     "--required-endpoints-only",
                     "--probe-observation-only",

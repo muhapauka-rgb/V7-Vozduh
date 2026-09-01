@@ -2045,10 +2045,10 @@ def main() -> int:
         print(json.dumps({"error": str(exc)}, ensure_ascii=False))
         return 2
     if args.required_endpoints_only and (
-        not args.probe_observation_only or selected != ["telegram"]
+        not args.probe_observation_only or "telegram" not in selected
     ):
         print(json.dumps({
-            "error": "required_endpoints_only_requires_observation_only_exact_telegram",
+            "error": "required_endpoints_only_requires_observation_only_telegram_subset",
             "status": "STOP_SAFE",
             "routing_mutation_performed": False,
             "users_moved": 0,

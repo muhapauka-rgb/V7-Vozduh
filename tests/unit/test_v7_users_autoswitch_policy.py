@@ -6414,6 +6414,40 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(captured["command"][captured["command"].index("--lock-timeout-sec") + 1], "17")
         self.assertEqual(captured["timeout"], 27)
 
+    def test_emergency_required_service_verifier_limits_telegram_to_required_endpoints_in_mixed_profile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            captured = {}
+            original_run = self.tool.subprocess.run
+
+            def fake_run(command, **kwargs):
+                captured["command"] = command
+                return subprocess.CompletedProcess(command, 0, stdout="service ok\\n")
+
+            try:
+                self.tool.subprocess.run = fake_run
+                proc = planner._verify_emergency_required_services({
+                    "recommended_egress": "vless",
+                    "profile_required_services": ["google", "telegram"],
+                })
+            finally:
+                self.tool.subprocess.run = original_run
+
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(
+            captured["command"][captured["command"].index("--services") + 1],
+            "google,telegram",
+        )
+        self.assertIn("--required-endpoints-only", captured["command"])
+        self.assertIn("--probe-observation-only", captured["command"])
+
     def test_emergency_apply_service_verification_failure_rolls_back_and_stops(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

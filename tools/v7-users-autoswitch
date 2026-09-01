@@ -18690,6 +18690,31 @@ class AutoswitchPlanner:
         self._mark_best_available_pool(candidates)
         self._attach_ctr_score_simulation(candidates)
         current = self._candidate(user, self.egress[user.current], important, route_class, purpose="current") if user.current in self.egress else None
+        # ``purpose=current`` intentionally preserves the present assignment
+        # for normal score comparison.  A current Matrix-confirmed *channel*
+        # failure is different: keeping that candidate eligible lets sticky
+        # scoring retain a user on a source which the canonical health owner
+        # has already proved unavailable.  Consume the existing Matrix
+        # channel-evidence owner here and make the current candidate
+        # ineligible before normal failover selection.  This neither chooses
+        # a target nor bypasses Packet/Lease/Barrier/Apply; it only makes the
+        # existing Planner produce the required failover candidate.
+        current_channel_failure = (
+            self._current_channel_failure_evidence(
+                {
+                    "egress": current.egress.id,
+                    "users": current.egress.users,
+                    "state": current.egress.state,
+                    "severity_classification": current.severity_classification,
+                },
+                user_ip=user.ip,
+            )
+            if current
+            else {}
+        )
+        if current and bool_value(current_channel_failure.get("confirmed")):
+            self._block(current, "current_channel_matrix_confirmed_failure")
+            current.reasons.append("current_channel_matrix_confirmed_failure")
         if current and exact_matrix_profile_failure.get("confirmed"):
             self._block(
                 current,

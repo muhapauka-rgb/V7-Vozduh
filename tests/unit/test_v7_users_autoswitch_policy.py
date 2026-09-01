@@ -368,6 +368,46 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(evidence["diagnose_reason"], "service_matrix_majority_failure")
         self.assertEqual(evidence["matrix_failed_service_count"], 3)
 
+    def test_matrix_confirmed_current_channel_failure_forces_failover_not_sticky_keep(self):
+        """A fresh total Matrix failure must override current-route stickiness.
+
+        The normal Planner still chooses the target.  This only proves that a
+        Matrix-confirmed current source cannot remain the comparison winner
+        because the ``purpose=current`` candidate omitted the failure block.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=1)
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"].update({
+                "checked_at": self.tool.now_iso(),
+                "updated": self.tool.now_iso(),
+            })
+            for service in ("youtube", "instagram", "telegram", "google", "google_auth"):
+                matrix["items"]["1"]["services"][service] = {
+                    "ok": False,
+                    "status": "FAIL",
+                    "failure_samples": 3,
+                    "bad_for_seconds": 180,
+                }
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+
+            planner = self.tool.AutoswitchPlanner(self.args_for(
+                root,
+                [
+                    "--ordinary-service-failure-context",
+                    "--source-egress", "1",
+                    "--max-selected-moves", "1",
+                ],
+            ))
+            decision = planner.plan()["decisions"][0]
+
+        self.assertEqual(decision["current_egress"], "1")
+        self.assertEqual(decision["action"], "switch")
+        self.assertEqual(decision["move_type"], "failover")
+        self.assertNotEqual(decision["recommended_egress"], "1")
+
     def test_n10_authority_request_is_exact_source_bound_and_target_unbound(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -90,3 +90,21 @@ ordinary-detector outlier from the complete parent/child/process split before
 making another performance change.  The product seven-second recovery result
 remains open until a current owner-admitted live ordinary failure occurs; no
 operator placement or recovery was manufactured for this report.
+
+## Post-deployment evidence and current boundary
+
+The residual instrumentation was safely deployed in commit `1871c820` and the
+Runtime converged to that commit.  The first four live cycles reported complete
+script durations of 2.728 s, 2.842 s, 2.649 s and 2.056 s.  The latest batch
+reported 1.074 s owner elapsed time, 0.020 s process CPU time, one
+timeout-like request and a 1.057 s slowest request.  This is a bounded
+network-wait observation, not a local CPU spike or duplicate Admin rebuild.
+
+At the end of this block, VLESS is still a current WARN source with failed
+required services, but its only assignment is disabled.  No enabled ordinary
+user remains on it and there is no active Candidate, Packet, Lease or Barrier.
+Consequently no live product recovery transaction exists to measure.  The
+next lawful acceptance input is a future operator-created bad placement or an
+existing owner-admitted Polygon transaction; V7, not Codex, must then detect,
+select, apply and verify it.  The seven-second product SLO is therefore still
+open and has not been claimed from engineering telemetry.

@@ -6317,6 +6317,42 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertEqual(bound["plan"]["summary"]["selected_move_count"], 4)
 
+    def test_ordinary_service_failure_does_not_inherit_certification_target_pin(self):
+        module = load_cli_module()
+        args = argparse.Namespace(
+            approved_source="failed",
+            _standing_delegated_policy_authority={
+                "controlled_certification_target_id": "certification-only-target",
+            },
+            ct_m0f_standing_validation_target="ct-target",
+            expected_service_failure_binding_kind="CERTIFICATION_ONLY_MATRIX_FAILURE",
+        )
+
+        self.assertEqual(
+            module.governed_planner_target_for_action(
+                args,
+                availability_mode=False,
+                ct_m0f_standing_requested=False,
+            ),
+            "",
+        )
+        self.assertEqual(
+            module.governed_planner_target_for_action(
+                args,
+                availability_mode=True,
+                ct_m0f_standing_requested=False,
+            ),
+            "certification-only-target",
+        )
+        self.assertEqual(
+            module.governed_planner_target_for_action(
+                args,
+                availability_mode=False,
+                ct_m0f_standing_requested=True,
+            ),
+            "ct-target",
+        )
+
     def test_jsonl_family_uses_bounded_tail_and_preserves_rotation_order(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

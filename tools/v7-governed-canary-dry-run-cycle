@@ -1165,6 +1165,34 @@ def ct_m0f_owner_selected_planner_target(args: argparse.Namespace) -> str:
     return target
 
 
+def governed_planner_target_for_action(
+    args: argparse.Namespace,
+    *,
+    availability_mode: bool,
+    ct_m0f_standing_requested: bool,
+) -> str:
+    """Return a target constraint only for its owning certification action.
+
+    An ordinary service-failure transaction deliberately asks the existing
+    Planner to choose its current healthy target.  The standing availability
+    contract can carry a certification-only target for a different action
+    class; leaking that value into ordinary planning turns it into an
+    unintended target pin and can make an otherwise valid ordinary cohort
+    disappear.  This helper keeps the two existing action classes separate;
+    it does not select a target itself.
+    """
+    if availability_mode:
+        return str(
+            (
+                getattr(args, "_standing_delegated_policy_authority", {})
+                or {}
+            ).get("controlled_certification_target_id") or ""
+        )
+    if ct_m0f_standing_requested:
+        return ct_m0f_owner_selected_planner_target(args)
+    return ""
+
+
 def bind_availability_first_controlled_selection(
     plan: dict[str, Any],
     *,
@@ -6317,14 +6345,11 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             restore_barrier_preflight_reset=restore_barrier_preflight_reset,
         )
     planner_source = str(args.approved_source or "")
-    planner_target = str(
-        (
-            getattr(args, "_standing_delegated_policy_authority", {})
-            or {}
-        ).get("controlled_certification_target_id") or ""
+    planner_target = governed_planner_target_for_action(
+        args,
+        availability_mode=availability_mode,
+        ct_m0f_standing_requested=ct_m0f_standing_requested,
     )
-    if not planner_target and ct_m0f_standing_requested:
-        planner_target = ct_m0f_owner_selected_planner_target(args)
     planner_user = (
         str(getattr(args, "ct_m0f_standing_validation_user", "") or "")
         if ct_m0f_standing_requested
@@ -7322,11 +7347,10 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         # second Candidate or creating another state surface.
         planner_runtime["committed_plan"] = copy.deepcopy(plan)
 
-    campaign_target = str(
-        (
-            getattr(args, "_standing_delegated_policy_authority", {})
-            or {}
-        ).get("controlled_certification_target_id") or ""
+    campaign_target = governed_planner_target_for_action(
+        args,
+        availability_mode=availability_mode,
+        ct_m0f_standing_requested=ct_m0f_standing_requested,
     )
     apply_run = run_autoswitch_apply(
         state_dir=state_dir,

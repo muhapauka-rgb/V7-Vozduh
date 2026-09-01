@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.82`
+Version: `4.83`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -25,6 +25,31 @@ Previous consumed report: `docs/reports/engineering/2026-07-17_230111_phase6a_ob
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Latest bounded RS7 Mission report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md` (`ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_RUNTIME_CONSUMED`; wrappers and consumers physically collapsed, deployed and verified).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+
+V4.83 registers `RECOVERY_STABILITY_HARDENING_AND_STATE_SEQUENCE_SOAK` inside
+the existing Service Failure Automation Evolution Program.  It is a
+completion-order and scheduler law, not a new Program, Mission admission,
+Runtime owner, Matrix, Planner, queue, watcher, registry, Authority surface or
+execution loop.  The existing Matrix -> health-loop -> scope -> Authority ->
+Planner -> governed execution chain remains sole operational origin.
+
+Before the final seven-second product SLO can be consumed, OMP must require
+existing-owner proof that current truth defeats stale historical/advisory
+residue, exact-once protects mutations rather than suppressing changed scope,
+STOP_SAFE has an exact re-entry condition, and level-triggered recovery cannot
+strand current users when a lawful target exists.  Active exact safety
+conflicts remain fail-closed; historical or disjoint completed operations do
+not block current recovery.  Re-entry is event-driven on fresh Matrix, scope,
+eligibility, Authority or exact-operation change, never a busy retry loop.
+
+The phase sequence is: current-truth precedence -> level re-entry ->
+STOP_SAFE re-entry -> stranded diagnostic -> deterministic 50/100 transition
+soak -> bounded five-to-ten approved live repetitions ->
+`RECOVERY_STABILITY_CONSUMED` -> final latency SLO closure.  This registration
+does not admit implementation, mutate CPS's active Runtime frontier, alter
+routes/users/timers or claim Stability completion.  The first implementation
+frontier is selected only by the existing CPS/OMP reconciliation owner after
+the document contract is consumed.
 
 V4.81 adds no Program, Mission or execution owner. It preserves the deployed
 opt-in Matrix selector primitive, reclassifies the earlier Model B+C result as

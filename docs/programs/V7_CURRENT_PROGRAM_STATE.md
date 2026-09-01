@@ -7,7 +7,7 @@ Latest terminal Mission: `V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CA
 Latest terminal Mission state: `COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: Functional automatic recovery remains consumed. The owner-authorized V5.3 recovery-latency product contract is active until fresh automatic V7 Runtime samples prove P95 <= 7000 ms and max <= 8000 ms from first valid failure observation to all affected required-service S11.
+Source: Functional automatic recovery remains consumed. The owner-authorized V5.3 recovery-latency product contract is active until fresh automatic V7 Runtime samples prove both the registered Recovery Stability Hardening contract and P95 <= 7000 ms / max <= 8000 ms from first valid failure observation to all affected required-service S11. Recovery Stability Hardening is a documented prerequisite only in this state capture; its implementation has not been admitted by this document edit.
 
 ## 0. Authoritative Live Current State
 
@@ -50,6 +50,10 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_NEXT_ACTION_ID` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
+| `RECOVERY_STABILITY_HARDENING` | `ACTIVE; PROGRAM_CONTRACT_REGISTERED; IMPLEMENTATION_NOT_ADMITTED_BY_THIS_DOCUMENT_EDIT` |
+| `RECOVERY_STABILITY_HARDENING_RUNTIME_EFFECT` | `NONE; no Matrix, health-loop, Planner, Authority, route, client, timer or Runtime state changed` |
+| `RECOVERY_STABILITY_HARDENING_IMPLEMENTATION_FRONTIER` | `CURRENT_TRUTH_PRECEDENCE_AUDIT -> LEVEL_TRIGGERED_RECONCILIATION -> STOP_SAFE_REENTRY -> STRANDED_DIAGNOSTIC -> STATE_SEQUENCE_SOAK -> LIVE_REPEATABILITY` |
+| `RECOVERY_LATENCY_SLO_COMPLETION_PRECEDENCE` | `RECOVERY_STABILITY_CONSUMED AND GLOBAL_ALL_AFFECTED_RECOVERY_SLO_CONSUMED are both required; neither substitutes for the other` |
 | `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1,NOT_REQUIRED_ALREADY_CONSUMED; N2,CONTROLLED_FUNCTIONAL_PROOF_PREPARED_TARGET_BINDING_CONSUMED; N3,NOT_REQUIRED_ALREADY_CONSUMED; N4,NOT_REQUIRED_ALREADY_CONSUMED; N5,NOT_REQUIRED_ALREADY_CONSUMED; N6,NOT_REQUIRED_ALREADY_CONSUMED; N7,TELEGRAM_CLASS_FAILURE_TO_T0_CAUSAL_RECONCILIATION; N8,CONTROLLED_AUTOMATIC_TELEGRAM_S11_FUNCTIONAL_PROOF_REQUIRED_SCOPE_CONSUMED_PERFORMANCE_FAIL; N9,NOT_REQUIRED_ALREADY_CONSUMED; N10,ROUTE_CORE_COMMIT_PROVEN_BUT_NEW_SERVICE_PATH_S11_REQUIRED_ON_NEXT_EXACT_COHORT; N11,CORE_ROUTE_RESIDUE_CLOSED_WITH_REPLACEMENT_CONSUMERS_RETAINED` |
 | `HARD_PATH_RUNTIME_SLO` | `FINAL_FINGERPRINT=993c3305fc4152a5258be3ae445ffa6683174c6e8eef04796903209a1a043418; frozen valid distribution 2661.051, 2887.710, 6520.639, 2144.202, 3840.331 ms (P95=6520.639 ms; one sample >5 s). Historical 3 s/5 s objective remains unmet. OWNER_ACCEPTED_CURRENT_2VCPU_ROLLOUT_CONTRACT=P95<=7000 ms,max<=8000 ms; exact S11 and all safety semantics unchanged.` |
 | `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN_PERFORMANCE_LOGIC; bounded lifecycle-consumer repairs are deployed at 63bc020f7db75b7421b4383bd443e9509c8c0fdb (deploy-z8-14-Updatesystem-63bc020-20260826T145345). No further HARD-path micro-optimization is admitted.` |

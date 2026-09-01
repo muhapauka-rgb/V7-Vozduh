@@ -916,6 +916,33 @@ def prepared_hot_target_timing_from_output(output: bytes | str) -> dict[str, Any
     }
 
 
+def ordinary_required_timing_from_output(output: bytes | str) -> dict[str, int]:
+    """Extract the diagnostic-only child receipt from the ordinary detector.
+
+    The existing health owner observes the child lifetime already.  Its state
+    file is atomically written before the receipt is printed; parsing this
+    bounded line therefore cannot become an operational input or a second
+    state source.  It simply makes child startup, atomic commit and parent
+    scheduling distinguishable for the next outlier.
+    """
+    text = output.decode("utf-8", errors="replace") if isinstance(output, bytes) else str(output or "")
+    for line in text.splitlines():
+        if not line.startswith("V7_EGRESS_DIAGNOSE_TIMING "):
+            continue
+        fields: dict[str, int] = {}
+        for token in line.split()[1:]:
+            key, separator, value = token.partition("=")
+            if not separator:
+                continue
+            try:
+                fields[key] = max(0, int(value))
+            except ValueError:
+                continue
+        if fields:
+            return fields
+    return {}
+
+
 @dataclass
 class RoleHealthLoop:
     """Multi-cadence work placement inside the one existing health owner."""
@@ -1509,7 +1536,7 @@ class RoleHealthLoop:
             # expose the measured critical-path split. Other roles retain
             # their historical DEVNULL behaviour and no durable surface or
             # execution semantics are introduced.
-            capture_prepared_path_timing = role.name == "hot_target"
+            capture_prepared_path_timing = role.name in {"hot_target", "other_required"}
             role.process = subprocess.Popen(
                 command,
                 stdout=(subprocess.PIPE if capture_prepared_path_timing else subprocess.DEVNULL),
@@ -1629,7 +1656,8 @@ class RoleHealthLoop:
             if rc is None:
                 continue
             prepared_timing: dict[str, Any] = {}
-            if role.name == "hot_target" and role.process.stdout is not None:
+            ordinary_detector_timing: dict[str, int] = {}
+            if role.name in {"hot_target", "other_required"} and role.process.stdout is not None:
                 try:
                     # ``poll`` has already observed child exit.  Reading the
                     # small completed receipt without a zero-length timeout
@@ -1637,7 +1665,10 @@ class RoleHealthLoop:
                     # before Python drained an already closed pipe and lose
                     # the diagnostic evidence.
                     stdout, _stderr = role.process.communicate()
-                    prepared_timing = prepared_hot_target_timing_from_output(stdout)
+                    if role.name == "hot_target":
+                        prepared_timing = prepared_hot_target_timing_from_output(stdout)
+                    else:
+                        ordinary_detector_timing = ordinary_required_timing_from_output(stdout)
                 except OSError:
                     prepared_timing = {}
             if role.name in {"hard", "telegram", "other_required"} and self.persistent_matrix_ready:
@@ -1702,6 +1733,16 @@ class RoleHealthLoop:
                         f"{key}={value}"
                         for key, value in prepared_timing.items()
                         if value is not None
+                    ),
+                    flush=True,
+                )
+            if ordinary_detector_timing:
+                print(
+                    "V7_HEALTH_OTHER_REQUIRED_TIMING "
+                    f"role={role.name} "
+                    + " ".join(
+                        f"{key}={value}"
+                        for key, value in ordinary_detector_timing.items()
                     ),
                     flush=True,
                 )

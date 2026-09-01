@@ -186,6 +186,16 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             HEALTH_LOOP_MODULE.prepared_hot_target_timing_from_output("not-json"), {},
         )
 
+    def test_ordinary_required_timing_receipt_is_diagnostic_only(self):
+        receipt = HEALTH_LOOP_MODULE.ordinary_required_timing_from_output(
+            "noise\nV7_EGRESS_DIAGNOSE_TIMING contract_build_ms=12 producer_to_receipt_ms=91 commit_output_ms=1 script_total_ms=103\n"
+        )
+        self.assertEqual(receipt["contract_build_ms"], 12)
+        self.assertEqual(receipt["script_total_ms"], 103)
+        self.assertEqual(
+            HEALTH_LOOP_MODULE.ordinary_required_timing_from_output("not a receipt"), {},
+        )
+
     def test_controlled_commands_require_a_finite_polygon_run(self):
         result = subprocess.run(
             [str(LOOP), "--controlled-fast-command", "/bin/true"],

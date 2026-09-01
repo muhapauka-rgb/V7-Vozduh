@@ -861,6 +861,10 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
         self.assertRegex(second_state, r"fast_producer_batch_total_wall_ms=\d+")
         self.assertRegex(second_state, r"fast_producer_contract_build_wall_ms=\d+")
         self.assertRegex(second_state, r"fast_producer_outer_wall_ms=\d+")
+        self.assertRegex(
+            second.stdout,
+            r"V7_EGRESS_DIAGNOSE_TIMING .*contract_build_ms=\d+ .*script_total_ms=\d+",
+        )
         self.assertEqual(len(receiver_lines), 1)
         self.assertIn("--shadow-trigger-class OTHER_PROFILE_REQUIRED_SERVICE_FAILURE", receiver_lines[0])
         self.assertIn("--timeout 1", receiver_lines[0])

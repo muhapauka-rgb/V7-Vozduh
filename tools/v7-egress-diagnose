@@ -38,6 +38,8 @@ FAST_PRODUCER_STARTED_NS="0"
 FAST_PRODUCER_MONOTONIC_STARTED_NS="0"
 FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS="0"
 FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS="0"
+FAST_PRODUCER_COMMIT_OUTPUT_WALL_MS="0"
+FAST_PRODUCER_SCRIPT_STARTED_NS="0"
 FAST_PRODUCER_COMPLETION_MS=()
 PROFILE_SERVICE_PROBE_TIMEOUT_ARGS=(--timeout 5)
 FAST_MATRIX_FRESH_FAILURES_FILE=""
@@ -243,12 +245,31 @@ if [ "$OUT" = "-" ]; then
 fi
 
 commit_output() {
+  commit_started_ns="$(monotonic_ns)"
   if [ "$OUT" = "-" ]; then
     cat "$TMP"
     rm -f "$TMP"
   else
     mv "$TMP" "$OUT"
   fi
+  commit_completed_ns="$(monotonic_ns)"
+  if [ "$FAST_PRODUCER_MONOTONIC_STARTED_NS" -gt 0 ] 2>/dev/null; then
+    FAST_PRODUCER_COMMIT_OUTPUT_WALL_MS="$(( (commit_completed_ns - commit_started_ns) / 1000000 ))"
+  fi
+}
+
+emit_fast_producer_timing_receipt() {
+  # This one-line stdout receipt is consumed only by the parent v7-health
+  # process while the child is still alive.  It is diagnostics, not Matrix
+  # state: the canonical state file was atomically committed before this is
+  # emitted, and no recovery owner reads this output.
+  [ "$FAST_PRODUCER_MONOTONIC_STARTED_NS" -gt 0 ] 2>/dev/null || return 0
+  receipt_finished_ns="$(monotonic_ns)"
+  printf 'V7_EGRESS_DIAGNOSE_TIMING contract_build_ms=%s producer_to_receipt_ms=%s commit_output_ms=%s script_total_ms=%s\n' \
+    "$(( (FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS - FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS) / 1000000 ))" \
+    "$(( (receipt_finished_ns - FAST_PRODUCER_MONOTONIC_STARTED_NS) / 1000000 ))" \
+    "$FAST_PRODUCER_COMMIT_OUTPUT_WALL_MS" \
+    "$(( (receipt_finished_ns - FAST_PRODUCER_SCRIPT_STARTED_NS) / 1000000 ))"
 }
 
 previous_value() {
@@ -1650,6 +1671,7 @@ if [ ! -r "$REG" ]; then
 fi
 
 if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
+  FAST_PRODUCER_SCRIPT_STARTED_NS="$(monotonic_ns)"
   FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS="$(monotonic_ns)"
   PROFILE_CONTRACTS_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-profile-contracts.XXXXXX")"
   build_active_profile_contracts > "$PROFILE_CONTRACTS_FILE"
@@ -1675,6 +1697,7 @@ if [ "$FAST_PRODUCER_ONLY" = "1" ]; then
   run_active_profile_suspicion_cycle
   write_fast_producer_telemetry
   commit_output
+  emit_fast_producer_timing_receipt
   exit 0
 fi
 

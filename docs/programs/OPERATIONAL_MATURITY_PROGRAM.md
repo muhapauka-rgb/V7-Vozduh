@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.86`
+Version: `4.87`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -25,6 +25,48 @@ Previous consumed report: `docs/reports/engineering/2026-07-17_230111_phase6a_ob
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Latest bounded RS7 Mission report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md` (`ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_RUNTIME_CONSUMED`; wrappers and consumers physically collapsed, deployed and verified).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+
+V4.87 adds the binding `V7_SIMPLIFICATION_FIRST_ENGINEERING_LAW` by extending
+the existing responsibility-realignment, safe-removal, migration and
+complexity contracts.  It does not create a second simplification Program,
+frontier, Runtime, owner, queue, state surface or evidence store.  For every
+material Engineering change, the preferred order is: discover the current
+responsibility, owner, caller and consumer -> reuse -> simplify -> remove or
+collapse duplicate state/branch/lock/edge -> narrow scope -> defer
+non-critical work -> add only essential missing logic.  A normal repair is
+expected to reduce or preserve affected effective structural complexity;
+affected means only the owners, state surfaces, locks, hot-path hops,
+historical reads, writes, fallbacks and executable branches actually touched.
+Unknown counts are classified with their existing measurement owner, never
+invented.
+
+`ADD_MINIMAL_LOGIC_JUSTIFIED` is exceptional.  It requires a real current
+product/safety responsibility that existing owners cannot express safely, a
+rejected delete/reuse/simplify alternative, explicit owner/consumer,
+bounded delta, affected regression proof and an expiry, migration or removal
+condition.  A temporary migration duplicate is lawful only while it has the
+same explicit cutover and old-path removal condition; it must not become
+evergreen compatibility.
+
+The existing replacement/delete law remains binding: an obsolete executable
+path is removed as soon as its current callers and consumers are migrated,
+required regression proof passes, and its active fallback/rollback contract
+has both an explicit trigger/exit condition and a current owner responsible
+for checking that condition.  This prevents both blind deletion and retained
+"just in case" paths.  The existing simplification placement may later admit
+bounded `V7_SYSTEM_STRUCTURAL_SIMPLIFICATION` work only as a Product Evolution
+candidate inside that placement; this paragraph grants neither that admission
+nor any Runtime effect.
+
+For a semantically related owner/invariant, a second special-case repair
+requires a bounded review and a third branch requires a state-model review
+before another exception.  Every materially changed lock, state surface or
+producer-consumer edge must document only its affected current owner,
+invariant/decision effect, scope, fallback and removal condition.  A change
+that unnecessarily creates a new current owner, state surface, lock, durable
+write, hot-path hop, compatibility path or duplicate decision edge is an
+Engineering regression even if its focused test passes.  Simple document-only
+changes record these fields as `NOT_APPLICABLE` with reason.
 
 V4.86 strengthens the existing
 `RECOVERY_STABILITY_HARDENING_AND_STATE_SEQUENCE_SOAK` inside the existing
@@ -8218,8 +8260,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `RECOVERY_STABILITY_FOUNDATION`
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `RECOVERY_STABILITY_FOUNDATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9206,10 +9248,10 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE`
+Resolved current next action: `RECOVERY_STABILITY_FOUNDATION`
 Current terminal report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
 Latest consumed report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
-Current active Mission report: `docs/reports/engineering/2026-09-01_recovery_latency_slo_reentry_and_causal_baseline.md`
+Current active Mission report: `docs/reports/engineering/2026-09-01_recovery_stability_foundation_admission.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

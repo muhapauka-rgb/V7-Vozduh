@@ -557,6 +557,42 @@ an architecture rewrite. A coherent repair may span several functions or files
 for one invariant; unrelated optimisation, cleanup, refactor or feature work
 may not share its change unit.
 
+**Recovery simplification-first specialization**
+
+`RECOVERY_SIMPLIFICATION_FIRST_LAW` extends the global OMP simplification law
+for recovery-critical work. Before adding logic for a recovery defect or
+latency residual, the existing recovery owner must test whether the causal
+defect is removed by excluding historical state from a current decision,
+collapsing duplicate incident interpretation, retiring a stale handoff or
+target pin, narrowing Candidate/Packet/Lease/Barrier or execution-control
+lifetime, narrowing a route lock, reusing prepared/current Matrix evidence,
+moving passive/Learning/reporting work after S11, or replacing repeated
+`STOP_SAFE` exceptions with one current-state invariant. The result is
+`RECOVERY_DELETE_REUSE_SIMPLIFY_TEST_CONSUMED`.
+
+`RECOVERY_HOT_PATH_COMPLEXITY` is a compact existing Engineering Report and
+test/evidence projection, never a new Runtime truth surface. For each
+recovery-critical repair it records only affected synchronous owners, blocking
+state/historical reads, locks, stop gates, execution branches, durable writes
+before S11, process hops and fallbacks as `BEFORE -> AFTER -> DELTA -> WHY`.
+The normal acceptance is `DELTA <= 0`. A bounded essential safety/product
+increase must satisfy the existing `ADD_MINIMAL_LOGIC_JUSTIFIED` law and carry
+an explicit retirement/invalidation condition.
+
+Before any resumed Stability implementation, the existing CPS/OMP admission
+owner performs one reconciliation of Program, CPS, OMP, local Git, available
+GitHub/deploy provenance, live Runtime observation, recent reports and
+recovery-critical hashes. Each item is classified `NOT_STARTED`,
+`PARTIALLY_CODED`, `CODED_NOT_TESTED`, `TESTED_NOT_DEPLOYED`,
+`DEPLOYED_NOT_RUNTIME_PROVEN`, `RUNTIME_PROVEN` or `CONSUMED`.
+`OBSERVATION_UNAVAILABLE` is a bounded visibility status only: it must not
+reset, cancel or reinterpret current CPS truth. Before adding code, the
+existing owner maps the current path from failure observation through Matrix,
+scope, obligation, Planner, Authority, governed execution, route/Core-primary
+and S11, including affected callers, consumers, state, locks, historical reads
+and residue. Interrupted work is completed, simplified or removed only after
+this reconciliation; duplicate reimplementation is forbidden.
+
 #### Current 2-vCPU rollout-contract amendment
 
 The historical `<=3 s` / `<=5 s` controlled target remains the future

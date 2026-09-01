@@ -192,6 +192,10 @@ another compensating exception.
 - Independent `git ls-remote` immediately afterwards could not resolve
   `github.com` from this host. The report therefore records publication as
   push-acknowledged, not independently remote-tree verified.
+- V3 contract commit: `b65411df` (`Add recovery stability change containment V3`).
+- V3 `git push origin Updatesystem`: accepted by the remote. The same DNS
+  limitation means this is push-acknowledged rather than independently
+  remote-tree verified from this host.
 
 ## Verification
 

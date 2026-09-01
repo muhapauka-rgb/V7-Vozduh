@@ -18814,6 +18814,24 @@ class AutoswitchPlanner:
         if current and bool_value(current_channel_failure.get("confirmed")):
             self._block(current, "current_channel_matrix_confirmed_failure")
             current.reasons.append("current_channel_matrix_confirmed_failure")
+            # ``current`` is a separately materialized Candidate used for the
+            # present-assignment comparison.  The ordinary candidate surface
+            # below is built independently, so it must receive the same
+            # Matrix-owned source exclusion.  Otherwise the failover branch
+            # can correctly find the present source unsafe, then immediately
+            # rank that same source as its own best failover target and emit
+            # ``keep``.  This does not select a destination or bypass any
+            # later gate; it only makes the existing Planner treat one
+            # confirmed failed source consistently in both views.
+            for candidate in candidates:
+                if candidate.egress.id == user.current:
+                    self._block(
+                        candidate,
+                        "current_channel_matrix_confirmed_failure",
+                    )
+                    candidate.reasons.append(
+                        "current_channel_matrix_confirmed_failure"
+                    )
         if current and exact_matrix_profile_failure.get("confirmed"):
             self._block(
                 current,
@@ -18857,6 +18875,16 @@ class AutoswitchPlanner:
                 reason.append("restore_stage_service_signal_failover_requires_approval")
             else:
                 failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in candidate_egress]
+                if bool_value(current_channel_failure.get("confirmed")):
+                    for candidate in failover_candidates:
+                        if candidate.egress.id == user.current:
+                            self._block(
+                                candidate,
+                                "current_channel_matrix_confirmed_failure",
+                            )
+                            candidate.reasons.append(
+                                "current_channel_matrix_confirmed_failure"
+                            )
                 if exact_matrix_profile_failure.get("confirmed"):
                     for candidate in failover_candidates:
                         if candidate.egress.id == user.current:

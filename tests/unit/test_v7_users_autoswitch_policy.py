@@ -10651,6 +10651,33 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["summary"]["candidate_moves_total"], 1)
             self.assertEqual(plan["summary"]["selected_moves"], 1)
 
+    def test_confirmed_channel_failure_is_excluded_from_failover_candidates(self):
+        """A failed source can never win its own fallback ranking."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, []))
+            planner._current_channel_failure_evidence = lambda *_args, **_kwargs: {
+                "confirmed": True,
+            }
+
+            plan = planner.plan()
+
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertEqual(plan["decisions"][0]["action"], "switch")
+        self.assertNotEqual(
+            plan["decisions"][0]["recommended_egress"],
+            plan["decisions"][0]["current_egress"],
+        )
+        current = next(
+            row for row in plan["decisions"][0]["candidates"]
+            if row["egress"] == plan["decisions"][0]["current_egress"]
+        )
+        self.assertFalse(current["eligible"])
+        self.assertIn(
+            "current_channel_matrix_confirmed_failure", current["blocked"],
+        )
+
     def test_restore_stage_suppresses_service_signal_failover_without_approval(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

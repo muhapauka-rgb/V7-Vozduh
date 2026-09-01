@@ -161,6 +161,14 @@ safe-deploy/rollback owner; otherwise deployment stops safely.
 - `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 - `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`
 
+## Publication
+
+- Commit: `bebea511` (`Strengthen recovery stability contract V2`).
+- `git push origin Updatesystem`: accepted by the remote.
+- Independent `git ls-remote` immediately afterwards could not resolve
+  `github.com` from this host. The report therefore records publication as
+  push-acknowledged, not independently remote-tree verified.
+
 ## Verification
 
 - Prior V1 verification is retained below as historical evidence.

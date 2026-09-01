@@ -16951,6 +16951,54 @@ class AutoswitchPlanner:
         )
         incident_source_continuity = self._l3_active_incident_source_context()
         incident_source = str(incident_source_continuity.get("incident_source") or "")
+        # Several ordinary sources can be failed at once.  The globally
+        # ranked L3 continuity record is useful to a fresh Planner, but it is
+        # not allowed to invalidate an already exact governed Packet merely
+        # because another source has more affected users.  For a live
+        # ordinary-service-failure transaction, retain the Packet's source
+        # only when the caller supplied that same source and current Matrix +
+        # registry evidence still proves every locked user is affected.  This
+        # does not reselect a target or relax a stale/healthy-source gate.
+        requested_source = str(getattr(self.args, "source_egress", "") or "").strip()
+        ordinary_service_failure = bool_value(
+            getattr(self.args, "ordinary_service_failure_context", False)
+        )
+        if (
+            bool_value(incident_source_continuity.get("active"))
+            and len(locked_sources) == 1
+            and locked_sources[0] != incident_source
+            and requested_source == locked_sources[0]
+            and ordinary_service_failure
+        ):
+            locked_scope = self._l3_failed_source_scope(requested_source)
+            locked_scope_users = {
+                str(user) for user in (locked_scope.get("affected_users") or [])
+                if str(user)
+            }
+            if (
+                bool_value(locked_scope.get("source_failed"))
+                and bool(locked_users)
+                and set(locked_users).issubset(locked_scope_users)
+            ):
+                incident_source_continuity = {
+                    "schema_version": "v7.l3-incident-source-continuity.v1",
+                    "active": True,
+                    "reason": "exact_approved_lock_current_service_failure_source",
+                    "incident_key": "",
+                    "incident_source": requested_source,
+                    "incident_status": "OBSERVED",
+                    "failed_required_services": list(
+                        locked_scope.get("required_service_failures") or []
+                    ),
+                    "affected_users": sorted(locked_scope_users),
+                    "affected_users_count": len(locked_scope_users),
+                    "scope": locked_scope,
+                    "continuity_source": "approved_lock_current_source",
+                    "producer": "tools/v7-users-autoswitch._l3_failed_source_scope",
+                    "consumer": "tools/v7-users-autoswitch._approved_plan_lock_validation",
+                    "owner": "tools/v7-users-autoswitch",
+                }
+                incident_source = requested_source
         if (
             bool_value(incident_source_continuity.get("active"))
             and locked_sources != [incident_source]

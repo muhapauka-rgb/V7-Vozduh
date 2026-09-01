@@ -5786,6 +5786,64 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertIn("approved_plan_lock_incident_source_mismatch", validation["reasons"])
         self.assertEqual(plan["summary"]["selected_moves"], 0)
 
+    def test_approved_plan_lock_keeps_exact_live_service_failure_source_when_another_l3_incident_is_open(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=3)
+            self.add_failed_egress(root, egress="2")
+            self.mark_current_channel_failed(root, egress="1")
+            (root / "state" / "users.registry").write_text(
+                "ip=10.0.0.2 current=2 table=100 enabled=1\n"
+                "ip=10.0.0.3 current=1 table=101 enabled=1\n"
+                "ip=10.0.0.4 current=1 table=102 enabled=1\n",
+                encoding="utf-8",
+            )
+            bootstrap = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--target-egress", "vless", "--max-selected-moves", "1"])
+            ).plan()
+            self.assertEqual(bootstrap["selected_moves"][0]["current_egress"], "2")
+            barrier = self.approved_restore_barrier_from_plan(bootstrap, max_selected_moves=1)
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(
+                json.dumps(barrier), encoding="utf-8"
+            )
+            policy_path = root / "policy.json"
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            policy["emergency_failover_autonomy"] = {
+                "enabled": True, "max_users_per_run": 1, "max_users_per_channel": 1,
+            }
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
+            (root / "state" / "l3-runtime-state.json").write_text(
+                json.dumps({
+                    "schema_version": "v7.l3-runtime-state.v1",
+                    "incidents": {
+                        "incident-open-1": {
+                            "incident_key": "incident-open-1",
+                            "status": "OPEN",
+                            "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+                            "failed_sources": ["1"],
+                            "incident_source": "1",
+                            "updated_at": "2999-01-01T00:00:00+00:00",
+                        }
+                    },
+                    "processed_event_ids": [], "capability": {},
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(
+                root,
+                [
+                    "--emergency-failover-autonomy", "--apply", "--mode", "guarded",
+                    "--target-egress", "vless", "--source-egress", "2",
+                    "--ordinary-service-failure-context", "--max-selected-moves", "1",
+                ],
+            ))
+            plan = planner.plan()
+
+        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        self.assertTrue(validation["ok"])
+        self.assertEqual(validation["incident_source_continuity"]["incident_source"], "2")
+        self.assertEqual(plan["selected_moves"][0]["current_egress"], "2")
+
     def test_l3_success_keeps_failed_source_incident_open_when_users_remain(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

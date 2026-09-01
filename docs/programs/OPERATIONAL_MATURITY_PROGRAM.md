@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.88`
+Version: `4.89`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -77,6 +77,61 @@ are historical context unless an explicit CPS/§26 pointer says otherwise.
 `V7_SIMPLIFICATION_FIRST_ENGINEERING_LAW` is the common law; §28.9 RT2 and
 §47.3/§47.3A/§47.3B RS7 are specialized implementation gates and may not
 select a second current frontier.
+
+V4.89 makes the existing `V7_SIMPLIFICATION_FIRST_ENGINEERING_LAW`
+machine-consumable at the existing Mission Completion Evidence Gate. It does
+not add a completion engine, Program, Mission lifecycle, owner, Runtime,
+Planner, queue, registry, state store or evidence store.
+
+For every future `MATERIAL_IMPLEMENTATION_CHANGE`, the existing completion
+contract must record `SIMPLIFICATION_FIRST_CHANGE_CONSUMED` through:
+
+```text
+DELETE_REUSE_SIMPLIFY_TEST_CONSUMED
+-> STRUCTURAL_COMPLEXITY_BEFORE_RECORDED
+-> STRUCTURAL_COMPLEXITY_AFTER_RECORDED
+-> STRUCTURAL_COMPLEXITY_DELTA_RECORDED
+-> STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED
+-> AFFECTED_REGRESSION_PROOF_PASS
+-> CURRENT_CONSUMER_PROOF_PASS
+-> RESIDUE_DISPOSITION_COMPLETE
+```
+
+The required delete/reuse/simplify disposition is one of
+`APPLICABLE_AND_SELECTED`, `REJECTED_WITH_EVIDENCE` or
+`NOT_APPLICABLE_WITH_REASON` for: superseded responsibility, duplicate caller
+or consumer, obsolete compatibility, stale state, shortenable state lifetime,
+historical hot-path input, overlapping gate, current owner reuse, special-case
+collapse, lock scope/unnecessary lock, non-critical hot-path work, prepared
+fact reuse, old fallback retirement and producer-consumer-edge simplification.
+New logic may not skip that disposition.
+
+Affected-only before/after/delta records cover, where applicable: executable
+LOC, active and special-case branches, current Runtime owners, state/durable
+state, locks/global locks, timers/wakes/queues, hot-path hops/blocking gates,
+historical reads, pre-terminal durable writes, fallback/compatibility/
+superseded paths and duplicate producer-consumer edges. Unknown values remain
+`UNKNOWN_WITH_EXISTING_MEASUREMENT_OWNER`; no complexity registry is created.
+
+The accepted delta verdict is exactly `COMPLEXITY_REDUCED`,
+`COMPLEXITY_NEUTRAL` or exceptional `COMPLEXITY_INCREASE_JUSTIFIED`.
+The exceptional verdict additionally requires current product/safety
+responsibility, failed reuse/delete/simplify alternatives, bounded delta, one
+owner and decision path, no unnecessary state, current consumer, removal or
+migration condition and affected regression proof. A functional pass with an
+unjustified owner/state/lock/branch/hop/write/fallback/compatibility or
+duplicate edge is `UNJUSTIFIED_STRUCTURAL_COMPLEXITY_GROWTH` and cannot become
+`COMPLETE_CONSUMED`. Document-only work records
+`NOT_APPLICABLE_WITH_REASON` and invents no executable metrics.
+
+`LANE_LOCAL_STOP_DOES_NOT_BLOCK_READY_INDEPENDENT_ENGINEERING` is binding.
+A `REAL_WORLD_LIMIT` is global only when no independent safe engineering,
+repair, verification, simplification or admitted stage is ready. When the
+natural/production evidence lane is waiting while an independent Engineering
+frontier is ready, CPS projects the former as `LANE_LOCAL_STOP`, the latter as
+`CURRENT_EXECUTION_FRONTIER`, and `PROGRAM_GLOBAL_STOP=NONE`. Existing
+real-world evidence is retained with its owner and re-entry condition; it is
+neither erased nor falsely marked solved.
 
 HISTORICAL_REGISTRATION — V4.86 strengthened the existing
 `RECOVERY_STABILITY_HARDENING_AND_STATE_SEQUENCE_SOAK` inside the existing
@@ -8273,8 +8328,10 @@ Execution Authority: `NONE`
 Derived projection only: the existing atomic CPS/OMP reconciliation owner
 updates this stop-only reflection. Manual current-state edits are forbidden;
 the complete readable projection is §26 and CPS section 0 remains controlling.
-Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current stop: `NONE`
 Resolved current next action: `RECOVERY_STABILITY_FOUNDATION`
+Resolved lane-local stop: `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_ONLY`
+Resolved Program global stop: `NONE`
 Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `RECOVERY_STABILITY_FOUNDATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -9264,8 +9321,10 @@ Execution Authority: `NONE`
 Canonical readable OMP projection. §20.2 is its derived stop-only reflection;
 both are machine-validated against CPS and neither may be edited as an
 independent current-state source.
-Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current stop: `NONE`
 Resolved current next action: `RECOVERY_STABILITY_FOUNDATION`
+Resolved lane-local stop: `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_ONLY`
+Resolved Program global stop: `NONE`
 Current terminal report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
 Latest consumed report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
 Current active Mission report: `docs/reports/engineering/2026-09-01_recovery_stability_foundation_admission.md`

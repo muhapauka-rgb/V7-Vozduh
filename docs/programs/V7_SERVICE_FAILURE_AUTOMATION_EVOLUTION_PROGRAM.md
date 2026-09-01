@@ -242,6 +242,38 @@ surface or route writer.  It reuses the existing Matrix, health loop,
 `users.registry`, Planner, Authority, Candidate/Packet/Lease/Barrier,
 execution-control, governed route writer and Core-primary owners.
 
+#### Recovery simplification-first completion specialization
+
+Before any future Stability implementation adds logic, the existing Mission
+Completion Evidence Gate must receive `MATERIAL_IMPLEMENTATION_CHANGE=TRUE`
+and the existing `SIMPLIFICATION_FIRST_CHANGE_CONSUMED` evidence. This is not
+a second recovery lifecycle or a new completion engine.
+
+The affected chain is mapped first:
+
+```text
+failure observation -> Matrix -> current scope -> incident -> obligation
+-> Planner -> Authority -> Candidate -> Packet -> Lease -> Barrier
+-> execution control -> Apply -> Core-primary/kernel -> required S11
+```
+
+For affected edges only, existing owners record caller, consumer, state,
+locks, historical reads, blocking gates, fallback, durable writes, special
+cases and superseded residue. The existing
+`RECOVERY_DELETE_REUSE_SIMPLIFY_TEST` must dispose the common law alternatives
+before new logic. Completion also requires affected before/after/delta,
+accepted complexity verdict, affected regression, current consumer proof and
+residue disposition. A document-only contract correction is explicitly
+`NOT_APPLICABLE_WITH_REASON`; it does not manufacture code metrics.
+
+An invalid or absent simplification evidence set caps the result at
+`IMPLEMENTED_NOT_CONSUMED`; an unjustified increase is
+`UNJUSTIFIED_STRUCTURAL_COMPLEXITY_GROWTH`. No ordinary user is moved by this
+gate. The future first Stability action remains a resume/reconciliation audit:
+compare Program, CPS, OMP, local/GitHub/deploy/runtime evidence and
+recovery-critical hashes; classify the interrupted work; simplify any
+superseded/duplicate residue; then implement only the exact measured residual.
+
 This phase exists because a functional automatic recovery immediately after a
 repair does not establish production stability.  A continuing failure can
 acquire a changed scope, a fresh target, a disappeared blocker or a new Matrix

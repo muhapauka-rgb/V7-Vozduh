@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-09-01T20:39:05+00:00
+State captured: 2026-09-01T21:25:30+00:00
 Latest terminal Mission: `V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1`
 Latest terminal Mission state: `COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
@@ -13,7 +13,7 @@ Source: The owner-authorized Recovery Stability Foundation is active before late
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-09-01T20:39:05+00:00`
+Captured: `2026-09-01T21:25:30+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -39,13 +39,13 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `STATE_CAPTURED` | `2026-08-27T14:30:00+03:00` |
 | `LATEST_SUPPORTING_LIFECYCLE_RECONCILIATION` | `N10_CORE_PRIMARY_AND_N11_ROUTE_CLOSURE_RECONCILED: deployed commits c8afcc9a,f9447434,5f1328bf,6cf988f7,6a27f9fd,684c7c39 add pre-consumption cohort admissibility, compatible one-batch map update, canonical registry precedence, exact legacy-route retirement and mandatory service/path S11. Runtime Core-primary is exact 125/125 and 4/4; broad route check passes; four residual per-user primary rules were retired by the existing Core owner with users_moved=0. Report: docs/reports/engineering/2026-08-27_n10_bounded_production_and_n11_core_route_closure.md` |
 | `CURRENT_ACTIVE_SCOPE` | `RECOVERY_STABILITY_FOUNDATION` |
 | `CURRENT_SAFE_NEXT_ACTION` | `Audit and repair only a measured generic recovery-lifecycle defect through the existing Matrix/health reconciliation consumer; the normal V7 Runtime remains the sole producer of any recovery action.` |
 | `CURRENT_SCOPE_CLASS` | `RECOVERY_STABILITY_CURRENT_TRUTH_AND_RESIDUE` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_STABILITY_4E09E930A867` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_STABILITY_F5ABE2BF51A5` |
 | `CURRENT_TRANSITION_ID` | `RECOVERY_STABILITY_FOUNDATION_ADMISSION_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `RECOVERY_STABILITY_FOUNDATION` |
 | `CURRENT_PROGRAM_STAGE` | `RECOVERY_STABILITY_HARDENING` |
@@ -358,7 +358,7 @@ This section is the single live volatile current-state surface. Older production
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; v6 consumed and non-reusable; no declared L7 coverage cell remains` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_PACKET; current program waits only for natural L8 evidence` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `REAL_WORLD_LIMIT` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `NONE` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
 | `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_ADDITIONAL_AUTHORITY_INSIDE_ACTIVE_STANDING_POLICY; fresh event and existing policy gates remain required` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED_FOR_DECLARED_L7_COVERAGE; natural L8 remains external` |
@@ -733,7 +733,11 @@ This section is the single live volatile current-state surface. Older production
 | `RECOVERY_STABILITY_FOUNDATION` | `ACTIVE` |
 | `RECOVERY_STABILITY_FOUNDATION_MISSION` | `V7_RECOVERY_STABILITY_HARDENING_AND_STATE_SEQUENCE_SOAK` |
 | `RECOVERY_STABILITY_FOUNDATION_REPORT` | `docs/reports/engineering/2026-09-01_recovery_stability_foundation_admission.md` |
-| `RECOVERY_STABILITY_FOUNDATION_REPORT_SHA256` | `4e09e930a867f7df4a19a204ee6f4a69ea6ff1e16a13d76ac88a9f7173fc9035` |
+| `RECOVERY_STABILITY_FOUNDATION_REPORT_SHA256` | `f5abe2bf51a5db6ee769d91b233d42e4151e088bc2bb2865d2e3cfd5142e0b92` |
+| `LANE_LOCAL_STOP` | `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_ONLY` |
+| `PROGRAM_GLOBAL_STOP` | `NONE` |
+| `SIMPLIFICATION_FIRST_COMPLETION_GATE` | `ACTIVE_V1; EXISTING_MISSION_COMPLETION_EVIDENCE_GATE_OWNER` |
+| `SIMPLIFICATION_FIRST_STATUS` | `REQUIRED_BEFORE_ANY_MATERIAL_IMPLEMENTATION_CHANGE; DOCUMENT_ONLY_NOT_APPLICABLE` |
 
 ## Authoritative Unfinished Capability Closure Registry
 
@@ -745,7 +749,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-09-01T20:39:05+00:00`
+Generated At: `2026-09-01T21:25:30+00:00`
 
 Runtime Authority: `NONE`
 
@@ -758,10 +762,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_STABILITY_4E09E930A867` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_STABILITY_F5ABE2BF51A5` |
 | `CURRENT_TRANSITION_ID` | `RECOVERY_STABILITY_FOUNDATION_ADMISSION_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `RECOVERY_STABILITY_FOUNDATION` |
-| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
@@ -789,7 +793,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_RECOVERY_STABILITY_4E09E930A867` |
+| `current_state_generation` | `cpsgen_SFA_RECOVERY_STABILITY_F5ABE2BF51A5` |
 | `current_transition_id` | `RECOVERY_STABILITY_FOUNDATION_ADMISSION_V1` |
 | `smallest_existing_next_action_id` | `RECOVERY_STABILITY_FOUNDATION` |
 | `active_mission_id` | `V7_RECOVERY_STABILITY_HARDENING_AND_STATE_SEQUENCE_SOAK` |
@@ -876,7 +880,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `RECOVERY_STABILITY_HARDENING` program frontier; `cpsgen_SFA_RECOVERY_STABILITY_4E09E930A867`; `RECOVERY_STABILITY_FOUNDATION_ADMISSION_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `RECOVERY_STABILITY_FOUNDATION` | existing V5.3 Program, OMP lifecycle, current route/projection owner and Health/Test/Stability owners | `REAL_WORLD_LIMIT` | fresh input -> OMP reconciliation -> exact owner-backed frontier |
+| `1` | `RECOVERY_STABILITY_HARDENING` program frontier; `cpsgen_SFA_RECOVERY_STABILITY_F5ABE2BF51A5`; `RECOVERY_STABILITY_FOUNDATION_ADMISSION_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `RECOVERY_STABILITY_FOUNDATION` | existing V5.3 Program, OMP lifecycle, current route/projection owner and Health/Test/Stability owners | `NONE` | fresh input -> OMP reconciliation -> exact owner-backed frontier |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -944,7 +948,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `REAL_WORLD_LIMIT`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `RECOVERY_STABILITY_FOUNDATION`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `RECOVERY_STABILITY_FOUNDATION`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

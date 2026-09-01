@@ -335,6 +335,9 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
             updated = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
             self.assertIn("RECOVERY_STABILITY_HARDENING` | `FOUNDATION_ADMITTED`", updated)
             self.assertIn(self.lib.RECOVERY_STABILITY_FOUNDATION_MISSION_ID, updated)
+            self.assertIn("CURRENT_STOP_CONDITION` | `NONE`", updated)
+            self.assertIn("LANE_LOCAL_STOP` | `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_ONLY`", updated)
+            self.assertIn("PROGRAM_GLOBAL_STOP` | `NONE`", updated)
 
     def test_continue_omp_keeps_active_system_revalidation_ahead_of_generic_work(self):
         with tempfile.TemporaryDirectory() as directory:

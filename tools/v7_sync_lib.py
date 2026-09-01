@@ -1082,6 +1082,8 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
     cps_stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
     cps_next_action = live.get("CURRENT_NEXT_ACTION_ID", "").strip("`")
     cps_report = live.get("CURRENT_MISSION_REPORT", "").strip("`")
+    cps_lane_local_stop = live.get("LANE_LOCAL_STOP", "").strip("`")
+    cps_program_global_stop = live.get("PROGRAM_GLOBAL_STOP", "").strip("`")
     blocks = _classified_markdown_blocks(omp_text)
     contradictions: list[str] = []
     historical_leaks: list[str] = []
@@ -1151,6 +1153,8 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
     section20_pointer = _markdown_section(section20, "### 20.2 Current Stop Reference")
     section20_stop_match = re.search(r"(?m)^Resolved current stop:\s*`([^`]+)`", section20_pointer)
     section20_next_match = re.search(r"(?m)^Resolved current next action:\s*`([^`]+)`", section20_pointer)
+    section20_lane_match = re.search(r"(?m)^Resolved lane-local stop:\s*`([^`]+)`", section20_pointer)
+    section20_global_match = re.search(r"(?m)^Resolved Program global stop:\s*`([^`]+)`", section20_pointer)
     section20_pointer_ok = (
         "Classification: `CURRENT_PROGRAM_STATE_REFERENCE`" in section20_pointer
         and "Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`" in section20_pointer
@@ -1158,6 +1162,8 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
         and "Execution Authority: `NONE`" in section20_pointer
         and bool(section20_stop_match and section20_stop_match.group(1) == cps_stop)
         and bool(section20_next_match and section20_next_match.group(1) == cps_next_action)
+        and bool(section20_lane_match and section20_lane_match.group(1) == cps_lane_local_stop)
+        and bool(section20_global_match and section20_global_match.group(1) == cps_program_global_stop)
     )
     if not section20_pointer_ok:
         contradictions.append("omp_section20_current_pointer_mismatch")
@@ -1170,6 +1176,8 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
     pointer_classification = "CURRENT_PROGRAM_STATE_REFERENCE" if "Classification: `CURRENT_PROGRAM_STATE_REFERENCE`" in pointer else ""
     stop_match = re.search(r"(?m)^Resolved current stop:\s*`([^`]+)`", pointer)
     next_match = re.search(r"(?m)^Resolved current next action:\s*`([^`]+)`", pointer)
+    lane_match = re.search(r"(?m)^Resolved lane-local stop:\s*`([^`]+)`", pointer)
+    global_match = re.search(r"(?m)^Resolved Program global stop:\s*`([^`]+)`", pointer)
     report_match = re.search(r"(?m)^Latest consumed report:\s*`([^`]+)`", pointer)
     active_report_match = re.search(r"(?m)^Current active Mission report:\s*`([^`]+)`", pointer)
     omp_stop = stop_match.group(1) if stop_match else ""
@@ -1186,6 +1194,8 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
         and "Execution Authority: `NONE`" in pointer
         and omp_stop == cps_stop
         and omp_next_action == cps_next_action
+        and bool(lane_match and lane_match.group(1) == cps_lane_local_stop)
+        and bool(global_match and global_match.group(1) == cps_program_global_stop)
         and section20_pointer_ok
     )
     report_pointer_ok = bool(
@@ -1201,6 +1211,14 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
         contradictions.append("omp_current_stop_divergence")
     if omp_next_action and omp_next_action != cps_next_action:
         contradictions.append("omp_current_next_action_divergence")
+
+    stability_frontier = _is_recovery_stability_foundation_frontier(live)
+    if stability_frontier and cps_stop != "NONE":
+        contradictions.append("recovery_stability_global_stop_not_none")
+    if stability_frontier and cps_program_global_stop != "NONE":
+        contradictions.append("recovery_stability_program_global_stop_not_none")
+    if stability_frontier and not cps_lane_local_stop:
+        contradictions.append("recovery_stability_lane_local_stop_missing")
 
     contradiction_ids = sorted(set(contradictions + historical_leaks + unqualified + stale_identities))
     errors: list[str] = []
@@ -1223,6 +1241,8 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
         "cps_current_stop": cps_stop,
         "omp_next_action": omp_next_action,
         "cps_next_action": cps_next_action,
+        "cps_lane_local_stop": cps_lane_local_stop or "UNKNOWN",
+        "cps_program_global_stop": cps_program_global_stop or "UNKNOWN",
         "omp_stale_identity_count": len(set(stale_identities)),
         "omp_contradiction_count": len(contradiction_ids),
         "omp_contradiction_ids": contradiction_ids,
@@ -1265,6 +1285,8 @@ def atomic_reconcile_omp_current_pointer_from_cps(
     stop = _plain_live_value(live, "CURRENT_STOP_CONDITION")
     next_action = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
     report = _plain_live_value(live, "CURRENT_MISSION_REPORT")
+    lane_local_stop = _plain_live_value(live, "LANE_LOCAL_STOP")
+    program_global_stop = _plain_live_value(live, "PROGRAM_GLOBAL_STOP")
     terminal_state = _plain_live_value(live, "LATEST_TERMINAL_MISSION_STATE")
     previous_report = _plain_live_value(live, "PREVIOUS_TERMINAL_MISSION_REPORT")
     active_mission = _plain_live_value(live, "CURRENT_MISSION_ROLE") == "ACTIVE_MISSION"
@@ -1272,12 +1294,12 @@ def atomic_reconcile_omp_current_pointer_from_cps(
         live, "CURRENT_AUTHORITY_REQUEST_STATUS"
     )
     campaign_state = _plain_live_value(live, "CURRENT_POOL_AND_CAMPAIGN_STATE")
-    if not stop or not next_action or not report:
+    if not stop or not next_action or not report or not lane_local_stop or not program_global_stop:
         return {
             "ok": False,
             "status": "OMP_POINTER_CPS_FIELDS_MISSING",
             "behavior_change": False,
-            "errors": ["current_stop_next_action_or_report_missing"],
+            "errors": ["current_stop_next_action_report_or_lane_projection_missing"],
         }
 
     def replace_pointer_section(
@@ -1299,6 +1321,18 @@ def atomic_reconcile_omp_current_pointer_from_cps(
         candidate = re.sub(
             r"(?m)^Resolved current next action:\s*`[^`]+`$",
             f"Resolved current next action: `{next_action}`",
+            candidate,
+            count=1,
+        )
+        candidate = re.sub(
+            r"(?m)^Resolved lane-local stop:\s*`[^`]+`$",
+            f"Resolved lane-local stop: `{lane_local_stop}`",
+            candidate,
+            count=1,
+        )
+        candidate = re.sub(
+            r"(?m)^Resolved Program global stop:\s*`[^`]+`$",
+            f"Resolved Program global stop: `{program_global_stop}`",
             candidate,
             count=1,
         )
@@ -1342,6 +1376,8 @@ def atomic_reconcile_omp_current_pointer_from_cps(
         required = [
             f"Resolved current stop: `{stop}`",
             f"Resolved current next action: `{next_action}`",
+            f"Resolved lane-local stop: `{lane_local_stop}`",
+            f"Resolved Program global stop: `{program_global_stop}`",
         ]
         if include_report:
             if active_mission:
@@ -3943,27 +3979,81 @@ COMPLETION_CONTRACTS = {
     ),
 }
 
+SIMPLIFICATION_FIRST_MATERIAL_EVIDENCE = (
+    "DELETE_REUSE_SIMPLIFY_TEST_CONSUMED",
+    "STRUCTURAL_COMPLEXITY_BEFORE_RECORDED",
+    "STRUCTURAL_COMPLEXITY_AFTER_RECORDED",
+    "STRUCTURAL_COMPLEXITY_DELTA_RECORDED",
+    "STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED",
+    "AFFECTED_REGRESSION_PROOF_PASS",
+    "CURRENT_CONSUMER_PROOF_PASS",
+    "RESIDUE_DISPOSITION_COMPLETE",
+)
+STRUCTURAL_COMPLEXITY_DELTA_VERDICTS = {
+    "COMPLEXITY_REDUCED",
+    "COMPLEXITY_NEUTRAL",
+    "COMPLEXITY_INCREASE_JUSTIFIED",
+}
+COMPLEXITY_INCREASE_JUSTIFICATION_EVIDENCE = (
+    "NEW_CURRENT_PRODUCT_OR_SAFETY_RESPONSIBILITY_PROVEN",
+    "EXISTING_STATE_OR_OWNER_INSUFFICIENT_PROVEN",
+    "DELETE_REUSE_SIMPLIFY_ALTERNATIVES_REJECTED_WITH_EVIDENCE",
+    "ADDED_COMPLEXITY_BOUNDED",
+    "NO_DUPLICATE_CURRENT_OWNER_PROVEN",
+    "NO_DUPLICATE_DECISION_PATH_PROVEN",
+    "NO_UNNECESSARY_STATE_SURFACE_PROVEN",
+    "EXPLICIT_CURRENT_CONSUMER_PROVEN",
+    "REMOVAL_MIGRATION_CONDITION_PROVEN",
+)
+
 
 def mission_completion_evidence_gate(contract: dict[str, Any]) -> dict[str, Any]:
-    """Classify Mission completion from its declared evidence contract."""
+    """Classify Mission completion from its declared evidence contract.
+
+    Material implementation changes opt into the existing completion owner with
+    a simplification-first evidence set. This is not another lifecycle: it
+    prevents a functionally passing change from being consumed when its
+    delete/reuse/simplify disposition, affected before/after delta, regression
+    proof, current consumer or residue closure is absent.
+    """
     mission_type = str(contract.get("MISSION_TYPE") or "").upper()
     completion_contract = str(contract.get("COMPLETION_CONTRACT") or "").upper()
     required = list(COMPLETION_CONTRACTS.get(completion_contract, ()))
+    material_change = contract.get("MATERIAL_IMPLEMENTATION_CHANGE") is True
+    document_only = contract.get("DOCUMENT_ONLY_CHANGE") is True
+    complexity_verdict = str(
+        contract.get("STRUCTURAL_COMPLEXITY_DELTA_VERDICT") or ""
+    ).upper()
+    invalid_change_classification = material_change and document_only
+    complexity_increase = complexity_verdict == "COMPLEXITY_INCREASE_JUSTIFIED"
+    if material_change:
+        required.extend(SIMPLIFICATION_FIRST_MATERIAL_EVIDENCE)
+        if complexity_increase:
+            required.extend(COMPLEXITY_INCREASE_JUSTIFICATION_EVIDENCE)
     if contract.get("LOCK_REQUIRED"):
         required.append("LOCK_PROVEN")
     if contract.get("DEPLOY_REQUIRED"):
         required.append("DEPLOY_PROVEN")
 
     evidence_present = {field: contract.get(field) is True for field in required}
+    if material_change:
+        evidence_present["STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED"] = (
+            contract.get("STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED") is True
+            and complexity_verdict in STRUCTURAL_COMPLEXITY_DELTA_VERDICTS
+        )
     missing = [field for field in required if not evidence_present[field]]
     legal_terminal = contract.get("LEGAL_TERMINAL") is True
     legal_terminal_proven = all(contract.get(field) is True for field in (
         "EVIDENCE_TRACEABILITY_PROVEN", "TERMINAL_OWNER_PROVEN",
     ))
 
-    if not mission_type or completion_contract not in COMPLETION_CONTRACTS:
+    if (
+        not mission_type
+        or completion_contract not in COMPLETION_CONTRACTS
+        or invalid_change_classification
+    ):
         verdict = "COMPLETION_TRUTH_UNRESOLVED"
-    elif legal_terminal and legal_terminal_proven:
+    elif legal_terminal and legal_terminal_proven and (not material_change or not missing):
         verdict = "COMPLETE_WITH_LEGAL_TERMINAL"
     elif not missing:
         verdict = (
@@ -4012,6 +4102,43 @@ def mission_completion_evidence_gate(contract: dict[str, Any]) -> dict[str, Any]
         "runtime_effect_proven": contract.get("RUNTIME_EFFECT_PROVEN") is True,
         "production_effect_required": "PRODUCTION_EFFECT_PROVEN" in required,
         "production_effect_proven": contract.get("PRODUCTION_EFFECT_PROVEN") is True,
+        "simplification_first_required": material_change,
+        "document_only_change": document_only,
+        "change_classification_valid": not invalid_change_classification,
+        "delete_reuse_simplify_test_consumed": (
+            contract.get("DELETE_REUSE_SIMPLIFY_TEST_CONSUMED") is True
+        ) if material_change else "NOT_APPLICABLE",
+        "structural_complexity_delta_verdict": (
+            complexity_verdict or "UNDECLARED"
+        ) if material_change else "NOT_APPLICABLE",
+        "structural_complexity_delta_accepted": (
+            evidence_present.get("STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED", False)
+        ) if material_change else "NOT_APPLICABLE",
+        "unjustified_structural_complexity_growth": (
+            material_change
+            and (
+                complexity_verdict not in STRUCTURAL_COMPLEXITY_DELTA_VERDICTS
+                or (complexity_increase and any(
+                    contract.get(field) is not True
+                    for field in COMPLEXITY_INCREASE_JUSTIFICATION_EVIDENCE
+                ))
+            )
+        ),
+        "structural_complexity_failure": (
+            "UNJUSTIFIED_STRUCTURAL_COMPLEXITY_GROWTH"
+            if material_change
+            and (
+                complexity_verdict not in STRUCTURAL_COMPLEXITY_DELTA_VERDICTS
+                or (complexity_increase and any(
+                    contract.get(field) is not True
+                    for field in COMPLEXITY_INCREASE_JUSTIFICATION_EVIDENCE
+                ))
+            )
+            else "NONE"
+        ),
+        "simplification_first_change_consumed": (
+            material_change and not missing and not invalid_change_classification
+        ) if material_change else "NOT_APPLICABLE",
         "legal_terminal": legal_terminal and legal_terminal_proven,
         "completion_verdict": verdict,
     }
@@ -7728,6 +7855,7 @@ def reconcile_recovery_stability_foundation_to_cps(
             f"cpsgen_SFA_RECOVERY_STABILITY_{report_sha256[:12].upper()}"
         ),
         "current_transition_id": "RECOVERY_STABILITY_FOUNDATION_ADMISSION_V1",
+        "current_stop_condition": "NONE",
         "current_active_scope": RECOVERY_STABILITY_FOUNDATION_FRONTIER,
         "current_scope_class": "RECOVERY_STABILITY_CURRENT_TRUTH_AND_RESIDUE",
         "current_safe_next_action": (
@@ -7786,6 +7914,14 @@ def reconcile_recovery_stability_foundation_to_cps(
             ),
             "RECOVERY_STABILITY_EXECUTION_LAW": (
                 "`CODEX_REPAIRS_GENERIC_OWNERS_AND_OBSERVES; V7_RUNTIME_ALONE_DETECTS_DECIDES_GOVERNS_APPLIES_AND_VERIFIES`"
+            ),
+            "LANE_LOCAL_STOP": "`REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_ONLY`",
+            "PROGRAM_GLOBAL_STOP": "`NONE`",
+            "SIMPLIFICATION_FIRST_STATUS": (
+                "`REQUIRED_BEFORE_ANY_MATERIAL_IMPLEMENTATION_CHANGE; DOCUMENT_ONLY_NOT_APPLICABLE`"
+            ),
+            "SIMPLIFICATION_FIRST_COMPLETION_GATE": (
+                "`ACTIVE_V1; EXISTING_MISSION_COMPLETION_EVIDENCE_GATE_OWNER`"
             ),
         },
     )

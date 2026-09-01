@@ -142,12 +142,15 @@ class OmpMissionCompletionEvidenceGateTest(unittest.TestCase):
 
     def test_29_current_cps_records_active_gate(self):
         self.assertIn("| `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |", self.cps)
-        self.assertIn("| `CURRENT_COMPLETION_VERDICT` | `COMPLETE_CONSUMED` |", self.cps)
+        self.assertIn("| `CURRENT_COMPLETION_VERDICT` | `ACTIVE_NOT_CONSUMED` |", self.cps)
 
-    def test_30_functional_footprint_consumes_gate(self):
+    def test_30_active_foundation_requires_gate_consumer_proof(self):
         result = self.lib.omp_functional_footprint_consistency(self.cps, root=ROOT)
-        self.assertEqual(result["mission_completion_evidence_gate_status"], "ACTIVE_V1")
-        self.assertEqual(result["current_completion_verdict"], "COMPLETE_CONSUMED")
+        self.assertEqual(
+            result["mission_completion_evidence_gate_status"],
+            "RECOVERY_STABILITY_FOUNDATION_PRODUCER_CONSUMER_PROOF_REQUIRED",
+        )
+        self.assertEqual(result["current_completion_verdict"], "ACTIVE_NOT_CONSUMED")
 
     def test_31_program_completion_requires_exact_consumed_boundary(self):
         result = self.gate(
@@ -160,6 +163,93 @@ class OmpMissionCompletionEvidenceGateTest(unittest.TestCase):
             NEXT_OUTPUT_PROVEN=True,
         )
         self.assertEqual(result["completion_verdict"], "COMPLETE_CONSUMED")
+
+    def test_32_material_change_without_simplification_evidence_is_not_consumed(self):
+        result = self.gate(
+            "INTEGRATION_COMPLETION",
+            MATERIAL_IMPLEMENTATION_CHANGE=True,
+            REAL_CALLER_PROVEN=True,
+            CONSUMER_PROVEN=True,
+            BEHAVIOR_CHANGE_PROVEN=True,
+            NEXT_OUTPUT_PROVEN=True,
+        )
+        self.assertEqual(result["completion_verdict"], "INTEGRATION_INCOMPLETE")
+        self.assertTrue(result["simplification_first_required"])
+        self.assertIn("DELETE_REUSE_SIMPLIFY_TEST_CONSUMED", result["missing_evidence"])
+        self.assertIn("STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED", result["missing_evidence"])
+
+    def test_33_material_change_with_complete_simplification_evidence_is_consumed(self):
+        result = self.gate(
+            "INTEGRATION_COMPLETION",
+            MATERIAL_IMPLEMENTATION_CHANGE=True,
+            REAL_CALLER_PROVEN=True,
+            CONSUMER_PROVEN=True,
+            BEHAVIOR_CHANGE_PROVEN=True,
+            NEXT_OUTPUT_PROVEN=True,
+            DELETE_REUSE_SIMPLIFY_TEST_CONSUMED=True,
+            STRUCTURAL_COMPLEXITY_BEFORE_RECORDED=True,
+            STRUCTURAL_COMPLEXITY_AFTER_RECORDED=True,
+            STRUCTURAL_COMPLEXITY_DELTA_RECORDED=True,
+            STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED=True,
+            STRUCTURAL_COMPLEXITY_DELTA_VERDICT="COMPLEXITY_NEUTRAL",
+            AFFECTED_REGRESSION_PROOF_PASS=True,
+            CURRENT_CONSUMER_PROOF_PASS=True,
+            RESIDUE_DISPOSITION_COMPLETE=True,
+        )
+        self.assertEqual(result["completion_verdict"], "COMPLETE_CONSUMED")
+        self.assertTrue(result["simplification_first_change_consumed"])
+
+    def test_34_documentation_change_does_not_invent_complexity_metrics(self):
+        result = self.gate(
+            "DOCUMENTATION_COMPLETION",
+            DOCUMENT_ONLY_CHANGE=True,
+            DOCUMENT_OWNER_ACCEPTED=True,
+            EVIDENCE_TRACEABILITY_PROVEN=True,
+        )
+        self.assertEqual(result["completion_verdict"], "COMPLETE_WITH_LEGAL_TERMINAL")
+        self.assertFalse(result["simplification_first_required"])
+        self.assertEqual(result["structural_complexity_delta_verdict"], "NOT_APPLICABLE")
+
+    def test_35_unjustified_complexity_growth_cannot_close_via_legal_terminal(self):
+        result = self.gate(
+            "INTEGRATION_COMPLETION",
+            MATERIAL_IMPLEMENTATION_CHANGE=True,
+            STRUCTURAL_COMPLEXITY_DELTA_VERDICT="COMPLEXITY_INCREASE_JUSTIFIED",
+            LEGAL_TERMINAL=True,
+            EVIDENCE_TRACEABILITY_PROVEN=True,
+            TERMINAL_OWNER_PROVEN=True,
+        )
+        self.assertEqual(result["completion_verdict"], "INTEGRATION_INCOMPLETE")
+        self.assertEqual(
+            result["structural_complexity_failure"],
+            "UNJUSTIFIED_STRUCTURAL_COMPLEXITY_GROWTH",
+        )
+        self.assertIn(
+            "NEW_CURRENT_PRODUCT_OR_SAFETY_RESPONSIBILITY_PROVEN",
+            result["missing_evidence"],
+        )
+
+    def test_36_justified_complexity_increase_requires_every_exception_proof(self):
+        evidence = {
+            "MATERIAL_IMPLEMENTATION_CHANGE": True,
+            "REAL_CALLER_PROVEN": True,
+            "CONSUMER_PROVEN": True,
+            "BEHAVIOR_CHANGE_PROVEN": True,
+            "NEXT_OUTPUT_PROVEN": True,
+            "DELETE_REUSE_SIMPLIFY_TEST_CONSUMED": True,
+            "STRUCTURAL_COMPLEXITY_BEFORE_RECORDED": True,
+            "STRUCTURAL_COMPLEXITY_AFTER_RECORDED": True,
+            "STRUCTURAL_COMPLEXITY_DELTA_RECORDED": True,
+            "STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED": True,
+            "STRUCTURAL_COMPLEXITY_DELTA_VERDICT": "COMPLEXITY_INCREASE_JUSTIFIED",
+            "AFFECTED_REGRESSION_PROOF_PASS": True,
+            "CURRENT_CONSUMER_PROOF_PASS": True,
+            "RESIDUE_DISPOSITION_COMPLETE": True,
+        }
+        evidence.update({field: True for field in self.lib.COMPLEXITY_INCREASE_JUSTIFICATION_EVIDENCE})
+        result = self.gate("INTEGRATION_COMPLETION", **evidence)
+        self.assertEqual(result["completion_verdict"], "COMPLETE_CONSUMED")
+        self.assertEqual(result["structural_complexity_failure"], "NONE")
 
 
 if __name__ == "__main__":

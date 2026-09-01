@@ -2320,6 +2320,32 @@ def route_writer_failure_code(output: str, returncode: Any) -> str:
     return "ROUTE_WRITER_UNCLASSIFIED_FAILURE"
 
 
+def scoped_route_verification_required(
+    *,
+    emergency_mode: bool,
+    strict_contract: bool,
+    ordinary_service_failure_context: bool,
+    controlled_engineering_setup: bool,
+    controlled_engineering_cleanup: bool,
+) -> bool:
+    """Choose the exact post-Apply route proof for one governed transaction.
+
+    A Matrix-confirmed ordinary service failure is as exact as an emergency or
+    strict-contract action at this boundary: its fresh Packet binds one user,
+    source and target.  Its required-service S11 therefore needs that user's
+    policy/default-route proof.  Whole-system route reconciliation remains an
+    independent existing owner and is intentionally outside this customer's
+    recovery critical path.
+    """
+    return bool(
+        emergency_mode
+        or strict_contract
+        or ordinary_service_failure_context
+        or controlled_engineering_setup
+        or controlled_engineering_cleanup
+    )
+
+
 def route_writer_diagnostic_timings(output: str) -> dict[str, float]:
     """Convert the route writer's bounded monotonic markers to safe spans."""
     markers = {
@@ -20669,17 +20695,30 @@ class AutoswitchPlanner:
                 )
             if proc.returncode == 0 and self.args.verify:
                 route_visibility_started_ns = time.monotonic_ns()
-                # A strict current-action-class contract is already limited to
-                # one exact approved user and target.  Its post-apply evidence
-                # must therefore validate that exact policy binding instead of
-                # running the unrelated global route scan.  Ordinary/batch
-                # governed applies preserve their global verifier; L3 keeps
-                # its existing emergency-scoped behavior.
-                scoped_route_verification = (
-                    emergency_mode
-                    or strict_contract
-                    or controlled_engineering_setup_scope.get("ok") is True
-                    or controlled_engineering_cleanup_scope.get("ok") is True
+                # A strict current-action-class contract and an ordinary
+                # Matrix-confirmed service failure are both bound to one
+                # exact user/source/target Packet.  The route proof required
+                # for required-service S11 is therefore that exact user's
+                # policy-table/default-route binding, not an unrelated scan
+                # of every current customer.  The latter remains owned by
+                # the existing whole-system route checker, but must not hold
+                # a failed customer's recovery critical path after Apply.
+                # This changes neither the sole route writer nor the fresh
+                # Matrix/Authority/Packet/Lease/Barrier revalidation before
+                # it: a failed exact route check still rolls the transaction
+                # back under the established governed path.
+                scoped_route_verification = scoped_route_verification_required(
+                    emergency_mode=emergency_mode,
+                    strict_contract=strict_contract,
+                    ordinary_service_failure_context=(
+                        ordinary_service_failure_context
+                    ),
+                    controlled_engineering_setup=(
+                        controlled_engineering_setup_scope.get("ok") is True
+                    ),
+                    controlled_engineering_cleanup=(
+                        controlled_engineering_cleanup_scope.get("ok") is True
+                    ),
                 )
                 verify = self._verify_routes_for_apply(
                     ip if scoped_route_verification else "",

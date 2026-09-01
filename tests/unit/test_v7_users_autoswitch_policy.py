@@ -7254,6 +7254,33 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             ["TABLE_DEFAULT_MISMATCH"],
         )
 
+    def test_ordinary_service_failure_uses_exact_route_s11_not_global_scan(self):
+        """A live Matrix-bound ordinary recovery must not wait on other users.
+
+        The whole-system checker remains a separate owner, but a successful
+        selected-user route proof is the route component of this transaction's
+        S11.  A slow or unrelated global scan must neither delay nor invalidate
+        the recovered customer's exact route/service proof.
+        """
+        self.assertTrue(
+            self.tool.scoped_route_verification_required(
+                emergency_mode=False,
+                strict_contract=False,
+                ordinary_service_failure_context=True,
+                controlled_engineering_setup=False,
+                controlled_engineering_cleanup=False,
+            )
+        )
+        self.assertFalse(
+            self.tool.scoped_route_verification_required(
+                emergency_mode=False,
+                strict_contract=False,
+                ordinary_service_failure_context=False,
+                controlled_engineering_setup=False,
+                controlled_engineering_cleanup=False,
+            )
+        )
+
     def test_controlled_engineering_setup_uses_scoped_route_verification(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

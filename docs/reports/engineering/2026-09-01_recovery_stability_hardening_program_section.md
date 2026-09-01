@@ -1,9 +1,9 @@
-# Recovery stability hardening program section V2
+# Recovery stability hardening program section V3
 
 **Date:** 2026-09-01
-**Mission:** `V7_RECOVERY_STABILITY_HARDENING_PROGRAM_SECTION_V2`
+**Mission:** `V7_RECOVERY_STABILITY_HARDENING_PROGRAM_SECTION_V3`
 **Type:** Program-contract edit only
-**Result:** `PROGRAM_CONTRACT_V2_REGISTERED; IMPLEMENTATION_NOT_ADMITTED`
+**Result:** `PROGRAM_CONTRACT_V3_REGISTERED; IMPLEMENTATION_NOT_ADMITTED`
 
 ## Why added
 
@@ -155,6 +155,30 @@ affected evidence. A failure is classified as pre-existing or introduced
 before changing acceptance. Rollback is lawful only through the existing
 safe-deploy/rollback owner; otherwise deployment stops safely.
 
+## V3 change containment
+
+V3 does not duplicate the V2 current-truth, residue, temporal or randomized
+contracts. It adds the missing protection for subsequent repairs.
+
+For every recovery-critical change, V7 derives the affected regression set
+from existing owner/dependency/invalidation facts, runs focused and affected
+prior evidence, deploys safely, verifies local/GitHub/Runtime provenance and
+then observes the ordinary V7 caller. The result is tied to that exact change
+fingerprint; it cannot be reused for another change.
+
+The frozen baseline is a compact pointer set to existing Polygon/test receipts,
+deployment provenance and reports. It is not a new database, registry,
+evidence store or Runtime state surface. A small unrelated change need not run
+all 1000 randomized transitions, but it cannot skip evidence proven affected
+by its dependency map.
+
+If a prior affected invariant regresses, new acceptance credit stops. The
+existing safe rollback owner restores the last known-good fingerprint; when a
+transition is non-reversible, the existing fail-closed forward-repair/migration
+owner restores the invariant and reruns the affected baseline. Repeated
+special-case branches trigger a bounded owner state-model review instead of
+another compensating exception.
+
 ## Files changed
 
 - `docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`
@@ -183,6 +207,16 @@ safe-deploy/rollback owner; otherwise deployment stops safely.
   (`github_remote_unreadable`, `canonical_branch_missing_on_remote`,
   `live_runtime_hashes_unavailable`). Those external observations do not
   invalidate the local document contract, and no Runtime effect is claimed.
+- V3 `git diff --check`: PASS.
+- V3 focused contract verification:
+  `tests.unit.test_v7_sync_tools` plus
+  `tests.unit.test_omp_program_execution_reconciliation`: 68 PASS.
+- V3 `tools/v7-truth-check --all --json`: CPS current-state and completion
+  order PASS; local document alignment PASS. Aggregate remote/live convergence
+  remains `NO-GO` for the same external observation blockers only:
+  `github_remote_unreadable`, `canonical_branch_missing_on_remote` and
+  `live_runtime_hashes_unavailable`. V3 changes no deploy-required path and
+  claims no Runtime effect.
 
 ## Exact next frontier
 

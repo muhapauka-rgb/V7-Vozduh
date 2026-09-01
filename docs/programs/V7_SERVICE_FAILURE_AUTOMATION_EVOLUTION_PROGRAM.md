@@ -433,6 +433,7 @@ insufficient. Its required subterminals are
 `RECOVERY_EXACT_ONCE_SCOPE_SEMANTICS_CONSUMED`,
 `RECOVERY_STRANDED_INVARIANT_CONSUMED`,
 `RECOVERY_POST_TERMINAL_RESIDUE_CONSUMED`,
+`RECOVERY_CHANGE_REGRESSION_CONTAINMENT_CONSUMED`,
 `RECOVERY_STATE_SEQUENCE_SOAK_CONSUMED`,
 `RECOVERY_TEMPORAL_BOUNDARY_SOAK_CONSUMED`,
 `RECOVERY_RANDOMIZED_STATE_MACHINE_SOAK_CONSUMED` and
@@ -461,12 +462,13 @@ The implementation frontier, not started by this contract edit, is:
 4. stranded-recovery self-healing consumer;
 5. historical-state live-gate cleanup and exact-once scope semantics;
 6. post-terminal residue invariant;
-7. deterministic harness, 50-transition soak, repair and 100-transition soak;
-8. temporal-boundary inventory/harness and before/at/after soak;
-9. seeded randomized harness, 500-transition soak, repair and 1000-transition soak;
-10. same-fingerprint five-to-ten live approved cycles;
-11. `RECOVERY_STABILITY_CONSUMED`;
-12. final seven-second SLO closure and N11 residue closure.
+7. frozen regression baseline and change-invalidation mapping;
+8. deterministic harness, 50-transition soak, repair and 100-transition soak;
+9. temporal-boundary inventory/harness and before/at/after soak;
+10. seeded randomized harness, 500-transition soak, repair and 1000-transition soak;
+11. same-fingerprint five-to-ten live approved cycles;
+12. `RECOVERY_STABILITY_CONSUMED`;
+13. final seven-second SLO closure and N11 residue closure.
 
 Every implementation defect follows one proven cause -> minimal existing-owner
 repair -> focused cause test -> regression of the affected invariant family and
@@ -477,6 +479,57 @@ A coordinated implementation/test/contract change for one root cause is one
 repair, not a new exception path. Rollback uses only the existing governed
 safe-deploy/rollback owner; if it cannot safely restore the known-good state,
 deployment stops at that safety boundary.
+
+**Recovery change-regression containment (V3)**
+
+`RECOVERY_CHANGE_REGRESSION_AND_ROLLBACK_LAW` applies to every
+recovery-critical implementation change. One proven causal defect may make one
+smallest coherent existing-owner change, then must complete: root-cause test ->
+affected frozen regression set -> post-terminal residue regression -> affected
+deterministic, temporal and randomized evidence -> existing safe deploy ->
+local/GitHub/Runtime provenance -> V7-owned live observation. A semantic
+change resets the live stability counter to zero. The containment result is
+per change fingerprint, never a timeless global PASS:
+`RECOVERY_CHANGE_REGRESSION_CONTAINMENT_CONSUMED(change_fingerprint)`.
+
+`RECOVERY_STABILITY_FROZEN_REGRESSION_BASELINE` is a compact pointer set over
+existing test/Polygon receipts, deploy provenance and Engineering reports, not
+a second registry, evidence store, state projection or Runtime owner. For each
+consumed stability scenario it records only evidence id, existing owner,
+dependency and implementation fingerprints, invalidation triggers and affected
+change classes. Before a repair, the existing owner/dependency/invalidation map
+derives the regression set; no changed dependency may silently reuse a stale
+PASS. A full 1000-transition rerun is not required for an unrelated small
+change, but every affected previously consumed scenario is mandatory.
+
+If an affected prior invariant regresses:
+
+```text
+REGRESSION_DETECTED
+-> STOP NEW ACCEPTANCE CREDIT
+-> existing safe rollback owner restores the last known-good fingerprint
+   OR existing forward-repair/migration owner restores the invariant fail-closed
+-> provenance and regressed invariant re-verified
+-> new proven-cause repair hypothesis
+```
+
+The last-known-good fingerprint is a reference resolved from existing deploy
+provenance and consumed evidence, never a new truth owner. It is eligible only
+after the applicable frozen baseline, deployment provenance and current Runtime
+invariants pass. If rollback cannot safely restore a non-reversible transition,
+forward repair must remain within the existing owner and rerun the affected
+baseline; a known regression may not remain in production while compensating
+exceptions accumulate.
+
+`COMPENSATING_EXCEPTION_FOR_REGRESSION` is forbidden unless owner-backed
+evidence proves the old contract wrong. That requires explicit contract
+invalidation, dependent-evidence mapping and affected deterministic, temporal,
+randomized and live reproof. Third and later special-case branches for one
+incident/freshness/target-pin/STOP_SAFE/dedup responsibility trigger a bounded
+existing-owner state-model review before another branch. It does not authorize
+an architecture rewrite. A coherent repair may span several functions or files
+for one invariant; unrelated optimisation, cleanup, refactor or feature work
+may not share its change unit.
 
 #### Current 2-vCPU rollout-contract amendment
 

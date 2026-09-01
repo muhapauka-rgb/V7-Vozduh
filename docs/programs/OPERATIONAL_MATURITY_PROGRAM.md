@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.84`
+Version: `4.85`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -26,7 +26,7 @@ Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_oper
 Latest bounded RS7 Mission report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md` (`ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_RUNTIME_CONSUMED`; wrappers and consumers physically collapsed, deployed and verified).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
-V4.84 strengthens the existing
+V4.85 strengthens the existing
 `RECOVERY_STABILITY_HARDENING_AND_STATE_SEQUENCE_SOAK` inside the existing
 Service Failure Automation Evolution Program. It is a
 completion-order and scheduler law, not a new Program, Mission admission,
@@ -59,6 +59,17 @@ implementation, mutate CPS's active Runtime frontier, alter routes/users/timers
 or claim Stability completion. The first implementation frontier is selected
 only by the existing CPS/OMP reconciliation owner after the document contract
 is consumed.
+
+V4.85 additionally makes change containment binding. The frozen stability
+baseline is only a compact pointer set over existing Polygon/test receipts,
+deploy provenance and reports; it is not a second evidence store, registry or
+Runtime state projection. Before every recovery-critical change, existing
+owner/dependency/invalidation facts derive the affected prior evidence. A
+regression removes new acceptance credit and is restored by the existing safe
+rollback owner or, for an unsafe non-reversible transition, the existing
+fail-closed forward-repair/migration owner. The containment verdict is bound to
+that change fingerprint, and repeated special-case branches require a bounded
+state-model review rather than another compensating exception.
 
 V4.81 adds no Program, Mission or execution owner. It preserves the deployed
 opt-in Matrix selector primitive, reclassifies the earlier Model B+C result as

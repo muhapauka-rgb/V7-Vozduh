@@ -208,18 +208,10 @@ server-side recovery only and never relabels itself as T11.
 #### Recovery-latency SLO continuation law
 
 Functional recovery evidence and a historical Program terminal do not consume
-the current product contract by themselves.  While CPS projects
-`RECOVERY_LATENCY_SLO=ACTIVE`, the existing V5.3 owner chain remains at this
-single executable engineering frontier:
-
-```text
-DETECTOR LATENCY
--> MATRIX TO EXECUTION READINESS
--> APPLY TO REQUIRED-SERVICE S11
--> REPEATABLE 7S ACCEPTANCE
--> N11 HOT-PATH CLOSURE
--> FINAL PROGRAM TERMINAL
-```
+the current product contract by themselves. While CPS projects
+`RECOVERY_LATENCY_SLO=ACTIVE`, detector, Matrix-readiness and Apply/S11 work
+remain valid narrow latency evidence. They are not a Program-completion order
+and cannot bypass the binding stability order below.
 
 The binding result is measured only from
 `T_FIRST_VALID_FAILURE_OBSERVATION` to
@@ -272,6 +264,16 @@ Violation is `RECOVERY_OBLIGATION_MISSING`, a production lifecycle defect.
 The diagnostic is emitted through the existing Runtime receipt/diagnostic
 owners only; it is not a second health truth source.
 
+`RECOVERY_OBLIGATION_MISSING` is never terminal by diagnosis alone. The
+existing health/Matrix reconciliation consumer must run at its next
+owner-backed reconciliation opportunity and produce exactly one of
+`CURRENT_RECOVERY_OBLIGATION_REMATERIALIZED`,
+`CURRENT_GOVERNED_RECOVERY_ALREADY_ACTIVE`, or
+`EXACT_CURRENT_HARD_STOP_WITH_REENTRY_CONDITION`. This means immediate
+owner-scheduled reconciliation, not an impossible zero-millisecond promise or
+a busy retry loop. `RECOVERY_OBLIGATION_MISSING` with no current
+reconciliation consumer is illegal.
+
 `CURRENT_EXECUTION_FACTS` are fresh Matrix source/target facts, current
 assignment and profile requirements, capacity/policy/Authority, active exact
 Candidate/Packet/Lease/Barrier/execution-control ownership and current
@@ -281,6 +283,13 @@ Packet/Lease/Barrier/outcome/ranking/cooldown, passive history and Learning.
 Current facts take precedence when source identity/fingerprint, Matrix
 freshness, affected-scope fingerprint, operation generation and policy/
 Authority generation match the current transaction.
+
+`CURRENT_EXECUTION_FACTS` explicitly include current anti-flap and cooldown
+state, current conflict generation, current active-operation ownership and
+current recovery probation where applicable. Current-over-history never means
+ignore current safety: an exact current owner-backed safety condition may block
+only under its own contract and must expose re-entry. An old cooldown reason
+cannot strand a fresh confirmed failure.
 
 Historical state may preserve audit, learning and exact-once protection, or
 prove an active exact safety conflict.  It may not make a current failed
@@ -324,6 +333,20 @@ only on an existing owner-backed relevant event: a fresh Matrix generation,
 scope/target/capacity/policy/Authority change, exact conflict completion or
 expiry, or health/Admin restart reconstruction.
 
+**Post-terminal residue invariant**
+
+After every successful or safely stopped recovery, existing owners must prove
+`RECOVERY_POST_TERMINAL_RESIDUE_INVARIANT`: zero active Candidate, Packet,
+Lease, Barrier, foreign execution window, stale target pin, no-safe-target or
+direct handoff, current-scope pointer and active-operation-pointer residue,
+unless an exact current successor owns it. They also prove valid resting
+execution-control, scope/registry agreement, no unresolved recovered member,
+correct exact-once identity and no completed transaction blocking a later
+disjoint/current recovery. A failure is
+`RECOVERY_POST_TERMINAL_RESIDUE_FAILURE -> existing responsible owner ->
+bounded cleanup/reconciliation -> invariant re-check`. A moved user is not a
+stability pass until this invariant and next-recovery admissibility pass.
+
 **Deterministic state-sequence soak**
 
 The existing Polygon/controlled harness must prove at least 50 initial and
@@ -344,13 +367,53 @@ hold, certification target-pin leakage, optional-optimisation global stop,
 old zero-scope masking, Learning-gated completion, no-mutation TTL stall or
 independent-source starvation.
 
+**Temporal / expiry-boundary soak**
+
+`RECOVERY_TEMPORAL_BOUNDARY_SOAK` uses the existing Polygon/test time-control
+substrate where available; it never waits real minutes/hours or invents a
+timeout. It inventories every material existing-owner boundary and tests
+just-before, at and just-after: Matrix, continuing-failure and target-readiness
+freshness; prepared-decision, Authority, Candidate, Packet, Lease, Barrier,
+execution-control and reservation expiry; cooldown, anti-flap, recovery
+probation, STOP_SAFE re-entry, no-progress, historical-gate and dedup aging.
+It covers fresh re-observation, target availability before/after stale-handoff
+expiry, conflict completion/expiry, fresh confirmed failure during cooldown,
+continuing-incident age, a new user on it and health restart around a boundary.
+`RECOVERY_TEMPORAL_BOUNDARY_SOAK_CONSUMED` requires zero lost current incidents,
+stale-artifact false blocks, missed re-entry or expiry misread.
+
+**Randomized state-machine soak**
+
+`RECOVERY_RANDOMIZED_STATE_MACHINE_SOAK` is one reproducible seeded
+Engineering-only Polygon/test harness over existing owner interfaces. It does
+not create a Runtime state machine, move ordinary users or restart production
+services. It combines existing semantic source/service/target fail/recover,
+user rebind, capacity/policy/Authority/cooldown/conflict, STOP_SAFE, expiry,
+continuing/closed incident, simulated health/Admin/Runtime restart, Matrix
+generation and no-target/target-available events. Every step records seed,
+step, event, before/after fingerprints, invariant result, stop reason and
+responsible owner. It requires >=500 preliminary and >=1000 final transitions
+across reproducible seeds; a repair resets only affected final evidence, never
+unrelated proven architecture.
+
 After controlled soak, a bounded live repeatability sequence requires at least
 five consecutive, preferably ten, operator-created bad placements using only
-explicitly approved controlled/test profiles.  Codex may repair/deploy and
-observe but may not select a source/target/user, create an incident/Candidate/
-Packet/Lease/Barrier, invoke a recovery command/route writer or advance the
-transaction.  Every case with a lawful target ends in V7's automatic recovery;
-any code repair resets the live counter.
+explicitly approved controlled/test profiles; it must not intentionally
+disrupt ordinary users. Every counted cycle has the same
+`RECOVERY_RUNTIME_FINGERPRINT` over health, Matrix, Planner, Authority/gates,
+autoswitch/governed executor, route writer, Core-primary and required-service
+verifier. Codex may repair/deploy and observe but may not select a
+source/target/user, create an incident/Candidate/Packet/Lease/Barrier, invoke
+a recovery command/route writer or advance the transaction. Every case with a
+lawful target ends in V7's automatic recovery.
+
+`LIVE_STABILITY_CONSECUTIVE_PASS_COUNT` resets on a recovery-critical semantic
+code/config/policy deploy, stability-invariant failure, stranded user,
+historical false block, missed re-entry, target-pin leakage, invalid cooldown
+hold or orphan residue. It does not reset for a normal service restart with
+the same fingerprint; that restart is itself a required scenario. Each
+accepted cycle must have operator input only, V7-owned transitions,
+post-terminal residue PASS and no code repair between cycles.
 
 Each existing-owner receipt records source, incident id, current scope
 fingerprint, affected and target counts, active operation id, previous
@@ -361,38 +424,59 @@ terminal, stop reason, re-entry condition, `RECOVERY_REQUIRED`,
 
 The allowed durable phase statuses are `DONE`, `ACTIVE`, `BLOCKED_SAFETY`,
 `BLOCKED_OWNER` and `BLOCKED_EXTERNAL`; percentages are not completion
-evidence.  `RECOVERY_STABILITY_CONSUMED` requires controlled and bounded-live
+evidence. `RECOVERY_STABILITY_CONSUMED` requires controlled and bounded-live
 evidence from the real Matrix -> scope -> Authority -> Planner -> governed
-execution -> required-service S11 chain.  Tests, report or deploy alone are
-insufficient.
+execution -> required-service S11 chain. Tests, report or deploy alone are
+insufficient. Its required subterminals are
+`RECOVERY_CURRENT_TRUTH_PRECEDENCE_CONSUMED`,
+`RECOVERY_LEVEL_REENTRY_CONSUMED`, `RECOVERY_STOP_SAFE_REENTRY_CONSUMED`,
+`RECOVERY_EXACT_ONCE_SCOPE_SEMANTICS_CONSUMED`,
+`RECOVERY_STRANDED_INVARIANT_CONSUMED`,
+`RECOVERY_POST_TERMINAL_RESIDUE_CONSUMED`,
+`RECOVERY_STATE_SEQUENCE_SOAK_CONSUMED`,
+`RECOVERY_TEMPORAL_BOUNDARY_SOAK_CONSUMED`,
+`RECOVERY_RANDOMIZED_STATE_MACHINE_SOAK_CONSUMED` and
+`RECOVERY_LIVE_REPEATABILITY_CONSUMED`.
 
 The mandatory completion order is:
 
 ```text
 FUNCTIONAL AUTOMATIC RECOVERY
 -> RECOVERY STABILITY HARDENING
--> STATE-SEQUENCE SOAK
+-> DETERMINISTIC STATE-SEQUENCE SOAK
+-> TEMPORAL / EXPIRY BOUNDARY SOAK
+-> RANDOMIZED STATE-MACHINE SOAK
 -> LIVE REPEAT RECOVERY STABILITY
--> DETECTOR / MATRIX / APPLY S11 LATENCY WORK
+-> LATENCY RESIDUAL CLOSURE
 -> REPEATABLE 7S ACCEPTANCE
--> N11 HOT-PATH CLOSURE
+-> N11 HOT-PATH RESIDUE ZERO
 -> FINAL PROGRAM TERMINAL
 ```
 
 The implementation frontier, not started by this contract edit, is:
 
 1. current-truth precedence audit;
-2. level-triggered reconciliation invariant;
-3. STOP_SAFE re-entry contract;
-4. stranded-recovery diagnostic;
-5. historical-state live-gate cleanup;
-6. exact-once scope semantics;
-7. deterministic harness and 50-transition soak;
-8. repair of proven sequence failures;
-9. 100-transition soak;
-10. five-to-ten live approved cycles without repair;
+2. current safety-state classification;
+3. level-triggered reconciliation and STOP_SAFE re-entry;
+4. stranded-recovery self-healing consumer;
+5. historical-state live-gate cleanup and exact-once scope semantics;
+6. post-terminal residue invariant;
+7. deterministic harness, 50-transition soak, repair and 100-transition soak;
+8. temporal-boundary inventory/harness and before/at/after soak;
+9. seeded randomized harness, 500-transition soak, repair and 1000-transition soak;
+10. same-fingerprint five-to-ten live approved cycles;
 11. `RECOVERY_STABILITY_CONSUMED`;
-12. resumed final seven-second SLO closure.
+12. final seven-second SLO closure and N11 residue closure.
+
+Every implementation defect follows one proven cause -> minimal existing-owner
+repair -> focused cause test -> regression of the affected invariant family and
+previously consumed stability corpus -> safe deploy -> Runtime observation ->
+renewed affected evidence. A failure is first classified as pre-existing or
+introduced; acceptance is never weakened just to make an old failure green.
+A coordinated implementation/test/contract change for one root cause is one
+repair, not a new exception path. Rollback uses only the existing governed
+safe-deploy/rollback owner; if it cannot safely restore the known-good state,
+deployment stops at that safety boundary.
 
 #### Current 2-vCPU rollout-contract amendment
 
@@ -946,11 +1030,12 @@ parallel health truth or unbounded work.
    duplicate owners/decision paths, superseded wake/confirmation/persistence
    paths, no-caller code, no-consumer outputs, obsolete compatibility/state/test
    surfaces and old executable contracts for the same N responsibilities.
-9. `RECOVERY_STABILITY_CONSUMED` is proven before latency closure: the current
-   truth, exact-once, STOP_SAFE re-entry, stranded-obligation, deterministic
-   state-sequence and bounded live-repeatability contracts have real existing
-   owner/caller/consumer evidence.  A one-off successful recovery, report,
-   test or deploy is not a substitute.
+9. `RECOVERY_STABILITY_CONSUMED` is proven before latency closure: current
+   truth and current safety, exact-once, STOP_SAFE re-entry,
+   stranded-obligation self-healing, post-terminal residue, deterministic,
+   temporal-boundary and randomized soak, and bounded same-fingerprint live
+   repeatability all have real existing owner/caller/consumer evidence. A
+   one-off successful recovery, report, test or deploy is not a substitute.
 10. `GLOBAL_ALL_AFFECTED_RECOVERY_SLO_CONSUMED` is proven separately under the
     immutable first-valid-observation clock.  A stability pass does not hide a
     latency failure, and a latency pass does not excuse a stranded user.

@@ -1,9 +1,9 @@
-# Recovery stability hardening program section
+# Recovery stability hardening program section V2
 
-**Date:** 2026-09-01  
-**Mission:** `V7_RECOVERY_STABILITY_HARDENING_PROGRAM_SECTION`  
-**Type:** Program-contract edit only  
-**Result:** `PROGRAM_CONTRACT_REGISTERED; IMPLEMENTATION_NOT_ADMITTED`
+**Date:** 2026-09-01
+**Mission:** `V7_RECOVERY_STABILITY_HARDENING_PROGRAM_SECTION_V2`
+**Type:** Program-contract edit only
+**Result:** `PROGRAM_CONTRACT_V2_REGISTERED; IMPLEMENTATION_NOT_ADMITTED`
 
 ## Why added
 
@@ -35,6 +35,13 @@ CURRENT FAILED OR PROFILE-UNSUITABLE SOURCE
 If this law is false, the existing Runtime diagnostics must expose
 `RECOVERY_OBLIGATION_MISSING`.
 
+V2 makes that diagnostic self-healing: the existing health/Matrix
+reconciliation consumer must rematerialize the current obligation, prove an
+already active governed recovery, or produce the exact current hard stop and
+its re-entry condition. It is scheduled at the next owner-backed
+reconciliation opportunity, not by a busy loop or an impossible synchronous
+deadline.
+
 ## Current truth versus history
 
 Fresh Matrix, current assignments/profile requirements, target health and
@@ -61,6 +68,30 @@ Every `STOP_SAFE` must identify its current blocker, owner, scope, re-entry
 condition and next existing reconciliation owner.  Re-entry is level-triggered
 only by an existing relevant event; it is not a busy polling loop.
 
+V2 also makes current anti-flap, cooldown, conflict generation, active
+operation ownership and recovery probation explicit current safety facts.
+They remain valid fail-closed safety gates, but historical cooldown/closure
+rows cannot strand a fresh confirmed failure.
+
+## V2 stability additions
+
+After every successful or safely stopped transaction, existing owners must
+prove the post-terminal residue invariant: no stale Candidate, Packet, Lease,
+Barrier, execution window, target pin, handoff, scope or operation pointer may
+block the next current recovery unless an exact current successor owns it.
+
+The stability proof now has three complementary layers:
+
+1. deterministic 50/100 transition soak;
+2. virtual-clock before/at/after testing of every material existing-owner
+   freshness and expiry boundary;
+3. reproducible, seeded 500/1000-transition Polygon state-machine soak.
+
+Randomized restart events are simulated only in the test/Polygon environment;
+they cannot restart production services. The live five-to-ten cycle campaign
+uses controlled/test profiles only, records one recovery-critical fingerprint,
+and cannot intentionally disrupt ordinary users.
+
 ## Acceptance plan
 
 The later implementation phase must complete:
@@ -69,10 +100,13 @@ The later implementation phase must complete:
 2. level-triggered reconciliation and STOP_SAFE re-entry;
 3. stranded-recovery diagnostic through existing owners;
 4. historical live-gate classification and cleanup;
-5. deterministic 50-transition soak, then 100-transition soak;
-6. five consecutive, preferably ten, approved live operator bad-placement
-   cycles without an intervening repair;
-7. real Matrix-to-S11 evidence for all applicable cases.
+5. post-terminal residue invariant;
+6. deterministic 50-transition soak, repair, then 100-transition soak;
+7. temporal before/at/after boundary soak;
+8. seeded randomized 500-transition soak, repair, then 1000-transition soak;
+9. five consecutive, preferably ten, approved same-fingerprint live operator
+   bad-placement cycles without an intervening semantic repair;
+10. real Matrix-to-S11 evidence for all applicable cases.
 
 Required sequences include changed scope under a continuing incident, stale
 `NO_SAFE_TARGET` becoming obsolete, cooldown on fresh confirmed failure,
@@ -112,6 +146,15 @@ Final Program closure now requires both `RECOVERY_STABILITY_CONSUMED` and
 `GLOBAL_ALL_AFFECTED_RECOVERY_SLO_CONSUMED`, followed by the existing N11
 residue closure.
 
+## Repair discipline
+
+Every defect requires a proven root cause, minimal existing-owner repair,
+focused cause test, regression of the affected invariant family and previously
+consumed stability corpus, safe deploy, Runtime observation and renewed
+affected evidence. A failure is classified as pre-existing or introduced
+before changing acceptance. Rollback is lawful only through the existing
+safe-deploy/rollback owner; otherwise deployment stops safely.
+
 ## Files changed
 
 - `docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`
@@ -120,22 +163,22 @@ residue closure.
 
 ## Verification
 
-- `git diff --check`: PASS.
-- `tests.unit.test_v7_sync_tools` plus
-  `tests.unit.test_omp_program_execution_reconciliation`: PASS, 68 tests.
-- `tools/v7-truth-check --all --json`: PASS; CPS/OMP current pointer,
-  completion contract, ownership and Runtime convergence remain aligned.
-- The broader 77-test run that also includes the historical V5.3 lifecycle
-  binding fixtures retains two unrelated failures in
-  `test_atomic_admission_allows_read_only_execution` and
-  `test_phase_g_no_parallelism_is_consumed_into_existing_t0_t11_track`.  They
-  report existing CPS historical-phase expectation divergence, not a failure
-  of the new document contract; this Mission neither changed their Runtime
-  behavior nor waived them.
+- Prior V1 verification is retained below as historical evidence.
+- V2 `git diff --check`: PASS.
+- V2 focused contract verification:
+  `tests.unit.test_v7_sync_tools` plus
+  `tests.unit.test_omp_program_execution_reconciliation`: 68 PASS.
+- V2 `tools/v7-truth-check --all --json`: CPS/OMP current-state and
+  completion-order consistency PASS; this documentation-only change requires
+  no Runtime deploy. The aggregate result remains `NO-GO` only because the
+  checker could not read GitHub or live Runtime hashes at that moment
+  (`github_remote_unreadable`, `canonical_branch_missing_on_remote`,
+  `live_runtime_hashes_unavailable`). Those external observations do not
+  invalidate the local document contract, and no Runtime effect is claimed.
 
 ## Exact next frontier
 
-No implementation is admitted by this document Mission.  When the existing
-CPS/OMP reconciliation owner admits the next work, it must begin with the
-current-truth precedence audit and map all current recovery gates to their
-existing owners before modifying any Runtime behavior.
+No implementation is admitted by this document Mission. When the existing
+CPS/OMP reconciliation owner admits the next work, it must begin with a
+current-truth/current-safety audit, map all recovery gates to their existing
+owners, and then build the residue invariant before modifying Runtime behavior.

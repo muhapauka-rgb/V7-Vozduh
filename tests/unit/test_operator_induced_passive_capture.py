@@ -354,6 +354,31 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
         self.assertEqual(handoff.call_args.kwargs["source_incident_id"], "new")
         self.assertEqual(handoff.call_args.kwargs["source_scope_fingerprint"], "v")
 
+    def test_ordinary_non_actionable_direct_handoff_yields_to_fresh_advisory(self):
+        """A stale no-target record must not suppress a new ordinary decision."""
+        source = {
+            "channel": "vless",
+            "source_incident_id": "incident-vless",
+            "source_scope_fingerprint": "scope-vless",
+            "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+        }
+        stale_obligation = {
+            "stop_safe_classification": "STOP_SAFE_NO_SAFE_TARGET",
+            "bounded_recommendation_users": 0,
+        }
+        with mock.patch.object(
+            tool, "service_failure_direct_execution_handoff",
+            return_value={"final_verdict": "READY", "obligation": stale_obligation},
+        ):
+            handoff, obligation = tool.direct_service_failure_handoff_for_scope(
+                state_dir=Path("/state"),
+                source_scope={"active_sources": [source]},
+                source_constraint=source,
+            )
+
+        self.assertEqual(handoff["final_verdict"], "READY")
+        self.assertEqual(obligation, {})
+
     def test_health_profile_source_constraint_beats_unrelated_larger_scope(self):
         scope = {
             "active_sources": [

@@ -6716,6 +6716,28 @@ def direct_service_failure_handoff_for_scope(
         and isinstance(handoff.get("obligation"), dict)
         else {}
     )
+    # A direct L3 handoff is a fast path only when it can actually enter the
+    # governed ordinary-recovery executor.  A prior Planner pass may have
+    # faithfully recorded ``NO_SAFE_TARGET`` while the exact same source
+    # remains failed and a later Matrix generation makes a healthy target
+    # available.  Treating that zero-recommendation obligation as a ready
+    # handoff suppresses the existing advisory owner's fresh revalidation
+    # forever: the Runtime repeatedly stops before it can discover the new
+    # target.  For an ordinary source, let that existing owner reconcile the
+    # current Matrix/registry/target truth instead.  This creates no route,
+    # Candidate, Packet, Lease, Barrier or new state owner.
+    scope_classification = str(direct_source.get("scope_classification") or "")
+    ordinary_scope = scope_classification in {
+        "ORDINARY_ONLY",
+        "ORDINARY_PRODUCTION_ONLY",
+        "MIXED_ORDINARY_AND_CERTIFICATION",
+    }
+    if ordinary_scope and obligation and not (
+        str(obligation.get("stop_safe_classification") or "")
+        == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+        and int(obligation.get("bounded_recommendation_users") or 0) > 0
+    ):
+        obligation = {}
     return handoff, obligation
 
 

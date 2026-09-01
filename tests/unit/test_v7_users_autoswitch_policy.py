@@ -10678,6 +10678,46 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "current_channel_matrix_confirmed_failure", current["blocked"],
         )
 
+    def test_fresh_confirmed_failed_source_overrides_operator_cooldown(self):
+        """A manual rebind cannot strand a user on a confirmed dead source."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            policy["switch"]["cooldown_seconds"] = 180
+            (root / "policy.json").write_text(
+                json.dumps(policy), encoding="utf-8",
+            )
+            (root / "events" / "switch-history.jsonl").write_text(
+                json.dumps({
+                    "ts": self.tool.now_iso(),
+                    "user_ip": "10.0.0.2",
+                    "from": "vless",
+                    "to": "1",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, [
+                "--source-egress", "1",
+                "--ordinary-service-failure-context",
+            ]))
+            planner._current_channel_failure_evidence = lambda *_args, **_kwargs: {
+                "confirmed": True,
+            }
+            planner._l3_failed_source_cooldown_override_context = (
+                lambda *_args, **_kwargs: {"allowed": False}
+            )
+
+            plan = planner.plan()
+
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        move = plan["selected_moves"][0]
+        self.assertEqual(move["move_type"], "failover")
+        self.assertIn(
+            "matrix_confirmed_failed_source_cooldown_override",
+            move["reason"],
+        )
+
     def test_restore_stage_suppresses_service_signal_failover_without_approval(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

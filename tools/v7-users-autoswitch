@@ -18860,7 +18860,27 @@ class AutoswitchPlanner:
         if freeze_reason:
             reason.append(freeze_reason)
         l3_cooldown_override = self._l3_failed_source_cooldown_override_context(user.ip, user.current)
-        l3_failover_cooldown_ok = cooldown_ok or bool_value(l3_cooldown_override.get("allowed"))
+        # An operator may intentionally move a profile and the ordinary
+        # cooldown protects that choice from a routine rebalance.  It must not
+        # leave the same profile on a source which the fresh Matrix has
+        # already confirmed as a whole-channel failure.  The normal L3
+        # incident record remains the preferred provenance, but the exact
+        # Matrix source passed by the live ordinary-failure caller is equally
+        # current when a prior incident record has just been closed or is
+        # being reconciled.  This is a cooldown exception only: target
+        # selection and every Candidate/Packet/Lease/Barrier/Apply/S11 check
+        # remain with their existing owners.
+        matrix_confirmed_source_cooldown_override = bool(
+            bool_value(getattr(self.args, "ordinary_service_failure_context", False))
+            and str(getattr(self.args, "source_egress", "") or "")
+            == str(user.current or "")
+            and bool_value(current_channel_failure.get("confirmed"))
+        )
+        l3_failover_cooldown_ok = (
+            cooldown_ok
+            or bool_value(l3_cooldown_override.get("allowed"))
+            or matrix_confirmed_source_cooldown_override
+        )
 
         if current and current.egress.canary_reserved and current.eligible:
             reason.append("canary_reserved_current_hold_requires_separate_drain_approval")
@@ -18907,6 +18927,8 @@ class AutoswitchPlanner:
                     reason.append("current_egress_not_eligible")
                     if not cooldown_ok and bool_value(l3_cooldown_override.get("allowed")):
                         reason.append("l3_failed_source_cooldown_override")
+                    elif not cooldown_ok and matrix_confirmed_source_cooldown_override:
+                        reason.append("matrix_confirmed_failed_source_cooldown_override")
                     if current and bool_value(self.restore_barrier.get("failover_quarantine")):
                         if bool_value(self.restore_barrier.get("post_ttl_blocking")):
                             reason.append("restore_barrier_post_ttl_execution_blocked")

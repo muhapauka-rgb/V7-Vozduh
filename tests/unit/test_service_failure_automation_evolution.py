@@ -921,6 +921,52 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         planner._write_l3_runtime_state.assert_called_once()
 
+    def test_runtime_profile_scope_reentry_reopens_closed_exact_same_scope(self):
+        """A closed historical outcome cannot suppress an exact live scope."""
+        scope = {
+            "affected_scope_count": 1,
+            "affected_scope_fingerprint": "current-scope",
+            "unresolved_scope_count": 0,
+            "protected_scope_count": 1,
+            "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+        }
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        planner.l3_runtime_state = {
+            "incidents": {
+                "l3-vless-current": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                    "incident_id": "sfinc-current",
+                    "channel": "vless",
+                    "incident_state": "INTENT_CLOSED",
+                    "current_source_scope": scope,
+                    "historical_packet_outcome": "KEPT_UNCHANGED",
+                },
+            }
+        }
+        planner._l3_failed_source_scope = mock.Mock(return_value={
+            "source_failed": True,
+            "affected_users_count": 1,
+        })
+        planner._write_l3_runtime_state = mock.Mock()
+
+        result = planner.reconcile_runtime_profile_source_scope_reentry({
+            "source": "vless",
+            "source_incident_id": "sfinc-current",
+            "t0_monotonic_ns": 456,
+            "source_scope": scope,
+        })
+
+        self.assertEqual(result["status"], "CURRENT_PROFILE_SCOPE_REENTRY_RECONCILED")
+        self.assertTrue(result["updated"])
+        updated = planner.l3_runtime_state["incidents"]["l3-vless-current"]
+        self.assertEqual(updated["incident_state"], "OPEN")
+        self.assertEqual(
+            updated["attempt_terminal"], "CURRENT_PROFILE_SOURCE_SCOPE_REENTERED",
+        )
+        self.assertEqual(updated["current_source_scope"]["unresolved_scope_count"], 1)
+        self.assertEqual(updated["historical_packet_outcome"], "KEPT_UNCHANGED")
+        planner._write_l3_runtime_state.assert_called_once()
+
     def test_runtime_profile_prepared_target_reuses_matching_source_class(self):
         """A fresh Matrix projection may avoid broad reranking per affected user."""
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)

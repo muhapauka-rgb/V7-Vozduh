@@ -35,6 +35,9 @@ PROFILE_SERVICE_ACTIVE_SOURCE_COUNT=0
 FAST_PRODUCER_CONCURRENCY="1"
 FAST_PRODUCER_MAX_INFLIGHT=0
 FAST_PRODUCER_STARTED_NS="0"
+FAST_PRODUCER_MONOTONIC_STARTED_NS="0"
+FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS="0"
+FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS="0"
 FAST_PRODUCER_COMPLETION_MS=()
 PROFILE_SERVICE_PROBE_TIMEOUT_ARGS=(--timeout 5)
 FAST_MATRIX_FRESH_FAILURES_FILE=""
@@ -45,6 +48,10 @@ FAST_MATRIX_FRESH_FAILURES_FILE=""
 # evidence law; older results are only a probe hint and must be reconfirmed by
 # the existing Matrix writer.
 PROFILE_MATRIX_REUSE_MAX_AGE_SEC="10"
+
+monotonic_ns() {
+  python3 -c 'import time; print(time.monotonic_ns())'
+}
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -1129,6 +1136,14 @@ write_fast_producer_telemetry() {
   printf 'fast_producer_consumer_wake_count=%s\n' "$PROFILE_SERVICE_CONSUMER_WAKE_COUNT" >> "$TMP"
   printf 'fast_producer_concurrency_cap=%s\n' "$FAST_PRODUCER_CONCURRENCY" >> "$TMP"
   printf 'fast_producer_max_inflight=%s\n' "$FAST_PRODUCER_MAX_INFLIGHT" >> "$TMP"
+  if [ "$FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS" -gt 0 ] 2>/dev/null \
+      && [ "$FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS" -gt 0 ] 2>/dev/null; then
+    printf 'fast_producer_contract_build_wall_ms=%s\n' "$(( (FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS - FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS) / 1000000 ))" >> "$TMP"
+  fi
+  if [ "$FAST_PRODUCER_MONOTONIC_STARTED_NS" -gt 0 ] 2>/dev/null; then
+    fast_producer_finished_ns="$(monotonic_ns)"
+    printf 'fast_producer_outer_wall_ms=%s\n' "$(( (fast_producer_finished_ns - FAST_PRODUCER_MONOTONIC_STARTED_NS) / 1000000 ))" >> "$TMP"
+  fi
   completion_count="${#FAST_PRODUCER_COMPLETION_MS[@]}"
   printf 'fast_producer_completed_contract_count=%s\n' "$completion_count" >> "$TMP"
   if [ "$completion_count" -gt 0 ]; then
@@ -1410,6 +1425,9 @@ PY
 }
 
 run_lightweight_batch_profile_suspicion_cycle() {
+  # These values are also passed as source-observation context to existing
+  # consumers, so retain their historical wall-clock domain.  The new outer
+  # diagnostics use a separate monotonic clock only for elapsed time.
   batch_started_ns="$(python3 -c 'import time; print(time.time_ns())')"
   work_dir="$(mktemp -d "${TMPDIR:-/tmp}/v7-fast-batch.XXXXXX")"
   work_file="$work_dir/active-contract-set.tsv"
@@ -1421,6 +1439,7 @@ run_lightweight_batch_profile_suspicion_cycle() {
     return 0
   fi
   build_fast_matrix_fresh_failure_index
+  batch_probe_started_ns="$(python3 -c 'import time; print(time.time_ns())')"
   # The ordinary recovery detector must distinguish an actual failure from an
   # overloaded half-second observation. One second remains bounded and runs
   # in parallel, while UNKNOWN is still fail-closed.
@@ -1490,6 +1509,8 @@ PY
   # confirmation/record work.  They do not participate in admission, do not
   # persist a new truth source and do not change the existing caller.
   printf 'fast_producer_batch_probe_wall_ms=%s\n' "$(( (batch_probe_completed_ns - batch_started_ns) / 1000000 ))" >> "$TMP"
+  printf 'fast_producer_batch_setup_wall_ms=%s\n' "$(( (batch_probe_started_ns - batch_started_ns) / 1000000 ))" >> "$TMP"
+  printf 'fast_producer_batch_network_wall_ms=%s\n' "$(( (batch_probe_completed_ns - batch_probe_started_ns) / 1000000 ))" >> "$TMP"
   printf 'fast_producer_batch_postprocess_wall_ms=%s\n' "$(( (batch_postprocess_completed_ns - batch_probe_completed_ns) / 1000000 ))" >> "$TMP"
   printf 'fast_producer_batch_total_wall_ms=%s\n' "$(( (batch_postprocess_completed_ns - batch_started_ns) / 1000000 ))" >> "$TMP"
   printf 'fast_producer_batch_status=PASS\n' >> "$TMP"
@@ -1629,10 +1650,12 @@ if [ ! -r "$REG" ]; then
 fi
 
 if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
+  FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS="$(monotonic_ns)"
   PROFILE_CONTRACTS_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-profile-contracts.XXXXXX")"
   build_active_profile_contracts > "$PROFILE_CONTRACTS_FILE"
   PROFILE_SERVICE_CONTRACT_COUNT="$(wc -l < "$PROFILE_CONTRACTS_FILE" | tr -d ' ')"
   PROFILE_SERVICE_ACTIVE_SOURCE_COUNT="$(cut -f1 "$PROFILE_CONTRACTS_FILE" | uniq | wc -l | tr -d ' ')"
+  FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS="$(monotonic_ns)"
   trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"; test -z "$FAST_MATRIX_FRESH_FAILURES_FILE" || rm -f "$FAST_MATRIX_FRESH_FAILURES_FILE"' EXIT
 elif [ "$HARD_SIGNAL_ONLY" = "1" ]; then
   ACTIVE_SOURCE_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-active-sources.XXXXXX")"
@@ -1644,6 +1667,7 @@ fi
 echo "updated=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$TMP"
 if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
   FAST_PRODUCER_STARTED_NS="$(python3 -c 'import time; print(time.time_ns())')"
+  FAST_PRODUCER_MONOTONIC_STARTED_NS="$(monotonic_ns)"
 fi
 
 if [ "$FAST_PRODUCER_ONLY" = "1" ]; then

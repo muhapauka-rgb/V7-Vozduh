@@ -217,6 +217,8 @@ Stability cross-credit.
 - V3 `git push origin Updatesystem`: accepted by the remote. The same DNS
   limitation means this is push-acknowledged rather than independently
   remote-tree verified from this host.
+- V4 ordinary-path contract commit: `6e524702`
+  (`Require ordinary path stability acceptance`); push acknowledged.
 
 ## Verification
 

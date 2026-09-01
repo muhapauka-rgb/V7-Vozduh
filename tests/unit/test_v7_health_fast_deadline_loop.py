@@ -604,7 +604,21 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 "action_completed": True,
                 "runtime_mutation_performed": True,
                 "users_moved": 2,
-                "consumer_result": {"stop_reason": ""},
+                "consumer_result": {
+                    "stop_reason": "",
+                    "execution_timing": {
+                        "schema_version": "v7.governed-execution-timing.v1",
+                        "status": "MONOTONIC_BREAKDOWN_CONSUMED",
+                        "total_ms": 3210.0,
+                        "dominant_stage": "apply_and_verification",
+                        "clock_source": "time.monotonic_ns",
+                        "wall_clock_used_for_elapsed": False,
+                        "spans": [
+                            {"stage": "planner", "duration_ms": 123.0},
+                            {"stage": "apply_and_verification", "duration_ms": 3087.0},
+                        ],
+                    },
+                },
             },
         }
         with mock.patch.object(loop, "_run_persistent_matrix_consumer", return_value=0), \
@@ -629,6 +643,17 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         )
         self.assertGreaterEqual(receipt["t0_to_consumer_complete_ms"], 0)
         self.assertGreaterEqual(receipt["consumer_execution_ms"], 0)
+        self.assertEqual(
+            receipt["governed_execution_timing"]["dominant_stage"],
+            "apply_and_verification",
+        )
+        self.assertEqual(
+            receipt["governed_execution_timing"]["spans"],
+            [
+                {"stage": "planner", "duration_ms": 123.0},
+                {"stage": "apply_and_verification", "duration_ms": 3087.0},
+            ],
+        )
 
     def test_known_incomplete_downstream_validation_is_reconsumed_by_live_owner(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())

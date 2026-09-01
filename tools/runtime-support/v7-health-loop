@@ -1221,6 +1221,40 @@ class RoleHealthLoop:
             and isinstance(delegated.get("consumer_result"), dict)
             else {}
         )
+        governed_timing = (
+            consumer_result.get("execution_timing")
+            if isinstance(consumer_result.get("execution_timing"), dict)
+            else {}
+        )
+        # The governed executor already owns this monotonic breakdown.  Keep a
+        # bounded projection in the health receipt so a live automatic action
+        # can be attributed without replaying it or creating another timing
+        # writer.  The receipt contains stages and durations only: no user,
+        # source, target, Packet or route is added to the health owner.
+        governed_timing_receipt = {
+            key: governed_timing.get(key)
+            for key in (
+                "schema_version",
+                "status",
+                "total_ms",
+                "dominant_stage",
+                "clock_source",
+                "wall_clock_used_for_elapsed",
+            )
+            if key in governed_timing
+        }
+        spans = governed_timing.get("spans")
+        if isinstance(spans, list):
+            governed_timing_receipt["spans"] = [
+                {
+                    "stage": str(row.get("stage") or ""),
+                    "duration_ms": row.get("duration_ms"),
+                }
+                for row in spans
+                if isinstance(row, dict)
+                and str(row.get("stage") or "")
+                and isinstance(row.get("duration_ms"), (int, float))
+            ]
         # The existing health owner used to suppress the Matrix consumer's
         # structured result after an in-process call. That obscured whether a
         # live confirmed failure stopped in scope, Authority, Planner or the
@@ -1270,6 +1304,8 @@ class RoleHealthLoop:
             "users_moved": int(delegated.get("users_moved") or 0) if isinstance(delegated, dict) else 0,
             "stop_reason": str(consumer_result.get("stop_reason") or delegated.get("reason") or "") if isinstance(delegated, dict) else "",
         }
+        if governed_timing_receipt:
+            receipt["governed_execution_timing"] = governed_timing_receipt
         print(
             "V7_HEALTH_RECOVERY_CONSUMER_RECEIPT "
             + json.dumps(receipt, sort_keys=True, separators=(",", ":")),

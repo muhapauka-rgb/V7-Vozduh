@@ -549,39 +549,72 @@ def canonical_profile_service_failure_bindings(
                 continue
             if not has_current_observation(observed):
                 continue
+            # Keep the immutable incident time for Matrix/history, but use
+            # the newest owner-backed observation as the dispatch clock.  A
+            # user may be placed on a source whose incident is already open;
+            # charging that newly affected user to the old incident start
+            # creates a fictitious multi-minute recovery interval.  The
+            # stable identity below still prevents this continuing incident
+            # from being re-consumed on every Matrix observation.
             try:
-                t0_ns = int(str(
+                incident_t0_ns = int(str(
                     observed.get("confirmed_hard_failure_monotonic_ns")
+                    or observed.get("first_failed_observation_monotonic_ns")
                     or observed.get("observation_monotonic_ns")
                     or "0"
                 ))
+                dispatch_t0_ns = int(str(
+                    observed.get("observation_monotonic_ns")
+                    or incident_t0_ns
+                    or "0"
+                ))
             except (TypeError, ValueError):
-                t0_ns = 0
-            if t0_ns > 0:
-                t0_values.append(t0_ns)
+                incident_t0_ns = 0
+                dispatch_t0_ns = 0
+            if dispatch_t0_ns > 0:
+                t0_values.append(dispatch_t0_ns)
                 affected.append({
                     "source": source_id,
                     "user_ip": user_id,
                     "service": str(service_id),
                     "source_incident_id": str(observed.get("source_incident_id") or ""),
+                    # ``failure_event_id`` is a per-observation evidence
+                    # record and legitimately rotates during one continuing
+                    # Matrix incident.  Preserve it for diagnostics, but do
+                    # not make it part of the health consumer's exact-once
+                    # identity or it repeatedly monopolises the live
+                    # recovery slot.
                     "failure_event_id": str(observed.get("failure_event_id") or ""),
-                    "t0_ns": t0_ns,
+                    "incident_t0_ns": incident_t0_ns,
+                    "t0_ns": dispatch_t0_ns,
                 })
     by_source: dict[str, list[dict[str, Any]]] = {}
     for row in affected:
         by_source.setdefault(str(row["source"]), []).append(row)
     result: list[dict[str, Any]] = []
     for source, source_rows in sorted(by_source.items()):
+        # Do not serialize evolving evidence timestamps/event ids into the
+        # exact-once key.  The durable Matrix incident plus the currently
+        # affected profile/service set is the recovery identity; individual
+        # observations are only the dispatch clock and diagnostics.
+        stable_rows = [{
+            key: row.get(key)
+            for key in ("user_ip", "service", "source_incident_id")
+        } for row in source_rows]
         canonical = json.dumps(sorted(
-            source_rows,
+            stable_rows,
             key=lambda row: (
-                row["user_ip"], row["service"], row["source_incident_id"],
-                row["failure_event_id"],
+                str(row.get("user_ip") or ""),
+                str(row.get("service") or ""),
+                str(row.get("source_incident_id") or ""),
             ),
         ), separators=(",", ":"), sort_keys=True)
         result.append({
             "source_egress": source,
             "t0_ns": max(int(row.get("t0_ns") or 0) for row in source_rows),
+            "incident_t0_ns": max(
+                int(row.get("incident_t0_ns") or 0) for row in source_rows
+            ),
             "dedupe_identity": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
             "affected_profile_count": len({str(row["user_ip"]) for row in source_rows}),
         })
@@ -1188,6 +1221,11 @@ class RoleHealthLoop:
             # delay from the governed transaction itself without creating a
             # second timing owner or changing any recovery decision.
             "t0_monotonic_ns": int(t0_ns),
+            "incident_t0_monotonic_ns": int(
+                (health_dispatch_context or {}).get(
+                    "matrix_incident_t0_monotonic_ns"
+                ) or t0_ns
+            ),
             "consumer_started_monotonic_ns": int(consumer_started_ns),
             "consumer_completed_monotonic_ns": int(consumer_completed_ns),
             "t0_to_consumer_started_ms": elapsed_ms(t0_ns, consumer_started_ns),
@@ -1571,6 +1609,9 @@ class RoleHealthLoop:
                             "service_role_started_monotonic_ns": detector_started_ns,
                             "persistent_dispatch_monotonic_ns": int(dispatch_ns),
                             "matrix_t0_monotonic_ns": t0_ns,
+                            "matrix_incident_t0_monotonic_ns": int(
+                                profile_binding.get("incident_t0_ns") or t0_ns
+                            ),
                             "profile_source_egress": source_egress,
                         })
                         self._consume_new_persistent_matrix_t0(
@@ -1630,6 +1671,9 @@ class RoleHealthLoop:
                         "service_role_started_monotonic_ns": int(role.started_ns),
                         "persistent_dispatch_monotonic_ns": int(dispatch_ns),
                         "matrix_t0_monotonic_ns": int(t0_ns),
+                        "matrix_incident_t0_monotonic_ns": int(
+                            profile_binding.get("incident_t0_ns") or t0_ns
+                        ),
                     })
                     if profile_binding.get("source_egress"):
                         context["profile_source_egress"] = str(

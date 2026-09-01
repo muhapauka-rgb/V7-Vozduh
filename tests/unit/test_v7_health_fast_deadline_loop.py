@@ -831,6 +831,47 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 0,
             )
 
+    def test_profile_service_handoff_uses_current_observation_but_dedupes_continuing_incident(self):
+        """A later placement needs a current clock, not a rotating event id."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            preferences = root / "service-preferences.json"
+            users.write_text(
+                "ip=10.7.0.127 enabled=1 current=vless\n",
+                encoding="utf-8",
+            )
+            preferences.write_text(json.dumps({"users": {
+                "10.7.0.127": {"services": ["google"]},
+            }}), encoding="utf-8")
+
+            def write_matrix(*, observation: int, event: str) -> None:
+                matrix.write_text(json.dumps({"items": {"vless": {"services": {
+                    "google": {
+                        "ok": False, "status": "FAIL",
+                        "failure_state": "OBSERVED_CONTINUING",
+                        "source_incident_id": "stable-vless-incident",
+                        "failure_event_id": event,
+                        "confirmed_hard_failure_monotonic_ns": 100,
+                        "observation_monotonic_ns": observation,
+                    },
+                }}}}), encoding="utf-8")
+
+            write_matrix(observation=500, event="observation-a")
+            first = HEALTH_LOOP_MODULE.canonical_profile_service_failure_bindings(
+                matrix, users, preferences,
+            )[0]
+            write_matrix(observation=900, event="observation-b")
+            second = HEALTH_LOOP_MODULE.canonical_profile_service_failure_bindings(
+                matrix, users, preferences,
+            )[0]
+
+        self.assertEqual(first["t0_ns"], 500)
+        self.assertEqual(second["t0_ns"], 900)
+        self.assertEqual(second["incident_t0_ns"], 100)
+        self.assertEqual(first["dedupe_identity"], second["dedupe_identity"])
+
     def test_profile_service_bindings_keep_simultaneous_sources_separate(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

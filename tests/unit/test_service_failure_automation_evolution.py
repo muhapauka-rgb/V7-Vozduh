@@ -168,6 +168,34 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
         self.assertEqual((affected, t0_ns, incidents), (0, 0, set()))
 
+    def test_live_profile_failure_evidence_keeps_fresh_continuing_incident(self):
+        """A current re-probe may outlive the original hard-failure T0."""
+        users = [self.autoswitch.User(
+            ip="10.7.0.127", current="vless", enabled=True,
+        )]
+        recent_continuing = datetime.now(timezone.utc) - timedelta(seconds=15)
+        matrix = {"items": {"vless": {"services": {"google": {
+            "ok": False,
+            "status": "FAIL",
+            "failure_state": "OBSERVED_CONTINUING",
+            "source_incident_id": "sfinc_current",
+            "confirmed_hard_failure_monotonic_ns": 2_000,
+            "observed_at": recent_continuing.isoformat(),
+        }}}}}
+        preferences = {"users": {"10.7.0.127": {"services": ["google"]}}}
+
+        with mock.patch.dict(self.autoswitch.os.environ, {
+            "V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1",
+            # This is a later health wake, not the incident's original T0.
+            "V7_SERVICE_T0_MONOTONIC_NS": "3000",
+        }, clear=False):
+            affected, t0_ns, incidents = self.autoswitch.live_profile_failure_evidence(
+                users=users, matrix=matrix, service_preferences=preferences,
+                source="vless", require_current_observation=True,
+            )
+
+        self.assertEqual((affected, t0_ns, incidents), (1, 2_000, {"sfinc_current"}))
+
     def test_packet_bound_profile_failure_revalidates_current_matrix_event(self):
         """The route writer may consume the exact Packet-bound Matrix fact."""
         now = datetime.now(timezone.utc)

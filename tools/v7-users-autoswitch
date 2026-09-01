@@ -2470,7 +2470,32 @@ def live_profile_failure_evidence(
                     age_seconds = time.time() - observed_at
                 except (TypeError, ValueError):
                     continue
-                if age_seconds < 0 or age_seconds > 10.0:
+                # A continuing failure is re-probed by the Matrix owner on
+                # every ordinary required-service generation.  The original
+                # hard-failure T0 is intentionally stable for the entire
+                # incident, while a health consumer on a contended Runtime
+                # can start more than ten seconds after the probe that
+                # refreshed that same incident.  Rejecting it solely because
+                # a *new* wake timestamp differs from the stable incident T0
+                # makes an actually current failed source invisible and
+                # strands its users.  Admit only a recently refreshed
+                # continuing observation here; the existing Matrix scope and
+                # governed Packet/Lease/Barrier/Apply owners still revalidate
+                # the exact source, target and required services before any
+                # route mutation.  A non-continuing or older row retains the
+                # strict exact-T0 handoff rule below.
+                continuing_observation_current = (
+                    str(evidence.get("failure_state") or "")
+                    == "OBSERVED_CONTINUING"
+                    and 0.0 <= age_seconds <= 30.0
+                )
+                if (
+                    age_seconds < 0
+                    or (
+                        age_seconds > 10.0
+                        and not continuing_observation_current
+                    )
+                ):
                     try:
                         evidence_t0_ns = int(str(
                             evidence.get("confirmed_hard_failure_monotonic_ns")

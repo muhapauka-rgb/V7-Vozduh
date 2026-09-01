@@ -89,3 +89,14 @@ The existing remote read was restored before publication (`Updatesystem` could
 be read from `origin`).  The final existing safe-deploy gate and Runtime hash
 alignment are run after the narrowly scoped source commit; nothing is bypassed
 if that gate refuses release.
+
+## Deployment confirmation
+
+- Published commit: `75fe43e321d7b48c66f604ddd74e16045fd19f06`.
+- Existing safe deployment completed as
+  `deploy-z8-14-Updatesystem-75fe43e-20260902T012447`, including the required
+  restart of the existing health service.
+- Final independent truth check: PASS; local, GitHub and Runtime commit are
+  identical; the live V7 health/Matrix owner is active.
+- The old standalone autoswitch scheduler and service remain intentionally
+  inactive.  No route or client assignment was changed by this deployment.

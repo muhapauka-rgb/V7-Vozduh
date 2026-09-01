@@ -1,9 +1,9 @@
-# Recovery stability hardening program section V3
+# Recovery stability hardening program section V4
 
 **Date:** 2026-09-01
-**Mission:** `V7_RECOVERY_STABILITY_HARDENING_PROGRAM_SECTION_V3`
+**Mission:** `V7_RECOVERY_STABILITY_ORDINARY_PATH_ACCEPTANCE_CORRECTION`
 **Type:** Program-contract edit only
-**Result:** `PROGRAM_CONTRACT_V3_REGISTERED; IMPLEMENTATION_NOT_ADMITTED`
+**Result:** `ORDINARY_PATH_ACCEPTANCE_CONTRACT_REGISTERED; IMPLEMENTATION_NOT_ADMITTED`
 
 ## Why added
 
@@ -179,6 +179,27 @@ owner restores the invariant and reruns the affected baseline. Repeated
 special-case branches trigger a bounded owner state-model review instead of
 another compensating exception.
 
+## V4 ordinary-path acceptance correction
+
+V3 proved that changes preserve the accumulated Stability evidence. V4 closes
+the remaining acceptance gap: certification-only recovery cannot consume the
+live repeatability or final Stability terminal.
+
+Every credited live cycle must use the ordinary Runtime chain from normal
+health observation through Matrix, ordinary scope, ordinary Authority/Planner,
+governed execution, exact S11, terminal reconciliation and residue proof. A
+controlled identity can be used only when existing owners record that its
+scope, action/Authority class, Planner, target selection, execution and
+verification semantics are exactly ordinary, with no certification branch.
+
+The canonical live terminal is now
+`RECOVERY_LIVE_ORDINARY_REPEATABILITY_CONSUMED`. Its counter requires at least
+five consecutive same-fingerprint V7-owned ordinary-path recoveries; the
+operator may only perform the permitted test setup and then hands off. Manual
+target selection, transaction creation or route mutation invalidates the
+sample. Certification still proves shared primitives but receives no ordinary
+Stability cross-credit.
+
 ## Files changed
 
 - `docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`
@@ -221,10 +242,21 @@ another compensating exception.
   `github_remote_unreadable`, `canonical_branch_missing_on_remote` and
   `live_runtime_hashes_unavailable`. V3 changes no deploy-required path and
   claims no Runtime effect.
+- V4 `git diff --check`: PASS.
+- V4 focused contract verification:
+  `tests.unit.test_v7_sync_tools` plus
+  `tests.unit.test_omp_program_execution_reconciliation`: 68 PASS.
+- V4 `tools/v7-truth-check --all --json`: CPS current-state and completion
+  order PASS; local document alignment PASS. Aggregate remote/live convergence
+  remains `NO-GO` for the same observation-only GitHub/live-hash blockers.
+  The ordinary-path correction changes no deploy-required path and claims no
+  Runtime effect.
 
 ## Exact next frontier
 
 No implementation is admitted by this document Mission. When the existing
 CPS/OMP reconciliation owner admits the next work, it must begin with a
 current-truth/current-safety audit, map all recovery gates to their existing
-owners, and then build the residue invariant before modifying Runtime behavior.
+owners, build the residue invariant and frozen baseline, and prove an existing
+approved test identity reaches ordinary Runtime semantics before any live
+Stability cycle is credited.

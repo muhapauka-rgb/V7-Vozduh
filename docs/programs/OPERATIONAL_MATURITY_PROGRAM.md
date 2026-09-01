@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.85`
+Version: `4.86`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -26,7 +26,7 @@ Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_oper
 Latest bounded RS7 Mission report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md` (`ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_RUNTIME_CONSUMED`; wrappers and consumers physically collapsed, deployed and verified).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
-V4.85 strengthens the existing
+V4.86 strengthens the existing
 `RECOVERY_STABILITY_HARDENING_AND_STATE_SEQUENCE_SOAK` inside the existing
 Service Failure Automation Evolution Program. It is a
 completion-order and scheduler law, not a new Program, Mission admission,
@@ -47,14 +47,16 @@ The binding phase sequence is: functional automatic recovery -> current-truth
 and current-safety -> level/STOP_SAFE re-entry and stranded self-healing ->
 post-terminal residue -> deterministic 50/100 transition soak -> temporal
 before/at/after boundary soak -> seeded randomized 500/1000 transition soak
--> bounded same-fingerprint five-to-ten approved live repetitions ->
+-> ordinary-path equivalence proof -> bounded same-fingerprint five-to-ten
+ordinary-path live repetitions ->
 `RECOVERY_STABILITY_CONSUMED` -> final latency SLO -> N11 residue -> terminal.
 Current safety remains fail-closed; historical state cannot suppress a current
 recovery. Every repair follows proven cause -> minimal existing-owner repair
 -> affected regression -> governed deploy/rollback -> Runtime observation.
 Randomized restart events are test-only and must not restart production
-services; live stability uses controlled/test profiles only and cannot
-intentionally disrupt ordinary users. This registration does not admit
+services. A controlled/test identity may count live stability evidence only
+when existing owners prove it traverses exact ordinary Runtime semantics; a
+certification-only path cannot cross-credit ordinary stability. This registration does not admit
 implementation, mutate CPS's active Runtime frontier, alter routes/users/timers
 or claim Stability completion. The first implementation frontier is selected
 only by the existing CPS/OMP reconciliation owner after the document contract

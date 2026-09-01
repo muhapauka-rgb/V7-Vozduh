@@ -396,24 +396,49 @@ responsible owner. It requires >=500 preliminary and >=1000 final transitions
 across reproducible seeds; a repair resets only affected final evidence, never
 unrelated proven architecture.
 
-After controlled soak, a bounded live repeatability sequence requires at least
-five consecutive, preferably ten, operator-created bad placements using only
-explicitly approved controlled/test profiles; it must not intentionally
-disrupt ordinary users. Every counted cycle has the same
-`RECOVERY_RUNTIME_FINGERPRINT` over health, Matrix, Planner, Authority/gates,
-autoswitch/governed executor, route writer, Core-primary and required-service
-verifier. Codex may repair/deploy and observe but may not select a
-source/target/user, create an incident/Candidate/Packet/Lease/Barrier, invoke
-a recovery command/route writer or advance the transaction. Every case with a
-lawful target ends in V7's automatic recovery.
+**Live ordinary-path acceptance law**
 
-`LIVE_STABILITY_CONSECUTIVE_PASS_COUNT` resets on a recovery-critical semantic
+`RECOVERY_LIVE_ORDINARY_PATH_ACCEPTANCE_LAW` requires final live stability
+evidence to traverse the exact current ordinary service-failure Runtime path:
+normal `v7-health` -> Matrix current truth -> ordinary affected scope ->
+existing Planner -> automatic ordinary Authority -> Candidate -> Packet ->
+Lease -> Barrier -> governed Apply -> route/kernel/Core-primary proof ->
+required-service S11 -> ordinary terminal reconciliation -> post-terminal
+residue PASS. Certification-only execution cannot substitute for any ordinary
+branch or consume ordinary repeatability/Stability.
+
+A bounded owner-approved test identity may be the safe subject only if existing
+owners prove `ORDINARY_RUNTIME_SEMANTICS_EQUIVALENT=TRUE`: the ordinary scope,
+action/Authority class, Planner path, target-selection owner, execution and
+verification owners are used, with no certification-only Planner, target pin,
+Authority, topology, scope accounting, target admission, reset or campaign
+branch. The compact proof records identity/class, scope/action/Authority,
+Planner/target/execution/verification owner, no special certification branch,
+and `RECOVERY_RUNTIME_FINGERPRINT`.
+
+The binding `LIVE_ORDINARY_STABILITY_CONSECUTIVE_PASS_COUNT` requires at least
+five consecutive, preferably ten, operator-created bad placements using only
+such approved identities; it must not intentionally disrupt ordinary users.
+Every cycle has the same `RECOVERY_RUNTIME_FINGERPRINT` over health, Matrix,
+Planner, Authority/gates, autoswitch/governed executor, route writer,
+Core-primary, required-service verifier and recovery reconciliation. The
+operator may only perform the existing allowed setup rebind to an enabled
+configured source, then hands off. V7 must detect, choose the target, govern,
+apply and verify; Codex/operator may not inject an incident, target, Authority,
+Candidate/Packet/Lease/Barrier, recovery consumer or route-writer invocation.
+
+`LIVE_ORDINARY_STABILITY_CONSECUTIVE_PASS_COUNT` resets on a recovery-critical semantic
 code/config/policy deploy, stability-invariant failure, stranded user,
 historical false block, missed re-entry, target-pin leakage, invalid cooldown
-hold or orphan residue. It does not reset for a normal service restart with
-the same fingerprint; that restart is itself a required scenario. Each
-accepted cycle must have operator input only, V7-owned transitions,
-post-terminal residue PASS and no code repair between cycles.
+hold, ordinary multi-target false stop, orphan residue or manual recovery
+intervention. It does not reset for a normal service restart with the same
+fingerprint, a legitimate current no-target stop or an exact current conflict
+followed by automatic re-entry. Each accepted cycle must have operator setup
+only, V7-owned transitions, required S11, post-terminal residue PASS and no
+code repair between cycles. The cycles include, where lawfully representable,
+continuing-source re-entry, state aging, same-fingerprint restart,
+multi-service profile, multi-profile/target selection and a disappeared
+STOP_SAFE blocker.
 
 Each existing-owner receipt records source, incident id, current scope
 fingerprint, affected and target counts, active operation id, previous
@@ -437,7 +462,7 @@ insufficient. Its required subterminals are
 `RECOVERY_STATE_SEQUENCE_SOAK_CONSUMED`,
 `RECOVERY_TEMPORAL_BOUNDARY_SOAK_CONSUMED`,
 `RECOVERY_RANDOMIZED_STATE_MACHINE_SOAK_CONSUMED` and
-`RECOVERY_LIVE_REPEATABILITY_CONSUMED`.
+`RECOVERY_LIVE_ORDINARY_REPEATABILITY_CONSUMED`.
 
 The mandatory completion order is:
 
@@ -447,7 +472,7 @@ FUNCTIONAL AUTOMATIC RECOVERY
 -> DETERMINISTIC STATE-SEQUENCE SOAK
 -> TEMPORAL / EXPIRY BOUNDARY SOAK
 -> RANDOMIZED STATE-MACHINE SOAK
--> LIVE REPEAT RECOVERY STABILITY
+-> LIVE ORDINARY-PATH REPEAT RECOVERY STABILITY
 -> LATENCY RESIDUAL CLOSURE
 -> REPEATABLE 7S ACCEPTANCE
 -> N11 HOT-PATH RESIDUE ZERO
@@ -466,9 +491,10 @@ The implementation frontier, not started by this contract edit, is:
 8. deterministic harness, 50-transition soak, repair and 100-transition soak;
 9. temporal-boundary inventory/harness and before/at/after soak;
 10. seeded randomized harness, 500-transition soak, repair and 1000-transition soak;
-11. same-fingerprint five-to-ten live approved cycles;
-12. `RECOVERY_STABILITY_CONSUMED`;
-13. final seven-second SLO closure and N11 residue closure.
+11. ordinary-test identity equivalence proof;
+12. same-fingerprint five-to-ten live ordinary-path cycles;
+13. `RECOVERY_LIVE_ORDINARY_REPEATABILITY_CONSUMED` and `RECOVERY_STABILITY_CONSUMED`;
+14. final seven-second SLO closure and N11 residue closure.
 
 Every implementation defect follows one proven cause -> minimal existing-owner
 repair -> focused cause test -> regression of the affected invariant family and
@@ -1087,7 +1113,8 @@ parallel health truth or unbounded work.
    truth and current safety, exact-once, STOP_SAFE re-entry,
    stranded-obligation self-healing, post-terminal residue, deterministic,
    temporal-boundary and randomized soak, and bounded same-fingerprint live
-   repeatability all have real existing owner/caller/consumer evidence. A
+   ordinary-path repeatability all have real existing owner/caller/consumer
+   evidence. A
    one-off successful recovery, report, test or deploy is not a substitute.
 10. `GLOBAL_ALL_AFFECTED_RECOVERY_SLO_CONSUMED` is proven separately under the
     immutable first-valid-observation clock.  A stability pass does not hide a

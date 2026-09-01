@@ -34,10 +34,28 @@ atomic output commit, and full script lifetime.  It creates no state, caller,
 Matrix write, or recovery action; its sole purpose is to separate local
 startup/scheduling delay from the detector's already-measured work.
 
+## Live causal finding and repair
+
+The new parent/child split, together with read-only process observation, showed
+that the material local contention was not a required Matrix confirmation.
+The Admin overview could start duplicate full rebuilds while its cache was
+empty.  Each rebuild reconstructs route reality for every enabled user and
+runs read-only diagnostics, so two such requests competed directly with the
+ordinary detector on the two-vCPU Runtime.
+
+The Admin now coalesces an initial full rebuild to one worker. Concurrent
+requests receive the already-existing lightweight canonical registry/Matrix
+view until that worker completes.  The full passive overview cache is also
+held longer, while the existing two-second live-status path continues to show
+current assignments and channel health.  This changes neither an operator
+action's immediate response nor any Matrix, Planner, Authority, routing, or
+client behaviour.
+
 ## Verification
 
 - Shell and Python syntax validation passed.
-- Focused batch-producer and health-receipt regressions passed.
+- Focused batch-producer, health-receipt and Admin cache-coalescing regressions
+  passed.
 - A broader historical health-loop test group has pre-existing expectation
   failures around its simulated scheduling order. Those assertions are outside
   this reporting-only detector change and are retained as non-credit
@@ -45,6 +63,6 @@ startup/scheduling delay from the detector's already-measured work.
 
 ## Next step
 
-Deploy this bounded instrumentation through the existing safe-deploy owner.
-Then classify the next ordinary-detector outlier from the parent/child split
-before making any further performance change.
+Deploy the bounded Admin contention repair through the existing safe-deploy
+owner. Then classify the next ordinary-detector outlier from the complete
+parent/child split before making any further performance change.

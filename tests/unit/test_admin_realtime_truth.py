@@ -78,6 +78,36 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         sync = (ROOT / "tools" / "v7_sync_lib.py").read_text(encoding="utf-8")
         self.assertIn('"local_path": "hardening/v7-killswitch-check"', sync)
 
+    def test_overview_refresh_coalesces_an_empty_cache_without_second_rebuild(self):
+        previous_cache = self.admin.OVERVIEW_CACHE
+        previous_ready = self.admin.OVERVIEW_CACHE_READY
+        self.addCleanup(setattr, self.admin, "OVERVIEW_CACHE", previous_cache)
+        self.addCleanup(setattr, self.admin, "OVERVIEW_CACHE_READY", previous_ready)
+        self.admin.OVERVIEW_CACHE = {
+            "data": None, "ts": 0.0, "refreshing": True, "error": "",
+        }
+        self.admin.OVERVIEW_CACHE_READY = __import__("threading").Event()
+        live = {
+            "updated": "now",
+            "registries": {"users": [{"ip": "10.7.0.125"}], "egress": []},
+            "service_matrix": {"items": {}},
+        }
+        with mock.patch.object(self.admin, "overview") as rebuild, \
+             mock.patch.object(self.admin, "live_operational_truth", return_value=live):
+            payload = self.admin.overview_cached()
+
+        rebuild.assert_not_called()
+        self.assertTrue(payload["cache"]["stale"])
+        self.assertTrue(payload["refreshing"])
+        self.assertEqual(payload["registries"]["users"][0]["ip"], "10.7.0.125")
+
+    def test_overview_full_rebuild_is_rate_limited_while_live_status_stays_fast(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+
+        self.assertIn("OVERVIEW_CACHE_TTL_SEC = 60", source)
+        self.assertIn("OVERVIEW_CACHE_READY.wait(timeout=0.25)", source)
+        self.assertIn("def overview_refreshing_baseline", source)
+
     def test_overview_smart_profiles_reuse_one_artifact_tree_scan(self):
         users = [
             {"ip": "10.7.0.125", "enabled": "1"},

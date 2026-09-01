@@ -20380,9 +20380,10 @@ def live_operational_truth_json():
         return body
 
 
-OVERVIEW_CACHE_TTL_SEC = 20
+OVERVIEW_CACHE_TTL_SEC = 60
 OVERVIEW_CACHE = {"data": None, "ts": 0.0, "refreshing": False, "error": ""}
 OVERVIEW_CACHE_LOCK = threading.Lock()
+OVERVIEW_CACHE_READY = threading.Event()
 
 
 def overview_for_session(data, session=None, stale=False):
@@ -20554,8 +20555,9 @@ def omp_dashboard_response():
 def refresh_overview_cache():
     with OVERVIEW_CACHE_LOCK:
         if OVERVIEW_CACHE.get("refreshing"):
-            return
+            return False
         OVERVIEW_CACHE["refreshing"] = True
+        OVERVIEW_CACHE_READY.clear()
     try:
         data = overview(None)
         with OVERVIEW_CACHE_LOCK:
@@ -20566,6 +20568,29 @@ def refresh_overview_cache():
     finally:
         with OVERVIEW_CACHE_LOCK:
             OVERVIEW_CACHE["refreshing"] = False
+        OVERVIEW_CACHE_READY.set()
+    return True
+
+
+def overview_refreshing_baseline(session=None):
+    """Return the existing lightweight truth while one overview build runs.
+
+    A full overview starts one route subprocess per active user plus several
+    read-only diagnostics.  On the two-vCPU Runtime, allowing every browser
+    request to repeat that initial build starved the ordinary failure detector.
+    This compact response reads the same canonical registries and Matrix as
+    ``/api/live-status``; it neither becomes state nor hides a completed
+    overview.  The client already refreshes this surface independently.
+    """
+    live = live_operational_truth()
+    return overview_for_session({
+        "updated": live.get("updated") or now_iso(),
+        "registries": live.get("registries") or {"users": [], "egress": []},
+        "service_matrix": live.get("service_matrix") or {},
+        "summary": {},
+        "state": {},
+        "refreshing": True,
+    }, session, stale=True)
 
 
 def overview_cached(session=None, force=False):
@@ -20579,12 +20604,20 @@ def overview_cached(session=None, force=False):
         if stale and not refreshing:
             threading.Thread(target=refresh_overview_cache, name="v7-overview-cache-refresh", daemon=True).start()
         return overview_for_session(data, session, stale=stale)
-    refresh_overview_cache()
+    started = refresh_overview_cache()
     with OVERVIEW_CACHE_LOCK:
         data = OVERVIEW_CACHE.get("data")
     if data is not None:
-        return overview_for_session(data, session, stale=False)
-    return overview(session)
+        return overview_for_session(data, session, stale=not started)
+    if not started:
+        # Let a just-started initial build finish briefly, but never make a
+        # second HTTP worker repeat its expensive per-user route reconstruction.
+        OVERVIEW_CACHE_READY.wait(timeout=0.25)
+        with OVERVIEW_CACHE_LOCK:
+            data = OVERVIEW_CACHE.get("data")
+        if data is not None:
+            return overview_for_session(data, session, stale=False)
+    return overview_refreshing_baseline(session)
 
 
 def operator_view_model():

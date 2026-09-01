@@ -1391,6 +1391,7 @@ def batch_lightweight_observations(
                 work.append((index, service_id, iface))
 
     started_ns = time.monotonic_ns()
+    cpu_started = resource.getrusage(resource.RUSAGE_SELF)
     cap = max(1, min(int(concurrency or 1), 128))
     timeout_bound_seconds = (
         ((len(work) + cap - 1) // cap) * max(0.0, float(timeout_seconds))
@@ -1442,6 +1443,7 @@ def batch_lightweight_observations(
                     "evidence_class": "AMBIGUOUS_LIGHTWEIGHT_SENTINEL",
                 }
     completed_ns = time.monotonic_ns()
+    cpu_completed = resource.getrusage(resource.RUSAGE_SELF)
     for contract in contracts:
         results = contract.get("results") or {}
         contract["failure_count"] = sum(1 for row in results.values() if not bool(row.get("ok")))
@@ -1458,6 +1460,12 @@ def batch_lightweight_observations(
             if str(row.get("status") or "").upper() == "DNS_FAILURE"
         )
         contract["degraded_services"] = []
+    attempt_elapsed_ms = [
+        max(0.0, float((row or {}).get("elapsed_sec") or 0.0) * 1000.0)
+        for contract in contracts
+        for row in (contract.get("results") or {}).values()
+        if isinstance(row, dict)
+    ]
     return {
         "schema_version": "v7.matrix-lightweight-batch-observation.v1",
         "status": "PASS",
@@ -1472,6 +1480,22 @@ def batch_lightweight_observations(
         "timeout_bound_seconds": round(timeout_bound_seconds, 3),
         "role_deadline_seconds": N3_ROLE_DEADLINE_SECONDS,
         "elapsed_ms": round((completed_ns - started_ns) / 1_000_000.0, 3),
+        # Diagnostic-only timing.  The existing batch consumer retains the
+        # same observation semantics; these fields only distinguish a slow
+        # network attempt from local CPU/scheduling contention on the next
+        # ordinary-detector outlier.
+        "process_cpu_user_ms": round(
+            max(0.0, cpu_completed.ru_utime - cpu_started.ru_utime) * 1000.0, 3
+        ),
+        "process_cpu_system_ms": round(
+            max(0.0, cpu_completed.ru_stime - cpu_started.ru_stime) * 1000.0, 3
+        ),
+        "max_probe_attempt_ms": round(max(attempt_elapsed_ms, default=0.0), 3),
+        "timeout_like_probe_count": sum(
+            1
+            for value in attempt_elapsed_ms
+            if value >= max(0.0, float(timeout_seconds)) * 1000.0 * 0.95
+        ),
         "contracts": contracts,
         "routing_mutation_performed": False,
         "users_moved": 0,

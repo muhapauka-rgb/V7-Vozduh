@@ -1474,6 +1474,37 @@ run_lightweight_batch_profile_suspicion_cycle() {
     return 0
   fi
   batch_probe_completed_ns="$(python3 -c 'import time; print(time.time_ns())')"
+  # The batch owner's own monotonic span is already emitted below.  Preserve
+  # its result and expose only diagnostic CPU/slowest-attempt aggregates from
+  # the existing observation payload so the next outlier can be attributed
+  # without changing Matrix, Planner, Authority or routing semantics.
+  batch_runtime_timing="$(python3 - "$result_file" <<'PY'
+import json
+import sys
+
+try:
+    payload = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    payload = {}
+
+def number(key):
+    try:
+        return max(0, int(round(float(payload.get(key) or 0))))
+    except (TypeError, ValueError):
+        return 0
+
+print("|".join(str(number(key)) for key in (
+    "elapsed_ms",
+    "process_cpu_user_ms",
+    "process_cpu_system_ms",
+    "max_probe_attempt_ms",
+    "timeout_like_probe_count",
+)))
+PY
+)"
+  IFS='|' read -r batch_owner_elapsed_ms batch_owner_cpu_user_ms batch_owner_cpu_system_ms batch_max_probe_attempt_ms batch_timeout_like_probe_count <<EOF
+$batch_runtime_timing
+EOF
   python3 - "$result_file" > "$parsed_file" <<'PY'
 import json
 import sys
@@ -1532,6 +1563,11 @@ PY
   printf 'fast_producer_batch_probe_wall_ms=%s\n' "$(( (batch_probe_completed_ns - batch_started_ns) / 1000000 ))" >> "$TMP"
   printf 'fast_producer_batch_setup_wall_ms=%s\n' "$(( (batch_probe_started_ns - batch_started_ns) / 1000000 ))" >> "$TMP"
   printf 'fast_producer_batch_network_wall_ms=%s\n' "$(( (batch_probe_completed_ns - batch_probe_started_ns) / 1000000 ))" >> "$TMP"
+  printf 'fast_producer_batch_owner_elapsed_ms=%s\n' "${batch_owner_elapsed_ms:-0}" >> "$TMP"
+  printf 'fast_producer_batch_owner_cpu_user_ms=%s\n' "${batch_owner_cpu_user_ms:-0}" >> "$TMP"
+  printf 'fast_producer_batch_owner_cpu_system_ms=%s\n' "${batch_owner_cpu_system_ms:-0}" >> "$TMP"
+  printf 'fast_producer_batch_max_probe_attempt_ms=%s\n' "${batch_max_probe_attempt_ms:-0}" >> "$TMP"
+  printf 'fast_producer_batch_timeout_like_probe_count=%s\n' "${batch_timeout_like_probe_count:-0}" >> "$TMP"
   printf 'fast_producer_batch_postprocess_wall_ms=%s\n' "$(( (batch_postprocess_completed_ns - batch_probe_completed_ns) / 1000000 ))" >> "$TMP"
   printf 'fast_producer_batch_total_wall_ms=%s\n' "$(( (batch_postprocess_completed_ns - batch_started_ns) / 1000000 ))" >> "$TMP"
   printf 'fast_producer_batch_status=PASS\n' >> "$TMP"

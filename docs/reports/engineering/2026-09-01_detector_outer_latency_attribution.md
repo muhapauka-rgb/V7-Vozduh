@@ -61,8 +61,32 @@ client behaviour.
   this reporting-only detector change and are retained as non-credit
   diagnostics; no expectation was weakened.
 
+## Production deployment and residual observation
+
+The Admin coalescing repair was published and safely deployed in commit
+`6762bc4`.  Local, GitHub and copied Runtime files were subsequently verified
+as aligned; `v7-health.service` and `v7-admin-api.service` are active.  The
+deployment touched neither Matrix ownership nor any user assignment.
+
+The first post-deploy ordinary-detector observations were mostly in the
+expected low-second zone: 2.606 s and 3.064 s for the complete detector
+script.  A separate 8.300 s observation remains valid regression evidence.
+Its receipt attributes 0.225 s to contract construction, 7.719 s before the
+child receipt, and 0.046 s to atomic output.  The parent added about 0.208 s.
+Therefore the residual is inside the existing batch observation owner, not an
+Admin rebuild, Matrix write, or post-processing tail.
+
+The complete per-attempt and process-CPU split was not present for that first
+residual.  It has now been added as diagnostic-only output of the existing
+batch owner for the next live cycle: batch owner elapsed time, user CPU,
+system CPU, slowest individual attempt and timeout-like attempt count.  It
+does not change the probe set, timeout, cadence, Matrix state, target
+selection, Authority, routing or user movement.
+
 ## Next step
 
-Deploy the bounded Admin contention repair through the existing safe-deploy
-owner. Then classify the next ordinary-detector outlier from the complete
-parent/child split before making any further performance change.
+Safely deploy the bounded residual instrumentation.  Then classify any next
+ordinary-detector outlier from the complete parent/child/process split before
+making another performance change.  The product seven-second recovery result
+remains open until a current owner-admitted live ordinary failure occurs; no
+operator placement or recovery was manufactured for this report.

@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.87`
+Version: `4.88`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,13 +13,13 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md` (`COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`)
-Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md` (`V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1`; admitted system-level revalidation; automatic FAST role consumer held).
-Current V5.3 contract-correction report: `docs/reports/engineering/2026-08-20_160200_v5_3_system_health_revalidation_gate_correction.md` (`SYSTEM_LEVEL_HEALTH_TEST_STABILITY_REVALIDATION_GATE_REQUIRED`; no new Mission or Runtime effect).
+Historical admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
+Historical consumed report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md` (`COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`)
+Current active Mission is resolved only from CPS section 0 and OMP §26; the current pointer is not duplicated in this header.
+Historical V5.3 contract-correction report: `docs/reports/engineering/2026-08-20_160200_v5_3_system_health_revalidation_gate_correction.md` (`SYSTEM_LEVEL_HEALTH_TEST_STABILITY_REVALIDATION_GATE_REQUIRED`; no new Mission or Runtime effect).
 Latest Reset terminal report: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md` (`RESET_M10_POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION_PASS`; final Reset Program terminal restored).
 Latest RT2 contract extension report: `docs/reports/engineering/2026-08-13_380000_rt2_deep_simplification_and_automatic_internet_operation_contract.md` (`RT2_DEEP_SIMPLIFICATION_AUTOMATIC_INTERNET_CONTRACT_READY_NOT_ADMITTED`).
-Current boundary evidence: `docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md` (`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED`; not a terminal Mission report and not an Authority decision).
+Historical boundary evidence: `docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md` (`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED`; not a terminal Mission report and not an Authority decision).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Previous consumed report: `docs/reports/engineering/2026-07-17_230111_phase6a_obligation_corpus_continuation_and_next_generation.md`
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
@@ -68,7 +68,17 @@ write, hot-path hop, compatibility path or duplicate decision edge is an
 Engineering regression even if its focused test passes.  Simple document-only
 changes record these fields as `NOT_APPLICABLE` with reason.
 
-V4.86 strengthens the existing
+V4.88 is `OMP_CURRENT_HISTORICAL_PROJECTION_HYGIENE`. It makes no scheduler,
+Runtime, Matrix, Planner, Authority, route, timer or client change. The only
+authoritative volatile current state remains CPS section 0; OMP §20.2 and §26
+are derived, machine-validated projections updated only by the existing atomic
+CPS/OMP reconciliation owner. Header report links and version registrations
+are historical context unless an explicit CPS/§26 pointer says otherwise.
+`V7_SIMPLIFICATION_FIRST_ENGINEERING_LAW` is the common law; §28.9 RT2 and
+§47.3/§47.3A/§47.3B RS7 are specialized implementation gates and may not
+select a second current frontier.
+
+HISTORICAL_REGISTRATION — V4.86 strengthened the existing
 `RECOVERY_STABILITY_HARDENING_AND_STATE_SEQUENCE_SOAK` inside the existing
 Service Failure Automation Evolution Program. It is a
 completion-order and scheduler law, not a new Program, Mission admission,
@@ -98,11 +108,12 @@ recovery. Every repair follows proven cause -> minimal existing-owner repair
 Randomized restart events are test-only and must not restart production
 services. A controlled/test identity may count live stability evidence only
 when existing owners prove it traverses exact ordinary Runtime semantics; a
-certification-only path cannot cross-credit ordinary stability. This registration does not admit
-implementation, mutate CPS's active Runtime frontier, alter routes/users/timers
-or claim Stability completion. The first implementation frontier is selected
-only by the existing CPS/OMP reconciliation owner after the document contract
-is consumed.
+certification-only path cannot cross-credit ordinary stability. At its
+registration time this text did not admit implementation, mutate CPS's active
+Runtime frontier, alter routes/users/timers or claim Stability completion. Its
+later admitted/current disposition is resolved only from CPS section 0 and OMP
+§26; this paragraph cannot independently deny, select or advance the current
+frontier.
 
 V4.85 additionally makes change containment binding. The frozen stability
 baseline is only a compact pointer set over existing Polygon/test receipts,
@@ -8259,6 +8270,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
+Derived projection only: the existing atomic CPS/OMP reconciliation owner
+updates this stop-only reflection. Manual current-state edits are forbidden;
+the complete readable projection is §26 and CPS section 0 remains controlling.
 Resolved current stop: `REAL_WORLD_LIMIT`
 Resolved current next action: `RECOVERY_STABILITY_FOUNDATION`
 Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `RECOVERY_STABILITY_FOUNDATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
@@ -9247,6 +9261,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
+Canonical readable OMP projection. §20.2 is its derived stop-only reflection;
+both are machine-validated against CPS and neither may be edited as an
+independent current-state source.
 Resolved current stop: `REAL_WORLD_LIMIT`
 Resolved current next action: `RECOVERY_STABILITY_FOUNDATION`
 Current terminal report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
@@ -9523,6 +9540,11 @@ Current practical next OMP step: `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_B
 ### 28.9 RT2 Post-Reset Operating Profile
 
 Status: `CONTRACT_READY_NOT_ADMITTED`.
+
+`V7_SIMPLIFICATION_FIRST_ENGINEERING_LAW` in the OMP header is the common
+law for this profile. The RT2 clauses below are specialized evidence and
+implementation gates only; they cannot select a current frontier or create a
+parallel simplification program.
 
 Canonical owner: existing `Runtime Capability Maturation Program / RT2` inside OMP. This profile is not `V7_POST_RESET_RUNTIME_MATURITY_AND_OPTIMIZATION_PROGRAM_V1`, Reset 2.0, a new Program, phase family, architecture, Core, Planner, Health system, audit framework, owner, CPS, Runtime, queue, state surface or truth source.
 
@@ -11647,6 +11669,11 @@ Historical Evidence.
 valid PR2C/RT2 evidence and target-recheck only exact invalidated criteria.
 
 ### 47.3 Permanent laws
+
+`V7_SIMPLIFICATION_FIRST_ENGINEERING_LAW` in the OMP header is the common
+law for RS7. The RS7 gates below specialize consumer migration, physical
+change and closure evidence; they do not add a competing scheduler, current
+frontier or removal authority.
 
 1. `ONE_RESPONSIBILITY_ONE_EXISTING_OWNER_ONE_PRIMARY_CONSUMER`: a duplicate
    primary path is forbidden unless an owner-backed `LEGACY_EXCEPTION` names

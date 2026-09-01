@@ -7,6 +7,7 @@ import importlib.machinery
 import importlib.util
 import io
 import json
+import random
 import shutil
 import subprocess
 import sys
@@ -966,6 +967,123 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(updated["current_source_scope"]["unresolved_scope_count"], 1)
         self.assertEqual(updated["historical_packet_outcome"], "KEPT_UNCHANGED")
         planner._write_l3_runtime_state.assert_called_once()
+
+    def test_recovery_stability_seeded_profile_scope_reentry_soak(self):
+        """Exercise 1,000 reproducible current/stale re-entry state mixes."""
+        rng = random.Random(20260902)
+        modes = (
+            "CLOSED_EXACT",
+            "OPEN_EXACT",
+            "OPEN_STALE_SCOPE",
+            "NO_MATCH",
+            "DUPLICATE_MATCH",
+        )
+        observed_modes = {mode: 0 for mode in modes}
+        observed_statuses: dict[str, int] = {}
+
+        for index in range(1_000):
+            mode = rng.choice(modes)
+            observed_modes[mode] += 1
+            source = rng.choice(("vless", "awg0", "awg3"))
+            incident_id = f"sfinc-{index:04d}"
+            affected_count = rng.randint(1, 4)
+            fingerprint = f"scope-{index:04d}"
+            current_scope = {
+                "affected_scope_count": affected_count,
+                "affected_scope_fingerprint": fingerprint,
+                "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+            }
+            live_current = rng.choice((True, True, True, False))
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner._write_l3_runtime_state = mock.Mock()
+            planner._l3_failed_source_scope = mock.Mock(return_value={
+                "source_failed": live_current,
+                "affected_users_count": (
+                    affected_count if live_current else max(0, affected_count - 1)
+                ),
+            })
+            matching_record = {
+                "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                "incident_id": incident_id,
+                "channel": source,
+                "incident_state": (
+                    "INTENT_CLOSED" if mode == "CLOSED_EXACT" else "OPEN"
+                ),
+                "current_source_scope": {
+                    **current_scope,
+                    "unresolved_scope_count": (
+                        affected_count if mode == "OPEN_EXACT" else 0
+                    ),
+                },
+                "historical_packet_outcome": "KEPT_UNCHANGED",
+            }
+            incidents: dict[str, dict[str, object]] = {
+                "unrelated": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                    "incident_id": f"other-{index:04d}",
+                    "channel": "unrelated",
+                    "incident_state": "INTENT_CLOSED",
+                },
+            }
+            if mode == "NO_MATCH":
+                incidents["other-current"] = {
+                    **matching_record,
+                    "incident_id": f"other-{incident_id}",
+                }
+            else:
+                incidents["current"] = matching_record
+                if mode == "OPEN_STALE_SCOPE":
+                    matching_record["current_source_scope"] = {
+                        **current_scope,
+                        "affected_scope_fingerprint": f"stale-{fingerprint}",
+                        "unresolved_scope_count": 0,
+                    }
+                if mode == "DUPLICATE_MATCH":
+                    incidents["duplicate"] = dict(matching_record)
+            planner.l3_runtime_state = {"incidents": incidents}
+
+            result = planner.reconcile_runtime_profile_source_scope_reentry({
+                "source": source,
+                "source_incident_id": incident_id,
+                "t0_monotonic_ns": index,
+                "source_scope": current_scope,
+            })
+            status = str(result["status"])
+            observed_statuses[status] = observed_statuses.get(status, 0) + 1
+
+            if not live_current:
+                self.assertEqual(status, "STOP_SAFE_RUNTIME_PROFILE_SCOPE_NOT_CURRENT")
+                planner._write_l3_runtime_state.assert_not_called()
+            elif mode in {"NO_MATCH", "DUPLICATE_MATCH"}:
+                self.assertEqual(
+                    status, "STOP_SAFE_RUNTIME_PROFILE_SCOPE_INCIDENT_AMBIGUOUS",
+                )
+                planner._write_l3_runtime_state.assert_not_called()
+            elif mode == "OPEN_EXACT":
+                self.assertEqual(status, "CURRENT_SCOPE_ALREADY_OPEN")
+                planner._write_l3_runtime_state.assert_not_called()
+            else:
+                self.assertEqual(status, "CURRENT_PROFILE_SCOPE_REENTRY_RECONCILED")
+                self.assertEqual(
+                    planner.l3_runtime_state["incidents"]["current"]["incident_state"],
+                    "OPEN",
+                )
+                self.assertEqual(
+                    planner.l3_runtime_state["incidents"]["unrelated"]["incident_state"],
+                    "INTENT_CLOSED",
+                )
+                planner._write_l3_runtime_state.assert_called_once()
+
+        self.assertTrue(all(count >= 150 for count in observed_modes.values()))
+        self.assertGreater(
+            observed_statuses.get("CURRENT_PROFILE_SCOPE_REENTRY_RECONCILED", 0), 0,
+        )
+        self.assertGreater(
+            observed_statuses.get("STOP_SAFE_RUNTIME_PROFILE_SCOPE_NOT_CURRENT", 0), 0,
+        )
+        self.assertGreater(
+            observed_statuses.get("STOP_SAFE_RUNTIME_PROFILE_SCOPE_INCIDENT_AMBIGUOUS", 0), 0,
+        )
 
     def test_runtime_profile_prepared_target_reuses_matching_source_class(self):
         """A fresh Matrix projection may avoid broad reranking per affected user."""

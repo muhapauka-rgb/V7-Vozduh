@@ -264,8 +264,10 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertGreaterEqual(len(hard_during_required), 2, completed.stdout)
         self.assertIn("V7_HEALTH_ROLE_DEADLINE_MISS role=other_required", completed.stdout)
         self.assertIn("V7_HEALTH_ROLE_COMPLETE role=other_required", completed.stdout)
-        self.assertIn("V7_HEALTH_ROLE_DEADLINE_MISS role=deep", completed.stdout)
-        self.assertIn("V7_HEALTH_ROLE_COMPLETE role=deep", completed.stdout)
+        self.assertIn(
+            "V7_HEALTH_ROLE_DEFERRED role=deep reason=ORDINARY_REQUIRED_SERVICE_DETECTION_PRIORITY",
+            completed.stdout,
+        )
 
     def test_confirmed_hard_recovery_preempts_all_observation_children(self):
         with tempfile.TemporaryDirectory() as td:
@@ -371,7 +373,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             )
         self.assertNotIn("reason=HARD_RECOVERY_PRIORITY", completed.stdout)
         self.assertIn(
-            "V7_HEALTH_ROLE_COMPLETE role=planner_projection completion=1",
+            "V7_HEALTH_ROLE_DEFERRED role=planner_projection reason=ORDINARY_REQUIRED_SERVICE_DETECTION_PRIORITY",
             completed.stdout,
         )
 
@@ -516,9 +518,13 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 check=True,
                 timeout=5,
             )
-        self.assertNotIn("V7_HEALTH_ROLE_PREEMPTED", completed.stdout)
+        self.assertNotIn("reason=HARD_RECOVERY_PRIORITY", completed.stdout)
         self.assertIn(
-            "V7_HEALTH_ROLE_COMPLETE role=planner_projection completion=1",
+            "reason=ORDINARY_REQUIRED_SERVICE_DETECTION_PRIORITY",
+            completed.stdout,
+        )
+        self.assertIn(
+            "V7_HEALTH_ROLE_DEFERRED role=planner_projection reason=ORDINARY_REQUIRED_SERVICE_DETECTION_PRIORITY",
             completed.stdout,
         )
 

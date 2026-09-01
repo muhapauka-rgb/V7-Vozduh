@@ -9389,10 +9389,17 @@ class AutoswitchPlanner:
         # an unknown service, or stale Matrix evidence leaves the incident
         # open; this is recovery reconciliation, never a route action.
         l3_recovered: list[str] = []
+        # A restart/repair reconciliation may be entered before the optional
+        # Matrix snapshot has been attached to this Planner instance.  Missing
+        # snapshot truth must mean "do not infer recovery", not an attribute
+        # error that prevents the existing outcome reconciler from processing
+        # its durable state.  The normal Runtime still supplies the same
+        # canonical Matrix snapshot through ``__init__``.
+        matrix_snapshot = getattr(self, "matrix", {})
         matrix_items = (
-            self.matrix.get("items")
-            if isinstance(getattr(self, "matrix", {}), dict)
-            and isinstance(self.matrix.get("items"), dict)
+            matrix_snapshot.get("items")
+            if isinstance(matrix_snapshot, dict)
+            and isinstance(matrix_snapshot.get("items"), dict)
             else {}
         )
         active_l3_states = {
@@ -14211,12 +14218,21 @@ class AutoswitchPlanner:
 
     def _explicit_required_services(self) -> set[str]:
         values: list[str] = []
+        switch_policy = getattr(self, "switch_policy", {})
+        switch_policy = switch_policy if isinstance(switch_policy, dict) else {}
+        policy = getattr(self, "policy", {})
+        policy = policy if isinstance(policy, dict) else {}
+        org_policy = getattr(self, "org_policy", {})
+        org_policy = org_policy if isinstance(org_policy, dict) else {}
+        service_prefs = getattr(self, "service_prefs", {})
+        service_prefs = service_prefs if isinstance(service_prefs, dict) else {}
+        args = getattr(self, "args", None)
         for source in (
-            self.switch_policy.get("required_services"),
-            (self.policy or {}).get("required_services"),
-            (self.org_policy or {}).get("required_services"),
-            (self.service_prefs or {}).get("required_services"),
-            self.args.service,
+            switch_policy.get("required_services"),
+            policy.get("required_services"),
+            org_policy.get("required_services"),
+            service_prefs.get("required_services"),
+            getattr(args, "service", None),
         ):
             values.extend(normalize_service_ids(source))
         return set(values)

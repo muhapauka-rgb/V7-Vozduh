@@ -41,6 +41,25 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         cls.matrix = load_module("v7_service_matrix_scope_automation", ROOT / "tools" / "v7-service-matrix-test")
         cls.refresh = load_module("v7_service_matrix_refresh_automation", ROOT / "tools" / "v7-service-matrix-refresh-all")
 
+    def copy_canonical_reconciliation_inputs(self, root: Path) -> None:
+        """Give an isolated CPS projection the same required owner inputs.
+
+        Source CPS reconciliation now validates its paired OMP projection and
+        a real caller before committing.  A fixture that copies only CPS is
+        intentionally invalid under the current contract, so preserve the
+        isolation while copying the minimal canonical reader inputs.
+        """
+        programs = root / "docs" / "programs"
+        programs.mkdir(parents=True, exist_ok=True)
+        for name in (
+            "V7_CURRENT_PROGRAM_STATE.md",
+            "OPERATIONAL_MATURITY_PROGRAM.md",
+        ):
+            shutil.copy2(ROOT / "docs" / "programs" / name, programs / name)
+        tools = root / "tools"
+        tools.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / "tools" / "v7_sync_lib.py", tools / "v7_sync_lib.py")
+
     def test_live_owner_history_window_is_bounded_and_keeps_newest_rows(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "closure-records.jsonl"
@@ -1101,10 +1120,16 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 }
                 endpoints = (("127.0.0.1", server.server_port, True),) * 3
 
-                def matrix_run_one(egress, timeout, _checker, state, services=""):
+                def matrix_run_one(
+                    egress, timeout, _checker, state, services="",
+                    failure_persistence_samples=0,
+                    failure_persistence_window_seconds=0,
+                    event_dir=None, path_evidence_refresh=False,
+                    role_fast_timeout=False,
+                ):
                     argv = [
                         str(MATRIX_TOOL), egress, "all", "--state-dir", str(state),
-                        "--event-dir", str(event_dir), "--interface", "lo0",
+                        "--event-dir", str(event_dir or event_dir_path), "--interface", "lo0",
                         "--timeout", str(timeout),
                     ]
                     if services:
@@ -1129,6 +1154,8 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                             for service, row in payload["results"].items()
                         },
                     }
+
+                event_dir_path = event_dir
 
                 def refresh_process(command, **_kwargs):
                     output = io.StringIO()
@@ -5408,7 +5435,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "service_failure_causal_binding": {
                     "source_incident_id": incident_id, "source_event_id": "sfrev_bound",
                     "source_event_ids": ["sfrev_bound"], "event_type": "SERVICE_FAILURE_REVALIDATED",
-                    "source_channel": "vless",
+                    "source_channel": "vless", "direct_l3_handoff": True,
                 },
             }
             (state_dir / "execution-events.jsonl").write_text(
@@ -5427,7 +5454,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
             record = state["incidents"][incident_key]
         self.assertEqual(result["final_verdict"], "PASS")
-        self.assertEqual(result["changed_records"], 1)
+        self.assertEqual(result["changed_records"], 2)
         self.assertEqual(repeated["changed_records"], 0)
         self.assertEqual(record["incident_state"], "PARTIALLY_PROTECTED")
         self.assertEqual(record["last_execution_feedback_id"], "execfb_bound")
@@ -5466,7 +5493,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "service_failure_causal_binding": {
                     "source_incident_id": incident_id, "source_event_id": "sfrev_scope",
                     "source_event_ids": ["sfrev_scope"], "event_type": "SERVICE_FAILURE_REVALIDATED",
-                    "source_channel": "vless",
+                    "source_channel": "vless", "direct_l3_handoff": True,
                     "source_scope": {
                         "source_channel": "vless", "affected_scope_count": 2,
                         "affected_scope_fingerprint": "scopehash",
@@ -5481,7 +5508,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             first = planner.reconcile_service_failure_execution_outcomes()
             repeated = planner.reconcile_service_failure_execution_outcomes()
             record = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))["incidents"][incident_key]
-        self.assertEqual(first["changed_records"], 1)
+        self.assertEqual(first["changed_records"], 2)
         self.assertEqual(repeated["changed_records"], 0)
         self.assertEqual(record["scope_accounting"]["status"], "ACCOUNTED")
         self.assertEqual(record["protected_scope_count"], 1)
@@ -5738,8 +5765,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
     def test_exact_packet_bound_execution_feedback_updates_source_cps_without_new_action(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "docs/programs").mkdir(parents=True)
-            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+            self.copy_canonical_reconciliation_inputs(root)
             feedback = {
                 "schema_version": "v7.execution-outcome-record.v1",
                 "feedback_id": "execfb_source_bound", "packet_id": "pkt_source_bound",
@@ -5768,8 +5794,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
     def test_accounted_scope_projects_active_incident_drain_into_source_cps(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "docs/programs").mkdir(parents=True)
-            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+            self.copy_canonical_reconciliation_inputs(root)
             feedback = {
                 "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_scope_source", "packet_id": "pkt_scope_source",
                 "user": "10.0.0.2", "source_channel": "vless", "target_channel": "awg3",
@@ -5796,13 +5821,14 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             ))
         self.assertEqual(result["final_verdict"], "PASS", result)
         self.assertEqual(self.sync._plain_live_value(live, "CURRENT_VLESS_UNRESOLVED_SCOPE"), "4")
-        self.assertEqual(self.sync._plain_live_value(live, "CURRENT_SAFE_NEXT_ACTION").split()[0], "CONTINUE")
+        self.assertTrue(
+            self.sync._plain_live_value(live, "CURRENT_SAFE_NEXT_ACTION").startswith("Audit and repair"),
+        )
 
     def test_already_consumed_feedback_does_not_compare_against_newer_live_scope(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "docs/programs").mkdir(parents=True)
-            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+            self.copy_canonical_reconciliation_inputs(root)
             feedback = {
                 "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_idempotent_scope",
                 "packet_id": "pkt_idempotent_scope", "user": "10.0.0.2", "source_channel": "vless", "target_channel": "awg3",
@@ -6081,7 +6107,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertFalse(obligation["runtime_mutation_performed"])
             self.assertEqual(obligation["users_moved"], 0)
 
-    def test_active_standing_policy_reuses_matching_controlled_target_when_ordinary_planner_has_none(self):
+    def test_active_standing_policy_does_not_reuse_controlled_target_when_ordinary_planner_has_none(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"
             state_dir.mkdir()
@@ -6187,16 +6213,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         obligation = result["obligation"]
         self.assertEqual(
             obligation["stop_safe_classification"],
-            "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED",
+            "STOP_SAFE_NO_SAFE_TARGET",
         )
-        selection = obligation["action_class_execution_boundary"][
-            "ct_m0f_controlled_selection"
-        ]
-        self.assertEqual(selection["target"], "execution-target")
-        self.assertTrue(selection["read_only"])
-        self.assertEqual(
-            selection["binding_mode"],
-            "PROSPECTIVE_PASSIVE_OBLIGATION_BINDING",
+        self.assertNotIn(
+            "ct_m0f_controlled_selection",
+            obligation["action_class_execution_boundary"],
         )
         self.assertFalse(obligation["runtime_mutation_performed"])
         self.assertEqual(
@@ -6411,12 +6432,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "NOT_TERMINAL; existing Matrix owner retains the continuing incident and exact durable successor",
             )
 
-    def test_policy_reconciliation_authoritative_empty_runtime_scope_supersedes_stale_cps(self):
+    def test_policy_reconciliation_does_not_supersede_active_stability_foundation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            self.copy_canonical_reconciliation_inputs(root)
             cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
-            cps_path.parent.mkdir(parents=True)
-            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", cps_path)
             source = cps_path.read_text(encoding="utf-8")
             live = self.sync._markdown_field_table(self.sync._markdown_section(
                 source, "## 0. Authoritative Live Current State",
@@ -6466,10 +6486,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             result = self.sync.reconcile_active_standing_delegated_policy_to_cps(
                 runtime_status, root=root,
             )
-            self.assertEqual(result["final_verdict"], "PASS", result)
-            self.assertEqual(
-                result["next_action"],
-                "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+            self.assertEqual(result["final_verdict"], "STOP_SAFE", result)
+            self.assertIn(
+                "functional_footprint_mismatch:CURRENT_COMPLETION_CONTRACT",
+                result["errors"],
             )
             updated = cps_path.read_text(encoding="utf-8")
             updated_live = self.sync._markdown_field_table(self.sync._markdown_section(
@@ -6477,68 +6497,13 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "## Authoritative Unfinished Capability Closure Registry",
             ))
             self.assertEqual(
-                updated_live["CURRENT_AUTHORITY_REQUEST_ID"].strip("`"),
-                runtime_status["authority_request_id"],
+                updated_live["CURRENT_NEXT_ACTION_ID"].strip("`"),
+                "RECOVERY_STABILITY_FOUNDATION",
             )
             self.assertEqual(
-                updated_live["CURRENT_TIER_AUTHORITY_REQUEST_STATUS"].strip("`"),
-                "NONE",
+                updated_live["CURRENT_COMPLETION_CONTRACT"].strip("`"),
+                "RECOVERY_STABILITY_FOUNDATION",
             )
-            self.assertEqual(
-                updated_live["CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER"].strip("`"),
-                "TIER_4_CURRENT_STANDING_POLICY",
-            )
-            self.assertEqual(
-                updated_live["CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER"].strip("`"),
-                "TIER_4_SERIAL_COHORT",
-            )
-            self.assertEqual(
-                updated_live["CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER"].strip("`"),
-                "TIER_1_CURRENT_CLASS; GENERIC_MOVEMENT_PRODUCTION_EVIDENCE_REUSED_TO_48; "
-                "SERVICE_FAILURE_CONTROLLED_TIERS_5_10_25_48_PENDING",
-            )
-            self.assertEqual(
-                updated_live["PRODUCT_EVOLUTION_FRONTIER"].strip("`"),
-                "EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED",
-            )
-            self.assertEqual(
-                updated_live["INCIDENT_FRONTIER"].strip("`"),
-                "CURRENT_SOURCE_SCOPE_EMPTY",
-            )
-            self.assertEqual(
-                updated_live["CURRENT_VLESS_UNRESOLVED_SCOPE"].strip("`"), "0",
-            )
-            self.assertEqual(
-                updated_live["CURRENT_VLESS_INCIDENT_ID"].strip("`"), "NONE_OPEN",
-            )
-            self.assertEqual(
-                updated_live["CURRENT_VLESS_SCOPE_PROJECTION_STATUS"].strip("`"),
-                "PASS_AUTHORITATIVE_NO_OPEN_CURRENT_VLESS_INCIDENT",
-            )
-            self.assertEqual(
-                updated_live["PRIMARY_ENGINEERING_FRONTIER"].strip("`"),
-                "SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE",
-            )
-            self.assertEqual(
-                updated_live["PRIMARY_ENGINEERING_NEXT_ACTION"].strip("`"),
-                "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-            )
-            self.assertTrue(
-                result["action_class_reuse_projection"][
-                    "current_incident_projection_authoritative"
-                ]
-            )
-            self.assertEqual(
-                result["action_class_reuse_projection"]["legal_terminal"],
-                "EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED",
-            )
-            tier_matrix = {
-                row["tier"]: row
-                for row in result["action_class_reuse_projection"][
-                    "service_failure_adapter_tier_matrix"
-                ]
-            }
-            self.assertEqual(tier_matrix[4]["exact_residual"], "NONE")
 
     def test_policy_reconciliation_rejects_unproven_tier_request_transition(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -6921,8 +6886,8 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(result["forbidden_effects"]["routing_mutation"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 
-    def test_recovery_receipt_closes_old_episode_after_new_service_failure(self):
-        """A later failure is a new episode, not a retroactive reopening."""
+    def test_recovery_receipt_reopens_current_episode_after_new_service_failure(self):
+        """A later failure must re-enter the current live recovery path."""
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)
             (state_dir / "service-matrix.json").write_text(json.dumps({
@@ -6974,10 +6939,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
         record = state["incidents"]["old"]
         self.assertEqual(result["recovery_terminal_reconciliation"]["changed"], 1)
-        self.assertEqual(record["incident_state"], "INTENT_CLOSED")
+        self.assertEqual(record["incident_state"], "OPEN")
         self.assertEqual(
             record["attempt_terminal"],
-            "RECOVERY_OBSERVED_NEW_FAILURE_GENERATION_SEPARATE",
+            "RECOVERY_OBSERVED_NEW_FAILURE_GENERATION_REOPENED",
         )
         self.assertEqual(
             record["current_source_scope"]["current_matrix_relation"],
@@ -8255,8 +8220,7 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
     def test_production_receipt_reconciles_source_cps_without_second_receipt(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "docs/programs").mkdir(parents=True)
-            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+            self.copy_canonical_reconciliation_inputs(root)
             receipt = {
                 "object_type": "service_failure_automation_omp_consumption",
                 "object_id": "sfomp_source_test",
@@ -8281,23 +8245,11 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
             self.assertEqual(result["receipt"]["object_id"], "sfomp_source_test")
             self.assertTrue(result["atomic_update"]["ok"])
 
-    def test_historical_safe_receipt_cannot_replace_active_standing_policy_frontier(self):
+    def test_historical_safe_receipt_cannot_replace_active_stability_frontier(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "docs/programs").mkdir(parents=True)
+            self.copy_canonical_reconciliation_inputs(root)
             cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
-            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", cps_path)
-            text = cps_path.read_text(encoding="utf-8")
-            for field, value in (
-                ("ACTIVE_PROGRAM", "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"),
-                ("CURRENT_AUTHORITY_REQUEST_STATUS", "ACTIVE_OWNER_BACKED_STANDING_POLICY"),
-                ("CURRENT_NEXT_ACTION_ID", "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION"),
-            ):
-                text = self.sync._replace_section_field(
-                    text, "## 0. Authoritative Live Current State",
-                    "## Authoritative Unfinished Capability Closure Registry", field, f"`{value}`",
-                )
-            cps_path.write_text(text, encoding="utf-8")
             receipt = {
                 "object_type": "service_failure_automation_omp_consumption",
                 "object_id": "sfomp_historical_safe", "closure_state": "OMP_CONSUMED",
@@ -8315,12 +8267,12 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
             }
             result = self.sync.reconcile_service_failure_automation_receipt_to_cps(receipt, root=root)
             self.assertEqual(result["final_verdict"], "PASS", result)
-            self.assertEqual(result["status"], "HISTORICAL_RECEIPT_CONSUMED_ACTIVE_STANDING_POLICY_PRESERVED")
+            self.assertEqual(result["status"], "RUNTIME_RECEIPT_RECORDED_STABILITY_FOUNDATION_PRESERVED")
             live = self.sync._markdown_field_table(self.sync._markdown_section(
                 cps_path.read_text(encoding="utf-8"), "## 0. Authoritative Live Current State",
                 "## Authoritative Unfinished Capability Closure Registry",
             ))
-            self.assertEqual(self.sync._plain_live_value(live, "CURRENT_NEXT_ACTION_ID"), "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION")
+            self.assertEqual(self.sync._plain_live_value(live, "CURRENT_NEXT_ACTION_ID"), "RECOVERY_STABILITY_FOUNDATION")
             self.assertEqual(self.sync._plain_live_value(live, "LAST_SERVICE_FAILURE_RECEIPT_ID"), "sfomp_historical_safe")
 
     def test_fresh_m5a_request_is_atomically_projected_without_contract_or_packet(self):
@@ -8381,15 +8333,16 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
         }
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "docs/programs").mkdir(parents=True)
+            self.copy_canonical_reconciliation_inputs(root)
             cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
-            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", cps_path)
             result = self.sync.reconcile_action_class_contract_request_to_cps(reconciliation, root=root)
-            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertEqual(result["final_verdict"], "STOP_SAFE", result)
+            self.assertIn(
+                "functional_footprint_mismatch:CURRENT_COMPLETION_CONTRACT",
+                result["atomic_update"]["errors"],
+            )
             text = cps_path.read_text(encoding="utf-8")
-            self.assertIn(f"| `CURRENT_AUTHORITY_REQUEST_ID` | `{request['request_id']}` |", text)
-            self.assertIn("| `CURRENT_PACKET` | `NONE` |", text)
-            self.assertIn("| `CURRENT_LEASE` | `NONE` |", text)
+            self.assertNotIn(f"| `CURRENT_AUTHORITY_REQUEST_ID` | `{request['request_id']}` |", text)
             self.assertFalse(result["contract_written"])
             self.assertFalse(result["packet_created"])
 

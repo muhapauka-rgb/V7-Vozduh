@@ -265,8 +265,13 @@ emit_fast_producer_timing_receipt() {
   # emitted, and no recovery owner reads this output.
   [ "$FAST_PRODUCER_MONOTONIC_STARTED_NS" -gt 0 ] 2>/dev/null || return 0
   receipt_finished_ns="$(monotonic_ns)"
+  contract_build_ms=0
+  if [ "$FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS" -gt 0 ] 2>/dev/null \
+      && [ "$FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS" -ge "$FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS" ] 2>/dev/null; then
+    contract_build_ms="$(( (FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS - FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS) / 1000000 ))"
+  fi
   printf 'V7_EGRESS_DIAGNOSE_TIMING contract_build_ms=%s producer_to_receipt_ms=%s commit_output_ms=%s script_total_ms=%s\n' \
-    "$(( (FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS - FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS) / 1000000 ))" \
+    "$contract_build_ms" \
     "$(( (receipt_finished_ns - FAST_PRODUCER_MONOTONIC_STARTED_NS) / 1000000 ))" \
     "$FAST_PRODUCER_COMMIT_OUTPUT_WALL_MS" \
     "$(( (receipt_finished_ns - FAST_PRODUCER_SCRIPT_STARTED_NS) / 1000000 ))"
@@ -1157,10 +1162,12 @@ write_fast_producer_telemetry() {
   printf 'fast_producer_consumer_wake_count=%s\n' "$PROFILE_SERVICE_CONSUMER_WAKE_COUNT" >> "$TMP"
   printf 'fast_producer_concurrency_cap=%s\n' "$FAST_PRODUCER_CONCURRENCY" >> "$TMP"
   printf 'fast_producer_max_inflight=%s\n' "$FAST_PRODUCER_MAX_INFLIGHT" >> "$TMP"
+  contract_build_ms=0
   if [ "$FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS" -gt 0 ] 2>/dev/null \
-      && [ "$FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS" -gt 0 ] 2>/dev/null; then
-    printf 'fast_producer_contract_build_wall_ms=%s\n' "$(( (FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS - FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS) / 1000000 ))" >> "$TMP"
+      && [ "$FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS" -ge "$FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS" ] 2>/dev/null; then
+    contract_build_ms="$(( (FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS - FAST_PRODUCER_CONTRACT_BUILD_STARTED_NS) / 1000000 ))"
   fi
+  printf 'fast_producer_contract_build_wall_ms=%s\n' "$contract_build_ms" >> "$TMP"
   if [ "$FAST_PRODUCER_MONOTONIC_STARTED_NS" -gt 0 ] 2>/dev/null; then
     fast_producer_finished_ns="$(monotonic_ns)"
     printf 'fast_producer_outer_wall_ms=%s\n' "$(( (fast_producer_finished_ns - FAST_PRODUCER_MONOTONIC_STARTED_NS) / 1000000 ))" >> "$TMP"

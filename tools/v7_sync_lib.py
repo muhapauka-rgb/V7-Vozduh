@@ -9080,6 +9080,88 @@ def reconcile_service_failure_automation_receipt_to_cps(
         cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
     ))
     receipt_id = str(receipt.get("object_id") or "")
+    if _is_recovery_stability_foundation_frontier(live):
+        # A normal Runtime receipt is evidence for the active Foundation, not
+        # permission to replace that active Mission with the historical M1
+        # frontier.  Preserve the current owner/next-action projection while
+        # recording the exact immutable receipt identity for replay safety.
+        if _plain_live_value(live, "LAST_SERVICE_FAILURE_RECEIPT_ID") == receipt_id:
+            return {
+                "schema_version": "v7.service-failure-automation-source-cps-reconciliation.v1",
+                "final_verdict": "PASS",
+                "status": "RECEIPT_ALREADY_CONSUMED_STABILITY_FOUNDATION_PRESERVED",
+                "production_receipt_id": receipt_id,
+                "receipt": receipt,
+                "behavior_change": False,
+                "forbidden_effects": {
+                    "runtime_apply": False,
+                    "routing_mutation": False,
+                    "user_movement": False,
+                    "authority_expansion": False,
+                },
+                "errors": [],
+            }
+        receipt_fingerprint = hashlib.sha256(json.dumps({
+            "receipt_id": receipt_id,
+            "source_incident_id": receipt["source_incident_id"],
+            "decision_trace_id": receipt["decision_trace_id"],
+            "classification": receipt["classification"],
+        }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        state = _normalized_state_from_live_cps(cps_text)
+        state.update({
+            "state_captured": utc_now(),
+            "current_state_generation": (
+                f"cpsgen_SFA_STABILITY_RECEIPT_{receipt_fingerprint[:12].upper()}"
+            ),
+            "current_transition_id": (
+                "RECOVERY_STABILITY_RUNTIME_RECEIPT_RECORDED_V1"
+            ),
+        })
+        atomic = atomic_reconcile_cps(
+            cps_path,
+            state=state,
+            request_external_wake=False,
+            expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+            section0_field_overrides={
+                "LAST_SERVICE_FAILURE_RECEIPT_ID": f"`{receipt_id}`",
+                "LAST_SERVICE_FAILURE_RECEIPT_FINGERPRINT": (
+                    f"`{receipt_fingerprint}`"
+                ),
+                "LAST_SERVICE_FAILURE_RECEIPT_CLASSIFICATION": (
+                    f"`{receipt['classification']}`"
+                ),
+                "LAST_SERVICE_FAILURE_RECEIPT_SOURCE_INCIDENT": (
+                    f"`{receipt['source_incident_id']}`"
+                ),
+                "LAST_SERVICE_FAILURE_RECEIPT_DECISION_TRACE": (
+                    f"`{receipt['decision_trace_id']}`"
+                ),
+                "LAST_SERVICE_FAILURE_RECEIPT_CONSUMPTION": (
+                    "`RUNTIME_RECEIPT_RECORDED_STABILITY_FOUNDATION_PRESERVED`"
+                ),
+            },
+        )
+        return {
+            "schema_version": "v7.service-failure-automation-source-cps-reconciliation.v1",
+            "final_verdict": "PASS" if atomic.get("ok") else "STOP_SAFE",
+            "status": (
+                "RUNTIME_RECEIPT_RECORDED_STABILITY_FOUNDATION_PRESERVED"
+                if atomic.get("ok") else "CPS_UPDATE_FAILED"
+            ),
+            "production_receipt_id": receipt_id,
+            "receipt": receipt,
+            "atomic_update": atomic,
+            "behavior_change": bool(atomic.get("ok")),
+            "forbidden_effects": {
+                "runtime_apply": False,
+                "routing_mutation": False,
+                "user_movement": False,
+                "authority_expansion": False,
+            },
+            "errors": [] if atomic.get("ok") else atomic.get("errors") or [
+                "cps_receipt_projection_failed"
+            ],
+        }
     active_standing_policy = (
         _plain_live_value(live, "ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID
         and _plain_live_value(live, "CURRENT_AUTHORITY_REQUEST_STATUS") == "ACTIVE_OWNER_BACKED_STANDING_POLICY"
@@ -11233,34 +11315,43 @@ def reconcile_service_failure_execution_feedback_to_cps(
         "packet_id": packet_id,
         "terminal": terminal,
     }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    stability_foundation_active = _is_recovery_stability_foundation_frontier(live)
     state = _normalized_state_from_live_cps(cps_text)
     state.update({
         "state_captured": utc_now(),
         "current_state_generation": f"cpsgen_SFA_EXEC_{fingerprint[:12].upper()}",
         "current_transition_id": "SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1",
-        "current_active_scope": (
-            "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN"
-            if scope_available and unresolved_scope_count > 0
-            else "SERVICE_FAILURE_AUTOMATION_PARTIALLY_PROTECTED_INCIDENT_ACTIVE"
-        ),
-        "current_safe_next_action": (
-            "CONTINUE THE SAME UNRECOVERED INCIDENT THROUGH A FRESH MATRIX REVALIDATION; "
-            "each next operation requires a new Candidate, Packet and lease under the existing standing policy"
-            if scope_available and unresolved_scope_count > 0 else
-            "PRESERVE THE EXACT EXECUTION FEEDBACK; REMAIN READY FOR A FRESH OWNER-BACKED "
-            "MATCHING SERVICE FAILURE BEFORE ANY NEW CANDIDATE/PACKET/LEASE"
-        ),
-        "transaction_terminal_class": terminal,
-        "verification_result": "PASS" if success else "ROLLBACK_SUCCESS",
-        "rollback_result": "NOT_REQUIRED" if success else "ROLLBACK_COMPLETED",
-        "learning_result": "EXISTING_EXECUTION_FEEDBACK_CONSUMED",
-        "user_movement": "ONE_BOUNDED_USER_MOVED_IN_EXECUTION_FEEDBACK; no scope expansion",
-        "source_summary": (
-            "The existing Matrix -> delegated Packet -> execution-feedback chain consumed one exact "
-            "service-failure revalidation outcome into CPS; remaining scope requires a fresh matching event "
-            "and fresh Candidate/Packet/lease identities."
-        ),
     })
+    if not stability_foundation_active:
+        # Older Program frontiers use this receipt to advance their primary
+        # execution state.  The active Stability Foundation is different: it
+        # is the current prerequisite being exercised by this receipt, so
+        # overwriting it would turn a valid recovery observation into a CPS/
+        # OMP contradiction and strand the next recovery reconciliation.
+        state.update({
+            "current_active_scope": (
+                "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN"
+                if scope_available and unresolved_scope_count > 0
+                else "SERVICE_FAILURE_AUTOMATION_PARTIALLY_PROTECTED_INCIDENT_ACTIVE"
+            ),
+            "current_safe_next_action": (
+                "CONTINUE THE SAME UNRECOVERED INCIDENT THROUGH A FRESH MATRIX REVALIDATION; "
+                "each next operation requires a new Candidate, Packet and lease under the existing standing policy"
+                if scope_available and unresolved_scope_count > 0 else
+                "PRESERVE THE EXACT EXECUTION FEEDBACK; REMAIN READY FOR A FRESH OWNER-BACKED "
+                "MATCHING SERVICE FAILURE BEFORE ANY NEW CANDIDATE/PACKET/LEASE"
+            ),
+            "transaction_terminal_class": terminal,
+            "verification_result": "PASS" if success else "ROLLBACK_SUCCESS",
+            "rollback_result": "NOT_REQUIRED" if success else "ROLLBACK_COMPLETED",
+            "learning_result": "EXISTING_EXECUTION_FEEDBACK_CONSUMED",
+            "user_movement": "ONE_BOUNDED_USER_MOVED_IN_EXECUTION_FEEDBACK; no scope expansion",
+            "source_summary": (
+                "The existing Matrix -> delegated Packet -> execution-feedback chain consumed one exact "
+                "service-failure revalidation outcome into CPS; remaining scope requires a fresh matching event "
+                "and fresh Candidate/Packet/lease identities."
+            ),
+        })
     scope_text = (
         f"; scope affected={affected_scope_count}, protected={protected_scope_count}, "
         f"unresolved={unresolved_scope_count}, excluded_or_recovered={excluded_scope_count}; "

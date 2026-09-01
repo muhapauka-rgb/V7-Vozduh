@@ -7127,6 +7127,115 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             rejected = self.sync.service_failure_direct_execution_handoff(state_dir=state_dir)
             self.assertEqual(rejected["final_verdict"], "NO_CURRENT_DIRECT_HANDOFF", rejected)
 
+    def test_recovery_stability_deterministic_current_scope_handoff_soak(self):
+        """Exercise 50 initial and 100 final current-scope transitions.
+
+        This is intentionally a test-only Polygon fixture over the existing
+        L3 direct-handoff owner.  It creates no Candidate, Packet, Lease or
+        route action.  Each turn varies the current source/scope while leaving
+        a conflicting historical READY record present, proving that the exact
+        current Matrix-bound identity selects only its own existing obligation.
+        """
+        results = []
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for transition in range(1, 101):
+                state_dir = root / f"transition-{transition}"
+                state_dir.mkdir()
+                source = ("vless", "awg0", "awg3")[transition % 3]
+                scope_count = 1 + (transition % 4)
+                current_fingerprint = hashlib.sha256(
+                    f"current:{source}:{transition}:{scope_count}".encode()
+                ).hexdigest()
+                historical_fingerprint = hashlib.sha256(
+                    f"historical:{source}:{transition}".encode()
+                ).hexdigest()
+                current_incident = f"sfinc-current-{transition}"
+                historical_incident = f"sfinc-historical-{transition}"
+                current_scope = {
+                    "status": "ACCOUNTED",
+                    "affected_scope_count": scope_count,
+                    "protected_scope_count": 0,
+                    "unresolved_scope_count": scope_count,
+                    "explicitly_excluded_or_recovered_scope_count": 0,
+                    "affected_scope_fingerprint": current_fingerprint,
+                }
+                historical_scope = {
+                    **current_scope,
+                    "affected_scope_count": 0,
+                    "unresolved_scope_count": 0,
+                    "affected_scope_fingerprint": historical_fingerprint,
+                }
+                current_obligation = {
+                    "object_type": "service_failure_automation_obligation",
+                    "automation_obligation_id": f"sfaob-current-{transition}",
+                    "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                    "automation_consumption_fingerprint": hashlib.sha256(
+                        f"obligation-current:{transition}".encode()
+                    ).hexdigest(),
+                    "source_incident_id": current_incident,
+                    "channel": source,
+                    "situation_id": f"sit-current-{transition}",
+                    "decision_trace_id": f"dec-current-{transition}",
+                    "current_source_scope": current_scope,
+                }
+                historical_obligation = {
+                    **current_obligation,
+                    "automation_obligation_id": f"sfaob-historical-{transition}",
+                    "automation_consumption_fingerprint": hashlib.sha256(
+                        f"obligation-historical:{transition}".encode()
+                    ).hexdigest(),
+                    "source_incident_id": historical_incident,
+                    "situation_id": f"sit-historical-{transition}",
+                    "decision_trace_id": f"dec-historical-{transition}",
+                    "current_source_scope": historical_scope,
+                }
+                (state_dir / "closure-records.jsonl").write_text(
+                    "\n".join(
+                        json.dumps(row)
+                        for row in (historical_obligation, current_obligation)
+                    ) + "\n",
+                    encoding="utf-8",
+                )
+                (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                    "incidents": {
+                        "historical": {
+                            "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                            "incident_id": historical_incident,
+                            "channel": source,
+                            "incident_state": "INTENT_CLOSED",
+                            "current_source_scope": historical_scope,
+                        },
+                        "current": {
+                            "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                            "incident_id": current_incident,
+                            "channel": source,
+                            "incident_state": "OPEN",
+                            "obligation_id": current_obligation["automation_obligation_id"],
+                            "current_source_scope": current_scope,
+                        },
+                    },
+                }), encoding="utf-8")
+                result = self.sync.service_failure_direct_execution_handoff(
+                    state_dir=state_dir,
+                    source_incident_id=current_incident,
+                    source_scope_fingerprint=current_fingerprint,
+                )
+                self.assertEqual(result["final_verdict"], "READY", result)
+                self.assertEqual(
+                    result["obligation"]["automation_obligation_id"],
+                    current_obligation["automation_obligation_id"],
+                )
+                self.assertEqual(result["obligation"]["source_incident_id"], current_incident)
+                results.append(result)
+
+        self.assertEqual(len(results[:50]), 50)
+        self.assertEqual(len(results), 100)
+        self.assertTrue(all(
+            row["handoff_origin"] == "EXISTING_READY_L3_OBLIGATION_WITHOUT_RECEIPT"
+            for row in results
+        ))
+
     def test_l3_direct_handoff_selects_one_matrix_bound_current_incident(self):
         """A Matrix source identity narrows historical ready handoffs safely."""
         with tempfile.TemporaryDirectory() as tmp:

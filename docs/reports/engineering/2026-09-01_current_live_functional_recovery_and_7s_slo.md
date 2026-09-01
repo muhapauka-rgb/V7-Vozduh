@@ -53,3 +53,15 @@ The preceding retries stopped lawfully because another governed transaction held
 ## Exact next step
 
 Use the existing execution-control and governed-transaction owners to determine whether unrelated ordinary recovery scopes can use bounded independent operation windows without weakening exact Packet/Lease/Barrier ownership.  In parallel, measure which portion of required-service S11 is mandatory versus duplicated post-apply work.  Any change must preserve automatic V7 provenance and then be re-proved by a fresh live ordinary failure; Codex must not move the client.
+
+## S11 residual correction deployed after the live receipt
+
+The live S11 verifier spent `4,737.877 ms`.  The profile required Telegram together with other services, so its regular invocation included two optional Telegram diagnostic endpoints; one waited about four seconds.  Those endpoints are not part of the profile's S11 contract.
+
+The existing Matrix verifier now accepts `--required-endpoints-only` for an observation-only service subset that *contains* Telegram, rather than only the legacy exact `telegram` subset.  The autoswitch owner applies that mode whenever Telegram is part of an ordinary profile.  All selected profile services remain checked in parallel; all five required Telegram endpoints remain checked; full canonical Matrix diagnostics remain unchanged.
+
+* Commit: `61edfb75` — `Limit mixed-profile Telegram S11 to required endpoints`.
+* Verification: focused mixed-profile and existing single-Telegram verifier tests passed; full autoswitch policy suite: 242 passed; syntax and whitespace checks passed.
+* Deployed with the required health-service restart.  Runtime hashes now match the new local executables and both `v7-health.service` and `v7-admin-api.service` are active.
+
+There is no current enabled ordinary user on VLESS after the completed automatic recovery; the remaining VLESS registry entry is disabled.  No new live SLO sample was manufactured.  The next lawful live ordinary failure/replacement must prove the new S11 timing.

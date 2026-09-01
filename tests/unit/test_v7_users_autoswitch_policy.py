@@ -189,6 +189,63 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             ["required_service_s11_preserved"]
         )
 
+    def test_persistent_matrix_owner_defers_after_exact_packet_s11_when_flag_is_lost(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        planner.args = SimpleNamespace(
+            apply=True,
+            ordinary_service_failure_context=False,
+            defer_noncritical_finalization=False,
+        )
+        planner._performance_spans = []
+        planner._n10_packet_lease_file = ""
+        planner._operation_execution_control_window = {}
+        planner._terminal_verdict = lambda _plan: {
+            "terminal_state": "SUCCESS",
+            "terminal_reason": "all_members_verified",
+        }
+        planner._rollback_verdict = lambda _plan: {}
+        planner._terminal_audit_reference = lambda _plan, _rollback: {
+            "object_type": "operation", "object_id": "op-unit",
+        }
+        planner._emit_terminal_audit = lambda audit: {**audit, "emitted": True}
+        planner._closure_target = lambda _operation, _audit: {"status": "READY"}
+        planner._consume_passive_production_events = mock.Mock()
+        planner._l3_materialize_learning_closure = mock.Mock()
+        plan = {
+            "operation": {"operation_id": "op-unit"},
+            "selected_moves": [{
+                "user_ip": "10.7.0.126",
+                "current_egress": "vless",
+                "recommended_egress": "awg0",
+            }],
+            "safety": {"restore_barrier": {"approved_plan_lock": {
+                "service_failure_causal_binding": {
+                    "binding_kind": "ORDINARY_SERVICE_FAILURE_OBLIGATION",
+                    "source_incident_id": "incident-unit",
+                    "source_event_id": "event-unit",
+                    "source_channel": "vless",
+                    "source_scope": {
+                        "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+                        "affected_scope_count": 1,
+                    },
+                },
+            }}},
+            "apply_result": {
+                "applied": True,
+                "results": [{"terminal_outcome_classification": "SUCCESS"}],
+            },
+        }
+
+        with mock.patch.dict(os.environ, {"V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1"}):
+            planner.finalize_operation(plan)
+
+        planner._consume_passive_production_events.assert_not_called()
+        planner._l3_materialize_learning_closure.assert_not_called()
+        self.assertTrue(
+            plan["safety"]["noncritical_finalization_deferral"]
+            ["runtime_owned_hot_path"]
+        )
+
     def test_fast_profile_services_are_explicit_and_telegram_is_not_universal(self):
         # Planner ranking retains its historical best-effort defaults.
         self.assertEqual(

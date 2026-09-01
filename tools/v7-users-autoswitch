@@ -20950,10 +20950,31 @@ class AutoswitchPlanner:
             str(row.get("terminal_outcome_classification") or "") == "SUCCESS"
             for row in result_rows
         )
+        # The ordinary-failure flag normally crosses the Matrix -> governed
+        # executor boundary.  The immutable Packet binding is the stronger
+        # fallback when that transient CLI flag is lost.  On the persistent
+        # Matrix Runtime only, a successful exact ordinary Packet must return
+        # as soon as S11 and the safety-critical terminal writes are complete:
+        # otherwise passive-history and learning work serialise unrelated
+        # failed sources behind an already recovered customer.
+        packet_bound_ordinary_failure = (
+            self._packet_bound_ordinary_service_failure_context(plan)
+        )
+        ordinary_service_failure = bool(
+            getattr(self.args, "ordinary_service_failure_context", False)
+            or packet_bound_ordinary_failure
+        )
+        runtime_owned_hot_path = bool(
+            os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+            and packet_bound_ordinary_failure
+        )
         defer_noncritical = bool(
-            getattr(self.args, "defer_noncritical_finalization", False)
-            and getattr(self.args, "ordinary_service_failure_context", False)
-            and successful_s11
+            successful_s11
+            and ordinary_service_failure
+            and (
+                getattr(self.args, "defer_noncritical_finalization", False)
+                or runtime_owned_hot_path
+            )
         )
         if defer_noncritical:
             deferred = {
@@ -20981,6 +21002,8 @@ class AutoswitchPlanner:
                 "required_service_s11_preserved": True,
                 "rollback_semantics_changed": False,
                 "new_owner_created": False,
+                "runtime_owned_hot_path": runtime_owned_hot_path,
+                "packet_bound_ordinary_failure": packet_bound_ordinary_failure,
             }
             return plan
 

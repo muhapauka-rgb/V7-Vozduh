@@ -215,6 +215,76 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
 
         self.assertEqual((affected, t0_ns, incidents), (1, 2_000, {"sfinc_current"}))
 
+    def test_live_profile_failure_evidence_enforces_new_observation_boundary(self):
+        """The ten-second new-observation boundary is exact and deterministic."""
+        users = [self.autoswitch.User(
+            ip="10.7.0.127", current="vless", enabled=True,
+        )]
+        preferences = {"users": {"10.7.0.127": {"services": ["google"]}}}
+        now = 1_800_000_000.0
+
+        for age_seconds, expected_affected in (
+            (9.999, 1),
+            (10.000, 1),
+            (10.001, 0),
+        ):
+            observed_at = datetime.fromtimestamp(
+                now - age_seconds, timezone.utc
+            ).isoformat()
+            matrix = {"items": {"vless": {"services": {"google": {
+                "ok": False,
+                "status": "FAIL",
+                "failure_state": "OBSERVED_NEW",
+                "source_incident_id": "sfinc_boundary_new",
+                "confirmed_hard_failure_monotonic_ns": 2_000,
+                "observed_at": observed_at,
+            }}}}}
+            with mock.patch.dict(self.autoswitch.os.environ, {}, clear=True), \
+                 mock.patch.object(self.autoswitch.time, "time", return_value=now):
+                affected, _t0_ns, _incidents = (
+                    self.autoswitch.live_profile_failure_evidence(
+                        users=users, matrix=matrix,
+                        service_preferences=preferences, source="vless",
+                        require_current_observation=True,
+                    )
+                )
+            self.assertEqual(affected, expected_affected, age_seconds)
+
+    def test_live_profile_failure_evidence_enforces_continuing_observation_boundary(self):
+        """The 30-second continuing-observation boundary is exact and deterministic."""
+        users = [self.autoswitch.User(
+            ip="10.7.0.127", current="vless", enabled=True,
+        )]
+        preferences = {"users": {"10.7.0.127": {"services": ["google"]}}}
+        now = 1_800_000_000.0
+
+        for age_seconds, expected_affected in (
+            (29.999, 1),
+            (30.000, 1),
+            (30.001, 0),
+        ):
+            observed_at = datetime.fromtimestamp(
+                now - age_seconds, timezone.utc
+            ).isoformat()
+            matrix = {"items": {"vless": {"services": {"google": {
+                "ok": False,
+                "status": "FAIL",
+                "failure_state": "OBSERVED_CONTINUING",
+                "source_incident_id": "sfinc_boundary_continuing",
+                "confirmed_hard_failure_monotonic_ns": 2_000,
+                "observed_at": observed_at,
+            }}}}}
+            with mock.patch.dict(self.autoswitch.os.environ, {}, clear=True), \
+                 mock.patch.object(self.autoswitch.time, "time", return_value=now):
+                affected, _t0_ns, _incidents = (
+                    self.autoswitch.live_profile_failure_evidence(
+                        users=users, matrix=matrix,
+                        service_preferences=preferences, source="vless",
+                        require_current_observation=True,
+                    )
+                )
+            self.assertEqual(affected, expected_affected, age_seconds)
+
     def test_packet_bound_profile_failure_revalidates_current_matrix_event(self):
         """The route writer may consume the exact Packet-bound Matrix fact."""
         now = datetime.now(timezone.utc)

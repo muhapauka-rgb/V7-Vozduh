@@ -65,3 +65,14 @@ The existing Matrix verifier now accepts `--required-endpoints-only` for an obse
 * Deployed with the required health-service restart.  Runtime hashes now match the new local executables and both `v7-health.service` and `v7-admin-api.service` are active.
 
 There is no current enabled ordinary user on VLESS after the completed automatic recovery; the remaining VLESS registry entry is disabled.  No new live SLO sample was manufactured.  The next lawful live ordinary failure/replacement must prove the new S11 timing.
+
+### Non-mutating production verifier measurement
+
+The deployed verifier was measured on current healthy `awg3` with the exact five-service profile (`google`, `google_auth`, `instagram`, `telegram`, `youtube`) in observation-only mode.  It changed neither Matrix state, routes, nor user assignments.
+
+* all five required services passed;
+* all five required Telegram endpoints passed;
+* full S11 probe critical path: **824.718 ms**;
+* the previous live mixed-profile S11 was **4,737.877 ms**.
+
+This demonstrates a 3.9-second removable diagnostic delay has been removed while retaining the required profile contract.  It is a component measurement, not a replacement for a new complete automatic ordinary recovery receipt.

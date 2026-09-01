@@ -52,8 +52,18 @@ No new owner, timer, queue, registry or state source was added.
 
 ## Next evidence frontier
 
-Deploy through `tools/v7-safe-deploy`, confirm Runtime alignment, and wait
-only for the next ordinary V7-generated recovery event. The normal Runtime
-must then prove the full three clocks separately: placement-to-observation,
-observation-to-last-member S11, and full visible recovery. This prior
+The repair was published and deployed through `tools/v7-safe-deploy`.
+The safe-deploy gate, GitHub check and subsequent Runtime truth check passed;
+the local and production executables are identical, and the health and admin
+services are active.
+
+The ordinary runtime has no current enabled user on the failed source. The
+ordinary identities from the preceding live incident are on healthy sources.
+No route was changed for this observation. Therefore there is no lawful live
+production input to generate a new SLO sample at this moment.
+
+The next evidence frontier is the next operator-created bad placement or an
+existing-owner-admitted Polygon transaction. The normal Runtime must then
+prove the three clocks separately: placement-to-observation,
+observation-to-last-member S11, and full visible recovery. The preceding
 standing incident remains functional proof, not a fresh 7-second SLO sample.

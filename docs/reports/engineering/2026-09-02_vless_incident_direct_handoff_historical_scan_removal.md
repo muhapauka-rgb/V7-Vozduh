@@ -446,3 +446,27 @@ Separately, the Admin should expose an unmistakable disabled/ineligible state
 for such historical rows so they cannot be mistaken for a live recovery
 cohort; this is an observability correction, not an automatic enable or a
 manual recovery action.
+
+## Follow-up live ordinary-source precedent
+
+The reported real case was not limited to VLESS.  A fresh all-source join of
+the current Matrix, registry and profile owner found one enabled ordinary
+source with four profile-required service mismatches.  The normal
+`other_required` health role independently confirmed the Matrix evidence and
+performed two governed recovery transactions without any Codex route action:
+
+- a three-member transaction completed in **25.214 s** from the fresh Matrix
+  T0;
+- a subsequent one-member transaction completed in **13.675 s** from T0.
+
+Both are functionally valid automatic recoveries, but both exceed the binding
+seven-second SLO.  The dominant measured residual was governed apply and
+verification (about 16.0 s and 5.1 s respectively), not operator activity or
+manual target selection.
+
+After completion, a new full all-source read showed 75 enabled ordinary
+clients on three healthy sources and **zero** active profile/service
+mismatches.  This proves recovery happened, not that the latency objective is
+closed.  The next implementation frontier is the existing governed
+apply-and-verification residual; no historical VLESS row should be used as a
+substitute test.

@@ -285,9 +285,51 @@ health resumes only from the next real existing-owner probe.
 Focused schema-recovery and admission-summary tests passed, followed by the
 full `test_service_failure_episode` suite: **143/143 passed**.
 
+### Runtime confirmation and operation-window re-entry repair
+
+The schema repair was committed as `5210edd2585c57c696cb71abc3028b47210be6e0`,
+published to `Updatesystem`, and safely deployed.  The normal Matrix owner
+then rewrote the live `items` value as a keyed map with seven current egress
+entries.  `v7-health.service` remained active.  This is Runtime evidence, not
+an inferred repair.
+
+A fresh Runtime-originated profile-service incident subsequently reached the
+existing governed consumer.  It stopped with
+`active_operation_control_window_in_progress`: a different bounded governed
+transaction owned the existing operation-control window at that exact instant.
+The consumer correctly did not bypass it, choose a customer, or write a route.
+
+The defect was the later re-entry: the prepared Matrix projection did not
+include the current operation-control state in its existing invalidator set.
+When the other transaction finalized, the health owner therefore had no lawful
+changed binding with which to revisit the still-current incident.
+
+The bounded correction changes only the existing Planner/Matrix prepared
+invalidator:
+
+1. it fingerprints the current existing operation-control state (open/closed,
+   scope, generation, operation binding, expiry and validity);
+2. it joins the already-existing prepared-selection invalidators;
+3. a transition from another operation's closed window back to open now
+   changes the same Matrix-owned binding exactly once;
+4. normal health Runtime re-enters its existing Matrix consumer, which still
+   performs all fresh source, Planner, Authority, Candidate, Packet, Lease,
+   Barrier, route and required-service checks.
+
+It creates no retry worker, queue, timer, Registry, Planner, Matrix owner or
+state source.  It does not relax the live operation window, create an action,
+or move a client.  A stable open state produces the same fingerprint, so a
+continuing incident cannot become a loop.
+
+Verification before deployment: `test_service_failure_episode` plus
+`test_v7_health_fast_deadline_loop`: **179/179 passed**.  The new test proves
+that the existing window's `OPEN -> CLOSED -> OPEN` lifecycle changes the
+prepared invalidator only while another operation owns the window.
+
 ### Exact next step
 
-Complete focused verification and safely deploy the duplicate-advisory repair.
-Then let the normal V7 caller process the next current incident and use the
-preserved owner output to isolate why every candidate/capacity row was rejected.
-No manual client movement is permitted or used as evidence.
+Safely deploy the operation-window re-entry repair.  Then observe the normal
+V7 health caller process the continuing current incident without any manual
+client, target, route-writer, Candidate, Packet, Lease or Barrier action by
+Codex.  Record the first Runtime result, including either governed recovery or
+the exact remaining owner gate.

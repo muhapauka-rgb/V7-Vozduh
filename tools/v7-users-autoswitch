@@ -90,6 +90,7 @@ PREPARED_SELECTION_INVALIDATOR_KEYS = (
     "policy_authority_generation",
     "organization_policy_generation",
     "service_routing_generation",
+    "active_operation_generation",
 )
 PREPARED_PROJECTION_PERIODIC_REBUILD_SECONDS = 300
 
@@ -540,10 +541,36 @@ def sha256_json(payload: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def active_operation_generation(
+    control_file: Path = DEFAULT_EXECUTION_CONTROL_FILE,
+) -> str:
+    """Fingerprint only the existing operation-control owner's live state.
+
+    A current profile failure is consumed once by the health Runtime.  When
+    that one attempt reaches a valid operation-scoped control window already
+    owned by another transaction, the same incident must become eligible for
+    one governed re-entry after that window returns to OPEN.  The operation
+    control owner already publishes exactly that boundary; projecting its
+    compact state here avoids both a retry loop and a second ownership source.
+    """
+    state = operator_execution.autonomous_execution_control_state(control_file)
+    semantic = {
+        "state": str(state.get("state") or "UNKNOWN"),
+        "scope": str(state.get("scope") or ""),
+        "generation": str(state.get("generation") or ""),
+        "operation_id": str(state.get("operation_id") or ""),
+        "valid_until": str(state.get("valid_until") or ""),
+        "valid": bool(state.get("valid")),
+        "blockers": sorted(str(value) for value in (state.get("blockers") or [])),
+    }
+    return sha256_json(semantic)
+
+
 def build_prepared_class_decision_projection(
     plan: dict[str, Any], *, ordinary_user_ips: Optional[set[str]] = None,
     ordinary_user_assignments: Optional[dict[str, str]] = None,
     ordinary_contingency_sources: Optional[set[str]] = None,
+    execution_control_file: Optional[Path] = None,
 ) -> dict[str, Any]:
     """Compact the existing Planner result for pre-incident fast validation.
 
@@ -810,7 +837,9 @@ def build_prepared_class_decision_projection(
         "target_health_and_path_generation": str(volatile_inputs.get("service_matrix") or ""),
         "capacity_reservation_generation": str(volatile_inputs.get("egress_speed") or ""),
         "anti_flap_generation": str(volatile_inputs.get("autoswitch_safety") or ""),
-        "active_operation_generation": str((plan.get("operation") or {}).get("operation_id") or ""),
+        "active_operation_generation": active_operation_generation(
+            execution_control_file or DEFAULT_EXECUTION_CONTROL_FILE
+        ),
         "rollback_target_availability_generation": str(volatile_inputs.get("service_matrix") or ""),
     }
     fact_freshness = {
@@ -997,6 +1026,9 @@ def current_prepared_selection_invalidators(args: argparse.Namespace) -> dict[st
         "service_routing_generation": stable_inputs["service_preferences"],
         "capacity_reservation_generation": sha256_file(state_dir / "egress-speed.json"),
         "anti_flap_generation": sha256_file(Path(args.safety_file)),
+        "active_operation_generation": active_operation_generation(
+            Path(getattr(args, "execution_control_file", DEFAULT_EXECUTION_CONTROL_FILE))
+        ),
     }
 
 
@@ -25664,6 +25696,9 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         ordinary_contingency_sources=ordinary_contingency_source_ids(
             Path(args.state_dir)
         ),
+        execution_control_file=Path(getattr(
+            args, "execution_control_file", DEFAULT_EXECUTION_CONTROL_FILE,
+        )),
     )
     prepared_freshness = validate_prepared_class_decision_projection(
         prepared_class_decisions,
@@ -33174,6 +33209,9 @@ def main() -> int:
             ordinary_contingency_sources=ordinary_contingency_source_ids(
                 Path(args.state_dir)
             ),
+            execution_control_file=Path(getattr(
+                args, "execution_control_file", DEFAULT_EXECUTION_CONTROL_FILE,
+            )),
         )
         freshness = validate_prepared_class_decision_projection(
             projection, projection.get("invalidators") or {},

@@ -2838,6 +2838,48 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(freshness["status"], "PREPARED_CLASS_DECISION_FRESH")
         self.assertFalse(freshness["world_model_rebuilt"])
 
+    def test_prepared_operation_generation_reenters_only_after_existing_window_changes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            control = Path(tmp) / "execution-control.json"
+            open_state = self.autoswitch.operator_execution.build_autonomous_execution_control_state(
+                True, actor="unit", reason="open",
+            )
+            self.autoswitch.operator_execution.write_json_atomic(control, open_state)
+            plan = {
+                "safety": {"generation": {"inputs": {}, "volatile_inputs": {}}},
+                "decisions": [],
+            }
+            open_projection = self.autoswitch.build_prepared_class_decision_projection(
+                plan, execution_control_file=control,
+            )
+            closed_state = self.autoswitch.operator_execution.build_autonomous_execution_control_state(
+                False,
+                actor="unit",
+                reason="other-operation",
+                operation_id="op_unit",
+                selected_move_hash="selected",
+                action_class="EMERGENCY_FAILOVER",
+                source_bundle_hash="source",
+                snapshot_bundle_hash="snapshot",
+                max_users=1,
+            )
+            self.autoswitch.operator_execution.write_json_atomic(control, closed_state)
+            closed_projection = self.autoswitch.build_prepared_class_decision_projection(
+                plan, execution_control_file=control,
+            )
+            self.assertNotEqual(
+                open_projection["invalidators"]["active_operation_generation"],
+                closed_projection["invalidators"]["active_operation_generation"],
+            )
+            self.autoswitch.operator_execution.write_json_atomic(control, open_state)
+            reopened_projection = self.autoswitch.build_prepared_class_decision_projection(
+                plan, execution_control_file=control,
+            )
+            self.assertEqual(
+                open_projection["invalidators"]["active_operation_generation"],
+                reopened_projection["invalidators"]["active_operation_generation"],
+            )
+
     def test_prepared_class_decision_consumer_rejects_changed_generation(self):
         projection = {
             "classes": [{"class_id": "pcd_unit"}],

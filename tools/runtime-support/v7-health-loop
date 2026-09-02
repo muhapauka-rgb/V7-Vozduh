@@ -978,9 +978,10 @@ class RoleHealthLoop:
         default_factory=dict,
     )
     # Last in-process Matrix result, retained only in this health-process
-    # memory so de-duplication can distinguish a completed transaction from
-    # the one known downstream-validation defect that must be retried by the
-    # normal caller after a generic repair.
+    # memory for the compact outcome receipt.  Every exact Matrix binding is
+    # consumed at most once here, including a governed STOP_SAFE result: a
+    # repeated attempt with unchanged evidence is not a new failure and must
+    # not monopolise the single health owner ahead of another current source.
     persistent_matrix_last_result: dict[str, Any] = field(default_factory=dict)
     # Process-local throttle for the existing Matrix/users owner reads while
     # a detector child is live. It is deliberately neither persisted nor used
@@ -1311,22 +1312,16 @@ class RoleHealthLoop:
             + json.dumps(receipt, sort_keys=True, separators=(",", ":")),
             flush=True,
         )
-        retryable_incomplete_action = bool(
-            isinstance(delegated, dict)
-            and delegated.get("action_attempted") is True
-            and delegated.get("action_completed") is False
-            and delegated.get("runtime_mutation_performed") is False
-            and str(delegated.get("status") or "") == "STOP_SAFE"
-            and str((delegated.get("consumer_result") or {}).get("stop_reason") or "")
-            == "l3_production_validation_downstream_proof_failed"
-        )
-        if retryable_incomplete_action:
-            # Matrix remains the owner.  This exception is intentionally
-            # narrow: the live health caller may reconsume an unchanged T0
-            # only while its own prior execution stopped before any routing
-            # mutation because current evidence was lost in the Packet cohort
-            # representation.  All other STOP_SAFE outcomes remain deduped.
-            return True
+        # A STOP_SAFE outcome is evidence, not permission to replay exactly
+        # the same incident immediately.  The former exception for a
+        # downstream-proof failure retried one unchanged source on every
+        # detector cycle.  Because this is a synchronous call in the existing
+        # health owner, that retry starved unrelated fresh source bindings and
+        # could leave their affected users unrecovered indefinitely.  Matrix
+        # re-enters this path only on a changed exact binding (new incident,
+        # affected profile/service scope, or source assignment), preserving
+        # fail-closed semantics without creating another scheduler or state
+        # owner.
         self.persistent_matrix_last_consumed_t0_ns_by_role[key] = t0_ns
         if identity:
             self.persistent_matrix_last_consumed_identity_by_role[key] = identity

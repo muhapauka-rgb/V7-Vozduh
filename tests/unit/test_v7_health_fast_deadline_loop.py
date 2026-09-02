@@ -661,7 +661,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             ],
         )
 
-    def test_known_incomplete_downstream_validation_is_reconsumed_by_live_owner(self):
+    def test_known_incomplete_downstream_validation_is_deduped_until_matrix_binding_changes(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
         loop.persistent_matrix_ready = True
         incomplete = {
@@ -684,9 +684,12 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             loop, "_run_persistent_matrix_consumer", side_effect=incomplete_consumer,
         ) as consumer:
             self.assertTrue(loop._consume_new_persistent_matrix_t0(123_456))
-            self.assertTrue(loop._consume_new_persistent_matrix_t0(123_456))
-        self.assertEqual(consumer.call_count, 2)
-        self.assertEqual(loop.persistent_matrix_last_consumed_t0_ns_by_role, {})
+            self.assertFalse(loop._consume_new_persistent_matrix_t0(123_456))
+        self.assertEqual(consumer.call_count, 1)
+        self.assertEqual(
+            loop.persistent_matrix_last_consumed_t0_ns_by_role,
+            {"hard": 123_456},
+        )
 
     def test_profile_t0_is_not_suppressed_by_newer_unrelated_role_t0(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())

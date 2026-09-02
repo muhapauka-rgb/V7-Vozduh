@@ -81,7 +81,18 @@ future live V7-originated recovery.
 
 ## Deployment and next action
 
-Implementation is prepared for the existing safe-deploy gate. After deploy,
-the only valid next measurement is a new naturally generated V7 Runtime
+Commit `83c155e06c7d344cc6b71cc50de99fafea38b019` was pushed to
+`Updatesystem` and deployed by the existing safe gate as
+`deploy-z8-14-Updatesystem-83c155e-20260902T093707`.
+
+- GitHub, local commit and deployed Runtime linkage matched.
+- The deployed Matrix file hash is
+  `fa36b0aa37b10afa5c8ce62c8b1a59285cd41177c8cfcb02a93b26ac341eec3a`.
+- `v7-health.service` is active; this deployment did not move users or alter
+  routes.
+- A read-only Runtime observation immediately after deployment found no
+  active ordinary failed source and no new bounded action receipt.
+
+The only valid next measurement is a new naturally generated V7 Runtime
 recovery. Codex must observe its receipt only. It must not manually start,
 advance, or complete the recovery transaction.

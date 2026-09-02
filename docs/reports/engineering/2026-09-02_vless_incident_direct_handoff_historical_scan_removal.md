@@ -204,6 +204,29 @@ before the duplicate-advisory guard.  The new test passed, and syntax
 compilation passed with an isolated bytecode cache.  The broader focused suite
 was started; its completion is recorded with the deploy result.
 
+## Deployment: single-cycle no-target advisory deduplication
+
+The bounded repair was committed as `07402540cd6d0021cfd9442e6d47140a5e91d8a6`,
+published to `Updatesystem`, and safely deployed as
+`deploy-z8-14-Updatesystem-0740254-20260902T150252`.
+
+Verification:
+
+- `test_service_failure_episode`: **141/141 passed**;
+- focused runtime-profile handoff regression: passed;
+- syntax compilation and diff-whitespace validation: passed;
+- the separate broad evolution suite did not complete within the local
+  bounded test window; it emitted only pre-existing Python escape warnings and
+  was stopped without producing a pass/fail result;
+- safe-deploy returned no blockers and independent GitHub alignment passed;
+- deployed Matrix executable SHA-256 matches local:
+  `69f86b99c7a452d3f357d10c06acda6fed7066838f4b30995cf766c90608a502`;
+- `v7-health.service` is active.
+
+The last summary predates this deploy, so it is not used as post-repair
+evidence.  The next valid observation must originate from the normal Runtime
+caller after `2026-09-02T12:02:58Z`; no customer has been moved for this work.
+
 ### Exact next step
 
 Complete focused verification and safely deploy the duplicate-advisory repair.

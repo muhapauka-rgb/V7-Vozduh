@@ -1212,7 +1212,10 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
     if omp_next_action and omp_next_action != cps_next_action:
         contradictions.append("omp_current_next_action_divergence")
 
-    stability_frontier = _is_recovery_stability_foundation_frontier(live)
+    stability_frontier = (
+        _is_recovery_stability_foundation_frontier(live)
+        or _is_recovery_apply_frontier(live)
+    )
     if stability_frontier and cps_stop != "NONE":
         contradictions.append("recovery_stability_global_stop_not_none")
     if stability_frontier and cps_program_global_stop != "NONE":
@@ -2457,6 +2460,7 @@ def delegated_policy_live_state_consistency(
     v5_3_t0_t11_latency_track_frontier = _is_v5_3_t0_t11_latency_track_frontier(live)
     recovery_latency_slo_frontier = _is_recovery_latency_slo_frontier(live)
     recovery_stability_foundation_frontier = _is_recovery_stability_foundation_frontier(live)
+    recovery_apply_frontier = _is_recovery_apply_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
@@ -2633,7 +2637,7 @@ def delegated_policy_live_state_consistency(
             or external_owner_terminal
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or recovery_latency_slo_frontier or recovery_stability_foundation_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or recovery_latency_slo_frontier or recovery_stability_foundation_frontier or recovery_apply_frontier) and wip_stop == "NONE"
         )
         and (
             not independent_program_frontier
@@ -2647,7 +2651,7 @@ def delegated_policy_live_state_consistency(
             or safe_reentry_frontier
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or recovery_latency_slo_frontier or recovery_stability_foundation_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or recovery_latency_slo_frontier or recovery_stability_foundation_frontier or recovery_apply_frontier) and wip_stop == "NONE"
             or rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
@@ -2884,6 +2888,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 or _is_v5_3_t0_t11_latency_track_frontier(live)
                 or _is_recovery_latency_slo_frontier(live)
                 or _is_recovery_stability_foundation_frontier(live)
+                or _is_recovery_apply_frontier(live)
                 or _is_rs7_physical_admission_frontier(live)
             )
             else
@@ -6871,6 +6876,14 @@ RECOVERY_STABILITY_FOUNDATION_FRONTIER = "RECOVERY_STABILITY_FOUNDATION"
 RECOVERY_STABILITY_FOUNDATION_REPORT = (
     "docs/reports/engineering/2026-09-01_recovery_stability_foundation_admission.md"
 )
+RECOVERY_APPLY_FRONTIER_MISSION_ID = (
+    "V7_RECOVERY_APPLY_FRONTIER_RECONCILIATION_AND_CONCURRENCY_PROOF"
+)
+RECOVERY_APPLY_FRONTIER = "RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT"
+RECOVERY_APPLY_FRONTIER_REPORT = (
+    "docs/reports/engineering/"
+    "2026-09-02_recovery_apply_frontier_reconciliation_and_concurrency_proof.md"
+)
 RECOVERY_LATENCY_SLO_MISSION_ID = "V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE"
 RECOVERY_LATENCY_SLO_FRONTIER = "V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE"
 RECOVERY_LATENCY_SLO_REPORT = (
@@ -7007,6 +7020,29 @@ def _is_recovery_stability_foundation_frontier(live: dict[str, str]) -> bool:
         value("CURRENT_MISSION_ID") == RECOVERY_STABILITY_FOUNDATION_MISSION_ID,
         value("CURRENT_MISSION_STATE") == "MISSION_ACTIVE",
         value("RECOVERY_STABILITY_HARDENING") == "FOUNDATION_ADMITTED",
+    ))
+
+
+def _is_recovery_apply_frontier(live: dict[str, str]) -> bool:
+    """Recognize the admitted governed Apply/S11 audit subfrontier.
+
+    This is a CPS/OMP identity predicate only.  It retains the already-admitted
+    Stability Foundation as the safety dependency and grants no Runtime work.
+    """
+    value = lambda key: str(live.get(key) or "").strip().strip("`")
+    return all((
+        value("ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        value("CURRENT_PROGRAM_STAGE") == "RECOVERY_STABILITY_HARDENING",
+        value("CURRENT_ACTIVE_SCOPE") == RECOVERY_APPLY_FRONTIER,
+        value("CURRENT_PROGRAM_EXECUTION_FRONTIER") == RECOVERY_APPLY_FRONTIER,
+        value("CURRENT_EXECUTION_FRONTIER") == RECOVERY_APPLY_FRONTIER,
+        value("CURRENT_EXECUTION_MISSION_ID") == RECOVERY_APPLY_FRONTIER_MISSION_ID,
+        value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_ACTIVE",
+        value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
+        value("CURRENT_MISSION_ID") == RECOVERY_APPLY_FRONTIER_MISSION_ID,
+        value("CURRENT_MISSION_STATE") == "MISSION_ACTIVE",
+        value("RECOVERY_STABILITY_HARDENING") == "FOUNDATION_ADMITTED",
+        value("RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW") == "ACTIVE",
     ))
 
 
@@ -7960,6 +7996,176 @@ def reconcile_recovery_stability_foundation_to_cps(
         "errors": [] if ok else (
             atomic.get("errors") or omp_pointer.get("errors")
             or ["atomic_cps_or_omp_recovery_stability_foundation_failed"]
+        ),
+    }
+
+
+def reconcile_recovery_apply_frontier_to_cps(
+    *, root: Path = ROOT,
+    report_path: str = RECOVERY_APPLY_FRONTIER_REPORT,
+) -> dict[str, Any]:
+    """Atomically align the current governed Apply/S11 audit frontier.
+
+    This is deliberately a lifecycle projection only.  It uses the existing
+    CPS/OMP atomic reconciliation owner; it cannot run Matrix, Planner,
+    Authority, route writing, or a recovery transaction.
+    """
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    program_path = root / "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md"
+    resolved_report_path = root / report_path
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+        program = program_path.read_text(encoding="utf-8")
+        report = resolved_report_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema": "v7-recovery-apply-frontier-reconciliation/v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": [f"recovery_apply_frontier_input_unreadable:{exc}"],
+        }
+
+    required_program_tokens = (
+        "RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW",
+        "T_FIRST_VALID_FAILURE_OBSERVATION -> LAST_AFFECTED_REQUIRED_S11",
+        "P0 is duplicate, stale, obsolete, avoidable serialization",
+    )
+    required_report_tokens = (
+        "# Recovery Apply frontier reconciliation and concurrency proof",
+        RECOVERY_APPLY_FRONTIER_MISSION_ID,
+        "Runtime effect: NONE",
+    )
+    errors = [
+        f"recovery_apply_frontier_program_requirement_missing:{token}"
+        for token in required_program_tokens if token not in program
+    ]
+    errors.extend(
+        f"recovery_apply_frontier_report_requirement_missing:{token}"
+        for token in required_report_tokens if token not in report
+    )
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    if _plain_live_value(live, "ACTIVE_PROGRAM") != SERVICE_FAILURE_AUTOMATION_PROGRAM_ID:
+        errors.append("recovery_apply_frontier_active_program_mismatch")
+    if _plain_live_value(live, "RECOVERY_STABILITY_HARDENING") != "FOUNDATION_ADMITTED":
+        errors.append("recovery_apply_frontier_stability_foundation_not_admitted")
+    if errors:
+        return {
+            "schema": "v7-recovery-apply-frontier-reconciliation/v1",
+            "final_verdict": "STOP_SAFE",
+            "binding_owner": "existing OMP/CPS atomic reconciliation owner",
+            "errors": sorted(set(errors)),
+        }
+
+    report_sha256 = hashlib.sha256(report.encode("utf-8")).hexdigest()
+    state = _normalized_state_from_live_cps(cps_text)
+    state.update({
+        "state_captured": utc_now(),
+        "current_state_generation": (
+            f"cpsgen_SFA_GOVERNED_APPLY_{report_sha256[:12].upper()}"
+        ),
+        "current_transition_id": "RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW_RECONCILED_V1",
+        "current_stop_condition": "NONE",
+        "current_active_scope": RECOVERY_APPLY_FRONTIER,
+        "current_scope_class": "RECOVERY_STABILITY_LATENCY_RESIDUAL_EXISTING_OWNER",
+        "current_safe_next_action": (
+            "Audit and repair only a measured governed Apply/route/Core-primary/"
+            "kernel/required-service S11 residual through existing owners; use "
+            "Polygon before live observation, and the normal V7 Runtime remains "
+            "the sole producer of any recovery action."
+        ),
+        "current_next_action_id": RECOVERY_APPLY_FRONTIER,
+        "current_program_stage": "RECOVERY_STABILITY_HARDENING",
+        "current_program_execution_frontier": RECOVERY_APPLY_FRONTIER,
+        "current_execution_frontier": RECOVERY_APPLY_FRONTIER,
+        "current_execution_mission_id": RECOVERY_APPLY_FRONTIER_MISSION_ID,
+        "current_execution_mission_state": "MISSION_ACTIVE",
+        "current_mission_role": "ACTIVE_MISSION",
+        "current_mission_id": RECOVERY_APPLY_FRONTIER_MISSION_ID,
+        "current_run_nonce": "V7_RECOVERY_APPLY_FRONTIER_20260902_01",
+        "current_mission_state": "MISSION_ACTIVE",
+        "current_mission_report": report_path,
+        "current_completion_contract": "RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW",
+        "current_completion_verdict": "ACTIVE_NOT_CONSUMED",
+        "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+        "program_terminal_class": "NONE",
+        "program_terminal_state": "NONE_RECOVERY_APPLY_FRONTIER_ACTIVE",
+        "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+        "transaction_terminal_class": "FUNCTIONAL_RECOVERY_CONSUMED_APPLY_FRONTIER_ACTIVE",
+        "omp_continuation_required": "TRUE",
+        "external_input_required": "FALSE",
+        "external_input_type": "NONE",
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE_PROGRAM_TRACK_ONLY",
+        "wip_current_primary_stop": "NONE",
+        "wip_smallest_existing_next_action_id": RECOVERY_APPLY_FRONTIER,
+        "wip_smallest_existing_next_action": RECOVERY_APPLY_FRONTIER,
+        "smallest_existing_next_action": RECOVERY_APPLY_FRONTIER,
+        "source_summary": (
+            "The Recovery Stability Foundation remains admitted.  The current "
+            "governed Apply/verification residual is reconciled as its narrow "
+            "existing-owner audit subfrontier; only the normal V7 Runtime can "
+            "produce a recovery action or live acceptance evidence."
+        ),
+    })
+    atomic = atomic_reconcile_cps(
+        cps_path,
+        state=state,
+        request_external_wake=False,
+        expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+        section0_field_overrides={
+            "RECOVERY_STABILITY_HARDENING": "`FOUNDATION_ADMITTED`",
+            "RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW": "`ACTIVE`",
+            "RECOVERY_APPLY_FRONTIER_MISSION": f"`{RECOVERY_APPLY_FRONTIER_MISSION_ID}`",
+            "RECOVERY_APPLY_FRONTIER_REPORT": f"`{report_path}`",
+            "RECOVERY_APPLY_FRONTIER_REPORT_SHA256": f"`{report_sha256}`",
+            "RECOVERY_APPLY_FRONTIER_RUNTIME_EFFECT": (
+                "`NONE; normal V7 Runtime remains sole recovery producer`"
+            ),
+            "RECOVERY_APPLY_FRONTIER_EXECUTION_LAW": (
+                "`CODEX_REPAIRS_GENERIC_EXISTING_OWNERS_AND_OBSERVES; V7_RUNTIME_ALONE_DETECTS_DECIDES_GOVERNS_APPLIES_AND_VERIFIES`"
+            ),
+            "LANE_LOCAL_STOP": "`REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_ONLY`",
+            "PROGRAM_GLOBAL_STOP": "`NONE`",
+        },
+    )
+    omp_pointer = (
+        atomic_reconcile_omp_current_pointer_from_cps(root=root)
+        if atomic.get("ok") is True
+        else {
+            "ok": False,
+            "status": "OMP_POINTER_NOT_ATTEMPTED_CPS_RECONCILIATION_FAILED",
+            "errors": atomic.get("errors") or [],
+        }
+    )
+    ok = atomic.get("ok") is True and omp_pointer.get("ok") is True
+    return {
+        "schema": "v7-recovery-apply-frontier-reconciliation/v1",
+        "final_verdict": "PASS" if ok else "STOP_SAFE",
+        "recovery_apply_frontier": "ACTIVE" if ok else "UNCHANGED",
+        "real_caller": "tools/v7-truth-check --reconcile-recovery-apply-frontier",
+        "real_consumer": "existing OMP/CPS atomic reconciliation owner",
+        "next_output": RECOVERY_APPLY_FRONTIER,
+        "report": report_path,
+        "report_sha256": report_sha256,
+        "atomic_update": atomic,
+        "omp_pointer_update": omp_pointer,
+        "runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "authority_impact": "NONE",
+        "forbidden_effects": {
+            "matrix_run": False,
+            "planner_run": False,
+            "route_writer_run": False,
+            "routing_mutation": False,
+            "user_movement": False,
+        },
+        "errors": [] if ok else (
+            atomic.get("errors") or omp_pointer.get("errors")
+            or ["atomic_cps_or_omp_recovery_apply_frontier_failed"]
         ),
     }
 
@@ -9226,7 +9432,10 @@ def reconcile_service_failure_automation_receipt_to_cps(
         cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
     ))
     receipt_id = str(receipt.get("object_id") or "")
-    if _is_recovery_stability_foundation_frontier(live):
+    if (
+        _is_recovery_stability_foundation_frontier(live)
+        or _is_recovery_apply_frontier(live)
+    ):
         # A normal Runtime receipt is evidence for the active Foundation, not
         # permission to replace that active Mission with the historical M1
         # frontier.  Preserve the current owner/next-action projection while
@@ -11461,7 +11670,10 @@ def reconcile_service_failure_execution_feedback_to_cps(
         "packet_id": packet_id,
         "terminal": terminal,
     }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
-    stability_foundation_active = _is_recovery_stability_foundation_frontier(live)
+    stability_foundation_active = (
+        _is_recovery_stability_foundation_frontier(live)
+        or _is_recovery_apply_frontier(live)
+    )
     state = _normalized_state_from_live_cps(cps_text)
     state.update({
         "state_captured": utc_now(),
@@ -25569,6 +25781,7 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
                 v5_3_t0_t11_program_track
                 or recovery_latency_slo_program_track
                 or _is_recovery_stability_foundation_frontier(live)
+                or _is_recovery_apply_frontier(live)
             )
             and (next_formed != "TRUE" or values["NEXT_MISSION_ID"] in {"", "NONE"})
         ):
@@ -25997,6 +26210,21 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             "automation_enabled": heartbeat_active,
             "mission_completion_evidence_gate_status": "RECOVERY_STABILITY_FOUNDATION_PRODUCER_CONSUMER_PROOF_REQUIRED",
             "current_completion_contract": "RECOVERY_STABILITY_FOUNDATION",
+            "current_completion_verdict": "ACTIVE_NOT_CONSUMED",
+            "completion_gate": {},
+            **calls,
+            "errors": [],
+        }
+    if _is_recovery_apply_frontier(live):
+        return {
+            "schema": "v7-omp-functional-footprint-consistency/v1",
+            "final_verdict": "PASS",
+            "program_reconciliation_footprint_class": live.get("PROGRAM_RECONCILIATION_FOOTPRINT_CLASS", "").strip("`"),
+            "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
+            "heartbeat_status": heartbeat_status,
+            "automation_enabled": heartbeat_active,
+            "mission_completion_evidence_gate_status": "RECOVERY_APPLY_FRONTIER_CURRENT_PATH_AND_CONCURRENCY_PROOF_REQUIRED",
+            "current_completion_contract": "RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW",
             "current_completion_verdict": "ACTIVE_NOT_CONSUMED",
             "completion_gate": {},
             **calls,
@@ -26450,7 +26678,7 @@ def cps_live_state_consistency(
             and not engineering_authority_terminal
             and not safe_reentry_frontier
             and not (rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
-            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or _is_recovery_latency_slo_frontier(live) or _is_recovery_stability_foundation_frontier(live)) and wip_stop == "NONE")
+            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or _is_recovery_latency_slo_frontier(live) or _is_recovery_stability_foundation_frontier(live) or _is_recovery_apply_frontier(live)) and wip_stop == "NONE")
             and not (rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
             and "REAL_WORLD_LIMIT" not in wip_stop
         )

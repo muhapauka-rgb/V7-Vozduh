@@ -339,6 +339,37 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
             self.assertIn("LANE_LOCAL_STOP` | `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_ONLY`", updated)
             self.assertIn("PROGRAM_GLOBAL_STOP` | `NONE`", updated)
 
+    def test_recovery_apply_frontier_reconciliation_preserves_runtime_ownership(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for relative in (
+                "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+                "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md",
+                "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md",
+                self.lib.RECOVERY_APPLY_FRONTIER_REPORT,
+            ):
+                source = ROOT / relative
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, target)
+            result = self.lib.reconcile_recovery_apply_frontier_to_cps(root=root)
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertEqual(result["runtime_impact"], "NONE")
+            self.assertEqual(result["routing_impact"], "NONE")
+            self.assertEqual(result["user_movement"], 0)
+            self.assertFalse(result["forbidden_effects"]["route_writer_run"])
+            updated = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+            self.assertIn(
+                "CURRENT_EXECUTION_FRONTIER` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT`",
+                updated,
+            )
+            self.assertIn(self.lib.RECOVERY_APPLY_FRONTIER_MISSION_ID, updated)
+            omp = (root / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md").read_text(encoding="utf-8")
+            self.assertIn(
+                "Resolved current next action: `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT`",
+                omp,
+            )
+
     def test_continue_omp_keeps_active_system_revalidation_ahead_of_generic_work(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

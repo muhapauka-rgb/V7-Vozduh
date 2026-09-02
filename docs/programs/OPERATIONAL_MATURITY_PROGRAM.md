@@ -8361,10 +8361,10 @@ Derived projection only: the existing atomic CPS/OMP reconciliation owner
 updates this stop-only reflection. Manual current-state edits are forbidden;
 the complete readable projection is §26 and CPS section 0 remains controlling.
 Resolved current stop: `NONE`
-Resolved current next action: `RECOVERY_STABILITY_FOUNDATION`
+Resolved current next action: `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT`
 Resolved lane-local stop: `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_ONLY`
 Resolved Program global stop: `NONE`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `RECOVERY_STABILITY_FOUNDATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9354,12 +9354,12 @@ Canonical readable OMP projection. §20.2 is its derived stop-only reflection;
 both are machine-validated against CPS and neither may be edited as an
 independent current-state source.
 Resolved current stop: `NONE`
-Resolved current next action: `RECOVERY_STABILITY_FOUNDATION`
+Resolved current next action: `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT`
 Resolved lane-local stop: `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_ONLY`
 Resolved Program global stop: `NONE`
 Current terminal report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
 Latest consumed report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
-Current active Mission report: `docs/reports/engineering/2026-09-01_recovery_stability_foundation_admission.md`
+Current active Mission report: `docs/reports/engineering/2026-09-02_recovery_apply_frontier_reconciliation_and_concurrency_proof.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

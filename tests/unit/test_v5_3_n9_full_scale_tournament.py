@@ -17,6 +17,8 @@ import tempfile
 import time
 import tracemalloc
 import unittest
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -281,6 +283,53 @@ def measure_hard_owner(active_egresses: int, users: int) -> dict[str, Any]:
     }
 
 
+def measure_disjoint_source_preparation(
+    autoswitch: Any, source_count: int,
+) -> dict[str, Any]:
+    """Exercise existing Planner preparation on disjoint Polygon source pairs.
+
+    This is intentionally planning-only.  It proves that independent source /
+    target preparation does not require a shared fixture lock; the existing
+    governed Apply, Core-primary and route writer are not imported or invoked.
+    """
+    plan, _case = build_case(source_count, source_count * 10, "many")
+    by_source: dict[str, list[dict[str, Any]]] = {}
+    for decision in plan["decisions"]:
+        by_source.setdefault(str(decision["current_egress"]), []).append(decision)
+
+    def prepare(item: tuple[str, list[dict[str, Any]]]) -> tuple[str, str, str]:
+        source, decisions = item
+        index = int(source.rsplit("-", 1)[1])
+        target = f"target-{index}"
+        local = deepcopy(plan)
+        local["decisions"] = deepcopy(decisions)
+        for decision in local["decisions"]:
+            decision["recommended_egress"] = target
+            decision["candidates"] = [{
+                "egress": target, "eligible": True, "score": 100.0,
+                "role": "GLOBAL_FAST",
+                "capacity_decision": {"status": "AVAILABLE"},
+                "canary_reserved": False,
+            }]
+        projection = autoswitch.build_prepared_class_decision_projection(local)
+        encoded = json.dumps(projection, sort_keys=True, separators=(",", ":"))
+        return source, target, encoded
+
+    started = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=min(16, source_count)) as pool:
+        rows = list(pool.map(prepare, sorted(by_source.items())))
+    wall_ms = (time.perf_counter() - started) * 1000.0
+    return {
+        "source_count": source_count,
+        "completion_count": len(rows),
+        "unique_sources": len({source for source, _target, _encoded in rows}),
+        "unique_targets": len({target for _source, target, _encoded in rows}),
+        "stable_result_count": len({encoded for _source, _target, encoded in rows}),
+        "wall_ms": round(wall_ms, 3),
+        "execution": "PREPARATION_ONLY_NO_APPLY_CORE_PRIMARY_OR_ROUTE_WRITER",
+    }
+
+
 class V53N9FullScaleTournamentTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -333,6 +382,22 @@ class V53N9FullScaleTournamentTest(unittest.TestCase):
         self.assertEqual(result["active_source_count"], 1000)
         self.assertEqual(result["observations"], 0)
         self.assertFalse(result["deadline_miss"], result)
+
+    def test_disjoint_source_preparation_is_fair_at_recovery_scale_grid(self):
+        # The current Program permits only source-local preparation in Polygon
+        # when source/target/write sets are disjoint.  This fixture creates one
+        # isolated target per source; it deliberately makes no Apply claim.
+        for sources in (10, 50, 100):
+            with self.subTest(sources=sources):
+                result = measure_disjoint_source_preparation(self.autoswitch, sources)
+                self.assertEqual(result["completion_count"], sources, result)
+                self.assertEqual(result["unique_sources"], sources, result)
+                self.assertEqual(result["unique_targets"], sources, result)
+                self.assertEqual(result["stable_result_count"], sources, result)
+                self.assertEqual(
+                    result["execution"],
+                    "PREPARATION_ONLY_NO_APPLY_CORE_PRIMARY_OR_ROUTE_WRITER",
+                )
 
     def test_prepared_projection_reuses_stable_selection_but_not_changed_membership(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -757,7 +757,7 @@ def update_matrix_path_evidence_batch(
         data = read_json(matrix_file, {"items": {}})
         if not isinstance(data, dict):
             data = {"items": {}}
-        items = data.setdefault("items", {})
+        items = canonical_matrix_items_for_write(data)
         for observation in observations:
             egress_id = str(observation.get("egress_id") or "")
             iface = str(observation.get("interface") or egress_id)
@@ -1530,6 +1530,38 @@ def exact_services_to_run(service: str, services: str) -> list[str]:
     return requested
 
 
+def canonical_matrix_items_for_write(data: dict[str, Any]) -> dict[str, Any]:
+    """Restore the canonical item map only within the existing Matrix writer.
+
+    Readers must fail closed when ``items`` has an incompatible shape.  A
+    writer, however, cannot safely append a fresh health observation to a
+    list/scalar shape.  The old value contains no keyed service evidence, so
+    retain only an identifier-free fingerprint/count in this same canonical
+    document and let the next actual owner probe rebuild its map atomically.
+    """
+    items = data.get("items")
+    if isinstance(items, dict):
+        return items
+    legacy_count = len(items) if isinstance(items, (list, tuple, set, dict)) else 0
+    data["matrix_schema_reconciliation"] = {
+        "schema_version": "v7.service-matrix-schema-reconciliation.v1",
+        "owner": "tools/v7-service-matrix-test",
+        "status": "INCOMPATIBLE_ITEMS_REPLACED_BY_NEXT_CANONICAL_WRITE",
+        "previous_items_type": type(items).__name__,
+        "previous_item_count": legacy_count,
+        "previous_items_fingerprint": hashlib.sha256(
+            json.dumps(items, ensure_ascii=True, sort_keys=True, default=str).encode("utf-8")
+        ).hexdigest(),
+        "raw_legacy_items_stored": False,
+        "reconciled_at": now_iso(),
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+    data["items"] = {}
+    return data["items"]
+
+
 def update_matrix(
     matrix_file: Path,
     egress_id: str,
@@ -1550,7 +1582,7 @@ def update_matrix(
         data = read_json(matrix_file, {"items": {}})
         if not isinstance(data, dict):
             data = {"items": {}}
-        items = data.setdefault("items", {})
+        items = canonical_matrix_items_for_write(data)
         row = items.setdefault(egress_id, {})
         services = row.setdefault("services", {})
         observed_at = now_iso()

@@ -260,6 +260,31 @@ target, use the new aggregate summary to repair exactly the owner gate that
 caused the refusal.  If it has an admitted target, V7—not Codex—must execute
 the complete governed recovery and required-service verification.
 
+## Matrix schema reconciliation repair
+
+Read-only Runtime inspection found that the live `service-matrix.json` had an
+incompatible `items` shape (a list rather than the canonical keyed map).  All
+current Matrix, Planner and admin consumers expect a keyed map.  That mismatch
+causes consumers to fail closed or see no target evidence, which explains a
+portion of the observed automatic-recovery refusals and contradictory UI.
+
+The correction is contained in the existing canonical Matrix writer
+`tools/v7-service-matrix-test`:
+
+1. readers continue to fail closed on an incompatible shape;
+2. when the existing writer receives the next real probe result under its
+   existing writer lock, it replaces only the unusable unkeyed container with
+   the canonical map and writes the actual fresh observation;
+3. the same document records only the prior type, count and fingerprint — not
+   raw legacy entries or customer data.
+
+No new Matrix, owner, timer, state file, source of truth, target selection,
+Authority or route action is introduced.  No state is guessed; canonical
+health resumes only from the next real existing-owner probe.
+
+Focused schema-recovery and admission-summary tests passed, followed by the
+full `test_service_failure_episode` suite: **143/143 passed**.
+
 ### Exact next step
 
 Complete focused verification and safely deploy the duplicate-advisory repair.

@@ -7240,6 +7240,28 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "hard_capacity_or_ordinary_reserve_exhausted": 1,
         })
 
+    def test_canonical_matrix_writer_recovers_incompatible_item_shape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            matrix_file = Path(tmp) / "service-matrix.json"
+            matrix_file.write_text(
+                json.dumps({"items": ["legacy", "unkeyed"]}),
+                encoding="utf-8",
+            )
+            matrix, _lock = self.matrix.update_matrix(
+                matrix_file,
+                "awg0",
+                "tun0",
+                {"telegram": {"ok": True, "status": "OK"}},
+                1,
+                event_dir=Path(tmp) / "events",
+            )
+        self.assertIsInstance(matrix["items"], dict)
+        self.assertIn("awg0", matrix["items"])
+        reconciliation = matrix["matrix_schema_reconciliation"]
+        self.assertEqual(reconciliation["previous_items_type"], "list")
+        self.assertEqual(reconciliation["previous_item_count"], 2)
+        self.assertFalse(reconciliation["raw_legacy_items_stored"])
+
     def test_direct_l3_handoff_does_not_wait_for_omp_before_executor(self):
         """A validated fallback projection is a Runtime handoff, not an OMP wait."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")

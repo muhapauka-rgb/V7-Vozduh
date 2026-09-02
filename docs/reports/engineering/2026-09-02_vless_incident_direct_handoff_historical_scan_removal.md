@@ -382,3 +382,26 @@ Commit and safely deploy this bounded reconciliation with
 a fresh live Matrix observation followed by the normal V7 caller's own
 affected-scope discovery, governed execution and required-service S11.  Codex
 must not manually advance any portion of that transaction.
+
+### Deployment result
+
+Committed and published as `2fc072d4ef444394068c70ff689a507e8258e957`
+(`v7: align ordinary recovery service scope`).  Independent GitHub branch
+inspection confirmed the same commit on `Updatesystem`.  The existing safe
+deploy owner completed deployment
+`deploy-z8-14-Updatesystem-2fc072d-20260902T154058` with no blockers and
+GitHub alignment `PASS`.
+
+Post-deploy Runtime confirmation:
+
+- `/usr/local/bin/v7-health-loop` SHA-256 equals the deployed local SHA-256;
+- `/usr/local/bin/v7-users-autoswitch` SHA-256 equals the deployed local
+  SHA-256;
+- `v7-health.service` is `active`.
+
+The immediate read-only Matrix/registry aggregate had no ordinary users on a
+currently failed source: VLESS and the other failed sources were empty, while
+the assigned ordinary sources had no failed service rows.  Therefore there was
+no lawful live recovery transaction to credit after this deploy.  This is not
+treated as success evidence.  The next fresh ordinary Matrix failure is the
+required normal-runtime acceptance event; no manual substitution is permitted.

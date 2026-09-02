@@ -633,6 +633,50 @@ normal V7 consumer provenance; this is a complexity/rejection gate, not a
 production-capacity or manual-recovery proof.  Any P0 diagnosis requires a
 measured duplicate, lock, queue or reconstruction mechanism.
 
+**Governed Apply / verification residual specialization**
+
+`RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW` is a narrow specialization of
+the existing simplification and scale-cost laws, not a new Runtime, queue,
+worker, Planner, Matrix owner, route writer, registry or Authority.  It is
+admitted only when a live V7-owned receipt attributes a material residual to
+`Apply -> route/Core-primary -> kernel visibility -> required-service S11`.
+The existing owners first expose the bounded monotonic path:
+
+```text
+final mutable validation -> Candidate/Packet/Lease/Barrier -> execution control
+-> v7-user-switch -> route rule/registry/Core-primary -> kernel observation
+-> exact route verification -> required-service S11
+```
+
+Every span is classified `P0`, `P1`, `P2`, `P3` or `UNKNOWN` from current
+evidence: P0 is duplicate, stale, obsolete, avoidable serialization or
+implementation overhead; P1 is a narrower existing-owner implementation that
+preserves every current safety check; P2 is contract-required but may be
+repositioned only after its consumer; P3 is indivisible Product/S11 work.  A
+repair may remove or move only measured P0/P1 work.  It must preserve current
+Matrix/Authority/Packet/Lease/Barrier bindings, the sole `v7-user-switch`
+writer, canonical assignment/Core-primary state, exact route/kernel proof,
+required-service S11, rollback and post-terminal residue closure.
+
+Source-local preparation may run concurrently only in existing Polygon/test
+evidence after the source, target, lock and write sets are proven disjoint.
+Forward Apply, Core-primary commit and route mutation remain serial under the
+current owners until those same owners prove a stronger bounded invariant; no
+global FIFO, broad lock or parallel-Apply bypass may be introduced.  Existing
+Polygon/test owners must evaluate the same consumer contracts at 10, 50, 100
+and 1000 sources/users, including source contention, target contention,
+mixed profiles and rollback.  This evidence is a complexity gate, never a
+manual-production-recovery proof.
+
+Codex may repair and observe only.  A valid live result originates solely
+from `v7-health -> Matrix -> automatic scope/Authority/Planner -> governed
+execution -> S11`; Codex must not select a target, create transaction objects,
+invoke the route writer, or advance a real recovery.  The gate consumes only
+after one measured minimal repair, affected regression/Polygon evidence,
+safe deploy and an independently originated live receipt.  The governing SLO
+remains `T_FIRST_VALID_FAILURE_OBSERVATION -> LAST_AFFECTED_REQUIRED_S11`
+P95 `<=7000 ms`, max `<8000 ms`; no span may be deleted by weakening S11.
+
 Before any resumed Stability implementation, the existing CPS/OMP admission
 owner performs one reconciliation of Program, CPS, OMP, local Git, available
 GitHub/deploy provenance, live Runtime observation, recent reports and

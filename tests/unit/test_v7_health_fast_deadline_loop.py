@@ -704,6 +704,55 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         )
         self.assertNotIn("must-not-leak", receipt_lines[0])
 
+    def test_persistent_receipt_keeps_late_apply_spans_when_planner_timeline_is_long(self):
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
+        loop.persistent_matrix_ready = True
+        initialization_rows = [
+            {"stage": f"planner_initialization_{index}", "duration_ms": float(index)}
+            for index in range(40)
+        ]
+        apply_rows = [
+            {
+                "stage": "route_writer_subprocess_and_low_level_mutation",
+                "duration_ms": 2100.0,
+                "parent": "apply_and_verification",
+            },
+            {
+                "stage": "required_service_verification",
+                "duration_ms": 1800.0,
+                "parent": "apply_and_verification",
+            },
+        ]
+        loop.persistent_matrix_last_result = {
+            "current_failed_source_scope": {"active_sources": [{"affected_scope_count": 1}]},
+            "bounded_delegated_service_failure_action": {
+                "action_completed": True,
+                "consumer_result": {
+                    "execution_timing": {
+                        "spans": [],
+                        "nested_timeline": {"spans": initialization_rows + apply_rows},
+                    },
+                },
+            },
+        }
+        with mock.patch.object(loop, "_run_persistent_matrix_consumer", return_value=0), \
+             mock.patch("builtins.print") as printed:
+            self.assertTrue(loop._consume_new_persistent_matrix_t0(987_654))
+        receipt = json.loads(
+            next(
+                str(call.args[0]).split(" ", 1)[1]
+                for call in printed.call_args_list
+                if str(call.args[0]).startswith("V7_HEALTH_RECOVERY_CONSUMER_RECEIPT ")
+            )
+        )
+        stages = [
+            row["stage"]
+            for row in receipt["governed_execution_timing"]["apply_timing"]["spans"]
+        ]
+        self.assertIn("route_writer_subprocess_and_low_level_mutation", stages)
+        self.assertIn("required_service_verification", stages)
+        self.assertLessEqual(len(stages), 32)
+
     def test_known_incomplete_downstream_validation_is_deduped_until_matrix_binding_changes(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
         loop.persistent_matrix_ready = True

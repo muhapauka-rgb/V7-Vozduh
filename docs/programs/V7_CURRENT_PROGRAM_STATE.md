@@ -40,16 +40,16 @@ This section is the single live volatile current-state surface. Older production
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
-| `STATE_CAPTURED` | `2026-08-27T14:30:00+03:00` |
+| `STATE_CAPTURED` | `2026-09-02T16:20:00+03:00` |
 | `LATEST_SUPPORTING_LIFECYCLE_RECONCILIATION` | `N10_CORE_PRIMARY_AND_N11_ROUTE_CLOSURE_RECONCILED: deployed commits c8afcc9a,f9447434,5f1328bf,6cf988f7,6a27f9fd,684c7c39 add pre-consumption cohort admissibility, compatible one-batch map update, canonical registry precedence, exact legacy-route retirement and mandatory service/path S11. Runtime Core-primary is exact 125/125 and 4/4; broad route check passes; four residual per-user primary rules were retired by the existing Core owner with users_moved=0. Report: docs/reports/engineering/2026-08-27_n10_bounded_production_and_n11_core_route_closure.md` |
-| `CURRENT_ACTIVE_SCOPE` | `RECOVERY_STABILITY_FOUNDATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `Audit and repair only a measured generic recovery-lifecycle defect through the existing Matrix/health reconciliation consumer; the normal V7 Runtime remains the sole producer of any recovery action.` |
-| `CURRENT_SCOPE_CLASS` | `RECOVERY_STABILITY_CURRENT_TRUTH_AND_RESIDUE` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_STABILITY_F5ABE2BF51A5` |
-| `CURRENT_TRANSITION_ID` | `RECOVERY_STABILITY_FOUNDATION_ADMISSION_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `RECOVERY_STABILITY_FOUNDATION` |
+| `CURRENT_ACTIVE_SCOPE` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Audit and repair only a measured governed Apply/route/Core-primary/kernel/required-service S11 residual through existing owners; use Polygon before live observation, and the normal V7 Runtime remains the sole producer of any recovery action.` |
+| `CURRENT_SCOPE_CLASS` | `RECOVERY_STABILITY_LATENCY_RESIDUAL_EXISTING_OWNER` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_GOVERNED_APPLY_RESIDUAL_20260902` |
+| `CURRENT_TRANSITION_ID` | `RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW_ADMISSION_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
 | `CURRENT_PROGRAM_STAGE` | `RECOVERY_STABILITY_HARDENING` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `RECOVERY_STABILITY_FOUNDATION` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
 | `RECOVERY_STABILITY_HARDENING` | `FOUNDATION_ADMITTED` |
 | `RECOVERY_STABILITY_HARDENING_RUNTIME_EFFECT` | `NONE at admission; normal V7 Runtime remains sole recovery producer` |
 | `RECOVERY_STABILITY_HARDENING_IMPLEMENTATION_FRONTIER` | `CURRENT_TRUTH_AND_SAFETY_AUDIT -> LEVEL_TRIGGERED_RECONCILIATION -> STOP_SAFE_REENTRY -> STRANDED_SELF_HEALING -> POST_TERMINAL_RESIDUE -> FROZEN_BASELINE_AND_INVALIDATION_MAP -> DETERMINISTIC_50_100 -> TEMPORAL_BOUNDARY -> RANDOMIZED_500_1000 -> ORDINARY_TEST_IDENTITY_EQUIVALENCE -> SAME_FINGERPRINT_LIVE_ORDINARY_PATH_5_10` |

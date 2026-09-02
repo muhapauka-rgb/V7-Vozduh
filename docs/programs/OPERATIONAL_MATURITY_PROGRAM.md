@@ -190,6 +190,18 @@ later admitted/current disposition is resolved only from CPS section 0 and OMP
 §26; this paragraph cannot independently deny, select or advance the current
 frontier.
 
+`RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW` is registered as the current
+latency-residual specialization of that same existing Program.  It permits
+only: measured owner-backed decomposition of governed Apply/route/Core-primary
+/kernel/required-service S11; one minimal P0/P1 existing-owner repair; and
+existing Polygon scale evidence at 10/50/100/1000.  It forbids a new queue,
+worker, writer, owner, global FIFO or parallel Apply.  Source-local
+preparation is test-only until existing owners prove disjoint source/target/
+lock/write sets; mutation remains under the established serial route and
+Core-primary governance.  The live action origin stays solely V7 Runtime;
+Codex cannot advance a transaction.  This registration changes neither the
+S11 contract nor the CPS authority boundary.
+
 V4.85 additionally makes change containment binding. The frozen stability
 baseline is only a compact pointer set over existing Polygon/test receipts,
 deploy provenance and reports; it is not a second evidence store, registry or

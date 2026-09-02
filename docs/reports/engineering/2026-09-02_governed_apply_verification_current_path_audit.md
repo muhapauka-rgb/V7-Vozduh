@@ -77,6 +77,20 @@ route/S11 rows proves the latter remain visible and the receipt stays bounded.
   first point to the Program's canonical ten-egress point.  It exercises the
   same existing test owner and does not alter Runtime behavior.
 
+## Current live actionability reconciliation
+
+- The current VLESS assignment count is one, but that record is disabled.
+  It is not an ordinary active identity, so the Runtime must not move it.
+- The contemporaneous Matrix receipt for another source saw an active source
+  scope but no current **profile-required** service failure.  Its no-action
+  terminal is therefore expected; treating it as a reason to move customers
+  would create a false-positive failover.
+- Consequently no action-admitted live recovery is available at this instant
+  to credit the Apply/S11 timing repair.  The exact re-entry condition is a
+  new V7-observed profile-required failure for at least one enabled ordinary
+  identity, with an owner-admitted healthy target.  That event must originate
+  from the normal Runtime, not from Codex.
+
 ## Next owner-backed action
 
 Wait only for the next independently originated **action-admitted** V7

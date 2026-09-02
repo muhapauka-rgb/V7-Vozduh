@@ -1902,6 +1902,7 @@ def run_bounded_delegated_service_failure_action(
     fresh_matrix_runtime_handoff: bool = False,
     runtime_hot_path_only: bool = False,
     timeout_sec: int = 180,
+    pretransaction_timing: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Close the existing event -> planner -> bounded executor consumer link.
 
@@ -1909,21 +1910,107 @@ def run_bounded_delegated_service_failure_action(
     terminal.  The executor remains the sole owner of Candidate/Packet/lease,
     restore-barrier, apply, verification and final OPEN transitions.
     """
+    # Keep the already existing Matrix receipt attributable from the live
+    # consumer entry through the point at which the governed owner starts.
+    # This is observation only: all state reads, policy checks and the child
+    # invocation below retain their existing owners and order.
+    pretransaction_started_ns = time.monotonic_ns()
+    timing_root = (
+        pretransaction_timing if isinstance(pretransaction_timing, dict) else {}
+    )
+    pretransaction_spans = [
+        dict(row)
+        for row in (timing_root.get("spans") or [])
+        if isinstance(row, dict)
+    ]
+    try:
+        matrix_consumer_entry_ns = int(
+            timing_root.get("matrix_consumer_entry_ns") or 0
+        )
+    except (TypeError, ValueError):
+        matrix_consumer_entry_ns = 0
+
+    def pretransaction_span(
+        stage: str,
+        started_ns: int,
+        *,
+        owner: str,
+    ) -> None:
+        pretransaction_spans.append({
+            "stage": stage,
+            "duration_ms": round(
+                (time.monotonic_ns() - started_ns) / 1_000_000.0, 3,
+            ),
+            "clock_source": "time.monotonic_ns",
+            "owner": owner,
+            "diagnostic_only": True,
+        })
+
+    def pretransaction_receipt(
+        *,
+        governed_dispatch_ns: Optional[int] = None,
+    ) -> dict[str, Any]:
+        total_to_dispatch_ms = None
+        matrix_total_to_dispatch_ms = None
+        if governed_dispatch_ns is not None:
+            total_to_dispatch_ms = round(
+                (governed_dispatch_ns - pretransaction_started_ns)
+                / 1_000_000.0,
+                3,
+            )
+            if matrix_consumer_entry_ns > 0:
+                matrix_total_to_dispatch_ms = round(
+                    (governed_dispatch_ns - matrix_consumer_entry_ns)
+                    / 1_000_000.0,
+                    3,
+                )
+        return {
+            "schema_version": "v7.matrix-pretransaction-timing.v1",
+            "spans": list(pretransaction_spans),
+            "bounded_consumer_entry_to_governed_dispatch_ms": (
+                total_to_dispatch_ms
+            ),
+            "matrix_consumer_entry_to_governed_dispatch_ms": (
+                matrix_total_to_dispatch_ms
+            ),
+            "measurement_boundary": (
+                "existing Matrix consumer entry -> existing governed executor "
+                "subprocess dispatch"
+            ),
+            "runtime_mutation_performed": False,
+        }
+
+    def with_pretransaction_timing(
+        result: dict[str, Any],
+        *,
+        governed_dispatch_ns: Optional[int] = None,
+    ) -> dict[str, Any]:
+        result["pretransaction_timing"] = pretransaction_receipt(
+            governed_dispatch_ns=governed_dispatch_ns,
+        )
+        return result
+
+    span_started_ns = time.monotonic_ns()
     policy_root = read_json(policy_file, {})
+    pretransaction_span(
+        "matrix_standing_policy_read",
+        span_started_ns,
+        owner="existing delegated-autonomy policy owner",
+    )
     contract = (
         policy_root.get("delegated_autonomy_policy")
         if isinstance(policy_root.get("delegated_autonomy_policy"), dict)
         else {}
     )
     if contract.get("status") != "ACTIVE":
-        return {
+        return with_pretransaction_timing({
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
             "status": "INACTIVE_NO_STANDING_POLICY",
             "ok": True,
             "action_attempted": False,
             "runtime_mutation_performed": False,
             "users_moved": 0,
-        }
+        })
     policy = contract.get("policy") if isinstance(contract.get("policy"), dict) else {}
     per_action_law = (
         contract.get("per_action_law")
@@ -1966,7 +2053,7 @@ def run_bounded_delegated_service_failure_action(
         and policy_concurrency == law_concurrency == 1
     )
     if not exact_limit_valid:
-        return {
+        return with_pretransaction_timing({
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
             "status": "STOP_SAFE_INVALID_STANDING_POLICY_SCOPE",
             "ok": True,
@@ -1975,7 +2062,8 @@ def run_bounded_delegated_service_failure_action(
             "users_moved": 0,
             "blockers": ["standing_policy_transaction_limit_not_exactly_owner_backed"],
             "contract_id": str(contract.get("contract_id") or ""),
-        }
+        })
+    span_started_ns = time.monotonic_ns()
     obligation = (
         service_failure_obligation
         if isinstance(service_failure_obligation, dict)
@@ -1999,8 +2087,13 @@ def run_bounded_delegated_service_failure_action(
         and str(obligation.get("closure_state") or "") == "READY_FOR_OMP_CONSUMPTION"
         and bool(source and incident_id and obligation_id and scope_fingerprint)
     )
+    pretransaction_span(
+        "matrix_current_obligation_scope_validation",
+        span_started_ns,
+        owner="existing Matrix obligation and current-source-scope owners",
+    )
     if not obligation_identity_valid:
-        return {
+        return with_pretransaction_timing({
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
             "status": "STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION",
             "ok": True,
@@ -2009,9 +2102,9 @@ def run_bounded_delegated_service_failure_action(
             "users_moved": 0,
             "blockers": ["exact_current_service_failure_obligation_missing_or_invalid"],
             "contract_id": str(contract.get("contract_id") or ""),
-        }
+        })
     if affected_scope <= 0 or unresolved_scope <= 0:
-        return {
+        return with_pretransaction_timing({
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
             "status": "STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY",
             "ok": True,
@@ -2027,7 +2120,7 @@ def run_bounded_delegated_service_failure_action(
             "contract_hash": str(contract.get("contract_hash") or ""),
             "admitted_max_users": policy_max_users,
             "max_concurrent_transactions": policy_concurrency,
-        }
+        })
     # The controlled-certification target diagnostic is useful only to bind a
     # certification campaign. It reconstructs a large read-only target
     # picture and, when run for every ordinary failure, can consume a whole
@@ -2042,6 +2135,7 @@ def run_bounded_delegated_service_failure_action(
         scope_classification in {"ORDINARY_ONLY", "ORDINARY_PRODUCTION_ONLY"}
         and int(source_scope.get("controlled_certification_scope_count") or 0) == 0
     )
+    span_started_ns = time.monotonic_ns()
     if ordinary_non_certification_scope:
         target_selection_diagnostic = {
             "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
@@ -2091,6 +2185,11 @@ def run_bounded_delegated_service_failure_action(
                 "runtime_mutation_performed": False,
                 "users_moved": 0,
             }
+    pretransaction_span(
+        "matrix_controlled_campaign_or_ordinary_scope_resolution",
+        span_started_ns,
+        owner="existing Matrix certification and source-scope owners",
+    )
     ordinary_incident_actionable = (
         classification == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
         and recommendation_users > 0
@@ -2102,7 +2201,7 @@ def run_bounded_delegated_service_failure_action(
         >= int(campaign_binding.get("next_stage") or 0)
     )
     if not (ordinary_incident_actionable or controlled_campaign_actionable):
-        return {
+        return with_pretransaction_timing({
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
             "status": "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE",
             "ok": True,
@@ -2119,9 +2218,9 @@ def run_bounded_delegated_service_failure_action(
             ],
             "contract_id": str(contract.get("contract_id") or ""),
             "controlled_certification_campaign": campaign_binding,
-        }
+        })
     if campaign_binding.get("completed"):
-        return {
+        return with_pretransaction_timing({
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
             "status": "CONTROLLED_CERTIFICATION_CAMPAIGN_COMPLETE",
             "ok": True,
@@ -2137,7 +2236,7 @@ def run_bounded_delegated_service_failure_action(
                 "V7_SERVICE_FAILURE_T48_M10_AUTHORITY_AND_RUNTIME_"
                 "RECOMMENDATION_RECONCILIATION"
             ),
-        }
+        })
     # A live ordinary failed-source incident already has fresh canonical
     # Matrix scope/evidence and continues through the governed executor,
     # where target admission, Packet, Lease, Barrier, route and required
@@ -2157,6 +2256,7 @@ def run_bounded_delegated_service_failure_action(
     # source failure and Planner target are current.  This is an invocation of
     # the canonical snapshot writer only: it adds no timer, cache, owner or
     # execution path and never mutates routes or users.
+    span_started_ns = time.monotonic_ns()
     snapshot_root = state_dir / "intelligence"
     snapshot_refresh: dict[str, Any] = {
         "attempted": False,
@@ -2207,6 +2307,11 @@ def run_bounded_delegated_service_failure_action(
                         break
             if refresh_required:
                 break
+    pretransaction_span(
+        "matrix_advisory_snapshot_freshness_read",
+        span_started_ns,
+        owner="existing intelligence snapshot owner",
+    )
     if refresh_required and ordinary_execution:
         snapshot_refresh.update({
             "status": "DEFERRED_ADVISORY_OUTSIDE_RUNTIME_HOT_PATH",
@@ -2278,7 +2383,7 @@ def run_bounded_delegated_service_failure_action(
                     "error": f"{type(exc).__name__}:{exc}",
                 })
         if snapshot_refresh.get("status") == "FAILED":
-            return {
+            return with_pretransaction_timing({
                 "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
                 "status": "STOP_SAFE_SNAPSHOT_REFRESH_FAILED",
                 "ok": True,
@@ -2290,7 +2395,7 @@ def run_bounded_delegated_service_failure_action(
                 "source_incident_id": incident_id,
                 "automation_obligation_id": obligation_id,
                 "contract_id": str(contract.get("contract_id") or ""),
-            }
+            })
     requested_max_users = (
         int(campaign_binding.get("next_stage") or 0)
         if campaign_binding.get("active")
@@ -2303,6 +2408,7 @@ def run_bounded_delegated_service_failure_action(
             int(axes.get("ordinary_production_runtime_max") or 0),
             4,
         )
+    span_started_ns = time.monotonic_ns()
     command = [
         executor,
         "--execute-bounded-delegated-transaction",
@@ -2340,7 +2446,13 @@ def run_bounded_delegated_service_failure_action(
             "--controlled-certification-campaign-stage",
             str(campaign_binding.get("next_stage") or 0),
         ])
+    pretransaction_span(
+        "matrix_governed_executor_contract_construction",
+        span_started_ns,
+        owner="existing Matrix to governed-executor handoff owner",
+    )
     started_at = now_iso()
+    governed_dispatch_ns = time.monotonic_ns()
     try:
         proc = subprocess.run(
             command,
@@ -2351,7 +2463,7 @@ def run_bounded_delegated_service_failure_action(
             timeout=max(30, min(int(timeout_sec or 180), 600)),
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        return {
+        return with_pretransaction_timing({
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
             "status": "FAILED",
             "ok": False,
@@ -2360,7 +2472,7 @@ def run_bounded_delegated_service_failure_action(
             "command": command,
             "error": f"{type(exc).__name__}:{exc}",
             "action_attempted": True,
-        }
+        }, governed_dispatch_ns=governed_dispatch_ns)
     output = proc.stdout or ""
     try:
         parsed = json.loads(output)
@@ -2410,7 +2522,7 @@ def run_bounded_delegated_service_failure_action(
         and not bool(parsed.get("apply_executed"))
         and int(parsed.get("users_moved") or 0) == 0
     )
-    return {
+    return with_pretransaction_timing({
         "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
         "status": "ACTION_COMPLETED" if completed else ("STOP_SAFE" if stop_safe else "FAILED"),
         "ok": completed or stop_safe,
@@ -2437,7 +2549,7 @@ def run_bounded_delegated_service_failure_action(
         "post_child_lease_reconciliation": post_child_lease_reconciliation,
         "output_tail": output[-2000:] if not (completed or stop_safe) else "",
         "output_parse_failed": not bool(parsed),
-    }
+    }, governed_dispatch_ns=governed_dispatch_ns)
 
 
 def run_ct_m0f_standing_validation_campaign(
@@ -5545,6 +5657,27 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         # latency sample can be attributed without replaying an apply or
         # creating another metrics/state owner.
         compact_result["execution_timing"] = execution_timing
+    pretransaction_timing = value.get("pretransaction_timing")
+    pretransaction_timing = (
+        pretransaction_timing
+        if isinstance(pretransaction_timing, dict)
+        else {}
+    )
+    if pretransaction_timing:
+        # Preserve the Matrix-owned timing receipt that ends exactly when the
+        # governed executor starts.  The governed child keeps its own timing
+        # receipt, so this adds attribution without copying execution truth
+        # or creating a second telemetry/state owner.
+        compact_result["pretransaction_timing"] = {
+            key: pretransaction_timing.get(key)
+            for key in (
+                "schema_version", "spans",
+                "bounded_consumer_entry_to_governed_dispatch_ms",
+                "matrix_consumer_entry_to_governed_dispatch_ms",
+                "measurement_boundary",
+            )
+            if pretransaction_timing.get(key) not in (None, "", [], {})
+        }
     # A governed transaction can stop before Packet materialization when the
     # read-only cycle finds a non-authority owner gap.  Keep that exact cycle
     # verdict in the existing Matrix receipt; otherwise every such failure is
@@ -7231,6 +7364,35 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     started = time.time()
+    matrix_consumer_entry_ns = time.monotonic_ns()
+    runtime_pretransaction_spans = matrix_runtime_entry_timing(
+        entry_ns=matrix_consumer_entry_ns,
+    )
+
+    def runtime_pretransaction_span(
+        stage: str,
+        span_started_ns: int,
+        *,
+        owner: str,
+    ) -> None:
+        runtime_pretransaction_spans.append({
+            "stage": stage,
+            "duration_ms": round(
+                (time.monotonic_ns() - span_started_ns) / 1_000_000.0, 3,
+            ),
+            "clock_source": "time.monotonic_ns",
+            "owner": owner,
+            "diagnostic_only": True,
+        })
+
+    def runtime_pretransaction_receipt() -> dict[str, Any]:
+        return {
+            "schema_version": "v7.matrix-pretransaction-timing.v1",
+            "spans": list(runtime_pretransaction_spans),
+            "matrix_consumer_entry_ns": matrix_consumer_entry_ns,
+            "runtime_mutation_performed": False,
+        }
+
     state_dir = Path(args.state_dir)
     if args.initialize_standing_lineage_only:
         conflicting = bool(
@@ -7698,6 +7860,7 @@ def main() -> int:
     if args.event_provenance == "OPERATOR_INDUCED" and not str(args.event_channel or "").strip():
         print(json.dumps({"error": "operator_induced_event_channel_required"}, ensure_ascii=False))
         return 2
+    span_started_ns = time.monotonic_ns()
     matrix = read_json(state_dir / "service-matrix.json", {})
     capture_rows = append_passive_failure_capture(
         Path(args.event_dir),
@@ -7715,11 +7878,23 @@ def main() -> int:
         "execution_forbidden": True,
         "natural_production_credit": False,
     }
+    runtime_pretransaction_span(
+        "matrix_current_health_read_and_passive_capture",
+        span_started_ns,
+        owner="existing Matrix health and passive-capture owners",
+    )
     # Reuse an already materialized exact L3 handoff before passive
     # reconciliation. A new or ambiguous incident retains the original
     # passive-first path, so no fast path can invent a Candidate or bypass
     # current-scope reconciliation.
+    span_started_ns = time.monotonic_ns()
     source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
+    runtime_pretransaction_span(
+        "matrix_current_failed_source_scope_read",
+        span_started_ns,
+        owner="existing Matrix current-source-scope owner",
+    )
+    span_started_ns = time.monotonic_ns()
     profile_source_constraint = runtime_profile_handoff_source_constraint(
         state_dir=state_dir,
         source_scope=source_scope,
@@ -7734,6 +7909,11 @@ def main() -> int:
             source_scope=source_scope,
             source_constraint=profile_source_constraint,
         )
+    )
+    runtime_pretransaction_span(
+        "matrix_exact_current_source_handoff_lookup",
+        span_started_ns,
+        owner="existing Matrix profile-handoff and L3 owners",
     )
     fresh_runtime_profile_handoff = bool(
         args.runtime_hot_path_only
@@ -7752,6 +7932,7 @@ def main() -> int:
     fresh_profile_advisory: dict[str, Any] = {}
     fresh_profile_obligation: dict[str, Any] = {}
     if fresh_runtime_profile_handoff and not direct_service_failure_obligation:
+        span_started_ns = time.monotonic_ns()
         fresh_profile_advisory = run_service_failure_automation_advisory(
             str(args.passive_consumer),
             state_dir=state_dir,
@@ -7787,6 +7968,11 @@ def main() -> int:
         ):
             fresh_profile_obligation = proposed_obligation
             payload["service_failure_automation_advisory"] = fresh_profile_advisory
+        runtime_pretransaction_span(
+            "matrix_fresh_profile_obligation_advisory",
+            span_started_ns,
+            owner="existing service-failure advisory owner",
+        )
     fresh_runtime_profile_passive_deferral = (
         fresh_runtime_profile_handoff_ready_for_passive_deferral(
             runtime_hot_path_only=bool(args.runtime_hot_path_only),
@@ -7906,6 +8092,7 @@ def main() -> int:
             "runtime_mutation_performed": False,
         }
     else:
+        span_started_ns = time.monotonic_ns()
         payload["passive_event_consumer"] = run_passive_consumer(
             str(args.passive_consumer),
             state_dir=state_dir,
@@ -7916,6 +8103,11 @@ def main() -> int:
                 and profile_source_constraint
                 and os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
             ),
+        )
+        runtime_pretransaction_span(
+            "matrix_passive_consumer_before_handoff",
+            span_started_ns,
+            owner="existing passive event consumer",
         )
     consumer_payload = (
         (payload.get("passive_event_consumer") or {}).get("consumer_result") or {}
@@ -7936,6 +8128,7 @@ def main() -> int:
     if not defer_passive_consumer_until_after_direct_execution:
         # Passive reconciliation may have materialized the first current L3
         # handoff. Re-read only through the same existing Matrix/L3 owners.
+        span_started_ns = time.monotonic_ns()
         source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
         profile_source_constraint = runtime_profile_handoff_source_constraint(
             state_dir=state_dir,
@@ -7951,6 +8144,11 @@ def main() -> int:
                 source_scope=source_scope,
                 source_constraint=profile_source_constraint,
             )
+        )
+        runtime_pretransaction_span(
+            "matrix_post_passive_current_source_handoff_lookup",
+            span_started_ns,
+            owner="existing Matrix current-source-scope and L3 owners",
         )
     payload["current_failed_source_scope"] = source_scope
     if event_only and not source_scope["active"] and not source_scope.get("requires_scope_reconciliation"):
@@ -7987,6 +8185,7 @@ def main() -> int:
             "reason": "explicit_skip",
         }
     else:
+        span_started_ns = time.monotonic_ns()
         priority_source = profile_source_constraint or automatically_prioritized_failed_source(
             state_dir=state_dir,
             active_sources=[
@@ -8020,6 +8219,11 @@ def main() -> int:
                     "profile_failure_monotonic_ns", "source_selection",
                 )
             }
+        runtime_pretransaction_span(
+            "matrix_service_failure_advisory",
+            span_started_ns,
+            owner="existing service-failure advisory owner",
+        )
     advisory_result = (
         (payload.get("service_failure_automation_advisory") or {}).get("consumer_result") or {}
     )
@@ -8139,6 +8343,7 @@ def main() -> int:
             ),
             runtime_hot_path_only=bool(args.runtime_hot_path_only),
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
+            pretransaction_timing=runtime_pretransaction_receipt(),
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]
         if args.runtime_hot_path_only:

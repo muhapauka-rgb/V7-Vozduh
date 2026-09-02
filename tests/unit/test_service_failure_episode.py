@@ -5124,6 +5124,30 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(stop["status"], "STOP_SAFE")
             self.assertTrue(stop["action_attempted"])
             self.assertEqual(stop["users_moved"], 0)
+            timing = stop["pretransaction_timing"]
+            self.assertEqual(
+                timing["schema_version"],
+                "v7.matrix-pretransaction-timing.v1",
+            )
+            self.assertIn(
+                "matrix_standing_policy_read",
+                [row["stage"] for row in timing["spans"]],
+            )
+            self.assertIn(
+                "matrix_governed_executor_contract_construction",
+                [row["stage"] for row in timing["spans"]],
+            )
+            self.assertIsNotNone(
+                timing["bounded_consumer_entry_to_governed_dispatch_ms"],
+            )
+            projection = self.refresh.compact_refresh_projection({
+                "bounded_delegated_service_failure_action": stop,
+            })
+            self.assertEqual(
+                projection["bounded_delegated_service_failure_action"]
+                ["consumer_result"]["pretransaction_timing"]["schema_version"],
+                "v7.matrix-pretransaction-timing.v1",
+            )
             self.assertEqual(
                 stop["snapshot_refresh"]["status"],
                 "DEFERRED_ADVISORY_OUTSIDE_RUNTIME_HOT_PATH",

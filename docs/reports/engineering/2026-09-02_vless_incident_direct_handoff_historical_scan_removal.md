@@ -405,3 +405,44 @@ the assigned ordinary sources had no failed service rows.  Therefore there was
 no lawful live recovery transaction to credit after this deploy.  This is not
 treated as success evidence.  The next fresh ordinary Matrix failure is the
 required normal-runtime acceptance event; no manual substitution is permitted.
+
+## Follow-up live VLESS precedent: ineligible disabled registry row
+
+### Read-only observation
+
+When a subsequent VLESS precedent was reported, current Runtime inspection
+found one row on VLESS, but its canonical `users.registry` state is
+`enabled=0`.  It was already disabled in retained registry snapshots from
+July; it is not a newly enabled ordinary production identity.  The currently
+running health loop, the profile detector, and source-scope owner all exclude
+disabled identities from automatic recovery by design.
+
+VLESS still has failed service observations, but its most recent relevant
+ordinary-service observations were stale at the time of inspection.  A stale
+Matrix result is deliberately not authorization to move a user.  The normal
+`other_required` role continued to run, and the Matrix file itself remained
+writable; it correctly had no enabled VLESS identity to probe for ordinary
+recovery.
+
+### Causal conclusion
+
+This is not a failed automatic-recovery transaction.  The apparent affected
+VLESS entry is a disabled historical fixture, so no legal automatic move can
+start.  Automatically enabling it would be a security and lifecycle violation
+and would not be valid acceptance evidence.
+
+The read-only Runtime journal also records two genuine, system-originated
+ordinary recoveries immediately before this observation.  Their governed
+transactions completed without Codex route actions, but took approximately
+18.1 and 22.2 seconds respectively, so neither may be credited toward the
+seven-second SLO.
+
+### Exact next step
+
+Keep the Runtime unchanged and wait only for a current *enabled* ordinary
+assignment whose current source has fresh Matrix failure evidence.  That exact
+case will be discovered and moved exclusively by the normal V7 health caller.
+Separately, the Admin should expose an unmistakable disabled/ineligible state
+for such historical rows so they cannot be mistaken for a live recovery
+cohort; this is an observability correction, not an automatic enable or a
+manual recovery action.

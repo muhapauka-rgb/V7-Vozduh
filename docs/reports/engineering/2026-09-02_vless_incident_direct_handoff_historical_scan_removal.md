@@ -245,6 +245,21 @@ Barrier, routing, verification or retry behavior.  Its sole purpose is to
 identify the generic owner condition that makes `eligible_source_scope` and
 `capacity_safe_scope` zero on the next normal Runtime incident.
 
+The change was committed as `80e95eae19a6d2b605f29d41668a3c4f1942952c`,
+published to `Updatesystem`, and safely deployed as
+`deploy-z8-14-Updatesystem-80e95ea-20260902T150445`.  The safe-deploy gate
+reported no blockers and GitHub alignment passed.  Focused tests are 142/142
+passed; the deployed Planner SHA-256 is
+`e5b7fe678485f7e1ed19c17e1aebe69f87ecd177d62e7f4c187b762a8cbbe52f`, and
+`v7-health.service` is active.
+
+### Exact next step
+
+Observe the next real Runtime-originated failure.  If it has no admitted
+target, use the new aggregate summary to repair exactly the owner gate that
+caused the refusal.  If it has an admitted target, V7—not Codex—must execute
+the complete governed recovery and required-service verification.
+
 ### Exact next step
 
 Complete focused verification and safely deploy the duplicate-advisory repair.

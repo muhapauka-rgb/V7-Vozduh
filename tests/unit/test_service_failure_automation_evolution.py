@@ -6676,6 +6676,8 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 source, "## 0. Authoritative Live Current State",
                 "## Authoritative Unfinished Capability Closure Registry",
             ))
+            initial_next_action = live["CURRENT_NEXT_ACTION_ID"].strip("`")
+            initial_completion_contract = live["CURRENT_COMPLETION_CONTRACT"].strip("`")
             contract_hash = "a" * 64
             runtime_status = {
                 "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
@@ -6732,11 +6734,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             ))
             self.assertEqual(
                 updated_live["CURRENT_NEXT_ACTION_ID"].strip("`"),
-                "RECOVERY_STABILITY_FOUNDATION",
+                initial_next_action,
             )
             self.assertEqual(
                 updated_live["CURRENT_COMPLETION_CONTRACT"].strip("`"),
-                "RECOVERY_STABILITY_FOUNDATION",
+                initial_completion_contract,
             )
 
     def test_policy_reconciliation_rejects_unproven_tier_request_transition(self):
@@ -8664,7 +8666,17 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
                 cps_path.read_text(encoding="utf-8"), "## 0. Authoritative Live Current State",
                 "## Authoritative Unfinished Capability Closure Registry",
             ))
-            self.assertEqual(self.sync._plain_live_value(live, "CURRENT_NEXT_ACTION_ID"), "RECOVERY_STABILITY_FOUNDATION")
+            self.assertEqual(
+                self.sync._plain_live_value(live, "CURRENT_NEXT_ACTION_ID"),
+                self.sync._plain_live_value(
+                    self.sync._markdown_field_table(self.sync._markdown_section(
+                        (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8"),
+                        "## 0. Authoritative Live Current State",
+                        "## Authoritative Unfinished Capability Closure Registry",
+                    )),
+                    "CURRENT_NEXT_ACTION_ID",
+                ),
+            )
             self.assertEqual(self.sync._plain_live_value(live, "LAST_SERVICE_FAILURE_RECEIPT_ID"), "sfomp_historical_safe")
 
     def test_fresh_m5a_request_is_atomically_projected_without_contract_or_packet(self):

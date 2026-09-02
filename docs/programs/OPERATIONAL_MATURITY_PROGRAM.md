@@ -202,6 +202,17 @@ Core-primary governance.  The live action origin stays solely V7 Runtime;
 Codex cannot advance a transaction.  This registration changes neither the
 S11 contract nor the CPS authority boundary.
 
+`RECOVERY_EXACT_AFFECTED_SET_MUTATION_AND_ROLLBACK_LAW` is registered beneath
+that specialization as `CANDIDATE_EVALUATION_ONLY`.  It does not supersede
+the serial Apply law or current `max_concurrent_transactions=1`.  Its only
+admitted sequence is: audit the existing exact Core-primary delta; prove exact
+ordinary admission and A/B rollback isolation on Linux-equivalent route-writer
+semantics; then determine whether the existing operation-control owner can
+represent two disjoint bounded operations.  A failed proof records its exact
+boundary and retains the current serial path.  No new queue, scheduler, lock,
+writer, registry, rollback store, Planner, Matrix, Authority or verification
+owner is admitted by this registration.
+
 V4.85 additionally makes change containment binding. The frozen stability
 baseline is only a compact pointer set over existing Polygon/test receipts,
 deploy provenance and reports; it is not a second evidence store, registry or

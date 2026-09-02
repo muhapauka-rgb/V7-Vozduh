@@ -677,6 +677,29 @@ safe deploy and an independently originated live receipt.  The governing SLO
 remains `T_FIRST_VALID_FAILURE_OBSERVATION -> LAST_AFFECTED_REQUIRED_S11`
 P95 `<=7000 ms`, max `<8000 ms`; no span may be deleted by weakening S11.
 
+**Exact affected-set mutation / rollback evaluation**
+
+`RECOVERY_EXACT_AFFECTED_SET_MUTATION_AND_ROLLBACK_LAW` is a conditional
+evaluation inside `RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW`, not an
+admitted parallel-Apply capability.  It reuses the existing Core-primary
+one-user operator delta and 2--4-member compatible emergency-cohort delta
+only as Data-plane primitives; it grants neither operator semantics nor new
+ordinary Authority.  Before any ordinary automatic path can consume an exact
+delta, existing owners must prove the exact ordinary admission, affected-set
+preimage and the interleaving invariant `A commit -> B commit -> rollback A`
+with B unchanged.  Until then ordinary recovery remains serial and
+`max_concurrent_transactions=1` remains binding.
+
+The existing operation-control owner must independently prove that it can
+represent two atomically distinct, disjoint Packet/Lease/Barrier-bound
+operations without cross-finalization, stale commit or cross-rollback.  If
+that cannot be expressed as a minimal change of that same owner, record
+`OPERATION_CONTROL_SINGLE_WINDOW_BOUNDARY`; do not add a queue, scheduler,
+lock manager or second state surface.  Any full Core-primary fallback remains
+explicitly exclusive.  Linux-equivalent route-writer, lock, nft and rollback
+evidence is required before concurrent Apply is credited; lower-fidelity
+Polygon may guide design but is `PRODUCTION_CONCURRENCY_NOT_CERTIFIED`.
+
 Before any resumed Stability implementation, the existing CPS/OMP admission
 owner performs one reconciliation of Program, CPS, OMP, local Git, available
 GitHub/deploy provenance, live Runtime observation, recent reports and

@@ -93,3 +93,22 @@ required route and service S11 checks.
 Observe the next live automatic incident through the normal Runtime caller.
 The measurement must retain all required route and service S11 checks and
 separately quantify the remaining advisory and Apply/verification time.
+
+## Follow-up: stale Telegram wake rejection
+
+After the preceding deploy, the restarted health owner consumed one historical
+Telegram Matrix row as if it were a new wake. Its receipt had no current
+ordinary failed scope, no attempted action and no user movement, yet consumed
+23,014 ms and preempted ordinary detection work. The row's Matrix observation
+was more than two days old.
+
+`tools/runtime-support/v7-health-loop` now applies the existing 10-second
+freshness law to direct service/HARD wake rows as well as profile-required
+rows. Rows without an ISO timestamp retain controlled-fixture compatibility;
+production rows with stale or malformed timestamps cannot start a persistent
+recovery transaction. This changes no Matrix status, target choice, Authority,
+Candidate, Packet, Lease, Barrier, route writer or S11 rule.
+
+Focused verification: 4/4 freshness cases passed; the full
+`test_v5_3_role_based_recovery` suite passed 24/24. The change is awaiting
+publication and safe deployment at the time of this report update.

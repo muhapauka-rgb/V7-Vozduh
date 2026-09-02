@@ -292,6 +292,39 @@ def canonical_service_failure_t0_ns(
     items = payload.get("items") if isinstance(payload, dict) else {}
     if not isinstance(items, dict):
         return 0
+    # The persistent consumer may be restarted independently from Matrix.  A
+    # historical failed row can therefore otherwise look "new" to its
+    # process-local exact-once cursor and preempt the real detector for a
+    # full governed attempt.  A route-recovery wake needs fresh Matrix
+    # evidence; stale rows remain visible to Matrix/history, but cannot be
+    # re-consumed as a current incident after a health-owner restart.
+    max_observation_age_seconds = 10
+    now_epoch = time.time()
+
+    def has_current_observation(
+        source: dict[str, Any], service: dict[str, Any],
+    ) -> bool:
+        stamp = str(
+            service.get("observed_at")
+            or service.get("tested_at")
+            or source.get("checked_at")
+            or source.get("updated")
+            or ""
+        )
+        # Older controlled fixtures can carry only monotonic evidence.  Keep
+        # their existing compatibility contract, while production rows always
+        # supply an ISO observation timestamp and are freshness-bound here.
+        if not stamp:
+            return True
+        try:
+            observed_epoch = datetime.fromisoformat(
+                stamp.replace("Z", "+00:00")
+            ).timestamp()
+        except (TypeError, ValueError, OverflowError):
+            return False
+        age = now_epoch - observed_epoch
+        return 0 <= age <= max_observation_age_seconds
+
     failed_sources: dict[str, int] = {}
     for source_id, source in items.items():
         if not isinstance(source, dict):
@@ -303,6 +336,7 @@ def canonical_service_failure_t0_ns(
             continue
         if (
             service.get("ok") is False
+            and has_current_observation(source, service)
             and (
                 not required_evidence_class
                 or str(service.get("evidence_class") or "")
@@ -331,7 +365,6 @@ def canonical_service_failure_t0_ns(
     # Matrix generation into the already-existing persistent consumer; do not
     # create a second probe, event store, timer or health owner here.
     if not failed_sources and service_id == "__channel_liveness__":
-        now = time.time()
         for source_id, source in items.items():
             if not isinstance(source, dict):
                 continue
@@ -342,8 +375,8 @@ def canonical_service_failure_t0_ns(
                 ).timestamp()
             except (TypeError, ValueError, OverflowError):
                 continue
-            age = now - checked_epoch
-            if age < 0 or age > 1800:
+            age = now_epoch - checked_epoch
+            if age < 0 or age > max_observation_age_seconds:
                 continue
             services = source.get("services")
             if not isinstance(services, dict):

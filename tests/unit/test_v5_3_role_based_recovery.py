@@ -114,6 +114,83 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
                 0,
             )
 
+    def test_direct_service_wake_rejects_stale_observation_after_health_restart(self):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_health_loop_direct_service_stale", str(ROOT / "tools/runtime-support/v7-health-loop")
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        health = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        sys.modules[loader.name] = health
+        spec.loader.exec_module(health)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            matrix_path = root / "service-matrix.json"
+            users_path = root / "users.registry"
+            stale = (datetime.now(timezone.utc) - timedelta(seconds=11)).isoformat()
+            matrix_path.write_text(json.dumps({
+                "items": {"vless": {
+                    "services": {
+                        "telegram": {
+                            "ok": False,
+                            "status": "FAIL",
+                            "observed_at": stale,
+                            "source_incident_id": "sfinc_old",
+                            "failure_event_id": "sfe_old",
+                            "failure_state": "OBSERVED_CONTINUING",
+                            "confirmed_hard_failure_monotonic_ns": 123,
+                        },
+                    },
+                }},
+            }), encoding="utf-8")
+            users_path.write_text(
+                "ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                health.canonical_service_failure_t0_ns(
+                    matrix_path, users_path, "telegram"
+                ),
+                0,
+            )
+
+    def test_direct_service_wake_keeps_fresh_matrix_observation(self):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_health_loop_direct_service_fresh", str(ROOT / "tools/runtime-support/v7-health-loop")
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        health = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        sys.modules[loader.name] = health
+        spec.loader.exec_module(health)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            matrix_path = root / "service-matrix.json"
+            users_path = root / "users.registry"
+            matrix_path.write_text(json.dumps({
+                "items": {"vless": {
+                    "services": {
+                        "telegram": {
+                            "ok": False,
+                            "status": "FAIL",
+                            "observed_at": datetime.now(timezone.utc).isoformat(),
+                            "source_incident_id": "sfinc_current",
+                            "failure_event_id": "sfe_current",
+                            "failure_state": "OBSERVED_NEW",
+                            "confirmed_hard_failure_monotonic_ns": 456,
+                        },
+                    },
+                }},
+            }), encoding="utf-8")
+            users_path.write_text(
+                "ip=10.7.0.125 current=vless enabled=1\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                health.canonical_service_failure_t0_ns(
+                    matrix_path, users_path, "telegram"
+                ),
+                456,
+            )
+
     def test_service_matrix_majority_ignores_unidentified_rows_without_blocking_identified_quorum(self):
         loader = importlib.machinery.SourceFileLoader(
             "v7_health_loop_matrix_mixed_identity", str(ROOT / "tools/runtime-support/v7-health-loop")

@@ -49,20 +49,37 @@ route/S11 rows proves the latter remain visible and the receipt stays bounded.
 ## Verification
 
 - `tests.unit.test_v7_health_fast_deadline_loop`: 37 passed.
-- The wider affected suite was started for health, autoswitch policy,
-  service-failure Program and truth checks; its focused health component
-  completed successfully.  The deploy gate will rerun its applicable checks
-  from the committed fingerprint.
+- `tests.unit.test_v5_3_n9_full_scale_tournament`: 5 passed.  Its existing
+  scale grid covers 7/50/100/1000 egresses and 250/500/10,000 users.  The
+  Program's separately stated 10-user/cohort requirement remains a distinct
+  recovery-transaction check; this health-cost tournament does not pretend to
+  be that live governed-Apply proof.
 - `git diff --check`: pass before publication.
 - Existing safe-deploy preflight found the expected uncommitted Runtime delta
   and therefore correctly returned `NO-GO` until commit/publish.  GitHub
   provenance itself was aligned at the pre-change commit.
 
+## Publication and Runtime observation
+
+- Published commit: `40768213` (`v7: expose governed apply timing`).
+- The existing safe-deploy owner deployed the identical
+  `v7-health-loop` SHA-256 `56f11889...2726ce`; `v7-health.service` restarted
+  normally and remains active.
+- A subsequent independently-originated V7 Matrix receipt was observed.  It
+  was **not** an automatic recovery: its source had no current profile-required
+  service failure, so the existing consumer returned
+  `STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION`, moved zero users and did
+  not create a governed action.  This is safety-preserving and receives no
+  performance credit.
+- The receipt now retains the complete Apply/S11 timing category when an
+  actual action is admitted.  No client, route, Authority, Matrix policy or
+  timer was changed by this observability repair or observation.
+
 ## Next owner-backed action
 
-Commit and deploy this observability repair through `tools/v7-safe-deploy`,
-then wait only for the next independently originated V7 recovery receipt.
-That receipt will identify the actual dominant Apply/S11 subspan.  Only then
-is one P0/P1 existing-owner performance repair admissible, followed by the
-existing Polygon scale suites at 10/50/100/1000 and another V7-owned live
-observation.  Codex must not manually initiate, select or advance a recovery.
+Wait only for the next independently originated **action-admitted** V7
+recovery receipt.  It will identify the actual dominant Apply/S11 subspan.
+Only then is one P0/P1 existing-owner performance repair admissible, followed
+by the existing Polygon scale suites at 10/50/100/1000 and another V7-owned
+live observation.  Codex must not manually initiate, select or advance a
+recovery.

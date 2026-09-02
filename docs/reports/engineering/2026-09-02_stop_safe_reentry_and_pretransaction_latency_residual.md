@@ -96,3 +96,35 @@ Commit `83c155e06c7d344cc6b71cc50de99fafea38b019` was pushed to
 The only valid next measurement is a new naturally generated V7 Runtime
 recovery. Codex must observe its receipt only. It must not manually start,
 advance, or complete the recovery transaction.
+
+## First live post-deploy measurement
+
+At 2026-09-02 12:23 MSK the normal V7 Runtime detected the current VLESS
+failure and automatically completed one ordinary recovery. The evidence was
+produced by the health role and existing Matrix/governed owners; Codex did not
+select the client or target and did not invoke the route writer.
+
+- source: `vless`;
+- moved ordinary users: 1;
+- Matrix T0 to consumer entry: 163.446 ms;
+- Matrix consumer entry to governed-executor dispatch: 28,173.443 ms;
+- governed transaction total: 11,316.176 ms;
+- governed Planner: 1,453.622 ms;
+- governed Apply and verification: 9,259.479 ms;
+- final transaction verdict: `GOVERNED_TRANSACTION_COMPLETED`.
+
+The new receipt attributes the pre-transaction residual instead of hiding it:
+
+| Matrix stage | Observed time |
+| --- | ---: |
+| exact current source/L3 handoff lookup | 8,922.441 ms |
+| fresh profile obligation advisory | 3,669.956 ms |
+| passive consumer before handoff | 3,300.246 ms |
+| post-passive source/L3 handoff lookup | 8,223.812 ms |
+| ordinary service-failure advisory | 3,761.078 ms |
+
+This is `PRETRANSACTION_LATENCY_RESIDUAL_MEASURED`, not an SLO pass. The
+dominant residual is repeated existing-owner reconciliation before dispatch.
+The next engineering frontier is to prove which duplicate read can be reused
+or deferred without weakening current-source, Authority, target freshness, or
+S11 checks. No such optimization was made in this measurement Mission.

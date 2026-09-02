@@ -83,13 +83,27 @@ server has been capacity-certified for production at those numbers.
 
 ## Deployment and re-entry
 
-The code is to be published through the existing safe-deploy owner only.  A
-valid runtime result requires a normal V7 health-originated event, Matrix
-receipt, automatic governed execution and S11; no Codex-triggered recovery is
-evidence.  The first post-deploy receipt must compare the exact pretransaction
-spans above and show whether the two former high-cost mechanisms collapsed.
+Published and deployed as commit `57aceacc36bf7e73433a1bdb6e995ef01e60f37a`
+through `tools/v7-safe-deploy`, deployment
+`deploy-z8-14-Updatesystem-57aceac-20260902T125651`.  The safe-deploy gate and
+GitHub alignment passed.  The local and Runtime SHA-256 for
+`v7-service-matrix-refresh-all` both equal
+`9d51fc3f0b6c451891f4571a95b17f80e53d51f82d73ee0b30e63f115c09d142`, and
+`v7-health.service` is active.  The old standalone Matrix and autoswitch timer
+are inactive as intended.
 
-Next step: safe deploy this frozen repair, reconcile code/Runtime hashes, then
-observe one naturally invoked automatic Matrix recovery.  If a source/scope or
-Authority invalidator changes, V7 must re-read rather than reuse the prior
-result.
+The first post-deploy receipt was rejected as evidence: it carried an old T0,
+an empty source and zero affected users, therefore did not describe a current
+failure or an automatic recovery.  No user, route, Candidate, Packet, Lease or
+Barrier was manually advanced.
+
+A valid runtime result still requires a normal V7 health-originated event,
+Matrix receipt, automatic governed execution and S11.  Its pretransaction
+spans will show whether the two former high-cost mechanisms collapsed.  If a
+source/scope or Authority invalidator changes, V7 must re-read rather than
+reuse the prior result.
+
+Exact next step: observe the next naturally invoked current-source recovery on
+this frozen Runtime version and compare its pretransaction timing to the
+28-second baseline.  This report does not claim the seven-second SLO until that
+automatic evidence exists.

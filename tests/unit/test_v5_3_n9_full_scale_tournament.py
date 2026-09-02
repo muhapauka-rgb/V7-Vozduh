@@ -287,7 +287,10 @@ class V53N9FullScaleTournamentTest(unittest.TestCase):
         cls.autoswitch = load_tool("v7_autoswitch_n9_scale", AUTOSWITCH)
 
     def test_mandatory_scale_grid_preserves_health_cost_law(self):
-        for egresses in (7, 50, 100, 1000):
+        # Recovery-scale law is expressed as the operational 10/50/100/1000
+        # grid.  Keep this test aligned with that canonical grid rather than
+        # leaving an unrelated historical seven-egress sample in its place.
+        for egresses in (10, 50, 100, 1000):
             for users in (250, 500, 10_000):
                 for shape in ("one", "few", "many"):
                     with self.subTest(egresses=egresses, users=users, shape=shape):

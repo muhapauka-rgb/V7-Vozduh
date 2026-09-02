@@ -49,11 +49,10 @@ route/S11 rows proves the latter remain visible and the receipt stays bounded.
 ## Verification
 
 - `tests.unit.test_v7_health_fast_deadline_loop`: 37 passed.
-- `tests.unit.test_v5_3_n9_full_scale_tournament`: 5 passed.  Its existing
-  scale grid covers 7/50/100/1000 egresses and 250/500/10,000 users.  The
-  Program's separately stated 10-user/cohort requirement remains a distinct
-  recovery-transaction check; this health-cost tournament does not pretend to
-  be that live governed-Apply proof.
+- `tests.unit.test_v5_3_n9_full_scale_tournament`: 5 passed.  Its canonical
+  health-cost scale grid is now 10/50/100/1000 egresses and 250/500/10,000
+  users.  This is a Polygon-style health-cost bound, not a substitute for the
+  separately required live governed-Apply proof.
 - `git diff --check`: pass before publication.
 - Existing safe-deploy preflight found the expected uncommitted Runtime delta
   and therefore correctly returned `NO-GO` until commit/publish.  GitHub
@@ -74,6 +73,9 @@ route/S11 rows proves the latter remain visible and the receipt stays bounded.
 - The receipt now retains the complete Apply/S11 timing category when an
   actual action is admitted.  No client, route, Authority, Matrix policy or
   timer was changed by this observability repair or observation.
+- The existing N9 scale suite was aligned from its historical seven-egress
+  first point to the Program's canonical ten-egress point.  It exercises the
+  same existing test owner and does not alter Runtime behavior.
 
 ## Next owner-backed action
 

@@ -107,6 +107,7 @@ select the client or target and did not invoke the route writer.
 - source: `vless`;
 - moved ordinary users: 1;
 - Matrix T0 to consumer entry: 163.446 ms;
+- Matrix T0 to completed required-service recovery: 44,186 ms;
 - Matrix consumer entry to governed-executor dispatch: 28,173.443 ms;
 - governed transaction total: 11,316.176 ms;
 - governed Planner: 1,453.622 ms;

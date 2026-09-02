@@ -96,6 +96,10 @@ it does not claim that all those probes are a seven-second recovery path.
   (`publickey,password`).  No deploy was attempted and no production state was
   changed.  Independent Git/Runtime alignment therefore remains an external
   visibility boundary, not a CPS/OMP contradiction.
+- The implementation and evidence change was published as `20efb9b5` on
+  `Updatesystem`; the independently read remote branch hash matched.  It is a
+  source-state/test-owner change only, so safe deploy is intentionally not
+  invoked: the Mission did not admit or create a Runtime P0/P1 repair.
 
 ## Conclusion and exact re-entry
 

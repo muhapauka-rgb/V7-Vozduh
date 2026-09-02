@@ -1377,6 +1377,28 @@ class IntelligenceWorkersTest(unittest.TestCase):
             )
         self.assertEqual([row["idx"] for row in rows], [2, 4])
 
+    def test_jsonl_tail_matching_can_bound_to_newest_rows_per_marker(self):
+        """Current Matrix incident lookups need no historical repetitions."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "history.jsonl"
+            path.write_text(
+                "\n".join(json.dumps(row) for row in [
+                    {"idx": 1, "incident": "a"},
+                    {"idx": 2, "incident": "b"},
+                    {"idx": 3, "incident": "a"},
+                    {"idx": 4, "incident": "b"},
+                    {"idx": 5, "incident": "a"},
+                ]),
+                encoding="utf-8",
+            )
+            rows = workers.read_jsonl_tail_matching(
+                path,
+                markers=["a", "b"],
+                limit=10,
+                newest_matches_per_marker=1,
+            )
+        self.assertEqual([row["idx"] for row in rows], [4, 5])
+
     def test_jsonl_tail_matching_requires_all_markers_and_skips_partial_window_row(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "history.jsonl"

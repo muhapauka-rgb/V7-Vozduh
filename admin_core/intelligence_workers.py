@@ -123,6 +123,7 @@ def read_jsonl_tail_matching(
     limit: int = MAX_HISTORY_RECORDS,
     max_bytes: int = MAX_HISTORY_BYTES,
     require_all: bool = False,
+    newest_matches_per_marker: int = 0,
 ) -> list[dict[str, Any]]:
     """Read matching current JSONL rows without parsing unrelated history.
 
@@ -161,20 +162,44 @@ def read_jsonl_tail_matching(
                 # only a prefilter; callers still perform exact field checks.
                 candidate_spans: set[tuple[int, int]] = set()
                 search_markers = marker_bytes[:1] if require_all else marker_bytes
+                per_marker_limit = max(0, int(newest_matches_per_marker or 0))
                 for marker in search_markers:
-                    position = window_start
-                    while position < size:
-                        found = mapped.find(marker, position, size)
-                        if found < 0:
-                            break
-                        line_start = mapped.rfind(b"\n", window_start, found) + 1
-                        if line_start < window_start:
-                            line_start = window_start
-                        line_end = mapped.find(b"\n", found, size)
-                        if line_end < 0:
-                            line_end = size
-                        candidate_spans.add((line_start, line_end))
-                        position = found + max(1, len(marker))
+                    if per_marker_limit:
+                        # A caller that needs only the newest exact row for a
+                        # current Matrix incident must not enumerate every
+                        # historical repeat of that incident.  It still
+                        # applies its exact JSON-field predicate below; a
+                        # false textual match can therefore only yield no
+                        # result and fail closed, never select stale truth.
+                        position = size
+                        found_count = 0
+                        while position > window_start and found_count < per_marker_limit:
+                            found = mapped.rfind(marker, window_start, position)
+                            if found < 0:
+                                break
+                            line_start = mapped.rfind(b"\n", window_start, found) + 1
+                            if line_start < window_start:
+                                line_start = window_start
+                            line_end = mapped.find(b"\n", found, size)
+                            if line_end < 0:
+                                line_end = size
+                            candidate_spans.add((line_start, line_end))
+                            found_count += 1
+                            position = line_start
+                    else:
+                        position = window_start
+                        while position < size:
+                            found = mapped.find(marker, position, size)
+                            if found < 0:
+                                break
+                            line_start = mapped.rfind(b"\n", window_start, found) + 1
+                            if line_start < window_start:
+                                line_start = window_start
+                            line_end = mapped.find(b"\n", found, size)
+                            if line_end < 0:
+                                line_end = size
+                            candidate_spans.add((line_start, line_end))
+                            position = found + max(1, len(marker))
 
                 rows: list[dict[str, Any]] = []
                 for line_start, line_end in sorted(candidate_spans, reverse=True):

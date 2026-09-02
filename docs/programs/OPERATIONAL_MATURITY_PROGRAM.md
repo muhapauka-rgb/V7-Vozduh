@@ -83,6 +83,26 @@ machine-consumable at the existing Mission Completion Evidence Gate. It does
 not add a completion engine, Program, Mission lifecycle, owner, Runtime,
 Planner, queue, registry, state store or evidence store.
 
+V4.90 adds `RECOVERY_SIMULTANEOUS_FAILURE_SCALE_COST_LAW` only as a
+recovery-specific specialization of the existing Simplification First and
+Production Scale First laws.  It creates no second scale contract, owner,
+state, cache, scheduler or evidence store.  A material recovery change records
+its affected current-source, user, profile, target and global work as
+`RECOVERY_SCALE_COST_BEFORE -> AFTER -> DELTA_ACCEPTED` in the existing
+completion evidence/report.  An unmeasured field is
+`UNKNOWN_WITH_EXISTING_MEASUREMENT_OWNER`, never an invented Big-O claim.
+
+The specialization permits reuse only inside one Matrix invocation and only
+while the exact Matrix/source/scope, Authority/policy and target invalidators
+remain equal.  It may defer passive history, reporting and learning only after
+an exact current L3/fresh-obligation handoff exists.  It may never defer
+assignment, route/kernel visibility, required-service verification or another
+pre-S11 safety condition.  Its 100-source/1000-user model is an existing
+Polygon/test-facility structural check, with normal consumer provenance and no
+manual recovery; it is not a production-capacity claim.  A P0 contention or
+duplication classification requires measured mechanism evidence, not duration
+alone.
+
 For every future `MATERIAL_IMPLEMENTATION_CHANGE`, the existing completion
 contract must record `SIMPLIFICATION_FIRST_CHANGE_CONSUMED` through:
 

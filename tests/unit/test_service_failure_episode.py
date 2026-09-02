@@ -276,6 +276,44 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertIn("--runtime-profile-handoff-only", command)
         self.assertNotIn("--apply", command)
 
+    def test_matrix_runtime_profile_handoff_reuses_existing_advisory_owner_in_process(self):
+        """The normal Matrix caller must not lose five seconds to a new interpreter."""
+        owner = SimpleNamespace(
+            consume_service_failure_automation_only=mock.Mock(return_value={
+                "ok": True,
+                "status": "PASS",
+                "result": {"obligation": {"obligation_id": "fresh"}},
+            }),
+        )
+        owner_args = SimpleNamespace()
+        with mock.patch.object(
+            self.refresh, "in_process_autoswitch_module", return_value=owner,
+        ), mock.patch.object(
+            self.refresh, "in_process_autoswitch_args", return_value=owner_args,
+        ), mock.patch.object(
+            self.refresh.subprocess, "run", side_effect=AssertionError("no subprocess"),
+        ):
+            result = self.refresh.run_service_failure_automation_advisory(
+                str(AUTOSWITCH_TOOL),
+                state_dir=Path("/polygon/state"),
+                event_dir=Path("/polygon/events"),
+                source_egress="vless",
+                runtime_profile_handoff=True,
+                runtime_profile_source_scope={
+                    "channel": "vless",
+                    "source_incident_id": "sfinc-current",
+                    "source_scope_fingerprint": "fresh-scope",
+                    "affected_scope_count": 1,
+                    "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+                },
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["invocation"], "IN_PROCESS_EXISTING_AUTOSWITCH_OWNER")
+        self.assertTrue(owner_args.runtime_profile_handoff_only)
+        self.assertEqual(owner_args.source_egress, "vless")
+        owner.consume_service_failure_automation_only.assert_called_once_with(owner_args)
+
     def test_health_service_enables_existing_persistent_matrix_owner(self):
         unit = (ROOT / "systemd" / "v7-health.service").read_text(
             encoding="utf-8"

@@ -315,6 +315,22 @@ def in_process_autoswitch_args(
         action_class_audit_store=str(audit_store),
         org_policy_file=str(module.DEFAULT_ORG_POLICY_FILE),
         safety_file=str(module.DEFAULT_SAFETY_FILE),
+        quality_summary_file=str(module.DEFAULT_QUALITY_SUMMARY_FILE),
+        intelligence_snapshot_root=str(module.DEFAULT_INTELLIGENCE_SNAPSHOT_ROOT),
+        reconnect_state_file=str(module.DEFAULT_RECONNECT_STATE_FILE),
+        telegram_sentinel_file=str(module.DEFAULT_TELEGRAM_SENTINEL_FILE),
+        vless_activity_file=str(module.DEFAULT_VLESS_ACTIVITY_FILE),
+        restore_barrier_file=str(module.DEFAULT_RESTORE_BARRIER_FILE),
+        user="",
+        target_egress="",
+        source_egress="",
+        mode="",
+        apply=False,
+        emergency_failover_autonomy=False,
+        controlled_verifier_contention=False,
+        ordinary_service_failure_context=False,
+        runtime_profile_handoff_only=False,
+        matrix_comparative_preflight=False,
         controlled_source_validation_profile="campaign",
     )
 
@@ -5309,6 +5325,59 @@ def run_service_failure_automation_advisory(
                 "affected_scope_count", "scope_classification",
             )
         }, sort_keys=True)
+    # The runtime-profile handoff is the same existing advisory owner invoked
+    # through its normal Matrix caller.  It is read-only with respect to
+    # Candidate/Packet/Lease/route state, but the former fresh branch started
+    # another interpreter and could hit its five-second fallback before the
+    # owner had finished reading the exact source binding.  Reuse the existing
+    # owner in this Matrix invocation instead.  The subprocess remains the
+    # fail-closed compatibility path for any loading or entrypoint failure;
+    # there is no cross-invocation cache or shared Planner state.
+    in_process_error = ""
+    if runtime_profile_handoff and isinstance(runtime_profile_source_scope, dict):
+        previous_scope = os.environ.get("V7_SERVICE_PROFILE_FAILURE_SCOPE")
+        try:
+            if environment and environment.get("V7_SERVICE_PROFILE_FAILURE_SCOPE"):
+                os.environ["V7_SERVICE_PROFILE_FAILURE_SCOPE"] = environment[
+                    "V7_SERVICE_PROFILE_FAILURE_SCOPE"
+                ]
+            module = in_process_autoswitch_module(consumer)
+            owner_args = in_process_autoswitch_args(
+                module,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=DEFAULT_POLICY_FILE,
+                audit_store=DEFAULT_OPERATOR_EXECUTION_AUDIT_STORE,
+            )
+            owner_args.source_egress = str(source_egress or "").strip()
+            owner_args.runtime_profile_handoff_only = True
+            owner_args.matrix_comparative_preflight = bool(
+                matrix_comparative_preflight
+            )
+            parsed = module.consume_service_failure_automation_only(owner_args)
+            if not isinstance(parsed, dict):
+                raise TypeError("existing advisory owner returned non-object")
+            return {
+                "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
+                "status": "PASS" if parsed.get("ok") is True else "FAILED",
+                "ok": parsed.get("ok") is True,
+                "started_at": started_at,
+                "completed_at": now_iso(),
+                "command": command,
+                "invocation": "IN_PROCESS_EXISTING_AUTOSWITCH_OWNER",
+                "consumer_result": parsed,
+            }
+        except Exception as exc:
+            # Preserve the original bounded CLI behavior instead of trusting a
+            # partial in-process result.  The advisory owner is exact-once by
+            # semantic obligation, so this compatible retry cannot create an
+            # execution object or relax the current-data gates.
+            in_process_error = f"{type(exc).__name__}:{exc}"
+        finally:
+            if previous_scope is None:
+                os.environ.pop("V7_SERVICE_PROFILE_FAILURE_SCOPE", None)
+            else:
+                os.environ["V7_SERVICE_PROFILE_FAILURE_SCOPE"] = previous_scope
     try:
         proc = subprocess.run(
             command,
@@ -5340,6 +5409,8 @@ def run_service_failure_automation_advisory(
         "started_at": started_at,
         "completed_at": now_iso(),
         "command": command,
+        "invocation": "EXISTING_AUTOSWITCH_SUBPROCESS_FALLBACK",
+        "in_process_error": in_process_error,
         "returncode": proc.returncode,
         "consumer_result": parsed,
         "output_tail": output[-2000:],
@@ -6472,6 +6543,11 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
             markers=matrix_incident_ids,
             limit=CURRENT_SCOPE_EVENT_ROW_LIMIT,
             max_bytes=CURRENT_SCOPE_EVENT_BYTE_LIMIT,
+            # One Matrix incident needs only its newest bounded evidence row.
+            # The exact channel/incident predicate below stays authoritative;
+            # this merely prevents repeated historical observations from
+            # becoming a synchronous per-wake reconstruction.
+            newest_matches_per_marker=8,
         )
         if matrix_incident_ids else
         intelligence_workers.read_jsonl_tail(

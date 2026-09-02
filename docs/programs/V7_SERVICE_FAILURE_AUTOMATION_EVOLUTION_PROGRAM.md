@@ -611,6 +611,28 @@ The normal acceptance is `DELTA <= 0`. A bounded essential safety/product
 increase must satisfy the existing `ADD_MINIMAL_LOGIC_JUSTIFIED` law and carry
 an explicit retirement/invalidation condition.
 
+**Recovery simultaneous-failure scale-cost specialization**
+
+`RECOVERY_SIMULTANEOUS_FAILURE_SCALE_COST_LAW` applies the existing OMP
+Production Scale First law to a live recovery invocation without creating a
+parallel scale model.  Each material repair must classify only the work it
+actually changes — source-local, per-user/profile, per-target, global,
+serialized or parallelizable reads/writes/locks/history — as
+`BEFORE -> AFTER -> DELTA -> WHY`; unknown cost remains
+`UNKNOWN_WITH_EXISTING_MEASUREMENT_OWNER`.  The same current Matrix/source
+scope, Authority/policy and target invalidators may be reused only inside the
+same invocation and only before a consumer that can change them.  After such a
+consumer, the existing owner must reread them.
+
+Passive history, learning, reporting and other non-critical reconciliation may
+move after S11 only when an exact current L3 or fresh advisory obligation is
+already present.  Assignment, route/kernel visibility, required-service S11
+and all current-data safety checks remain before S11.  Existing Polygon/test
+facilities must cover the structural model at 100 sources/1000 users with the
+normal V7 consumer provenance; this is a complexity/rejection gate, not a
+production-capacity or manual-recovery proof.  Any P0 diagnosis requires a
+measured duplicate, lock, queue or reconstruction mechanism.
+
 Before any resumed Stability implementation, the existing CPS/OMP admission
 owner performs one reconciliation of Program, CPS, OMP, local Git, available
 GitHub/deploy provenance, live Runtime observation, recent reports and

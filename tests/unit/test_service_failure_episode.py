@@ -7207,6 +7207,39 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         guarded_branch = source[direct_advisory_guard:second_advisory]
         self.assertIn("already materialized one", guarded_branch)
 
+    def test_target_admission_summary_is_aggregate_and_identifier_free(self):
+        summary = self.autoswitch.planner_target_admission_summary([
+            {
+                "user_ip": "10.7.0.1",
+                "current_egress": "failed",
+                "recommended_egress": "healthy",
+                "candidates": [
+                    {
+                        "egress": "healthy",
+                        "eligible": True,
+                        "emergency_soft_admission": False,
+                        "blocked": [],
+                        "blocker_classes": [],
+                    },
+                    {
+                        "egress": "limited",
+                        "eligible": False,
+                        "emergency_soft_admission": True,
+                        "blocked": ["hard_capacity_or_ordinary_reserve_exhausted"],
+                        "blocker_classes": ["HARD_UNUSABLE"],
+                    },
+                ],
+            },
+        ])
+        self.assertEqual(summary["decision_rows"], 1)
+        self.assertEqual(summary["move_recommendation_rows"], 1)
+        self.assertFalse(summary["raw_user_rows_stored"])
+        self.assertNotIn("10.7.0.1", json.dumps(summary))
+        limited = next(row for row in summary["targets"] if row["target"] == "limited")
+        self.assertEqual(limited["blocker_counts"], {
+            "hard_capacity_or_ordinary_reserve_exhausted": 1,
+        })
+
     def test_direct_l3_handoff_does_not_wait_for_omp_before_executor(self):
         """A validated fallback projection is a Runtime handoff, not an OMP wait."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")

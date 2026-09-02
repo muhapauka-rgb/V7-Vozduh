@@ -1630,6 +1630,81 @@ def planner_movable_rows_with_selected_capacity(
     return movable
 
 
+def planner_target_admission_summary(
+    decisions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Return a compact, identifier-free explanation of Planner admission.
+
+    A no-target terminal must be diagnosable without retaining a second user
+    projection or re-running selection.  This summarizes the existing
+    per-decision candidate surface by target and blocker class only; it never
+    returns a user identifier, creates an admission, or changes a target.
+    """
+    targets: dict[str, dict[str, Any]] = {}
+    recommendation_count = 0
+    for row in decisions:
+        if not isinstance(row, dict):
+            continue
+        recommended = str(row.get("recommended_egress") or "")
+        current = str(row.get("current_egress") or "")
+        if recommended and recommended != current:
+            recommendation_count += 1
+        for candidate in row.get("candidates") or []:
+            if not isinstance(candidate, dict):
+                continue
+            target = str(candidate.get("egress") or "")
+            if not target:
+                continue
+            summary = targets.setdefault(target, {
+                "target": target,
+                "candidate_rows": 0,
+                "eligible_rows": 0,
+                "soft_admission_rows": 0,
+                "blocker_counts": {},
+                "blocker_class_counts": {},
+            })
+            summary["candidate_rows"] += 1
+            if bool_value(candidate.get("eligible")):
+                summary["eligible_rows"] += 1
+            if bool_value(candidate.get("emergency_soft_admission")):
+                summary["soft_admission_rows"] += 1
+            for blocker in candidate.get("blocked") or []:
+                key = str(blocker or "")
+                if key:
+                    summary["blocker_counts"][key] = (
+                        int(summary["blocker_counts"].get(key) or 0) + 1
+                    )
+            for blocker_class in candidate.get("blocker_classes") or []:
+                key = str(blocker_class or "")
+                if key:
+                    summary["blocker_class_counts"][key] = (
+                        int(summary["blocker_class_counts"].get(key) or 0) + 1
+                    )
+    compact_targets = []
+    for target in sorted(targets)[:16]:
+        row = targets[target]
+        compact_targets.append({
+            **{key: row[key] for key in (
+                "target", "candidate_rows", "eligible_rows",
+                "soft_admission_rows",
+            )},
+            "blocker_counts": dict(sorted(
+                row["blocker_counts"].items(),
+            )[:16]),
+            "blocker_class_counts": dict(sorted(
+                row["blocker_class_counts"].items())),
+        })
+    return {
+        "schema_version": "v7.planner-target-admission-summary.v1",
+        "owner": "tools/v7-users-autoswitch",
+        "decision_rows": len([row for row in decisions if isinstance(row, dict)]),
+        "move_recommendation_rows": recommendation_count,
+        "targets": compact_targets,
+        "raw_user_rows_stored": False,
+        "runtime_mutation_performed": False,
+    }
+
+
 PASSIVE_EVENT_PROVENANCE_CONTRACT = {
     "OPERATOR_INDUCED": {
         "evidence_class": "OPERATOR_INDUCED_PRODUCTION_EVENT",
@@ -22392,6 +22467,7 @@ class AutoswitchPlanner:
             row for row in (plan.get("decisions") or [])
             if not source or str(row.get("current_egress") or "") == source
         ]
+        target_admission_summary = planner_target_admission_summary(decisions)
         scope_classification = str(
             current_source_scope.get("scope_classification") or "LEGACY_UNPARTITIONED"
         )
@@ -22691,6 +22767,7 @@ class AutoswitchPlanner:
             "effective_cohort_load": int(adaptive_cohort.get("effective_cohort_load") or 0),
             "effective_cohort_fingerprint": str(adaptive_cohort.get("cohort_fingerprint") or ""),
             "adaptive_cohort_contract": adaptive_cohort,
+            "planner_target_admission_summary": target_admission_summary,
             "target_capacity_snapshot": target_capacity_snapshot,
             "next_tier_blocking_evidence_cell": "current action-class authority and real outcome coverage",
             "stop_safe_classification": classification,

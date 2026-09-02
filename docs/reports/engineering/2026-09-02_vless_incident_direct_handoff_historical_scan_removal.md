@@ -227,6 +227,24 @@ The last summary predates this deploy, so it is not used as post-repair
 evidence.  The next valid observation must originate from the normal Runtime
 caller after `2026-09-02T12:02:58Z`; no customer has been moved for this work.
 
+## Next bounded diagnostic: target-admission summary
+
+The no-target terminal currently preserves only the zero-valued cohort bounds.
+That proves safe refusal but not the upstream cause for each destination.  The
+next bounded change projects the existing Planner candidate surface into the
+same obligation as a capped, identifier-free summary:
+
+- target name;
+- candidate-row and eligible-row counts;
+- soft-admission count;
+- aggregate blocker and blocker-class counts.
+
+It stores neither a user identity nor a new Planner result, and it does not
+change target eligibility, capacity, Authority, Candidate, Packet, Lease,
+Barrier, routing, verification or retry behavior.  Its sole purpose is to
+identify the generic owner condition that makes `eligible_source_scope` and
+`capacity_safe_scope` zero on the next normal Runtime incident.
+
 ### Exact next step
 
 Complete focused verification and safely deploy the duplicate-advisory repair.

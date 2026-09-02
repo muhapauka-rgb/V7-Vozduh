@@ -67,12 +67,29 @@ Focused unit verification passed:
 - syntax compilation passed using an isolated bytecode cache.
 
 The production 21.762-second observation is preserved as an automatic
-runtime outcome, not SLO credit. The repair has not yet been deployed, and no
-post-repair production timing is claimed in this report.
+runtime outcome, not SLO credit.
+
+## Deployment and Runtime alignment
+
+The bounded repair was committed as `c25bf2747ace8bcb15992253039482025fdec79b`,
+published to `Updatesystem`, and deployed with the existing safe-deploy owner:
+`deploy-z8-14-Updatesystem-c25bf27-20260902T140438`.
+
+The deploy gate reported no blockers and final truth verification passed.
+Independent post-deploy checks confirmed:
+
+- local and Runtime `v7_sync_lib.py` SHA-256:
+  `79bf55959f365855e70c1ffa1583368e9df67a24077aee22ffb7964bac64a3b6`;
+- local and Runtime Matrix executable SHA-256:
+  `9d51fc3f0b6c451891f4571a95b17f80e53d51f82d73ee0b30e63f115c09d142`;
+- `v7-health.service`: `active`.
+
+No post-repair live automatic timing is claimed yet. The next acceptable
+measurement must originate from the normal V7 Runtime caller and retain all
+required route and service S11 checks.
 
 ## Remaining work
 
-Publish and deploy the bounded reader repair through `tools/v7-safe-deploy`,
-verify Runtime alignment, then observe the next live automatic incident.
-The next measurement must retain all required route and service S11 checks and
-must separately quantify the remaining advisory and Apply/verification time.
+Observe the next live automatic incident through the normal Runtime caller.
+The measurement must retain all required route and service S11 checks and
+separately quantify the remaining advisory and Apply/verification time.

@@ -119,3 +119,9 @@ reported no blockers and GitHub truth passed. Independent Runtime verification
 confirmed `v7-health.service` is active and its deployed health-loop SHA-256
 matches local source:
 `ebc1b64a7c8ff5a5cdd57aaa60c2960757a1c6e45fe843992f6dec4d0650cddc`.
+
+Immediately after the service restart, the health journal emitted no recovery
+receipt for the stale Telegram row. Current canonical scope has no ordinary
+user on VLESS; the still-visible VLESS failure therefore creates no empty
+ordinary recovery transaction. This is the expected no-op until a current
+ordinary profile is actually affected.

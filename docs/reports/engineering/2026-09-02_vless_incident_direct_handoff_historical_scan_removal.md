@@ -110,5 +110,12 @@ recovery transaction. This changes no Matrix status, target choice, Authority,
 Candidate, Packet, Lease, Barrier, route writer or S11 rule.
 
 Focused verification: 4/4 freshness cases passed; the full
-`test_v5_3_role_based_recovery` suite passed 24/24. The change is awaiting
-publication and safe deployment at the time of this report update.
+`test_v5_3_role_based_recovery` suite passed 24/24.
+
+The change was published as `f3a0259a465f3e431f57dd94ffdc3ace54f46c1b`
+and safely deployed as
+`deploy-z8-14-Updatesystem-f3a0259-20260902T141543`. The safe-deploy gate
+reported no blockers and GitHub truth passed. Independent Runtime verification
+confirmed `v7-health.service` is active and its deployed health-loop SHA-256
+matches local source:
+`ebc1b64a7c8ff5a5cdd57aaa60c2960757a1c6e45fe843992f6dec4d0650cddc`.

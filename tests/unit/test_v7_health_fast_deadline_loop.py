@@ -623,6 +623,26 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                             {"stage": "planner", "duration_ms": 123.0},
                             {"stage": "apply_and_verification", "duration_ms": 3087.0},
                         ],
+                        "nested_timeline": {
+                            "schema_version": "v7.apply-timing.v1",
+                            "total_ms": 3087.0,
+                            "spans": [
+                                {"stage": "route_writer", "duration_ms": 2800.0},
+                                {"stage": "required_service_s11", "duration_ms": 287.0},
+                            ],
+                            "operation_id": "must-not-leak",
+                            "packet_id": "must-not-leak",
+                            "lease_id": "must-not-leak",
+                        },
+                        "second_level_timeline": {
+                            "schema_version": "v7.apply-second-level-timing.v1",
+                            "measurement_overhead_ms": 1.25,
+                            "spans": [
+                                {"stage": "kernel_visibility", "duration_ms": 1150.0},
+                                {"stage": "service_verification", "duration_ms": 1937.0},
+                            ],
+                            "operation_id": "must-not-leak",
+                        },
                     },
                 },
             },
@@ -660,6 +680,29 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 {"stage": "apply_and_verification", "duration_ms": 3087.0},
             ],
         )
+        self.assertEqual(
+            receipt["governed_execution_timing"]["apply_timing"],
+            {
+                "schema_version": "v7.apply-timing.v1",
+                "total_ms": 3087.0,
+                "spans": [
+                    {"stage": "route_writer", "duration_ms": 2800.0},
+                    {"stage": "required_service_s11", "duration_ms": 287.0},
+                ],
+            },
+        )
+        self.assertEqual(
+            receipt["governed_execution_timing"]["apply_second_level_timing"],
+            {
+                "schema_version": "v7.apply-second-level-timing.v1",
+                "measurement_overhead_ms": 1.25,
+                "spans": [
+                    {"stage": "kernel_visibility", "duration_ms": 1150.0},
+                    {"stage": "service_verification", "duration_ms": 1937.0},
+                ],
+            },
+        )
+        self.assertNotIn("must-not-leak", receipt_lines[0])
 
     def test_known_incomplete_downstream_validation_is_deduped_until_matrix_binding_changes(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())

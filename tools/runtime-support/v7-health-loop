@@ -1383,6 +1383,38 @@ class RoleHealthLoop:
                 and str(row.get("stage") or "")
                 and isinstance(row.get("duration_ms"), (int, float))
             ]
+        # `apply` has its own owner-backed monotonic timeline.  Preserve a
+        # compact, ID-free projection of it in the same receipt so latency
+        # analysis can distinguish route-writer, kernel and S11 time without
+        # asking the health owner to run or reconstruct any of those steps.
+        # Do not project operation / Packet / Lease identifiers: they remain
+        # owned by the governed executor's canonical evidence.
+        for source_key, receipt_key in (
+            ("nested_timeline", "apply_timing"),
+            ("second_level_timeline", "apply_second_level_timing"),
+        ):
+            timeline = governed_timing.get(source_key)
+            if not isinstance(timeline, dict):
+                continue
+            compact_timeline = {
+                key: timeline.get(key)
+                for key in ("schema_version", "total_ms", "clock_source", "measurement_overhead_ms")
+                if key in timeline
+            }
+            timeline_spans = timeline.get("spans")
+            if isinstance(timeline_spans, list):
+                compact_timeline["spans"] = [
+                    {
+                        "stage": str(row.get("stage") or ""),
+                        "duration_ms": row.get("duration_ms"),
+                    }
+                    for row in timeline_spans[:32]
+                    if isinstance(row, dict)
+                    and str(row.get("stage") or "")
+                    and isinstance(row.get("duration_ms"), (int, float))
+                ]
+            if compact_timeline:
+                governed_timing_receipt[receipt_key] = compact_timeline
         # The existing health owner used to suppress the Matrix consumer's
         # structured result after an in-process call. That obscured whether a
         # live confirmed failure stopped in scope, Authority, Planner or the

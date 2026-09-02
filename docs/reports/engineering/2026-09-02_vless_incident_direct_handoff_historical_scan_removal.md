@@ -125,3 +125,40 @@ receipt for the stale Telegram row. Current canonical scope has no ordinary
 user on VLESS; the still-visible VLESS failure therefore creates no empty
 ordinary recovery transaction. This is the expected no-op until a current
 ordinary profile is actually affected.
+
+## Live automatic recovery observation and Apply timing projection
+
+At 14:24 MSK on 2 September, the normal Runtime caller automatically completed
+three ordinary recovery actions without any Codex operational transition:
+
+| Current failed source | Users moved | T0 to complete | Planner | Apply and verification |
+| --- | ---: | ---: | ---: | ---: |
+| `1` | 2 | 21,419 ms | 1,374.186 ms | 7,329.763 ms |
+| `vless` | 1 | 17,736 ms | 1,407.314 ms | 7,448.235 ms |
+
+The source-to-target choices, Candidate, Packet, Lease, Barrier, route write,
+kernel visibility and service S11 originated from the live V7 chain.  This is
+functional evidence that automatic recovery is active, but it is **not**
+seven-second SLO credit: both transactions exceeded the binding deadline.
+
+The existing health receipt previously retained only the top-level governed
+timing spans.  It now retains an ID-free, bounded projection of the existing
+Apply nested and second-level timelines (stage names and durations only).  The
+change creates no owner, state, timer, writer, execution step or recovery
+retry; it only exposes the already-owned timing necessary to distinguish the
+route writer, kernel visibility and required-service S11 residuals on the next
+normal automatic event.  Packet, Lease and operation identifiers are
+intentionally excluded.
+
+Verification after this change:
+
+- `tests.unit.test_v7_health_fast_deadline_loop`: 35/35 passed;
+- health-loop syntax compilation passed;
+- diff whitespace validation passed.
+
+### Exact next step
+
+Safely deploy this measurement-only projection, then observe the next normal
+Runtime-originated recovery.  Use the new existing receipt to repair the
+largest measured generic residual only; no user will be manually moved or used
+as synthetic evidence.

@@ -7624,6 +7624,55 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "EXISTING_READY_L3_OBLIGATION_WITHOUT_RECEIPT",
         )
 
+    def test_scoped_direct_handoff_does_not_scan_historical_closure_without_l3_match(self):
+        """A new Matrix scope fails closed without reading append-only history.
+
+        The existing advisory owner will later materialize an exact obligation
+        if needed.  The direct reader must not parse an unrelated historical
+        closure file merely to discover that no current L3 handoff exists.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            scope = {
+                "status": "ACCOUNTED", "affected_scope_count": 1,
+                "unresolved_scope_count": 1,
+                "affected_scope_fingerprint": "n" * 64,
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                json.dumps({
+                    "object_type": "service_failure_automation_obligation",
+                    "automation_obligation_id": "sfaob_historical",
+                    "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                    "source_incident_id": "sfinc_historical",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {
+                    "historical": {
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "incident_id": "sfinc_historical",
+                        "incident_state": "OPEN",
+                        "current_source_scope": {**scope, "affected_scope_fingerprint": "h" * 64},
+                    },
+                },
+            }), encoding="utf-8")
+            with mock.patch.object(
+                self.sync,
+                "_read_jsonl_records",
+                side_effect=AssertionError("historical reader must not run"),
+            ):
+                result = self.sync.service_failure_direct_execution_handoff(
+                    state_dir=state_dir,
+                    source_incident_id="sfinc_new",
+                    source_scope_fingerprint="n" * 64,
+                )
+        self.assertEqual(result["final_verdict"], "NO_CURRENT_DIRECT_HANDOFF", result)
+        self.assertEqual(
+            result["reason"], "current_source_direct_handoff_missing_or_ambiguous",
+        )
+
     def test_l3_scope_reader_filters_historical_duplicate_by_matrix_fingerprint(self):
         """An exact Matrix fingerprint skips an older broken duplicate."""
         with tempfile.TemporaryDirectory() as tmp:

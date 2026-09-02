@@ -8074,6 +8074,64 @@ def _read_jsonl_records(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _read_current_jsonl_records_from_tail(
+    path: Path,
+    *,
+    predicate: Callable[[dict[str, Any]], bool],
+    max_bytes: int = 8 * 1024 * 1024,
+    max_matches: int = 2,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Read only the current append-only tail for a Matrix-bound handoff.
+
+    A direct execution handoff already supplies an exact, current obligation
+    identity from canonical L3 state.  Its corresponding closure record is
+    appended by the same existing owner immediately before that handoff can
+    be used.  Scanning an entire historical closure file in this path turns a
+    current customer incident into a CPU and I/O dependent delay.  Read the
+    bounded recent tail instead; if the current record is not present there,
+    return no match and let the established advisory owner revalidate it.
+
+    This helper is a reader only.  It creates neither state nor a cache, and
+    a truncated/ambiguous tail is deliberately fail-closed.
+    """
+    if max_bytes <= 0 or max_matches <= 0:
+        return [], {"bytes_read": 0, "tail_limit_reached": False}
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return [], {"bytes_read": 0, "tail_limit_reached": False}
+    if size <= 0:
+        return [], {"bytes_read": 0, "tail_limit_reached": False}
+
+    offset = max(0, size - max_bytes)
+    try:
+        with path.open("rb") as handle:
+            handle.seek(offset)
+            if offset:
+                # Discard only the incomplete leading line.  Every following
+                # line is a complete existing closure record.
+                handle.readline()
+            payload = handle.read()
+    except OSError:
+        return [], {"bytes_read": 0, "tail_limit_reached": False}
+
+    matches: list[dict[str, Any]] = []
+    for line in reversed(payload.splitlines()):
+        try:
+            row = json.loads(line)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if not isinstance(row, dict) or not predicate(row):
+            continue
+        matches.append(row)
+        if len(matches) >= max_matches:
+            break
+    return matches, {
+        "bytes_read": len(payload),
+        "tail_limit_reached": bool(offset),
+    }
+
+
 def _append_jsonl_record(path: Path, row: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
@@ -8559,7 +8617,97 @@ def service_failure_direct_execution_handoff(
     )
     state = _read_json_object(resolved_state_dir / "l3-runtime-state.json")
     incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
-    rows = _read_jsonl_records(resolved_state_dir / "closure-records.jsonl")
+    expected_incident_id = str(source_incident_id or "")
+    expected_scope_fingerprint = str(source_scope_fingerprint or "")
+    closure_path = resolved_state_dir / "closure-records.jsonl"
+    # The runtime Matrix caller always has an exact current source identity.
+    # Resolve that compact L3 record *before* touching historical closure
+    # rows.  In particular, a newly assigned profile often has no matching
+    # current L3 handoff yet; reading a 200+ MiB append-only history merely to
+    # discover that absence is neither a safety check nor useful work.
+    scoped_current_candidates: list[tuple[str, dict[str, Any], dict[str, Any]]] = []
+    rows: list[dict[str, Any]]
+    scoped_runtime_request = bool(
+        expected_incident_id or expected_scope_fingerprint
+    )
+    if scoped_runtime_request:
+        scoped_current_rows: list[dict[str, Any]] = []
+        for key, record in incidents.items():
+            if (
+                not isinstance(record, dict)
+                or str(record.get("authority_object") or "")
+                != "PASSIVE_SERVICE_FAILURE_CAPTURE"
+                or str(record.get("incident_state") or "") != "OPEN"
+                or (
+                    expected_incident_id
+                    and str(record.get("incident_id") or "")
+                    != expected_incident_id
+                )
+            ):
+                continue
+            record_scope = (
+                record.get("current_source_scope")
+                if isinstance(record.get("current_source_scope"), dict)
+                else {}
+            )
+            if (
+                expected_scope_fingerprint
+                and str(record_scope.get("affected_scope_fingerprint") or "")
+                != expected_scope_fingerprint
+            ):
+                continue
+            direct = (
+                dict(record.get("direct_execution_handoff") or {})
+                if isinstance(record.get("direct_execution_handoff"), dict)
+                else {}
+            )
+            obligation_id = str(
+                direct.get("automation_obligation_id")
+                or record.get("obligation_id")
+                or ""
+            )
+            if not obligation_id:
+                continue
+            matched_rows, _tail_diagnostics = _read_current_jsonl_records_from_tail(
+                closure_path,
+                predicate=lambda row, obligation_id=obligation_id: (
+                    str(row.get("object_type") or "")
+                    == "service_failure_automation_obligation"
+                    and str(row.get("closure_state") or "")
+                    == "READY_FOR_OMP_CONSUMPTION"
+                    and str(row.get("automation_obligation_id") or "")
+                    == obligation_id
+                ),
+            )
+            # The tail is deliberately a current-handoff proof, not a
+            # historical compatibility search.  A missing or duplicate row
+            # re-enters the established advisory owner instead of trusting an
+            # old record or performing a full-file runtime scan.
+            if len(matched_rows) != 1:
+                continue
+            obligation = matched_rows[0]
+            if str(obligation.get("source_incident_id") or "") != str(
+                record.get("incident_id") or ""
+            ):
+                continue
+            if str(direct.get("status") or "") != "READY":
+                direct = {
+                    "status": "READY",
+                    "handoff_origin": "EXISTING_READY_L3_OBLIGATION_WITHOUT_RECEIPT",
+                    "automation_obligation_id": obligation_id,
+                    "automation_consumption_fingerprint": str(
+                        obligation.get("automation_consumption_fingerprint") or ""
+                    ),
+                    "source_incident_id": str(obligation.get("source_incident_id") or ""),
+                    "situation_id": str(obligation.get("situation_id") or ""),
+                    "decision_trace_id": str(obligation.get("decision_trace_id") or ""),
+                    "next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+                }
+            scoped_current_candidates.append((str(key), record, direct))
+            scoped_current_rows.extend(matched_rows)
+        rows = scoped_current_rows
+    else:
+        rows = _read_jsonl_records(closure_path)
     ready_obligations_by_id: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         if (
@@ -8573,8 +8721,8 @@ def service_failure_direct_execution_handoff(
                 str(row.get("automation_obligation_id") or ""), []
             ).append(row)
 
-    candidates = []
-    for key, record in incidents.items():
+    candidates = list(scoped_current_candidates)
+    for key, record in ([] if scoped_runtime_request else incidents.items()):
         if (
             not isinstance(record, dict)
             or str(record.get("authority_object") or "")
@@ -8626,8 +8774,6 @@ def service_failure_direct_execution_handoff(
     # select the matching direct projection before any advisory history scan.
     # No new handoff/state is created and the scope fingerprint prevents a
     # same-channel historical record from becoming the current decision.
-    expected_incident_id = str(source_incident_id or "")
-    expected_scope_fingerprint = str(source_scope_fingerprint or "")
     if expected_incident_id or expected_scope_fingerprint:
         candidates = [
             candidate

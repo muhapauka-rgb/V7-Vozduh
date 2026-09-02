@@ -91,6 +91,20 @@ route/S11 rows proves the latter remain visible and the receipt stays bounded.
   identity, with an owner-admitted healthy target.  That event must originate
   from the normal Runtime, not from Codex.
 
+## Deployment-gate boundary discovered after observation
+
+`tools/v7-truth-check --all --json` currently returns `NO-GO`, not because of
+the deployed health-loop binary, but because older duplicated CPS registry/WIP
+and OMP pointer projections still name `RECOVERY_STABILITY_FOUNDATION` while
+CPS section 0 names this governed-Apply audit.  The checker also cannot read
+its configured GitHub/Runtime probes even though the branch was independently
+verified through Git and the deployed binary hash was read directly.
+
+This is an existing Program-state reconciliation boundary.  It blocks another
+deploy or an Apply-path repair until the canonical CPS/OMP pointers are
+atomically reconciled; it does not authorize a user move, make the observed
+no-action receipt invalid, or indicate that the active health service failed.
+
 ## Next owner-backed action
 
 Wait only for the next independently originated **action-admitted** V7

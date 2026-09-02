@@ -691,6 +691,169 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             {"hard": 123_456},
         )
 
+    def test_stop_safe_reentry_uses_existing_prepared_invalidator_generations(self):
+        """A changed lawful blocker re-enters without a new source outage."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            preferences = root / "service-preferences.json"
+            summary = root / "service-matrix-refresh-summary.json"
+            matrix.write_text(json.dumps({"items": {"vless": {"services": {
+                "google": {
+                    "ok": False, "status": "FAIL",
+                    "failure_state": "OBSERVED_CONTINUING",
+                    "source_incident_id": "same-incident",
+                    "failure_event_id": "rotating-observation",
+                    "observation_monotonic_ns": 100,
+                },
+            }}}}), encoding="utf-8")
+            users.write_text("ip=10.7.0.127 enabled=1 current=vless\n", encoding="utf-8")
+            preferences.write_text(json.dumps({"users": {
+                "10.7.0.127": {"services": ["google"]},
+            }}), encoding="utf-8")
+
+            def write_summary(**changes):
+                invalidators = {
+                    key: f"{key}-stable"
+                    for key in HEALTH_LOOP_MODULE.PREPARED_REENTRY_INVALIDATOR_KEYS
+                }
+                invalidators.update(changes)
+                summary.write_text(json.dumps({
+                    "prepared_class_decisions": {
+                        "status": "PREPARED_CLASS_DECISION_AVAILABLE",
+                        "invalidators": invalidators,
+                    },
+                    "prepared_class_decision_freshness": {
+                        "status": "PREPARED_CLASS_DECISION_FRESH",
+                        "invalidation_reasons": [],
+                        "fact_specific_freshness": {
+                            "capacity": {"fresh": True},
+                            "identity_and_role": {"fresh": True},
+                            "other_required_service": {"fresh": True},
+                            "path_liveness": {"fresh": True},
+                            "policy": {"fresh": True},
+                        },
+                    },
+                }), encoding="utf-8")
+
+            write_summary()
+            initial = HEALTH_LOOP_MODULE.canonical_profile_service_failure_bindings(
+                matrix, users, preferences, summary,
+            )[0]
+            # CASE G: a new Matrix observation for the unchanged problem and
+            # unchanged current blockers does not create heavy duplicate work.
+            matrix.write_text(json.dumps({"items": {"vless": {"services": {
+                "google": {
+                    "ok": False, "status": "FAIL",
+                    "failure_state": "OBSERVED_CONTINUING",
+                    "source_incident_id": "same-incident",
+                    "failure_event_id": "new-observation-only",
+                    "observation_monotonic_ns": 200,
+                },
+            }}}}), encoding="utf-8")
+            unchanged = HEALTH_LOOP_MODULE.canonical_profile_service_failure_bindings(
+                matrix, users, preferences, summary,
+            )[0]
+            self.assertEqual(initial["dedupe_identity"], unchanged["dedupe_identity"])
+
+            loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
+            loop.persistent_matrix_ready = True
+            with mock.patch.object(loop, "_run_persistent_matrix_consumer", return_value=0) as consumer:
+                self.assertTrue(loop._consume_new_persistent_matrix_t0(
+                    initial["t0_ns"], dedupe_key="other_required:vless",
+                    dedupe_identity=initial["dedupe_identity"],
+                ))
+                self.assertFalse(loop._consume_new_persistent_matrix_t0(
+                    unchanged["t0_ns"], dedupe_key="other_required:vless",
+                    dedupe_identity=unchanged["dedupe_identity"],
+                ))
+                # A-F map directly to existing Matrix/Planner invalidators.
+                # Each changed blocker generation is a new governed
+                # reconciliation with the same source, assignment, scope and
+                # incident; no special STOP_SAFE reason branch is added.
+                reentry_cases = {
+                    "target_eligibility": "target_topology_generation",
+                    "capacity": "capacity_reservation_generation",
+                    "policy_authority": "policy_authority_generation",
+                    "exact_conflict": "active_operation_generation",
+                    "lease_barrier_cleanup": (
+                        "rollback_target_availability_generation"
+                    ),
+                    "target_freshness": "target_health_and_path_generation",
+                }
+                for case, key in reentry_cases.items():
+                    with self.subTest(case=case):
+                        write_summary(**{key: f"{key}-changed"})
+                        changed = HEALTH_LOOP_MODULE.canonical_profile_service_failure_bindings(
+                            matrix, users, preferences, summary,
+                        )[0]
+                        self.assertNotEqual(
+                            unchanged["dedupe_identity"], changed["dedupe_identity"],
+                        )
+                        self.assertTrue(loop._consume_new_persistent_matrix_t0(
+                            changed["t0_ns"], dedupe_key="other_required:vless",
+                            dedupe_identity=changed["dedupe_identity"],
+                        ))
+                        # Restore the same baseline before exercising the next
+                        # independent current-owner blocker.
+                        write_summary()
+            self.assertEqual(consumer.call_count, 1 + len(reentry_cases))
+
+    def test_reentry_invalidator_transition_space_is_exact_once_and_source_isolated(self):
+        """100 deterministic + 1000 seeded transitions preserve no-starvation."""
+        stable = {
+            key: f"{key}-0"
+            for key in HEALTH_LOOP_MODULE.PREPARED_REENTRY_INVALIDATOR_KEYS
+        }
+
+        with tempfile.TemporaryDirectory() as td:
+            summary = Path(td) / "service-matrix-refresh-summary.json"
+
+            def fingerprint(invalidators: dict[str, str]) -> str:
+                summary.write_text(json.dumps({
+                    "prepared_class_decisions": {
+                        "status": "PREPARED_CLASS_DECISION_AVAILABLE",
+                        "invalidators": invalidators,
+                    },
+                    "prepared_class_decision_freshness": {
+                        "status": "PREPARED_CLASS_DECISION_FRESH",
+                        "invalidation_reasons": [],
+                        "fact_specific_freshness": {},
+                    },
+                }), encoding="utf-8")
+                return HEALTH_LOOP_MODULE.prepared_reentry_invalidator_fingerprint(
+                    summary,
+                )
+
+            # Deterministic owner transitions: each changed value creates
+            # exactly one new current invalidator fingerprint; unchanged
+            # values stay suppressed.
+            stable_fingerprint = fingerprint(stable)
+            for transition in range(100):
+                changed = dict(stable)
+                key = HEALTH_LOOP_MODULE.PREPARED_REENTRY_INVALIDATOR_KEYS[
+                    transition % len(HEALTH_LOOP_MODULE.PREPARED_REENTRY_INVALIDATOR_KEYS)
+                ]
+                changed[key] = f"{key}-{transition + 1}"
+                current = fingerprint(changed)
+                self.assertNotEqual(stable_fingerprint, current)
+                self.assertEqual(current, fingerprint(changed))
+
+            # Seeded transition coverage invokes the actual existing-owner
+            # projection reader only.  It neither creates
+            # Candidate/Packet/Lease/Barrier nor invokes any Runtime path.
+            import random
+            rng = random.Random(20260902)
+            seen = {stable_fingerprint}
+            for transition in range(1000):
+                changed = dict(stable)
+                key = rng.choice(HEALTH_LOOP_MODULE.PREPARED_REENTRY_INVALIDATOR_KEYS)
+                changed[key] = f"{key}-seed-{transition}"
+                current = fingerprint(changed)
+                self.assertNotIn(current, seen)
+                seen.add(current)
+
     def test_profile_t0_is_not_suppressed_by_newer_unrelated_role_t0(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
         loop.persistent_matrix_ready = True

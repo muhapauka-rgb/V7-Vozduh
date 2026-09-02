@@ -248,6 +248,22 @@ PROFILE_BINDING_POLL_NS = 250_000_000
 DEFAULT_MATRIX_STATE_FILE = Path("/opt/v7/egress/state/service-matrix.json")
 DEFAULT_USERS_REGISTRY_FILE = Path("/opt/v7/egress/state/users.registry")
 DEFAULT_SERVICE_PREFERENCES_FILE = Path("/opt/v7/egress/state/service-preferences.json")
+# The prepared Matrix projection already owns the current generations that
+# can make an earlier governed STOP_SAFE no longer relevant.  They are kept
+# deliberately narrow: timestamps, ranking/advisory data and a whole Matrix
+# generation are not re-entry triggers, because each would turn a continuing
+# source failure back into a retry loop.  These are the existing Planner/
+# Matrix invalidators for target eligibility, capacity, policy and operation
+# conflict only.
+PREPARED_REENTRY_INVALIDATOR_KEYS = (
+    "target_health_and_path_generation",
+    "rollback_target_availability_generation",
+    "capacity_reservation_generation",
+    "policy_authority_generation",
+    "organization_policy_generation",
+    "target_topology_generation",
+    "active_operation_generation",
+)
 
 
 def canonical_service_failure_t0_ns(
@@ -464,10 +480,76 @@ def canonical_profile_service_failure_binding(
     return result
 
 
+def prepared_reentry_invalidator_fingerprint(
+    matrix_summary_file: Path,
+) -> str:
+    """Return the current existing-owner blocker generation, if available.
+
+    A profile failure binding describes *what is broken*.  The prepared Matrix
+    projection separately owns the generations that describe whether that
+    failure can currently be acted on: target health/topology, capacity,
+    Authority/policy and an overlapping operation.  Reuse those generations
+    rather than treating one STOP_SAFE receipt as permanent history or
+    creating a health-loop blocker registry.
+
+    This is intentionally a compact read-only projection.  It excludes
+    observation timestamps and advisory ranking so an unchanged continuing
+    incident cannot re-enter just because a probe was refreshed.
+    """
+    try:
+        summary = json.loads(matrix_summary_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return ""
+    if not isinstance(summary, dict):
+        return ""
+    prepared = summary.get("prepared_class_decisions")
+    freshness = summary.get("prepared_class_decision_freshness")
+    if not isinstance(prepared, dict) or not isinstance(freshness, dict):
+        return ""
+    invalidators = prepared.get("invalidators")
+    if not isinstance(invalidators, dict):
+        return ""
+    selected_invalidators = {
+        key: str(invalidators.get(key) or "")
+        for key in PREPARED_REENTRY_INVALIDATOR_KEYS
+    }
+    if not any(selected_invalidators.values()):
+        return ""
+    fact_freshness = freshness.get("fact_specific_freshness")
+    fact_freshness = fact_freshness if isinstance(fact_freshness, dict) else {}
+    selected_freshness = {
+        key: bool(value.get("fresh"))
+        for key, value in sorted(fact_freshness.items())
+        if isinstance(value, dict)
+        and key in {
+            "capacity",
+            "identity_and_role",
+            "other_required_service",
+            "path_liveness",
+            "policy",
+            "telegram_required_service",
+        }
+    }
+    payload = {
+        "invalidators": selected_invalidators,
+        "freshness": selected_freshness,
+        "prepared_status": str(prepared.get("status") or ""),
+        "freshness_status": str(freshness.get("status") or ""),
+        "invalidation_reasons": sorted(
+            str(value)
+            for value in (freshness.get("invalidation_reasons") or [])
+            if str(value)
+        ),
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def canonical_profile_service_failure_bindings(
     matrix_state_file: Path,
     users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
     service_preferences_file: Path = DEFAULT_SERVICE_PREFERENCES_FILE,
+    matrix_summary_file: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Return one exact current profile-required binding per failed source.
 
@@ -591,6 +673,10 @@ def canonical_profile_service_failure_bindings(
     by_source: dict[str, list[dict[str, Any]]] = {}
     for row in affected:
         by_source.setdefault(str(row["source"]), []).append(row)
+    summary_file = matrix_summary_file or (
+        matrix_state_file.parent / "service-matrix-refresh-summary.json"
+    )
+    reentry_invalidator = prepared_reentry_invalidator_fingerprint(summary_file)
     result: list[dict[str, Any]] = []
     for source, source_rows in sorted(by_source.items()):
         # Do not serialize evolving evidence timestamps/event ids into the
@@ -601,14 +687,21 @@ def canonical_profile_service_failure_bindings(
             key: row.get(key)
             for key in ("user_ip", "service", "source_incident_id")
         } for row in source_rows]
-        canonical = json.dumps(sorted(
+        failure_scope = sorted(
             stable_rows,
             key=lambda row: (
                 str(row.get("user_ip") or ""),
                 str(row.get("service") or ""),
                 str(row.get("source_incident_id") or ""),
             ),
-        ), separators=(",", ":"), sort_keys=True)
+        )
+        canonical = json.dumps({
+            "failure_scope": failure_scope,
+            # Empty is the deliberate compatibility value for old Polygon
+            # fixtures which contain no prepared Matrix projection.  Runtime
+            # always supplies the projection from the existing Matrix owner.
+            "reentry_invalidator": reentry_invalidator,
+        }, separators=(",", ":"), sort_keys=True)
         result.append({
             "source_egress": source,
             "t0_ns": max(int(row.get("t0_ns") or 0) for row in source_rows),
@@ -616,6 +709,7 @@ def canonical_profile_service_failure_bindings(
                 int(row.get("incident_t0_ns") or 0) for row in source_rows
             ),
             "dedupe_identity": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+            "reentry_invalidator_fingerprint": reentry_invalidator,
             "affected_profile_count": len({str(row["user_ip"]) for row in source_rows}),
         })
     return result

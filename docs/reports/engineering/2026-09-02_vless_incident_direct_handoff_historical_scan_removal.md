@@ -162,3 +162,51 @@ Safely deploy this measurement-only projection, then observe the next normal
 Runtime-originated recovery.  Use the new existing receipt to repair the
 largest measured generic residual only; no user will be manually moved or used
 as synthetic evidence.
+
+## Deployment: bounded Apply timing projection
+
+The projection was committed as `3fd154eb0325cea9a41db6115955f446c251a474`,
+published to `Updatesystem`, and safely deployed as
+`deploy-z8-14-Updatesystem-3fd154e-20260902T143041`.  The deploy gate returned
+no blockers; local, GitHub and Runtime fingerprints aligned, and
+`v7-health.service` was active at 14:30:57 MSK.  No client assignment or route
+was changed by the deploy.
+
+## Current automatic-recovery stop analysis
+
+A later normal Runtime incident for source `awg0` was observed at 14:39 MSK.
+It reached the existing Matrix and governed recovery consumer, but stopped
+closed before Candidate creation.  The owner-backed reason was precise:
+
+- the current affected ordinary scope was 3;
+- the existing Planner returned zero eligible move rows;
+- the existing target-capacity/reserve owner also returned a safe scope of
+  zero;
+- consequently no Candidate, Packet, Lease, Barrier, route mutation or user
+  movement was attempted.
+
+This is not a missed event and must not be worked around by selecting a target
+or invoking a recovery command manually.  The same Matrix cycle also spent
+about 20.1 seconds across two equivalent advisory reconstructions before
+stopping.  A source-bound advisory that reaches `NO_SAFE_TARGET` cannot gain a
+new target from a second identical reconstruction in the same generation.
+
+### Bounded repair in progress
+
+`v7-service-matrix-refresh-all` now retains the first exact source-bound
+advisory result even when it is non-actionable.  Only the pre-existing
+`STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED` result can become an execution
+obligation; a `NO_SAFE_TARGET` result remains fail-closed.  The later branch
+therefore does not invoke the same Planner advisory twice in one Matrix cycle.
+
+Focused regression added: an exact source-bound no-target verdict is retained
+before the duplicate-advisory guard.  The new test passed, and syntax
+compilation passed with an isolated bytecode cache.  The broader focused suite
+was started; its completion is recorded with the deploy result.
+
+### Exact next step
+
+Complete focused verification and safely deploy the duplicate-advisory repair.
+Then let the normal V7 caller process the next current incident and use the
+preserved owner output to isolate why every candidate/capacity row was rejected.
+No manual client movement is permitted or used as evidence.

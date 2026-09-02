@@ -7183,6 +7183,30 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertIn("fresh_profile_obligation", source[fresh_advisory:executor_call])
         self.assertIn("timeout_sec=max(5, min(int(args.passive_consumer_timeout_sec), 5))", source)
 
+    def test_fresh_source_bound_no_target_result_is_not_planned_twice(self):
+        """A current no-target verdict is terminal for this Matrix cycle.
+
+        It remains fail-closed and cannot create an obligation, but repeated
+        advisory reconstruction cannot improve the same source-bound facts.
+        """
+        source = REFRESH_TOOL.read_text(encoding="utf-8")
+        marker = source.index("fresh_profile_advisory_matches_current_source = bool(")
+        direct_advisory_guard = source.index(
+            'elif payload.get("service_failure_automation_advisory"):', marker
+        )
+        second_advisory = source.index(
+            "payload[\"service_failure_automation_advisory\"] = run_service_failure_automation_advisory(",
+            direct_advisory_guard,
+        )
+        first_advisory = source.index(
+            "payload[\"service_failure_automation_advisory\"] = fresh_profile_advisory",
+            marker,
+        )
+        self.assertLess(first_advisory, direct_advisory_guard)
+        self.assertLess(direct_advisory_guard, second_advisory)
+        guarded_branch = source[direct_advisory_guard:second_advisory]
+        self.assertIn("already materialized one", guarded_branch)
+
     def test_direct_l3_handoff_does_not_wait_for_omp_before_executor(self):
         """A validated fallback projection is a Runtime handoff, not an OMP wait."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")
@@ -7312,7 +7336,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertLess(source_filter, decision_build)
         self.assertLess(bounded_filter, decision_build)
         self.assertIn(
-            "self._prepared_incident_decision_for_user(user, prepared_execution)",
+            "self._prepared_incident_decision_for_user(",
+            source[decision_build:],
+        )
+        self.assertIn(
+            "user, prepared_execution",
             source[decision_build:],
         )
 

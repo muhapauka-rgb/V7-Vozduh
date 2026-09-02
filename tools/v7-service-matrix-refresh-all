@@ -8007,6 +8007,7 @@ def main() -> int:
     # obligation, retain the original capture-first STOP_SAFE flow.
     fresh_profile_advisory: dict[str, Any] = {}
     fresh_profile_obligation: dict[str, Any] = {}
+    fresh_profile_advisory_matches_current_source = False
     if fresh_runtime_profile_handoff and not direct_service_failure_obligation:
         span_started_ns = time.monotonic_ns()
         fresh_profile_advisory = run_service_failure_automation_advisory(
@@ -8031,7 +8032,7 @@ def main() -> int:
             if isinstance(proposed_obligation.get("current_source_scope"), dict)
             else {}
         )
-        if (
+        fresh_profile_advisory_matches_current_source = bool(
             str(proposed_obligation.get("channel") or "")
             == str(profile_source_constraint.get("channel") or "")
             and str(proposed_obligation.get("source_incident_id") or "")
@@ -8039,11 +8040,20 @@ def main() -> int:
             and str(proposed_scope.get("affected_scope_fingerprint") or "")
             == str(profile_source_constraint.get("source_scope_fingerprint") or "")
             and int(proposed_scope.get("affected_scope_count") or 0) > 0
+        )
+        # The first advisory is a source-bound current observation even when
+        # it finds no executable target.  Retaining it prevents a second
+        # identical Planner reconstruction later in this same Matrix cycle.
+        # It grants no action: only the already-existing exact actionable
+        # classification below may feed the governed executor.
+        if fresh_profile_advisory_matches_current_source:
+            payload["service_failure_automation_advisory"] = fresh_profile_advisory
+        if (
+            fresh_profile_advisory_matches_current_source
             and str(proposed_obligation.get("stop_safe_classification") or "")
             == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
         ):
             fresh_profile_obligation = proposed_obligation
-            payload["service_failure_automation_advisory"] = fresh_profile_advisory
         runtime_pretransaction_span(
             "matrix_fresh_profile_obligation_advisory",
             span_started_ns,

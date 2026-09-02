@@ -48,9 +48,16 @@ Authority, Planner and S11 are unchanged.
 
 ## Deployment and live re-entry
 
-The repair is ready for the existing safe-deploy owner with an explicit
-`--restart-admin-if-changed`, because the public admin process imports the
-endpoint into memory.  No manual route action was used as evidence.
+Published commit: `17cadef59b15fe55c3afe733b95c7e78b6c59fa6` on
+`Updatesystem`.
+
+The existing safe-deploy owner completed with `--restart-admin-if-changed`.
+At 2026-09-02 13:40:30 MSK `v7-admin-api.service` was active.  The deployed
+SHA-256 values for `v7-user-switch`, `v7-routing-sync`, and `v7-admin-api`
+matched the published working tree exactly.  No user assignment, route, or
+automatic recovery policy was changed by deployment.
+
+No manual route action was used as evidence.
 
 After deployment, the next normal operator click is the live proof.  Expected
 user experience: the chosen channel appears immediately; V7 performs the

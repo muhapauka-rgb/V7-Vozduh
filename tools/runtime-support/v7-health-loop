@@ -248,6 +248,14 @@ PROFILE_BINDING_POLL_NS = 250_000_000
 DEFAULT_MATRIX_STATE_FILE = Path("/opt/v7/egress/state/service-matrix.json")
 DEFAULT_USERS_REGISTRY_FILE = Path("/opt/v7/egress/state/users.registry")
 DEFAULT_SERVICE_PREFERENCES_FILE = Path("/opt/v7/egress/state/service-preferences.json")
+# The existing Planner and Admin already use this fallback for an ordinary
+# profile with no per-user preference row.  The health producer must use the
+# same effective profile; otherwise the UI can show required services while
+# the live Matrix consumer silently sees an empty scope and never wakes.
+# This is an effective-profile compatibility value, not a new policy owner.
+DEFAULT_USER_PRIORITY_SERVICES = (
+    "youtube", "instagram", "telegram", "google", "google_auth",
+)
 # The prepared Matrix projection already owns the current generations that
 # can make an earlier governed STOP_SAFE no longer relevant.  They are kept
 # deliberately narrow: timestamps, ranking/advisory data and a whole Matrix
@@ -630,6 +638,25 @@ def canonical_profile_service_failure_bindings(
 
     t0_values: list[int] = []
     affected: list[dict[str, Any]] = []
+
+    def effective_profile_services(preference: Any) -> list[str]:
+        """Match the existing ordinary-profile default without changing it.
+
+        A present preference row remains authoritative, including an explicit
+        empty ``services`` list.  Only a missing row inherits the pre-existing
+        ordinary user default shown and used by the Planner/Admin.
+        """
+        if not isinstance(preference, dict):
+            return list(DEFAULT_USER_PRIORITY_SERVICES)
+        values = (
+            preference.get("required_services")
+            if "required_services" in preference
+            else preference.get("services")
+        )
+        if not isinstance(values, list):
+            return []
+        return [str(value).strip().lower() for value in values if str(value).strip()]
+
     for line in registry_lines:
         row: dict[str, str] = {}
         for token in line.strip().split():
@@ -640,11 +667,17 @@ def canonical_profile_service_failure_bindings(
             "0", "false", "no", "off", "disabled",
         }:
             continue
+        # Controlled certification identities have their own existing
+        # lifecycle and are never part of ordinary production recovery.
+        if str(row.get("certification_user", "")).lower() in {
+            "1", "true", "yes", "on",
+        }:
+            continue
         user_id = str(row.get("ip") or "")
         source_id = str(row.get("current") or "")
         preference = users.get(user_id)
-        required = preference.get("services") if isinstance(preference, dict) else []
-        if not isinstance(required, list) or not source_id:
+        required = effective_profile_services(preference)
+        if not source_id:
             continue
         source = items.get(source_id)
         services = source.get("services") if isinstance(source, dict) else {}

@@ -333,3 +333,52 @@ V7 health caller process the continuing current incident without any manual
 client, target, route-writer, Candidate, Packet, Lease or Barrier action by
 Codex.  Record the first Runtime result, including either governed recovery or
 the exact remaining owner gate.
+
+## Ordinary-profile recovery scope reconciliation
+
+### Live finding
+
+Fresh read-only Runtime aggregation showed that only five enabled ordinary
+users had an explicit row in the existing `service-preferences.json`, while
+the Admin and existing Planner already present the established ordinary
+default profile for a missing row.  The health-loop producer instead treated a
+missing row as no required services.  Consequently, a current Matrix failure
+could be visible in the Admin yet create no automatic affected-user binding
+for most ordinary users.  This was a generic semantic mismatch, not a VLESS
+classification, customer-specific, or target-selection issue.
+
+### Correction
+
+The existing health-loop producer and the existing Planner/S11 profile reader
+now use the same effective-profile rule:
+
+1. a missing ordinary per-user preference row inherits the existing ordinary
+   default: YouTube, Instagram, Telegram, Google, and Google Auth;
+2. an explicit row, including an explicit empty service list, remains the
+   operator's exact contract;
+3. controlled certification identities remain excluded from ordinary
+   production recovery;
+4. the prepared-decision handoff receives the exact existing
+   operation-control file used by the governed executor, instead of silently
+   reading a different default path and falsely treating its own prepared
+   decision as stale.
+
+No service, Matrix, Planner, Authority, queue, route writer, registry, timer
+or alternate state source was added.  The change does not execute a recovery
+or choose a customer or target: it lets the normal health caller discover the
+correct ordinary affected scope from current Matrix evidence, after which the
+unchanged governed chain makes every decision and route change.
+
+### Verification
+
+- focused compatibility tests: **4/4 passed**;
+- full `tests.unit.test_v7_users_autoswitch_policy`: **245/245 passed**;
+- full `tests.unit.test_v7_health_fast_deadline_loop`: **36/36 passed**.
+
+### Deployment and observation next step
+
+Commit and safely deploy this bounded reconciliation with
+`v7-health.service` restart only.  Then the only valid acceptance evidence is
+a fresh live Matrix observation followed by the normal V7 caller's own
+affected-scope discovery, governed execution and required-service S11.  Codex
+must not manually advance any portion of that transaction.

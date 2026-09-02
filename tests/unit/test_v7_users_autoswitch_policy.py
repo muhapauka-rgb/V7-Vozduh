@@ -246,14 +246,31 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             ["runtime_owned_hot_path"]
         )
 
-    def test_fast_profile_services_are_explicit_and_telegram_is_not_universal(self):
-        # Planner ranking retains its historical best-effort defaults.
+    def test_fast_profile_services_use_existing_default_only_for_missing_profile(self):
+        # Planner ranking retains its established ordinary-profile default.
         self.assertEqual(
             self.tool.user_priority_services_from_pref({}),
             list(self.tool.DEFAULT_USER_PRIORITY_SERVICES),
         )
         planner = object.__new__(self.tool.AutoswitchPlanner)
         planner.users = []
+        planner.service_prefs = {"users": {"10.7.0.3": {"services": []}}}
+        planner.switch_policy = {}
+        planner.policy = {}
+        planner.org_policy = {}
+        planner.args = SimpleNamespace(service=[])
+        self.assertEqual(
+            planner._profile_required_services(
+                self.tool.User(ip="10.7.0.2", current="source"),
+            ),
+            list(self.tool.DEFAULT_USER_PRIORITY_SERVICES),
+        )
+        self.assertEqual(
+            planner._profile_required_services(
+                self.tool.User(ip="10.7.0.3", current="source"),
+            ),
+            [],
+        )
         self.assertEqual(
             planner._verification_required_services({
                 "important_services": list(self.tool.DEFAULT_USER_PRIORITY_SERVICES),
@@ -311,7 +328,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(scope["current_channel_failure"])
         self.assertTrue(evidence["confirmed"])
 
-    def test_partial_service_failure_scopes_only_profiles_requiring_failed_service(self):
+    def test_partial_service_failure_scopes_explicit_and_missing_default_profiles(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_fixture(root, users=2, current_egress="vless")
@@ -339,14 +356,15 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
 
         self.assertTrue(scope["required_service_failure"])
         self.assertEqual(scope["all_assigned_users_count"], 2)
-        self.assertEqual(scope["affected_users"], ["10.0.0.2"])
+        self.assertEqual(scope["affected_users"], ["10.0.0.2", "10.0.0.3"])
 
-    def test_partial_service_failure_does_not_become_total_from_stale_fail_diagnosis(self):
-        """A stale generic FAIL diagnostic cannot evacuate unprofiled users.
+    def test_partial_service_failure_scopes_missing_default_without_stale_diagnosis_escalation(self):
+        """A stale generic FAIL cannot widen the current Matrix service scope.
 
         The live Matrix is the health owner.  A service-specific failure must
-        remain profile-scoped even if the older state projection still labels
-        the protocol diagnostic as FAIL.
+        remain Matrix service-scoped even if the older state projection still
+        labels the protocol diagnostic as FAIL.  A missing ordinary profile
+        uses its existing default, which includes Google here.
         """
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -381,7 +399,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
 
         self.assertTrue(scope["required_service_failure"])
         self.assertFalse(scope["current_channel_failure"])
-        self.assertEqual(scope["affected_users"], ["10.0.0.2"])
+        self.assertEqual(scope["affected_users"], ["10.0.0.2", "10.0.0.3"])
 
     def test_fresh_matrix_majority_failure_is_used_when_v7_state_projection_is_stale(self):
         """Canonical Matrix failure must not be hidden by an old v7-state file."""
@@ -2902,6 +2920,12 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_fixture(root, current_egress="1")
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                users_path.read_text(encoding="utf-8").rstrip()
+                + " certification_user=1\n",
+                encoding="utf-8",
+            )
             args = self.args_for(
                 root,
                 [
@@ -8936,6 +8960,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     str(root / "state" / "service-matrix-refresh-summary.json"),
                 ],
             )
+            planner = self.tool.AutoswitchPlanner(args)
             projection = {
                 "schema_version": "v7.prepared-class-decision-projection.v1",
                 "status": "PREPARED_CLASS_DECISION_AVAILABLE",
@@ -8963,7 +8988,6 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 json.dumps({"prepared_class_decisions": projection}),
                 encoding="utf-8",
             )
-            planner = self.tool.AutoswitchPlanner(args)
             plan = planner.plan()
 
         decision = plan["decisions"][0]

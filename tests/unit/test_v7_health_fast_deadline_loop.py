@@ -1162,6 +1162,37 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 matrix, users, preferences,
             ))
 
+    def test_profile_service_bindings_use_existing_default_only_when_row_is_missing(self):
+        """Ordinary profiles must match the Admin/Planner default contract."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            preferences = root / "service-preferences.json"
+            matrix.write_text(json.dumps({"items": {
+                "failed-source": {"services": {"google": {
+                    "ok": False, "status": "FAIL", "failure_state": "OBSERVED_NEW",
+                    "source_incident_id": "incident-default", "failure_event_id": "event-default",
+                    "observation_monotonic_ns": 100,
+                }}},
+            }}), encoding="utf-8")
+            users.write_text(
+                "ip=10.7.0.125 enabled=1 current=failed-source\n"
+                "ip=10.7.0.126 enabled=1 current=failed-source\n",
+                encoding="utf-8",
+            )
+            preferences.write_text(json.dumps({"users": {
+                # A deliberately empty profile remains an operator choice.
+                "10.7.0.126": {"services": []},
+            }}), encoding="utf-8")
+
+            bindings = HEALTH_LOOP_MODULE.canonical_profile_service_failure_bindings(
+                matrix, users, preferences,
+            )
+
+        self.assertEqual(len(bindings), 1)
+        self.assertEqual(bindings[0]["affected_profile_count"], 1)
+
     def test_profile_service_bindings_reject_stale_production_matrix_failure(self):
         """A historical Matrix failure must not wake the bounded live executor."""
         with tempfile.TemporaryDirectory() as td:

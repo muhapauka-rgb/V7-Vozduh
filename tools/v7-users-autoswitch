@@ -1134,6 +1134,7 @@ def prepared_decision_handoff_for_scope(
     policy_file: Path,
     org_policy_file: Path,
     safety_file: Path,
+    execution_control_file: Path = DEFAULT_EXECUTION_CONTROL_FILE,
     source: str,
     target: str = "",
 ) -> dict[str, Any]:
@@ -1150,6 +1151,7 @@ def prepared_decision_handoff_for_scope(
         policy_file=str(policy_file),
         org_policy_file=str(org_policy_file),
         safety_file=str(safety_file),
+        execution_control_file=str(execution_control_file),
     )
     reuse = reuse_current_prepared_class_projection(args)
     projection = reuse.get("prepared_class_decisions") or {}
@@ -14256,20 +14258,24 @@ class AutoswitchPlanner:
     def _profile_required_services(self, user: User) -> list[str]:
         """Exact service contract for fast health and S11 verification.
 
-        Planner ranking keeps its established best-effort defaults in
-        ``_important_services``.  Fast health and post-switch verification are
-        stricter: application services are required only when declared by the
-        global policy or this exact profile.  This is the role boundary that
-        prevents Telegram from becoming universal.
+        An explicit profile remains strict, including an explicit empty list.
+        An ordinary legacy profile without a row inherits the same existing
+        default that the Admin and ranking path already present.  Keeping this
+        aligned with the health producer prevents a live service failure from
+        being detected for a scope which the governed target/S11 path then
+        treats as empty.
         """
         values = list(self._explicit_required_services())
-        prefs = (self.service_prefs.get("users") or {}).get(user.ip) or {}
+        users = (self.service_prefs.get("users") or {})
+        prefs = users.get(user.ip)
         if isinstance(prefs, dict):
             values.extend(normalize_service_ids(
                 prefs.get("required_services")
                 if "required_services" in prefs
                 else prefs.get("services") or []
             ))
+        elif not bool_value(user.raw.get("certification_user")):
+            values.extend(DEFAULT_USER_PRIORITY_SERVICES)
         return normalize_service_ids(values)
 
     def _matrix_services(self, egress_id: str) -> dict[str, Any]:
@@ -16039,6 +16045,7 @@ class AutoswitchPlanner:
                 policy_file=Path(self.args.policy_file),
                 org_policy_file=Path(self.args.org_policy_file),
                 safety_file=Path(self.args.safety_file),
+                execution_control_file=Path(self.args.execution_control_file),
                 source=source_egress,
                 target=target_egress,
             )

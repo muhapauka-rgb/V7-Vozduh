@@ -691,7 +691,7 @@ def core_primary_fallback() -> dict:
 
 def core_primary_cohort_commit(
     members: list[str], operation_id: str = "", *, emergency_failover: bool = False,
-    selected_move_hash: str = "",
+    selected_move_hash: str = "", operator_profile_rebind: bool = False,
 ) -> dict:
     """Atomically update only an already-governed Core-primary cohort.
 
@@ -713,8 +713,16 @@ def core_primary_cohort_commit(
         return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_member_invalid"], "runtime_mutation": False}
     if not authority_ok:
         return {"status": "STOP_SAFE", "blockers": ["exact_reset_core_primary_promotion_contract_required"], "runtime_mutation": False}
-    if not 2 <= len(normalized) <= 4:
-        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_scope_must_be_2_to_4"], "runtime_mutation": False}
+    # An explicit operator-selected profile rebind is its own already-bound
+    # one-user execution-control action.  It may use the same exact-map delta
+    # as a governed cohort, but only with this explicit flag.  Automatic
+    # recovery remains limited to its admitted 2..4-user cohort scope.
+    admitted_scope = (
+        2 <= len(normalized) <= 4
+        or (operator_profile_rebind and len(normalized) == 1)
+    )
+    if not admitted_scope:
+        return {"status": "STOP_SAFE", "blockers": ["core_primary_cohort_scope_must_be_2_to_4_or_exact_operator_user"], "runtime_mutation": False}
     users = [row for row in rows(USERS) if row.get("enabled", "0") == "1"]
     egress = enabled_egress()
     users_by_ip = {str(row.get("ip") or ""): row for row in users}
@@ -839,6 +847,7 @@ def core_primary_cohort_commit(
         "whole_system": whole_system,
         "retired_legacy_primary_routes": retired,
         "retired_empty_class_marks": sorted(retired_marks, key=int),
+        "operator_profile_rebind": bool(operator_profile_rebind),
         "runtime_mutation": True,
     }
 
@@ -1076,6 +1085,7 @@ def main() -> int:
     parser.add_argument("--operation-id", default="")
     parser.add_argument("--selected-move-hash", default="")
     parser.add_argument("--emergency-failover-cohort", action="store_true")
+    parser.add_argument("--operator-profile-rebind", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     lock_path = Path(os.environ.get("V7_ROUTING_LOCK", "/tmp/v7-routing.lock"))
@@ -1088,6 +1098,7 @@ def main() -> int:
                 args.cohort_user, args.operation_id,
                 emergency_failover=args.emergency_failover_cohort,
                 selected_move_hash=args.selected_move_hash,
+                operator_profile_rebind=args.operator_profile_rebind,
             )
         elif args.core_primary_cohort_admissible:
             result = core_primary_cohort_admissible(

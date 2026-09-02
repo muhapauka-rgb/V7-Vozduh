@@ -188,12 +188,22 @@ fi
 # caller must later invoke ``v7-routing-sync --core-primary-cohort-commit``.
 # Any other action class keeps the established immediate projection commit.
 CORE_PRIMARY_COHORT_DEFER="${V7_CORE_PRIMARY_COHORT_DEFER:-0}"
+CORE_PRIMARY_OPERATOR_REBIND="${V7_OPERATOR_PROFILE_REBIND:-0}"
 if [ "$CORE_PRIMARY_COHORT_DEFER" = "1" ]; then
   if [ "$CORE_PRIMARY_ACTIVE" != "1" ] \
     || { [ "$ACTION_CLASS" != "N10_SMALL_COHORT" ] \
       && [ "$ACTION_CLASS" != "EMERGENCY_FAILOVER" ]; } \
     || ! [[ "$MAX_USERS" =~ ^[2-4]$ ]]; then
     echo "STOP_SAFE: core-primary cohort defer outside exact bounded cohort scope"
+    exit 2
+  fi
+fi
+if [ "$CORE_PRIMARY_OPERATOR_REBIND" = "1" ]; then
+  if [ "$CORE_PRIMARY_ACTIVE" != "1" ] \
+    || [ "$CORE_PRIMARY_COHORT_DEFER" = "1" ] \
+    || [ "$ACTION_CLASS" != "USER_SWITCH" ] \
+    || [ "$MAX_USERS" != "1" ]; then
+    echo "STOP_SAFE: operator profile rebind outside exact one-user Core-primary scope"
     exit 2
   fi
 fi
@@ -322,10 +332,23 @@ V7_ROUTE_TIMING_REGISTRY_COMMITTED="$(v7_route_timing_now)"
 # egress class.  This is not another route writer or state source: it invokes
 # the current registry-wide owner and fails closed if that owner cannot commit.
 if [ "$CORE_PRIMARY_ACTIVE" = "1" ] && [ "$CORE_PRIMARY_COHORT_DEFER" != "1" ]; then
-  if ! core_primary_apply_output="$(v7-routing-sync --core-primary-apply --json 2>&1)"; then
+  core_primary_success_status="CORE_PRIMARY_APPLY_PASS"
+  if [ "$CORE_PRIMARY_OPERATOR_REBIND" = "1" ]; then
+    core_primary_apply_cmd=(
+      v7-routing-sync --core-primary-cohort-commit
+      --cohort-user "$USER_IP"
+      --operation-id "$OPERATION_ID"
+      --selected-move-hash "$SELECTED_MOVE_HASH"
+      --operator-profile-rebind --json
+    )
+    core_primary_success_status="CORE_PRIMARY_COHORT_COMMIT_PASS"
+  else
+    core_primary_apply_cmd=(v7-routing-sync --core-primary-apply --json)
+  fi
+  if ! core_primary_apply_output="$("${core_primary_apply_cmd[@]}" 2>&1)"; then
     core_primary_apply_output=""
   fi
-  if ! printf '%s\n' "$core_primary_apply_output" | grep -Fq '"status": "CORE_PRIMARY_APPLY_PASS"'; then
+  if ! printf '%s\n' "$core_primary_apply_output" | grep -Fq "\"status\": \"$core_primary_success_status\""; then
     rollback_ok=1
     if ! mv "$CORE_REGISTRY_BACKUP" "$REG"; then
       rollback_ok=0
@@ -351,6 +374,9 @@ if [ "$CORE_PRIMARY_ACTIVE" = "1" ] && [ "$CORE_PRIMARY_COHORT_DEFER" != "1" ]; 
   fi
   cleanup_core_primary_preimage
   echo "V7_CORE_PRIMARY_SYNC=PASS"
+  if [ "$CORE_PRIMARY_OPERATOR_REBIND" = "1" ]; then
+    echo "V7_CORE_PRIMARY_SCOPE=EXACT_OPERATOR_USER"
+  fi
 elif [ "$CORE_PRIMARY_ACTIVE" = "1" ]; then
   echo "V7_CORE_PRIMARY_SYNC=DEFERRED_COHORT"
 fi

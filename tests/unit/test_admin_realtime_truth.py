@@ -220,6 +220,7 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn('"V7_LOCK_WAIT": "1"', operation)
         self.assertIn('route_writer_busy', operation)
         self.assertIn('operator_profile_route_writer_busy', operation)
+        self.assertIn('"V7_OPERATOR_PROFILE_REBIND": "1"', operation)
         self.assertIn('with OPERATOR_PROFILE_REBIND_CONTROL_LOCK:', operation)
         self.assertIn('replaced_by_current_operation', operation)
 

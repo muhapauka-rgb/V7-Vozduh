@@ -59,6 +59,14 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertIn('flock -E 75 -w "${V7_LOCK_WAIT:-20}"', source)
         self.assertIn("V7_ROUTE_WRITE_FAILURE=ROUTE_WRITE_LOCK_BUSY", source)
 
+    def test_exact_operator_rebind_uses_existing_single_member_core_primary_commit(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn('CORE_PRIMARY_OPERATOR_REBIND="${V7_OPERATOR_PROFILE_REBIND:-0}"', source)
+        self.assertIn('--core-primary-cohort-commit', source)
+        self.assertIn('--operator-profile-rebind --json', source)
+        self.assertIn('V7_CORE_PRIMARY_SCOPE=EXACT_OPERATOR_USER', source)
+
     def test_owner_context_reaches_route_replace_after_validator_allows(self):
         with tempfile.TemporaryDirectory() as tmp:
             env, ip_log = self.fixture(Path(tmp))

@@ -140,6 +140,57 @@ class RoutingSyncCoreTests(unittest.TestCase):
         self.assertIn("10.7.0.3 : 0x201", batch[0])
         self.assertNotIn("10.7.0.2", batch[0])
 
+    def test_exact_operator_rebind_allows_one_bound_member_without_full_rebuild(self):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_routing_sync_operator_rebind", str(SCRIPT),
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        users = [
+            {"ip": "10.7.0.2", "current": "target", "table": "1002", "enabled": "1"},
+            {"ip": "10.7.0.3", "current": "source", "table": "1003", "enabled": "1"},
+        ]
+        classes = [
+            {"mark": 512, "members": ["10.7.0.3"]},
+            {"mark": 513, "members": ["10.7.0.2"]},
+        ]
+        payload = {"nftables": [
+            {"map": {"name": "user_class", "elem": [
+                ["10.7.0.2", "512"], ["10.7.0.3", "512"],
+            ]}},
+            {"map": {"name": "class_egress", "elem": [
+                ["512", "512"], ["513", "513"],
+            ]}},
+        ]}
+        calls = []
+
+        def fake_run(argv, *, input_text=""):
+            calls.append((argv, input_text))
+            if argv[:3] == ["nft", "-j", "list"]:
+                return mock.Mock(returncode=0, stdout=json.dumps(payload))
+            return mock.Mock(returncode=0, stdout="")
+
+        egress = [
+            {"id": "source", "enabled": "1", "interface": "wg-source"},
+            {"id": "target", "enabled": "1", "interface": "wg-target"},
+        ]
+        with mock.patch.object(module, "exact_reset_authority", return_value=(True, {"contract_id": "rcpp-test"})), \
+             mock.patch.object(module, "rows", side_effect=[users, egress]), \
+             mock.patch.object(module, "live_classes_for_users", return_value=classes), \
+             mock.patch.object(module, "run", side_effect=fake_run), \
+             mock.patch.object(module, "verify", return_value={"status": "CORE_PRIMARY_VERIFY_PASS"}), \
+             mock.patch.object(module, "retire_legacy_primary_routes", return_value={"rules_removed": 1, "routes_removed": 1}):
+            result = module.core_primary_cohort_commit(
+                ["10.7.0.2"], "op-operator", operator_profile_rebind=True,
+            )
+
+        self.assertEqual(result["status"], "CORE_PRIMARY_COHORT_COMMIT_PASS")
+        self.assertTrue(result["operator_profile_rebind"])
+        batch = next(text for argv, text in calls if argv == ["nft", "-f", "-"])
+        self.assertIn("10.7.0.2 : 0x201", batch)
+        self.assertNotIn("10.7.0.3", batch)
+
     def test_cohort_commit_fails_closed_when_non_cohort_map_is_not_exact(self):
         loader = importlib.machinery.SourceFileLoader(
             "v7_routing_sync_cohort_stop", str(SCRIPT),

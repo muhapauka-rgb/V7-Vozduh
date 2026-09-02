@@ -16389,6 +16389,11 @@ def operator_profile_egress_rebind(data, actor):
             "V7_EXECUTION_MAX_USERS": "1",
             "V7_ADMIN_SAFE_MODE_FILE": str(SAFE_MODE_FILE),
             "V7_EXECUTION_CONTROL_FILE_HASH": operator_execution.sha256_file(SAFE_MODE_FILE),
+            # The existing route writer may use the existing Core-primary
+            # exact-member commit for this one already-bound operator action.
+            # It remains the sole route writer; no target selection or health
+            # interpretation is introduced here.
+            "V7_OPERATOR_PROFILE_REBIND": "1",
             # Do not spend the full UI deadline queued behind an automatic
             # recovery.  A held global writer is a retryable condition, not a
             # route failure; the browser retries through this same endpoint.

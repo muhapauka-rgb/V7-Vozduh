@@ -600,6 +600,17 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         loop.persistent_matrix_last_result = {
             "status": "PASS",
             "next_output": "SERVICE_FAILURE_EVENT_CONSUMED",
+            "service_failure_automation_advisory": {
+                "status": "PASS",
+                "invocation": "IN_PROCESS_EXISTING_AUTOSWITCH_OWNER",
+                "consumer_result": {
+                    "result": {
+                        "active": False,
+                        "reason": "current_obligation_semantics_already_materialized",
+                        "candidate_diagnostic": {"candidate_count": 1},
+                    },
+                },
+            },
             "current_failed_source_scope": {
                 "active": True,
                 "active_sources": [{"affected_scope_count": 2}],
@@ -659,6 +670,15 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertEqual(receipt["affected_scope_count"], 2)
         self.assertTrue(receipt["action_completed"])
         self.assertEqual(receipt["users_moved"], 2)
+        self.assertEqual(
+            receipt["advisory_diagnostic"]["invocation"],
+            "IN_PROCESS_EXISTING_AUTOSWITCH_OWNER",
+        )
+        self.assertEqual(
+            receipt["advisory_diagnostic"]["candidate_diagnostic"]
+            ["candidate_count"],
+            1,
+        )
         self.assertLessEqual(
             receipt["t0_monotonic_ns"],
             receipt["consumer_started_monotonic_ns"],

@@ -1524,6 +1524,24 @@ class RoleHealthLoop:
             "users_moved": int(delegated.get("users_moved") or 0) if isinstance(delegated, dict) else 0,
             "stop_reason": str(consumer_result.get("stop_reason") or delegated.get("reason") or "") if isinstance(delegated, dict) else "",
         }
+        advisory = self.persistent_matrix_last_result.get(
+            "service_failure_automation_advisory"
+        )
+        advisory = advisory if isinstance(advisory, dict) else {}
+        advisory_consumer = advisory.get("consumer_result")
+        advisory_consumer = advisory_consumer if isinstance(advisory_consumer, dict) else {}
+        advisory_result = advisory_consumer.get("result")
+        advisory_result = advisory_result if isinstance(advisory_result, dict) else {}
+        if advisory:
+            receipt["advisory_diagnostic"] = {
+                "status": str(advisory.get("status") or ""),
+                "invocation": str(advisory.get("invocation") or ""),
+                "in_process_error": str(advisory.get("in_process_error") or ""),
+                "active": bool(advisory_result.get("active")),
+                "reason": str(advisory_result.get("reason") or ""),
+                "candidate_diagnostic": advisory_result.get("candidate_diagnostic")
+                if isinstance(advisory_result.get("candidate_diagnostic"), dict) else {},
+            }
         if governed_timing_receipt:
             receipt["governed_execution_timing"] = governed_timing_receipt
         print(

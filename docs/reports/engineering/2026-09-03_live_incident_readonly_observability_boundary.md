@@ -129,3 +129,39 @@ expectation failure (`test_fresh_matrix_failure_unblocks_batch_budget_unknown`)
 outside these changed files; it expects a shadow receiver invocation even
 though the fixture's fresh Matrix failure is already reused without a consumer
 wake.  It is not accepted as evidence for this correction.
+
+## Post-deploy measurement and bounded detector residual
+
+Safe deploy `deploy-z8-14-Updatesystem-b86289d-20260903T114113` published the
+Admin correction at `b86289daae67ef622eac576c633bc93e9c88a59d`.  The remote
+`/usr/local/bin/v7-admin-api` SHA-256 exactly matched the deploy manifest and
+both `v7-admin-api.service` and `v7-health.service` were active.
+
+The catastrophic `15–20 s` detector cycles disappeared after the Admin fan-out
+was removed.  The immediately following ordinary-detector receipts were
+`2.147`, `2.314`, `2.607`, `2.772`, `2.649` seconds.  However, the same
+post-deploy observation also proved a remaining bounded runtime residual:
+occasional `3.48–5.04 s` runs still crossed the `3.5 s` role cadence and
+produced `PREVIOUS_INVOCATION_RUNNING` receipts.  This is not a new recovery
+owner or an Apply defect.  The live state decomposed a typical batch as:
+
+- 12 source/profile service probes;
+- `1.517 s` network wall time;
+- `0.231 s` bounded post-processing;
+- three timeout-like network attempts;
+- no Matrix consumer wake or route mutation.
+
+The existing detector's one-wave, 12-process burst is therefore the exact
+remaining CPU/scheduling tail.  The contained next correction keeps the same
+12 probes, one-second sentinel semantics, Matrix confirmation and 3.5-second
+cadence, but bounds the existing batch to six concurrent probes (two
+one-second I/O waves).  It removes the avoidable 12-process scheduling peak
+while remaining under the existing five-second batch capacity law.  No route,
+user, Matrix, Planner, Authority or automatic caller is changed.
+
+Focused proof for this second correction: the exact cadence, ordinary-detector
+takeover and bounded-contract tests pass, and the batch concurrency invariant
+passes.  One full local timing-suite run experienced a host-side 1.311-second
+scheduler pause in an unrelated synthetic fast-phase test; its isolated rerun
+passed, so it is recorded as test-host noise rather than treated as runtime
+evidence.

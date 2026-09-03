@@ -66,12 +66,13 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("canonical registries and Matrix", source)
         self.assertIn("self.send_json_bytes(live_operational_truth_json())", source)
 
-    def test_overview_uses_existing_killswitch_summary_without_duplicate_user_report(self):
+    def test_overview_uses_existing_killswitch_summary_without_passive_user_route_fanout(self):
         source = ADMIN_API.read_text(encoding="utf-8")
         overview = source[source.index("def overview(session=None):"):source.index("def live_operational_truth():")]
 
         self.assertIn('["v7-killswitch-check", "--admin-summary"]', overview)
-        self.assertIn("route_status(active_users)", overview)
+        self.assertIn("route_rows = []", overview)
+        self.assertNotIn("route_status(active_users)", overview)
         checker = (ROOT / "hardening" / "v7-killswitch-check").read_text(encoding="utf-8")
         self.assertIn("--admin-summary", checker)
         self.assertIn("user_route_check=deferred_to_admin_route_reality", checker)
@@ -107,6 +108,29 @@ class AdminRealtimeTruthTest(unittest.TestCase):
         self.assertIn("OVERVIEW_CACHE_TTL_SEC = 60", source)
         self.assertIn("OVERVIEW_CACHE_READY.wait(timeout=0.25)", source)
         self.assertIn("def overview_refreshing_baseline", source)
+
+    def test_passive_overview_does_not_fan_out_one_kernel_probe_per_user(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+        overview = source[source.index("def overview(session=None):"):source.index("def live_operational_truth():")]
+
+        self.assertIn("route_rows = []", overview)
+        self.assertNotIn("route_status(active_users)", overview)
+        self.assertIn("existing per-user detail and explicit checks", overview)
+
+    def test_unloaded_passive_route_diagnostic_is_not_presented_as_route_failure(self):
+        user = {"ip": "10.7.0.125", "enabled": "1"}
+        with mock.patch.object(self.admin, "wg_handshake_state", return_value={"recent": False}), \
+             mock.patch.object(self.admin, "desired_state_row", return_value={}), \
+             mock.patch.object(self.admin, "vless_activity_state", return_value={}), \
+             mock.patch.object(self.admin, "proxy_runtime_user_routes", return_value={}), \
+             mock.patch.object(self.admin, "smart_client_profiles_for_ip", return_value={"available": False, "items": []}):
+            readiness = self.admin.user_readiness(
+                "10.7.0.125", user, None, [], {}, {},
+            )
+
+        self.assertFalse(readiness["route_checked"])
+        self.assertNotIn("route_or_leak_check_failed", readiness["blockers"])
+        self.assertIn("route_check_not_loaded", readiness["warnings"])
 
     def test_overview_smart_profiles_reuse_one_artifact_tree_scan(self):
         users = [

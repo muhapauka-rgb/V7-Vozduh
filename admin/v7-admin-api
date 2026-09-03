@@ -18742,6 +18742,13 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
     ru_local_validation = ru_local_profile.get("validation") or {}
     ru_local_ready = bool(ru_local_profile.get("ready")) and ru_local_validation.get("status") == "OK"
     smart_profile_ready = bool(universal_ready or ru_local_ready)
+    # A missing row means the passive Admin overview deliberately did not run
+    # a per-user kernel probe.  It is not evidence of a failed route.  The
+    # exact existing route checker remains available from the user detail and
+    # explicit checks surfaces; treating an omitted passive diagnostic as a
+    # failure both misled operators and made the main page block ordinary
+    # actions behind hundreds of synchronous ``ip route get`` calls.
+    route_checked = isinstance(route, dict) and bool(route)
     route_ok = bool((route or {}).get("ok")) and not bool((route or {}).get("leak_risk"))
     desired_ok, desired_note = desired_state_effective_ok(user, desired)
     agent_online = bool((agent_row or {}).get("online") or (speed_row or {}).get("agent_online"))
@@ -18765,8 +18772,10 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
     blockers.extend(profile_connection.get("blockers") or [])
     if not desired_ok:
         warnings.append("desired_state_needs_check")
-    if not route_ok:
+    if route_checked and not route_ok:
         blockers.append("route_or_leak_check_failed")
+    elif not route_checked:
+        warnings.append("route_check_not_loaded")
     if not connected:
         warnings.append("waiting_for_first_client_connection")
     for warning in profile_connection.get("warnings") or []:
@@ -18830,6 +18839,7 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
         "profile_connection": profile_connection,
         "agent_online": agent_online,
         "route_ok": route_ok,
+        "route_checked": route_checked,
         "leak_risk": bool((route or {}).get("leak_risk")),
         "desired_state": desired,
         "desired_ok": desired_ok,
@@ -20226,15 +20236,18 @@ def overview(session=None):
     users = snapshot.users
     active_users = snapshot.active_users
     egress = snapshot.egress_state
-    route_rows = route_status(active_users)
+    # The operator's landing page is refreshed while it is open.  Running
+    # one kernel route lookup for every enabled identity here made an ordinary
+    # browser tab consume a CPU core for minutes on the two-vCPU Runtime,
+    # starving the independent health owner that must detect and recover a
+    # genuinely failed source.  Assignment and Matrix health remain live via
+    # ``/api/live-status``; an exact kernel route check remains deliberately
+    # available through the existing per-user detail and explicit checks
+    # endpoints.  This is work placement, not a route-truth replacement.
+    route_rows = []
     stale = run_readonly(["v7-state-stale-check", "180"], timeout=8)
-    # ``route_status(active_users)`` above is the current, per-user route
-    # read-model rendered by Admin. Asking the same checker to emit every
-    # policy table as a multi-megabyte shell report on each passive overview
-    # refresh starves the live health owner on the two-vCPU Runtime. Retain
-    # the existing checker and all global kill-switch invariants; defer only
-    # that duplicate per-user report to the already-exact route read-model.
-    # Full ``v7-killswitch-check`` remains the deploy/safety gate.
+    # The existing global kill-switch summary remains the safety gate for the
+    # compact overview.  It has no per-user route-report fan-out.
     killswitch = run_readonly(["v7-killswitch-check", "--admin-summary"], timeout=8)
     capacity = run_readonly(["v7-capacity-check", "500"], timeout=8)
     capacity_readiness = run_readonly(["v7-capacity-readiness", "500"], timeout=10)

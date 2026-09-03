@@ -87,3 +87,45 @@ the new Admin Runtime hash and retain normal V7 Runtime as the only recovery
 caller.  The next automatic incident must be used to capture fresh
 first-observation, Matrix T0, governed Apply and S11 timings before changing
 the health-owner detector.
+
+## 2026-09-03 live contention reconciliation
+
+Fresh read-only Runtime evidence identified a second, independent cause of
+ordinary recovery instability:
+
+- `v7-health.service` is active, but its `other_required` detector has both
+  normal `2.6–3.3 s` cycles and measured outliers of `15.1 s`, `18.8 s` and
+  `19.9 s`;
+- those outliers create deadline misses and suppress the next source
+  observation, so they are incompatible with the `<=7 s` product contract;
+- the detector itself had no Receiver or consumer wake in the sampled state;
+  the outlier is before Matrix/Planner/Apply, inside its observation batch;
+- at the same instant, `v7-admin-api` consumed about `67%` CPU on the
+  two-vCPU Runtime while an ordinary browser tab was open;
+- the cause is the passive Admin overview: it synchronously ran one
+  `ip route get` per enabled user on every full refresh.  With the current
+  large registry, that fan-out can run for minutes and competes directly with
+  the independent existing health owner.
+
+Contained correction:
+
+- the passive landing-page overview no longer executes per-user route probes;
+- it continues to read current assignments and Matrix health through the
+  existing `live-status` surface;
+- the existing global kill-switch summary remains in the overview;
+- the existing exact per-user route checker remains available in the user
+  detail and explicit checks endpoints;
+- absent passive route evidence is shown as `route_check_not_loaded`, not as
+  a false route failure.
+
+This changes neither Matrix, Planner, Authority, route writer, recovery
+caller, service cadence nor any user assignment.  It removes an accidental
+Admin read-model CPU competitor from the recovery path.
+
+Focused regression: `26 PASS` in `tests.unit.test_admin_realtime_truth` and
+`37 PASS` in `tests.unit.test_v7_health_fast_deadline_loop`.  The separately
+run broad `test_v7_egress_diagnose` baseline has one pre-existing fixture
+expectation failure (`test_fresh_matrix_failure_unblocks_batch_budget_unknown`)
+outside these changed files; it expects a shadow receiver invocation even
+though the fixture's fresh Matrix failure is already reused without a consumer
+wake.  It is not accepted as evidence for this correction.

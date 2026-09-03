@@ -1603,6 +1603,16 @@ class RoleHealthLoop:
                 return None
             return round((end_ns - start_ns) / 1_000_000.0, 3)
 
+        # A lawful STOP_SAFE can return before governed dispatch.  In that
+        # case the Matrix-owned pre-governed envelope ends at the consumer
+        # return, not at a nonexistent dispatch point.  Keep the envelope
+        # mutually exclusive while preserving the detailed Matrix spans as
+        # diagnostic-only children below.
+        matrix_pre_governed_end_ns = (
+            governed_dispatch_ns
+            if governed_dispatch_ns > 0
+            else consumer_completed_ns
+        )
         exclusive_spans = [
             {
                 "stage": "consumer_entry_to_matrix_entry",
@@ -1611,7 +1621,9 @@ class RoleHealthLoop:
             },
             {
                 "stage": "matrix_pre_governed",
-                "duration_ms": interval_ms(matrix_entry_ns, governed_dispatch_ns),
+                "duration_ms": interval_ms(
+                    matrix_entry_ns, matrix_pre_governed_end_ns
+                ),
                 "product_clock": "PRE_S11",
             },
             {

@@ -810,6 +810,58 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("required_service_verification", stages)
         self.assertLessEqual(len(stages), 32)
 
+    def test_terminal_pre_governed_return_is_fully_attributed(self):
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
+        loop.persistent_matrix_ready = True
+
+        def terminal_consumer(*_args):
+            matrix_entry_ns = time.monotonic_ns()
+            loop.persistent_matrix_last_result = {
+                "current_failed_source_scope": {
+                    "active_sources": [{"affected_scope_count": 1}],
+                },
+                "bounded_delegated_service_failure_action": {
+                    "action_attempted": False,
+                    "action_completed": False,
+                    "runtime_mutation_performed": False,
+                    "status": "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE",
+                    "consumer_result": {
+                        "pretransaction_timing": {
+                            "matrix_consumer_entry_ns": matrix_entry_ns,
+                            "spans": [
+                                {
+                                    "stage": "matrix_current_scope_validation",
+                                    "duration_ms": 0.1,
+                                    "owner": "existing Matrix owner",
+                                },
+                            ],
+                        },
+                    },
+                },
+            }
+            return 0
+
+        with mock.patch.object(
+            loop, "_run_persistent_matrix_consumer", side_effect=terminal_consumer,
+        ), mock.patch("builtins.print") as printed:
+            self.assertTrue(loop._consume_new_persistent_matrix_t0(123_456))
+
+        receipt = json.loads(
+            next(
+                str(call.args[0]).split(" ", 1)[1]
+                for call in printed.call_args_list
+                if str(call.args[0]).startswith(
+                    "V7_HEALTH_RECOVERY_CONSUMER_RECEIPT "
+                )
+            )
+        )
+        attribution = receipt["consumer_wall_attribution"]
+        self.assertLessEqual(attribution["unaccounted_ms"], 0.01)
+        self.assertIn(
+            "matrix_pre_governed",
+            [row["stage"] for row in attribution["exclusive_spans"]],
+        )
+
     def test_known_incomplete_downstream_validation_is_deduped_until_matrix_binding_changes(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
         loop.persistent_matrix_ready = True

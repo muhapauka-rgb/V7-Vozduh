@@ -5823,6 +5823,17 @@ class AutoswitchPlanner:
                 snapshot_gate.get("snapshot_gate_decision") or ""
             ),
         }
+        committed_rehydration = safety.get(
+            "committed_selected_moves_rehydration"
+        )
+        if isinstance(committed_rehydration, dict):
+            diagnostics["committed_selected_moves_rehydration"][
+                "committed_plan_selected_move_count_normalized_from_packet"
+            ] = bool_value(
+                committed_rehydration.get(
+                    "committed_plan_selected_move_count_normalized_from_packet"
+                )
+            )
         if committed_moves:
             plan["selected_moves"] = committed_moves
             summary["selected_moves"] = len(committed_moves)
@@ -17364,12 +17375,26 @@ class AutoswitchPlanner:
             return []
         operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
         approved_hash = str(approved_lock.get("selected_move_hash") or "")
+        approved_identity_mode = (
+            str(approved_lock.get("selected_move_hash_source") or "")
+            == "approved_preview_packet"
+        )
         operation_hash = str(operation.get("selected_move_hash") or "")
         operation_count = to_int(operation.get("selected_move_count"), 0)
+        operation_count_normalized_from_packet = False
         if operation_hash and operation_count and approved_hash and operation_hash != approved_hash:
             return []
         if operation_count and operation_count != len(selected):
-            return []
+            # The pre-Packet plan can still describe the whole Matrix scope
+            # (including a certification identity) while the already-validated
+            # immutable Packet is restricted to the exact ordinary cohort.
+            # For an approved-preview Packet, the Packet lock is the canonical
+            # executable scope at Apply; retaining the old wider count would
+            # reject the same exact lock without detecting any mutable change.
+            # Other lock identities remain fail-closed on a count mismatch.
+            if not approved_identity_mode:
+                return []
+            operation_count_normalized_from_packet = True
         if approved_hash:
             operation["selected_move_hash"] = approved_hash
         operation["selected_move_count"] = len(selected)
@@ -17401,6 +17426,9 @@ class AutoswitchPlanner:
             "selected_move_count": len(selected),
             "selected_move_hash": approved_hash,
             "operation_identity_restored": True,
+            "committed_plan_selected_move_count_normalized_from_packet": (
+                operation_count_normalized_from_packet
+            ),
             "atomic_envelope_selected_identity_restored": bool(envelope),
             "owner": "tools/v7-users-autoswitch.apply",
             "new_execution_path_created": False,

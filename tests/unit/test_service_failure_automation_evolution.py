@@ -996,6 +996,16 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(scope["affected_users"], ["10.7.0.6"])
         self.assertEqual(scope["affected_users_count"], 1)
 
+        planner._current_channel_failure_evidence.return_value = {
+            "confirmed": True,
+        }
+        whole_channel_scope = planner._l3_failed_source_scope("vless")
+
+        self.assertTrue(whole_channel_scope["current_channel_failure"])
+        self.assertEqual(whole_channel_scope["all_assigned_users_count"], 2)
+        self.assertEqual(whole_channel_scope["affected_users"], ["10.7.0.6"])
+        self.assertEqual(whole_channel_scope["affected_users_count"], 1)
+
     def test_runtime_profile_scope_reentry_reopens_closed_exact_same_scope(self):
         """A closed historical outcome cannot suppress an exact live scope."""
         scope = {

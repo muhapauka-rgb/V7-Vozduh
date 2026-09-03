@@ -9930,24 +9930,27 @@ class AutoswitchPlanner:
             str(row.get("service") or "") for row in service_failures
         }
         affected_users = list(all_assigned_users)
-        if (
-            service_failed
-            and not (channel_failed or controlled_channel_failed)
-            and bool_value(getattr(self.args, "ordinary_service_failure_context", False))
-        ):
+        if bool_value(getattr(self.args, "ordinary_service_failure_context", False)):
             assigned = set(all_assigned_users)
-            affected_users = sorted(
-                user.ip for user in self.users
+            ordinary_assigned = [
+                user for user in self.users
                 if user.ip in assigned
-                # The ordinary profile-failure Matrix owner accounts
-                # certification identities in its separate controlled scope.
-                # Folding them back into the ordinary L3 denominator makes a
-                # valid mixed-source binding disagree with itself (ordinary=1
-                # versus ordinary+certification=2) and suppresses automatic
-                # recovery for the real customer.  Keep the two existing
-                # scopes disjoint here, exactly as they are at the producer.
+                # The Matrix owner accounts certification identities in its
+                # separate controlled scope for both partial-service and
+                # whole-channel failures.  The ordinary L3 denominator must
+                # preserve that partition in both cases.
                 and not bool_value(user.raw.get("certification_user"))
-                and bool(set(self._profile_required_services(user)) & failed_service_ids)
+            ]
+            affected_users = sorted(
+                user.ip for user in ordinary_assigned
+                if (
+                    channel_failed
+                    or controlled_channel_failed
+                    or bool(
+                        set(self._profile_required_services(user))
+                        & failed_service_ids
+                    )
+                )
             )
         return {
             "schema_version": "v7.l3-incident-source-scope.v1",

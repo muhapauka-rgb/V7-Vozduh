@@ -2619,6 +2619,12 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "child_apply_reason": "l3_execution_eligibility_stop_safe",
                 "child_apply_error": "RuntimeError:exact_owner_failure",
                 "child_l3_eligibility_blockers": ["target_lost_before_apply"],
+                "child_apply_result_present": True,
+                "child_apply_result_keys": ["reason", "selected_moves_diagnostics"],
+                "child_committed_selected_moves_rehydration": {
+                    "status": "NOT_REHYDRATED",
+                    "approved_plan_lock_ok": False,
+                },
                 "proof_blockers": ["runtime_apply_not_performed"],
                 "sensitive_payload": "must-not-project",
             },
@@ -2639,6 +2645,13 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             result["downstream_proof_diagnostic"]["child_apply_error"],
             "RuntimeError:exact_owner_failure",
+        )
+        self.assertTrue(
+            result["downstream_proof_diagnostic"]["child_apply_result_present"]
+        )
+        self.assertEqual(
+            result["downstream_proof_diagnostic"]["child_committed_selected_moves_rehydration"]["status"],
+            "NOT_REHYDRATED",
         )
         self.assertFalse(
             result["downstream_proof_diagnostic"]["apply_command_ok"]

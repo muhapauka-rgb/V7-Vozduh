@@ -3119,6 +3119,8 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
                 "child_apply_error",
                 "child_l3_eligibility_blockers",
                 "child_approved_plan_lock_reasons", "proof_blockers",
+                "child_apply_result_present", "child_apply_result_keys",
+                "child_committed_selected_moves_rehydration",
                 "route_apply_failure_count", "route_apply_failure_reasons",
                 "verification_failure_count", "verification_failure_reasons",
                 "route_verification_failure_categories",

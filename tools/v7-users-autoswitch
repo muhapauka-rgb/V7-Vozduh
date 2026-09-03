@@ -22545,16 +22545,16 @@ class AutoswitchPlanner:
             terminal = str(row.get("terminal_outcome_classification") or "").upper()
             runtime_scope = runtime_binding.get("source_scope")
             runtime_scope = runtime_scope if isinstance(runtime_scope, dict) else {}
-            # A recovery terminal describes the previous placement, not a
-            # permanent ban on this source incident.  The existing runtime
-            # profile re-entry owner may have reopened the exact same L3
-            # incident after a customer was assigned to the still-failed
-            # source again.  In that one source-bound case, consume the
-            # reopened current scope instead of letting historical RECOVERY
-            # prose suppress a fresh Matrix obligation.  Every identity is
-            # required to match; EPISODE_EXPIRED remains terminal.
-            reopened_current_recovery = bool(
-                terminal.startswith("RECOVERY")
+            # A recovery/expiry terminal describes the previous service
+            # episode or placement, not a permanent ban on this source
+            # incident.  The existing runtime profile re-entry owner may
+            # reopen the exact same L3 incident after a customer is assigned
+            # to the still-failed source again.  In that one source-bound
+            # case, consume the reopened current scope instead of letting
+            # historical terminal prose suppress a fresh Matrix obligation.
+            # Every current identity and scope component must match.
+            reopened_current_terminal = bool(
+                terminal.startswith(("RECOVERY", "EPISODE_EXPIRED"))
                 and source_bound_live_recovery
                 and runtime_profile_handoff
                 and str(candidate_incident.get("incident_state") or "") == "OPEN"
@@ -22564,9 +22564,7 @@ class AutoswitchPlanner:
                 and str(candidate_scope.get("affected_scope_fingerprint") or "") == str(runtime_scope.get("affected_scope_fingerprint") or "")
                 and int(candidate_scope.get("affected_scope_count") or 0) == int(runtime_scope.get("affected_scope_count") or 0)
             )
-            if terminal.startswith("EPISODE_EXPIRED") or (
-                terminal.startswith("RECOVERY") and not reopened_current_recovery
-            ):
+            if terminal.startswith(("RECOVERY", "EPISODE_EXPIRED")) and not reopened_current_terminal:
                 # These terminals are already consumed as no-action evidence.
                 # They must never outrank a newer open revalidation merely
                 # because they were appended later in the same batch.  An

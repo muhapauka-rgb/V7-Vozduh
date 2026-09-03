@@ -279,7 +279,64 @@ class AdminRealtimeTruthTest(unittest.TestCase):
 
         self.assertIn('core_primary_committed = "V7_CORE_PRIMARY_SYNC=PASS" in writer_output', operation)
         self.assertIn('kernel_route_observed = core_primary_committed or legacy_route_observed', operation)
-        self.assertIn('"verification_mode": "CORE_PRIMARY_COMMIT" if core_primary_committed else "LEGACY_ROUTE_OUTPUT"', operation)
+        self.assertIn('["v7-routing-sync", "--core-primary-verify", "--json"]', operation)
+        self.assertIn('"CORE_PRIMARY_POST_TIMEOUT_VERIFY"', operation)
+
+    def test_operator_rebind_accepts_timeout_only_after_existing_core_primary_verify(self):
+        """A writer timeout is not a false failure after exact kernel confirmation."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            users_path = state / "users.registry"
+            users_path.write_text(
+                "ip=10.7.0.125 current=awg0 table=1125 enabled=1\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=awg0 interface=awg0 enabled=1\n"
+                "id=vless interface=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            control_path = state / "safe-mode.json"
+            self.admin.operator_execution.write_json_atomic(
+                control_path,
+                self.admin.operator_execution.build_autonomous_execution_control_state(
+                    True, actor="test", reason="open",
+                ),
+            )
+            previous_state, previous_control = self.admin.STATE_DIR, self.admin.SAFE_MODE_FILE
+            self.addCleanup(setattr, self.admin, "STATE_DIR", previous_state)
+            self.addCleanup(setattr, self.admin, "SAFE_MODE_FILE", previous_control)
+            self.admin.STATE_DIR, self.admin.SAFE_MODE_FILE = state, control_path
+
+            def completed_after_timeout(command, **_kwargs):
+                if command[0] == "v7-user-switch":
+                    users_path.write_text(
+                        "ip=10.7.0.125 current=vless table=1125 enabled=1\n",
+                        encoding="utf-8",
+                    )
+                    (state / "user-10.7.0.125.assign").write_text(
+                        "egress=vless\n", encoding="utf-8",
+                    )
+                    raise subprocess.TimeoutExpired(command, 7)
+                return subprocess.CompletedProcess(
+                    command, 0, stdout='{"status": "CORE_PRIMARY_VERIFY_PASS"}',
+                )
+
+            with mock.patch.object(self.admin, "admin_safe_mode_enabled", return_value=False), \
+                 mock.patch.object(self.admin, "identity_egress_issuance_binding", return_value={"ok": True}), \
+                 mock.patch.object(self.admin.subprocess, "run", side_effect=completed_after_timeout), \
+                 mock.patch.object(self.admin, "audit_admin"):
+                payload, error, status = self.admin.operator_profile_egress_rebind({
+                    "ip": "10.7.0.125", "egress": "vless",
+                    "confirm": "OPERATOR_PROFILE_EGRESS_REBIND",
+                }, "test")
+
+        self.assertIsNone(error)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "APPLIED_AND_VERIFIED")
+        self.assertEqual(payload["writer"]["rc"], 124)
+        self.assertTrue(payload["verification"]["late_core_primary_confirmation"])
+        self.assertEqual(payload["verification"]["verification_mode"], "CORE_PRIMARY_POST_TIMEOUT_VERIFY")
 
     def test_mutating_requests_refresh_a_stale_csrf_token_once_before_failing(self):
         page = self.admin.html_page_v2()

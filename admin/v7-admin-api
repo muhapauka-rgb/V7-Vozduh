@@ -16431,15 +16431,60 @@ def operator_profile_egress_rebind(data, actor):
         # only after its existing Core-primary apply has committed.  Keep the
         # legacy observation for non-Core-primary installations.
         core_primary_committed = "V7_CORE_PRIMARY_SYNC=PASS" in writer_output
+        late_core_primary_confirmation = False
+        # ``subprocess.run(..., timeout=7)`` can expire after the route writer
+        # has atomically committed the canonical assignment and Core-primary
+        # map, but while the writer is still completing non-routing tail work
+        # (for example, its audit append).  Treating that exact terminal state
+        # as a failed operator action makes the UI roll its already-correct
+        # local projection back and invites a duplicate click.  Do not infer
+        # success from registry data alone: reuse the existing Core-primary
+        # whole-system verifier, which proves the live kernel map matches the
+        # canonical current registry.  This is a post-timeout read only check,
+        # not a second route writer or a relaxation of the normal result.
+        if (
+            writer.get("rc") == 124
+            and len(current_rows) == 1
+            and safe_egress_id(current_rows[0].get("current") or "") == requested
+            and f"egress={requested}" in assign
+        ):
+            try:
+                late_verify = subprocess.run(
+                    ["v7-routing-sync", "--core-primary-verify", "--json"],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    timeout=3,
+                    check=False,
+                    env=env,
+                )
+                late_output = redact((late_verify.stdout or "")[-4000:])
+                late_core_primary_confirmation = bool(
+                    late_verify.returncode == 0
+                    and '"status": "CORE_PRIMARY_VERIFY_PASS"' in late_output
+                )
+            except (subprocess.TimeoutExpired, OSError):
+                late_core_primary_confirmation = False
+            if late_core_primary_confirmation:
+                core_primary_committed = True
         legacy_route_observed = f"dev {expected_dev}" in writer_output
         kernel_route_observed = core_primary_committed or legacy_route_observed
+        writer_completed = bool(
+            writer.get("rc") == 0
+            or (writer.get("rc") == 124 and late_core_primary_confirmation)
+        )
         verification = {
-            "ok": bool(writer.get("rc") == 0 and len(current_rows) == 1 and safe_egress_id(current_rows[0].get("current") or "") == requested and f"egress={requested}" in assign and kernel_route_observed),
+            "ok": bool(writer_completed and len(current_rows) == 1 and safe_egress_id(current_rows[0].get("current") or "") == requested and f"egress={requested}" in assign and kernel_route_observed),
             "registry_assignment": safe_egress_id((current_rows[0] if current_rows else {}).get("current") or "") == requested,
             "assignment_state": f"egress={requested}" in assign,
             "kernel_route_observed": kernel_route_observed,
             "core_primary_committed": core_primary_committed,
-            "verification_mode": "CORE_PRIMARY_COMMIT" if core_primary_committed else "LEGACY_ROUTE_OUTPUT",
+            "late_core_primary_confirmation": late_core_primary_confirmation,
+            "verification_mode": (
+                "CORE_PRIMARY_POST_TIMEOUT_VERIFY"
+                if late_core_primary_confirmation
+                else "CORE_PRIMARY_COMMIT" if core_primary_committed else "LEGACY_ROUTE_OUTPUT"
+            ),
             "expected_interface": expected_dev,
         }
         if not verification["ok"]:

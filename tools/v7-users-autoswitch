@@ -17379,6 +17379,18 @@ class AutoswitchPlanner:
             str(approved_lock.get("selected_move_hash_source") or "")
             == "approved_preview_packet"
         )
+        committed_identity = (
+            approved_lock.get("committed_apply_identity")
+            if isinstance(approved_lock.get("committed_apply_identity"), dict)
+            else {}
+        )
+        immutable_packet_binding = bool(
+            approved_identity_mode
+            or (
+                bool_value(committed_identity.get("requested"))
+                and bool_value(committed_identity.get("ok"))
+            )
+        )
         operation_hash = str(operation.get("selected_move_hash") or "")
         operation_count = to_int(operation.get("selected_move_count"), 0)
         operation_count_normalized_from_packet = False
@@ -17392,7 +17404,7 @@ class AutoswitchPlanner:
             # executable scope at Apply; retaining the old wider count would
             # reject the same exact lock without detecting any mutable change.
             # Other lock identities remain fail-closed on a count mismatch.
-            if not approved_identity_mode:
+            if not immutable_packet_binding:
                 return []
             operation_count_normalized_from_packet = True
         if approved_hash:

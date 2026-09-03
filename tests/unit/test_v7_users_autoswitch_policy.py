@@ -8803,6 +8803,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "packet_id": "pkt-bounded-unit",
                 "operation_id": operation_id,
                 "authority_generation": generation,
+                # Production Packet locks created from a Planner selection do
+                # not carry the preview-only identity marker. Their exact
+                # command-bound Packet identity is still required below.
+                "identity_source": "",
                 "service_failure_causal_binding": {
                     "binding_kind": "ORDINARY_SERVICE_FAILURE_OBLIGATION",
                     "source_incident_id": "sfinc-unit",

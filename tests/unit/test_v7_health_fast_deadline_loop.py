@@ -136,7 +136,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn('"hot_target_other": 19', loop)
         self.assertIn('"other_required": 0', loop)
         self.assertIn('"--lightweight-batch-producer",', loop)
-        self.assertIn('"--fast-producer-concurrency", "6"', loop)
+        self.assertIn('"--fast-producer-concurrency", "12"', loop)
         self.assertEqual(loop.count('"--lock-timeout-sec", "1"'), 2)
         self.assertIn('"hard": -20', loop)
         self.assertIn('"telegram": 10', loop)

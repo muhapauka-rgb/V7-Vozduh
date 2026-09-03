@@ -165,3 +165,15 @@ passes.  One full local timing-suite run experienced a host-side 1.311-second
 scheduler pause in an unrelated synthetic fast-phase test; its isolated rerun
 passed, so it is recorded as test-host noise rather than treated as runtime
 evidence.
+
+### Live rejection of the six-probe hypothesis
+
+The six-probe cap was deployed as `1e22104503cab730325b2cf922e3201c4b47c5aa`
+through `deploy-z8-14-Updatesystem-1e22104-20260903T115230` and then measured
+on the live two-vCPU Runtime.  It is **rejected**: two waves produced a
+`2.773 s` network span and subsequent `3.851`, `3.410`, `4.672`, `4.923`,
+`5.087`, `4.093` and `4.099 s` detector runs, with repeated
+`PREVIOUS_INVOCATION_RUNNING` receipts.  The operational correction is
+therefore to restore the previously proven twelve-probe one-wave cap
+immediately; no recovery semantics, user assignment or Matrix state was
+altered during this negative experiment.

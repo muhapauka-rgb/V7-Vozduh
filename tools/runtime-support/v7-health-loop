@@ -127,14 +127,11 @@ DEFAULT_ROLE_COMMANDS = (
             # probes at once: the detector then manufactures timeouts on
             # healthy channels and blocks the same event loop it must wake.
             # Current ordinary source contracts contain twelve short probes.
-            # Six makes two bounded one-second I/O waves.  On the two-vCPU
-            # Runtime that is faster *in the tail* than twelve simultaneous
-            # curl/process starts: the former one-wave peak repeatedly
-            # delayed the health parent beyond the next 3.5-second due slot.
-            # This remains safely below the five-second batch capacity bound,
-            # while leaving one CPU scheduling lane for the Matrix parent and
-            # the one-user governed recovery consumer.
-            "--fast-producer-concurrency", "6",
+            # Keep one bounded network-I/O wave.  A live two-vCPU validation
+            # of a six-probe cap made two waves and measurably worsened the
+            # detector tail, so the existing twelve-probe cap remains the
+            # fastest currently proven safe setting.
+            "--fast-producer-concurrency", "12",
             "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
             # A failed one-second sentinel must be written through this same
             # canonical Matrix owner before the health parent consumes its

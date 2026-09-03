@@ -10663,6 +10663,63 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(window["control"]["generation"], existing["generation"])
         self.assertTrue(window["decision"]["allowed_forward_mutation"])
 
+    def test_ordinary_service_failure_adopts_packet_window_and_keeps_route_binding_separate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            control_file = root / "safe-mode.json"
+            existing = self.tool.operator_execution.build_autonomous_execution_control_state(
+                False,
+                actor="existing-governed-owner",
+                reason="packet-lease-barrier-complete",
+                operation_id="ordinary-failure-operation",
+                selected_move_hash="ordinary-selected-move",
+                action_class="EMERGENCY_FAILOVER",
+                source_bundle_hash="packet-source-bundle",
+                snapshot_bundle_hash="packet-snapshot-bundle",
+                max_users=1,
+            )
+            self.tool.operator_execution.write_json_atomic(control_file, existing)
+            planner = object.__new__(self.tool.AutoswitchPlanner)
+            planner.args = SimpleNamespace(
+                execution_control_file=str(control_file),
+                ordinary_service_failure_context=True,
+                approved_source_bundle_hash="packet-source-bundle",
+                approved_snapshot_bundle_hash="packet-snapshot-bundle",
+            )
+            planner._operation_execution_control_window = {}
+            plan = {
+                "selected_moves": [{"user_ip": "10.0.0.2"}],
+                "safety": {},
+            }
+            with mock.patch.object(
+                planner,
+                "_operation_scoped_source_binding",
+                return_value={
+                    "status": "BOUND",
+                    "source_bundle_hash": "route-writer-source-binding",
+                    "snapshot_bundle_hash": "route-writer-snapshot-binding",
+                },
+            ):
+                window = planner._open_packet_bound_execution_control_window(
+                    plan,
+                    operation_id="ordinary-failure-operation",
+                    selected_move_hash="ordinary-selected-move",
+                    action_class="EMERGENCY_FAILOVER",
+                    require_restore_barrier=False,
+                    actor="ordinary-service-failure-test",
+                    reason="ordinary_service_failure_packet_bound_apply",
+                )
+
+        self.assertTrue(window["ok"], window)
+        self.assertTrue(window["reused_existing_operation_window"])
+        self.assertTrue(window["dual_owner_binding_validation"])
+        self.assertEqual(window["source_bundle_hash"], "packet-source-bundle")
+        self.assertEqual(window["snapshot_bundle_hash"], "packet-snapshot-bundle")
+        self.assertEqual(
+            window["operation_scoped_binding"]["source_bundle_hash"],
+            "route-writer-source-binding",
+        )
+
     def test_apply_uses_valid_approved_lock_moves_when_fresh_plan_selected_moves_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

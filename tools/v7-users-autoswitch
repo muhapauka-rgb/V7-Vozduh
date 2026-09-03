@@ -7035,12 +7035,32 @@ class AutoswitchPlanner:
         # check.  Adopt an already-closed window only when every immutable
         # Packet/operation binding matches; any other closed window remains a
         # STOP_SAFE conflict.
+        adopted_packet_window = bool(
+            before.get("state") == "CLOSED"
+            and bool_value(
+                getattr(self.args, "ordinary_service_failure_context", False)
+            )
+            and str(getattr(self.args, "approved_source_bundle_hash", "") or "")
+            and str(getattr(self.args, "approved_snapshot_bundle_hash", "") or "")
+        )
         expected_window = {
             "operation_id": operation_id,
             "selected_move_hash": selected_move_hash,
             "action_class": str(action_class or "").upper(),
-            "source_bundle_hash": source_bundle_hash,
-            "snapshot_bundle_hash": snapshot_bundle_hash,
+            # The parent control window is bound to the immutable Packet
+            # representation.  The route writer also requires its own
+            # operation-scoped binding below, but those two canonical owners
+            # deliberately hash different payload shapes.  Comparing the
+            # hashes to each other made every otherwise valid ordinary
+            # recovery fail after Packet/Lease/Barrier.
+            "source_bundle_hash": (
+                str(self.args.approved_source_bundle_hash)
+                if adopted_packet_window else source_bundle_hash
+            ),
+            "snapshot_bundle_hash": (
+                str(self.args.approved_snapshot_bundle_hash)
+                if adopted_packet_window else snapshot_bundle_hash
+            ),
             "max_users": max(1, len(plan.get("selected_moves") or [])),
         }
         if before.get("state") == "CLOSED":
@@ -7062,8 +7082,8 @@ class AutoswitchPlanner:
                 expected_generation=str(before.get("generation") or ""),
                 operation_id=operation_id,
                 selected_move_hash=selected_move_hash,
-                source_bundle_hash=source_bundle_hash,
-                snapshot_bundle_hash=snapshot_bundle_hash,
+                source_bundle_hash=expected_window["source_bundle_hash"],
+                snapshot_bundle_hash=expected_window["snapshot_bundle_hash"],
                 max_users=expected_window["max_users"],
             )
             if not decision.get("allowed_forward_mutation"):
@@ -7086,12 +7106,13 @@ class AutoswitchPlanner:
                 "before": before,
                 "control": before,
                 "decision": decision,
-                "source_bundle_hash": source_bundle_hash,
-                "snapshot_bundle_hash": snapshot_bundle_hash,
+                "source_bundle_hash": expected_window["source_bundle_hash"],
+                "snapshot_bundle_hash": expected_window["snapshot_bundle_hash"],
                 "operation_scoped_binding": operation_binding,
                 "max_users": expected_window["max_users"],
                 "owner": "admin_core.operator_execution",
                 "reused_existing_operation_window": True,
+                "dual_owner_binding_validation": adopted_packet_window,
                 "new_owner_created": False,
             }
         if before.get("state") != "OPEN":
@@ -20515,6 +20536,7 @@ class AutoswitchPlanner:
             ),
             "max_users": max(0, to_int(getattr(self.args, "max_selected_moves", 0), 0)),
         }
+        control_window: dict[str, Any] = {}
         if packet_bound_control_required:
             control_window = self._open_packet_bound_execution_control_window(
                 plan,
@@ -20596,17 +20618,20 @@ class AutoswitchPlanner:
                 )
             if approved_selected_move_hash != selected_hash:
                 approved_binding_mismatches.append("selected_move_hash")
-            if ordinary_service_failure_context:
+            if ordinary_service_failure_context and not bool_value(
+                control_window.get("dual_owner_binding_validation")
+            ):
                 if str(getattr(self.args, "approved_source_bundle_hash", "") or "") != execution_control_bindings["source_bundle_hash"]:
                     approved_binding_mismatches.append("approved_source_bundle_hash")
                 if str(getattr(self.args, "approved_snapshot_bundle_hash", "") or "") != execution_control_bindings["snapshot_bundle_hash"]:
                     approved_binding_mismatches.append("approved_snapshot_bundle_hash")
             if operation_binding.get("status") != "BOUND":
                 approved_binding_mismatches.append("operation_scoped_binding")
-            if execution_control_bindings["source_bundle_hash"] != str(operation_binding.get("source_bundle_hash") or ""):
-                approved_binding_mismatches.append("source_bundle_hash")
-            if execution_control_bindings["snapshot_bundle_hash"] != str(operation_binding.get("snapshot_bundle_hash") or ""):
-                approved_binding_mismatches.append("snapshot_bundle_hash")
+            if not bool_value(control_window.get("dual_owner_binding_validation")):
+                if execution_control_bindings["source_bundle_hash"] != str(operation_binding.get("source_bundle_hash") or ""):
+                    approved_binding_mismatches.append("source_bundle_hash")
+                if execution_control_bindings["snapshot_bundle_hash"] != str(operation_binding.get("snapshot_bundle_hash") or ""):
+                    approved_binding_mismatches.append("snapshot_bundle_hash")
         if approved_binding_mismatches:
             return {
                 "applied": False,

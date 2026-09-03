@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-09-02T20:17:06+00:00
+State captured: 2026-09-03T06:32:56+00:00
 Latest terminal Mission: `V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1`
 Latest terminal Mission state: `COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: The Recovery Stability Foundation remains admitted.  The current governed Apply/verification residual is reconciled as its narrow existing-owner audit subfrontier; only the normal V7 Runtime can produce a recovery action or live acceptance evidence.
+Source: Functional automatic recovery remains consumed. The owner-authorized V5.3 recovery-latency product contract is active until fresh automatic V7 Runtime samples prove P95 <= 7000 ms and max <= 8000 ms from first valid failure observation to all affected required-service S11.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-09-02T20:17:06+00:00`
+Captured: `2026-09-03T06:32:56+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -42,14 +42,14 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `STATE_CAPTURED` | `2026-09-02T16:20:00+03:00` |
 | `LATEST_SUPPORTING_LIFECYCLE_RECONCILIATION` | `N10_CORE_PRIMARY_AND_N11_ROUTE_CLOSURE_RECONCILED: deployed commits c8afcc9a,f9447434,5f1328bf,6cf988f7,6a27f9fd,684c7c39 add pre-consumption cohort admissibility, compatible one-batch map update, canonical registry precedence, exact legacy-route retirement and mandatory service/path S11. Runtime Core-primary is exact 125/125 and 4/4; broad route check passes; four residual per-user primary rules were retired by the existing Core owner with users_moved=0. Report: docs/reports/engineering/2026-08-27_n10_bounded_production_and_n11_core_route_closure.md` |
-| `CURRENT_ACTIVE_SCOPE` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
-| `CURRENT_SAFE_NEXT_ACTION` | `Audit and repair only a measured governed Apply/route/Core-primary/kernel/required-service S11 residual through existing owners; use Polygon before live observation, and the normal V7 Runtime remains the sole producer of any recovery action.` |
-| `CURRENT_SCOPE_CLASS` | `RECOVERY_STABILITY_LATENCY_RESIDUAL_EXISTING_OWNER` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_GOVERNED_APPLY_EE8A48606F01` |
-| `CURRENT_TRANSITION_ID` | `RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW_RECONCILED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
-| `CURRENT_PROGRAM_STAGE` | `RECOVERY_STABILITY_HARDENING` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
+| `CURRENT_ACTIVE_SCOPE` | `V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Use only the normal V7 Runtime health caller to obtain one fresh current failure-to-all-affected-required-service-S11 causal sample; repair a measured generic residual before a further sample.` |
+| `CURRENT_SCOPE_CLASS` | `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_LATENCY_SLO_B95F8C5326E8` |
+| `CURRENT_TRANSITION_ID` | `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
+| `CURRENT_PROGRAM_STAGE` | `V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `RECOVERY_STABILITY_HARDENING` | `FOUNDATION_ADMITTED` |
 | `RECOVERY_STABILITY_HARDENING_RUNTIME_EFFECT` | `NONE at admission; normal V7 Runtime remains sole recovery producer` |
 | `RECOVERY_STABILITY_HARDENING_IMPLEMENTATION_FRONTIER` | `CURRENT_TRUTH_AND_SAFETY_AUDIT -> LEVEL_TRIGGERED_RECONCILIATION -> STOP_SAFE_REENTRY -> STRANDED_SELF_HEALING -> POST_TERMINAL_RESIDUE -> FROZEN_BASELINE_AND_INVALIDATION_MAP -> DETERMINISTIC_50_100 -> TEMPORAL_BOUNDARY -> RANDOMIZED_500_1000 -> ORDINARY_TEST_IDENTITY_EQUIVALENCE -> SAME_FINGERPRINT_LIVE_ORDINARY_PATH_5_10` |
@@ -72,17 +72,17 @@ This section is the single live volatile current-state surface. Older production
 | `V5_3_RUNTIME_LIVE_HEALTH` | `v7-health.service active; legacy standalone Matrix/Telegram timers disabled; role-based health loop is current producer` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
+| `CURRENT_EXECUTION_FRONTIER` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_RECOVERY_APPLY_FRONTIER_ACTIVE` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_RECOVERY_LATENCY_SLO_ACTIVE` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |
-| `TRANSACTION_TERMINAL_CLASS` | `FUNCTIONAL_RECOVERY_CONSUMED_APPLY_FRONTIER_ACTIVE` |
+| `TRANSACTION_TERMINAL_CLASS` | `FUNCTIONAL_RECOVERY_CONSUMED_LATENCY_SLO_ACTIVE` |
 | `PROGRAM_TERMINAL_CLASS` | `NONE` |
 | `NEXT_MISSION_FORMED` | `FALSE` |
 | `NEXT_MISSION_ID` | `NONE_PROGRAM_TRACK_ONLY` |
@@ -191,7 +191,7 @@ This section is the single live volatile current-state surface. Older production
 | `PHASE_7_PRODUCTION_AUTHORITY_STATUS` | `LOCKED_PENDING_NATURAL_AND_CONTROLLED_CERTIFICATION` |
 | `PHASE_6_FINAL_REPORT` | `docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md` |
 | `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |
-| `CURRENT_COMPLETION_CONTRACT` | `RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW` |
+| `CURRENT_COMPLETION_CONTRACT` | `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT` |
 | `CURRENT_COMPLETION_VERDICT` | `ACTIVE_NOT_CONSUMED` |
 | `FSSE_STATUS` | `FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED` |
 | `FSSE_00_EXTERNAL_REENTRY_STATUS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
@@ -218,7 +218,7 @@ This section is the single live volatile current-state surface. Older production
 | `SCENARIO_STOP_REASON` | `ALL CURRENT OWNER-BACKED SCENARIO OBLIGATIONS COVERED` |
 | `FSSE_NEXT_ACTION` | `WAIT_FOR_FRESH_EXACT_CONTROLLED_WINDOW_OR_NEW_OWNER_BACKED_OBLIGATION` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
-| `CURRENT_EXECUTION_MISSION_ID` | `V7_RECOVERY_APPLY_FRONTIER_RECONCILIATION_AND_CONCURRENCY_PROOF` |
+| `CURRENT_EXECUTION_MISSION_ID` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `MISSION_ACTIVE` |
 | `LATEST_TERMINAL_MISSION_ID` | `V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1` |
 | `LATEST_TERMINAL_RUN_NONCE` | `V7_PHASE6_PHASE7_BOUNDARY_20260827_01` |
@@ -228,10 +228,10 @@ This section is the single live volatile current-state surface. Older production
 | `PREVIOUS_TERMINAL_MISSION_ID` | `V7_PHASE6A_OBLIGATION_CORPUS_CONTINUATION_AND_NEXT_GENERATION_V1` |
 | `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-17_230111_phase6a_obligation_corpus_continuation_and_next_generation.md` |
 | `CURRENT_MISSION_ROLE` | `ACTIVE_MISSION` |
-| `CURRENT_MISSION_ID` | `V7_RECOVERY_APPLY_FRONTIER_RECONCILIATION_AND_CONCURRENCY_PROOF` |
-| `CURRENT_RUN_NONCE` | `V7_RECOVERY_APPLY_FRONTIER_20260902_01` |
+| `CURRENT_MISSION_ID` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
+| `CURRENT_RUN_NONCE` | `V7_PHASE6_PHASE7_BOUNDARY_20260827_01` |
 | `CURRENT_MISSION_STATE` | `MISSION_ACTIVE` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-09-02_recovery_apply_frontier_reconciliation_and_concurrency_proof.md` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-09-01_recovery_latency_slo_reentry_and_causal_baseline.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
@@ -755,7 +755,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-09-02T20:17:06+00:00`
+Generated At: `2026-09-03T06:32:56+00:00`
 
 Runtime Authority: `NONE`
 
@@ -768,16 +768,16 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_GOVERNED_APPLY_EE8A48606F01` |
-| `CURRENT_TRANSITION_ID` | `RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW_RECONCILED_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECOVERY_LATENCY_SLO_B95F8C5326E8` |
+| `CURRENT_TRANSITION_ID` | `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
-| `ACTIVE_MISSIONS` | `V7_RECOVERY_APPLY_FRONTIER_RECONCILIATION_AND_CONCURRENCY_PROOF` |
+| `ACTIVE_MISSIONS` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `LATEST_TERMINAL_MISSION_ID` | `V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1` |
 | `LATEST_TERMINAL_MISSION_STATE` | `COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY` |
 | `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-27_phase6_phase7_comprehensive_boundary_consumed.md` |
@@ -790,7 +790,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | Event-driven OMP resumes only on a fresh controlled window, owner-backed obligation or natural outcome |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -799,10 +799,10 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_GOVERNED_APPLY_EE8A48606F01` |
-| `current_transition_id` | `RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW_RECONCILED_V1` |
-| `smallest_existing_next_action_id` | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` |
-| `active_mission_id` | `V7_RECOVERY_APPLY_FRONTIER_RECONCILIATION_AND_CONCURRENCY_PROOF` |
+| `current_state_generation` | `cpsgen_SFA_RECOVERY_LATENCY_SLO_B95F8C5326E8` |
+| `current_transition_id` | `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1` |
+| `smallest_existing_next_action_id` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
+| `active_mission_id` | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` |
 | `active_mission_state` | `MISSION_ACTIVE` |
 | `latest_terminal_mission_id` | `V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1` |
 | `latest_terminal_mission_state` | `COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY` |
@@ -818,7 +818,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `last_responsible_link` | existing V5.3 Program contract -> BDP/OMP admission -> CPS read-only Mission -> Phase C/D/E evidence consumer |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT |
+| `smallest_existing_next_action` | V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -886,7 +886,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `RECOVERY_STABILITY_HARDENING` program frontier; `cpsgen_SFA_GOVERNED_APPLY_EE8A48606F01`; `RECOVERY_APPLY_VERIFICATION_CONCURRENCY_LAW_RECONCILED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT` | existing V5.3 Program, OMP lifecycle, current route/projection owner and Health/Test/Stability owners | `NONE` | fresh input -> OMP reconciliation -> exact owner-backed frontier |
+| `1` | `V5_3_RECOVERY_LATENCY_SLO_FINAL_EXECUTION` program frontier; `cpsgen_SFA_RECOVERY_LATENCY_SLO_B95F8C5326E8`; `RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT_REENTRY_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE` | existing V5.3 Program, OMP lifecycle, current route/projection owner and Health/Test/Stability owners | `NONE` | fresh input -> OMP reconciliation -> exact owner-backed frontier |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -954,7 +954,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `RECOVERY_GOVERNED_APPLY_VERIFICATION_CURRENT_PATH_AUDIT`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

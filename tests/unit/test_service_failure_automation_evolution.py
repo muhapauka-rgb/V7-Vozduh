@@ -961,6 +961,41 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         planner._write_l3_runtime_state.assert_called_once()
 
+    def test_ordinary_failed_source_scope_excludes_certification_identity(self):
+        """Mixed sources keep ordinary and controlled scope denominators disjoint."""
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        planner.users = [
+            self.autoswitch.User(
+                ip="10.7.0.6", current="vless", enabled=True,
+            ),
+            self.autoswitch.User(
+                ip="10.7.0.200", current="vless", enabled=True,
+                raw={"certification_user": "1"},
+            ),
+        ]
+        planner.egress = {
+            "vless": self.autoswitch.Egress(id="vless", enabled=True),
+        }
+        planner.args = argparse.Namespace(ordinary_service_failure_context=True)
+        planner.service_prefs = {"users": {}}
+        planner._explicit_required_services = mock.Mock(return_value=[])
+        planner._current_channel_failure_evidence = mock.Mock(return_value={
+            "confirmed": False,
+        })
+        planner._controlled_certification_failure_context = mock.Mock(
+            return_value={"confirmed": False},
+        )
+        planner._l3_required_service_failures_for_source = mock.Mock(
+            return_value=[{"service": "youtube", "status": "FAIL"}],
+        )
+
+        scope = planner._l3_failed_source_scope("vless")
+
+        self.assertTrue(scope["source_failed"])
+        self.assertEqual(scope["all_assigned_users_count"], 2)
+        self.assertEqual(scope["affected_users"], ["10.7.0.6"])
+        self.assertEqual(scope["affected_users_count"], 1)
+
     def test_runtime_profile_scope_reentry_reopens_closed_exact_same_scope(self):
         """A closed historical outcome cannot suppress an exact live scope."""
         scope = {

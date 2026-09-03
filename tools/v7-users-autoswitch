@@ -9939,6 +9939,14 @@ class AutoswitchPlanner:
             affected_users = sorted(
                 user.ip for user in self.users
                 if user.ip in assigned
+                # The ordinary profile-failure Matrix owner accounts
+                # certification identities in its separate controlled scope.
+                # Folding them back into the ordinary L3 denominator makes a
+                # valid mixed-source binding disagree with itself (ordinary=1
+                # versus ordinary+certification=2) and suppresses automatic
+                # recovery for the real customer.  Keep the two existing
+                # scopes disjoint here, exactly as they are at the producer.
+                and not bool_value(user.raw.get("certification_user"))
                 and bool(set(self._profile_required_services(user)) & failed_service_ids)
             )
         return {

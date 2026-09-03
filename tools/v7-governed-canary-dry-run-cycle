@@ -7854,6 +7854,27 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         if isinstance(apply_payload.get("performance_timeline"), dict)
         else {}
     )
+    # The autoswitch owner records the completion point of every mandatory
+    # required-service verifier on the same Linux monotonic clock.  Project
+    # only the latest successful completion as the ordinary product S11
+    # boundary.  This is diagnostic provenance, not a second verifier or
+    # terminal owner, and lets the health caller separate customer recovery
+    # from post-S11 receipt/finalization work.
+    required_service_s11_points = [
+        int(row.get("completed_monotonic_ns") or 0)
+        for row in (child_timeline.get("spans") or [])
+        if isinstance(row, dict)
+        and str(row.get("stage") or "") == "required_service_verification"
+        and str(row.get("status") or "PASS") == "PASS"
+        and int(row.get("completed_monotonic_ns") or 0) > 0
+    ]
+    if terminal_success and required_service_s11_points:
+        execution_timing["required_service_s11_monotonic_ns"] = max(
+            required_service_s11_points
+        )
+        execution_timing["required_service_s11_boundary"] = (
+            "existing autoswitch required_service_verification completion"
+        )
     execution_timing["nested_timeline"] = child_timeline
     execution_timing["planner_nested_timeline"] = (
         plan.get("performance_timeline")

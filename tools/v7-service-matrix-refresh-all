@@ -1945,6 +1945,10 @@ def run_bounded_delegated_service_failure_action(
         )
     except (TypeError, ValueError):
         matrix_consumer_entry_ns = 0
+    governed_dispatch_ns = 0
+    governed_child_completed_ns = 0
+    governed_result_parsed_ns = 0
+    post_child_reconciliation_completed_ns = 0
 
     def pretransaction_span(
         stage: str,
@@ -1966,17 +1970,19 @@ def run_bounded_delegated_service_failure_action(
         *,
         governed_dispatch_ns: Optional[int] = None,
     ) -> dict[str, Any]:
+        bounded_return_ns = time.monotonic_ns()
+        dispatch_ns = int(governed_dispatch_ns or 0)
         total_to_dispatch_ms = None
         matrix_total_to_dispatch_ms = None
-        if governed_dispatch_ns is not None:
+        if dispatch_ns > 0:
             total_to_dispatch_ms = round(
-                (governed_dispatch_ns - pretransaction_started_ns)
+                (dispatch_ns - pretransaction_started_ns)
                 / 1_000_000.0,
                 3,
             )
             if matrix_consumer_entry_ns > 0:
                 matrix_total_to_dispatch_ms = round(
-                    (governed_dispatch_ns - matrix_consumer_entry_ns)
+                    (dispatch_ns - matrix_consumer_entry_ns)
                     / 1_000_000.0,
                     3,
                 )
@@ -1988,6 +1994,62 @@ def run_bounded_delegated_service_failure_action(
             ),
             "matrix_consumer_entry_to_governed_dispatch_ms": (
                 matrix_total_to_dispatch_ms
+            ),
+            "governed_dispatch_monotonic_ns": int(
+                dispatch_ns
+            ),
+            "governed_child_completed_monotonic_ns": int(
+                governed_child_completed_ns or 0
+            ),
+            "governed_result_parsed_monotonic_ns": int(
+                governed_result_parsed_ns or 0
+            ),
+            "post_child_reconciliation_completed_monotonic_ns": int(
+                post_child_reconciliation_completed_ns or 0
+            ),
+            "bounded_consumer_return_monotonic_ns": int(bounded_return_ns),
+            "governed_child_subprocess_wall_ms": (
+                round(
+                    (governed_child_completed_ns - dispatch_ns)
+                    / 1_000_000.0,
+                    3,
+                )
+                if dispatch_ns > 0
+                and governed_child_completed_ns >= dispatch_ns
+                else None
+            ),
+            "governed_result_parse_ms": (
+                round(
+                    (governed_result_parsed_ns - governed_child_completed_ns)
+                    / 1_000_000.0,
+                    3,
+                )
+                if governed_child_completed_ns > 0
+                and governed_result_parsed_ns >= governed_child_completed_ns
+                else None
+            ),
+            "post_child_lease_reconciliation_ms": (
+                round(
+                    (
+                        post_child_reconciliation_completed_ns
+                        - governed_result_parsed_ns
+                    ) / 1_000_000.0,
+                    3,
+                )
+                if governed_result_parsed_ns > 0
+                and post_child_reconciliation_completed_ns
+                >= governed_result_parsed_ns
+                else None
+            ),
+            "matrix_consumer_entry_to_bounded_return_ms": (
+                round(
+                    (bounded_return_ns - matrix_consumer_entry_ns)
+                    / 1_000_000.0,
+                    3,
+                )
+                if matrix_consumer_entry_ns > 0
+                and bounded_return_ns >= matrix_consumer_entry_ns
+                else None
             ),
             "measurement_boundary": (
                 "existing Matrix consumer entry -> existing governed executor "
@@ -2479,6 +2541,9 @@ def run_bounded_delegated_service_failure_action(
             timeout=max(30, min(int(timeout_sec or 180), 600)),
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
+        governed_child_completed_ns = time.monotonic_ns()
+        governed_result_parsed_ns = governed_child_completed_ns
+        post_child_reconciliation_completed_ns = governed_child_completed_ns
         return with_pretransaction_timing({
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
             "status": "FAILED",
@@ -2489,6 +2554,7 @@ def run_bounded_delegated_service_failure_action(
             "error": f"{type(exc).__name__}:{exc}",
             "action_attempted": True,
         }, governed_dispatch_ns=governed_dispatch_ns)
+    governed_child_completed_ns = time.monotonic_ns()
     output = proc.stdout or ""
     try:
         parsed = json.loads(output)
@@ -2507,6 +2573,7 @@ def run_bounded_delegated_service_failure_action(
                 parsed = value if isinstance(value, dict) else {}
             except json.JSONDecodeError:
                 parsed = {}
+    governed_result_parsed_ns = time.monotonic_ns()
     post_child_lease_reconciliation: dict[str, Any] = {}
     if ordinary_execution:
         # The child has exited, so this is the existing Matrix consumer's only
@@ -2521,6 +2588,7 @@ def run_bounded_delegated_service_failure_action(
                 source=source,
             )
         )
+    post_child_reconciliation_completed_ns = time.monotonic_ns()
     verdict = str(parsed.get("final_verdict") or "")
     transaction_status = str(parsed.get("transaction_status") or "")
     completed = proc.returncode == 0 and verdict in {
@@ -5745,6 +5813,16 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
                 "schema_version", "spans",
                 "bounded_consumer_entry_to_governed_dispatch_ms",
                 "matrix_consumer_entry_to_governed_dispatch_ms",
+                "matrix_consumer_entry_ns",
+                "governed_dispatch_monotonic_ns",
+                "governed_child_completed_monotonic_ns",
+                "governed_result_parsed_monotonic_ns",
+                "post_child_reconciliation_completed_monotonic_ns",
+                "bounded_consumer_return_monotonic_ns",
+                "governed_child_subprocess_wall_ms",
+                "governed_result_parse_ms",
+                "post_child_lease_reconciliation_ms",
+                "matrix_consumer_entry_to_bounded_return_ms",
                 "measurement_boundary",
             )
             if pretransaction_timing.get(key) not in (None, "", [], {})

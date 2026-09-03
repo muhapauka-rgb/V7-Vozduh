@@ -5220,6 +5220,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertIsNotNone(
                 timing["bounded_consumer_entry_to_governed_dispatch_ms"],
             )
+            self.assertIsNotNone(
+                timing["governed_child_subprocess_wall_ms"],
+            )
+            # Direct unit invocation has no outer Matrix-entry timestamp;
+            # production supplies it through runtime_pretransaction_receipt.
+            self.assertIsNone(
+                timing["matrix_consumer_entry_to_bounded_return_ms"],
+            )
+            self.assertGreater(
+                timing["bounded_consumer_return_monotonic_ns"],
+                timing["governed_dispatch_monotonic_ns"],
+            )
             projection = self.refresh.compact_refresh_projection({
                 "bounded_delegated_service_failure_action": stop,
             })

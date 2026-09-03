@@ -1440,6 +1440,8 @@ class RoleHealthLoop:
                 "dominant_stage",
                 "clock_source",
                 "wall_clock_used_for_elapsed",
+                "required_service_s11_monotonic_ns",
+                "required_service_s11_boundary",
             )
             if key in governed_timing
         }
@@ -1562,6 +1564,138 @@ class RoleHealthLoop:
             "users_moved": int(delegated.get("users_moved") or 0) if isinstance(delegated, dict) else 0,
             "stop_reason": str(consumer_result.get("stop_reason") or delegated.get("reason") or "") if isinstance(delegated, dict) else "",
         }
+        pretransaction_timing = (
+            consumer_result.get("pretransaction_timing")
+            if isinstance(consumer_result.get("pretransaction_timing"), dict)
+            else {}
+        )
+        # Reconcile the complete consumer wall into non-overlapping monotonic
+        # envelopes.  The Matrix and governed owners remain the producers of
+        # the underlying points; this bounded health projection only exposes
+        # the previously hidden pre-S11 versus post-S11 wall-time split.
+        def timing_point(name: str) -> int:
+            try:
+                return int(pretransaction_timing.get(name) or 0)
+            except (TypeError, ValueError):
+                return 0
+
+        matrix_entry_ns = timing_point("matrix_consumer_entry_ns")
+        governed_dispatch_ns = timing_point("governed_dispatch_monotonic_ns")
+        governed_child_completed_ns = timing_point(
+            "governed_child_completed_monotonic_ns"
+        )
+        governed_result_parsed_ns = timing_point(
+            "governed_result_parsed_monotonic_ns"
+        )
+        post_child_reconciled_ns = timing_point(
+            "post_child_reconciliation_completed_monotonic_ns"
+        )
+        bounded_return_ns = timing_point("bounded_consumer_return_monotonic_ns")
+        try:
+            required_service_s11_ns = int(
+                governed_timing.get("required_service_s11_monotonic_ns") or 0
+            )
+        except (TypeError, ValueError):
+            required_service_s11_ns = 0
+
+        def interval_ms(start_ns: int, end_ns: int) -> float | None:
+            if start_ns <= 0 or end_ns < start_ns:
+                return None
+            return round((end_ns - start_ns) / 1_000_000.0, 3)
+
+        exclusive_spans = [
+            {
+                "stage": "consumer_entry_to_matrix_entry",
+                "duration_ms": interval_ms(consumer_started_ns, matrix_entry_ns),
+                "product_clock": "PRE_S11",
+            },
+            {
+                "stage": "matrix_pre_governed",
+                "duration_ms": interval_ms(matrix_entry_ns, governed_dispatch_ns),
+                "product_clock": "PRE_S11",
+            },
+            {
+                "stage": "governed_child_subprocess",
+                "duration_ms": interval_ms(
+                    governed_dispatch_ns, governed_child_completed_ns
+                ),
+                "product_clock": "SPLIT_BY_REQUIRED_SERVICE_S11",
+            },
+            {
+                "stage": "governed_result_parse",
+                "duration_ms": interval_ms(
+                    governed_child_completed_ns, governed_result_parsed_ns
+                ),
+                "product_clock": "POST_S11_IF_ACTION_COMPLETED",
+            },
+            {
+                "stage": "post_child_lease_reconciliation",
+                "duration_ms": interval_ms(
+                    governed_result_parsed_ns, post_child_reconciled_ns
+                ),
+                "product_clock": "POST_S11_IF_ACTION_COMPLETED",
+            },
+            {
+                "stage": "bounded_return_local_self",
+                "duration_ms": interval_ms(
+                    post_child_reconciled_ns, bounded_return_ns
+                ),
+                "product_clock": "POST_S11_IF_ACTION_COMPLETED",
+            },
+            {
+                "stage": "matrix_post_action_return_tail",
+                "duration_ms": interval_ms(
+                    bounded_return_ns, consumer_completed_ns
+                ),
+                "product_clock": "POST_S11_IF_ACTION_COMPLETED",
+            },
+        ]
+        measured_spans = [
+            row for row in exclusive_spans
+            if isinstance(row.get("duration_ms"), (int, float))
+        ]
+        matrix_pre_governed_spans = []
+        for row in pretransaction_timing.get("spans") or []:
+            if not isinstance(row, dict):
+                continue
+            stage = str(row.get("stage") or "")
+            duration_ms = row.get("duration_ms")
+            if not stage or not isinstance(duration_ms, (int, float)):
+                continue
+            matrix_pre_governed_spans.append({
+                "stage": stage,
+                "duration_ms": duration_ms,
+                "owner": str(row.get("owner") or ""),
+            })
+            if len(matrix_pre_governed_spans) >= 32:
+                break
+        accounted_ms = round(
+            sum(float(row["duration_ms"]) for row in measured_spans), 3
+        )
+        consumer_wall_ms = round(
+            max(0, consumer_completed_ns - consumer_started_ns) / 1_000_000.0,
+            3,
+        )
+        wall_attribution = {
+            "schema_version": "v7.consumer-wall-attribution.v1",
+            "clock_source": "time.monotonic_ns",
+            "exclusive_spans": measured_spans,
+            # Diagnostic detail only. These Matrix-owned spans explain the
+            # high-level matrix_pre_governed envelope above and are never
+            # added to accounted_ms a second time.
+            "matrix_pre_governed_spans": matrix_pre_governed_spans,
+            "consumer_wall_ms": consumer_wall_ms,
+            "accounted_ms": accounted_ms,
+            "unaccounted_ms": round(max(0.0, consumer_wall_ms - accounted_ms), 3),
+            "required_service_s11_monotonic_ns": required_service_s11_ns,
+            "consumer_entry_to_required_service_s11_ms": interval_ms(
+                consumer_started_ns, required_service_s11_ns
+            ),
+            "required_service_s11_to_consumer_return_ms": interval_ms(
+                required_service_s11_ns, consumer_completed_ns
+            ),
+        }
+        receipt["consumer_wall_attribution"] = wall_attribution
         advisory = self.persistent_matrix_last_result.get(
             "service_failure_automation_advisory"
         )

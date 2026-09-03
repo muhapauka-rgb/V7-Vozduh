@@ -623,6 +623,16 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 "users_moved": 2,
                 "consumer_result": {
                     "stop_reason": "",
+                    "pretransaction_timing": {
+                        "schema_version": "v7.matrix-pretransaction-timing.v1",
+                        "spans": [
+                            {
+                                "stage": "matrix_current_failed_source_scope_read",
+                                "duration_ms": 17.5,
+                                "owner": "existing Matrix current-source-scope owner",
+                            },
+                        ],
+                    },
                     "execution_timing": {
                         "schema_version": "v7.governed-execution-timing.v1",
                         "status": "MONOTONIC_BREAKDOWN_CONSUMED",
@@ -630,6 +640,10 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                         "dominant_stage": "apply_and_verification",
                         "clock_source": "time.monotonic_ns",
                         "wall_clock_used_for_elapsed": False,
+                        "required_service_s11_monotonic_ns": 123_500,
+                        "required_service_s11_boundary": (
+                            "existing autoswitch required_service_verification completion"
+                        ),
                         "spans": [
                             {"stage": "planner", "duration_ms": 123.0},
                             {"stage": "apply_and_verification", "duration_ms": 3087.0},
@@ -689,6 +703,29 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         )
         self.assertGreaterEqual(receipt["t0_to_consumer_complete_ms"], 0)
         self.assertGreaterEqual(receipt["consumer_execution_ms"], 0)
+        self.assertEqual(
+            receipt["consumer_wall_attribution"]["schema_version"],
+            "v7.consumer-wall-attribution.v1",
+        )
+        self.assertGreaterEqual(
+            receipt["consumer_wall_attribution"]["unaccounted_ms"], 0,
+        )
+        self.assertEqual(
+            receipt["consumer_wall_attribution"]
+            ["matrix_pre_governed_spans"],
+            [
+                {
+                    "stage": "matrix_current_failed_source_scope_read",
+                    "duration_ms": 17.5,
+                    "owner": "existing Matrix current-source-scope owner",
+                },
+            ],
+        )
+        self.assertEqual(
+            receipt["governed_execution_timing"]
+            ["required_service_s11_monotonic_ns"],
+            123_500,
+        )
         self.assertEqual(
             receipt["governed_execution_timing"]["dominant_stage"],
             "apply_and_verification",

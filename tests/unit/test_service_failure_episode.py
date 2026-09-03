@@ -5228,6 +5228,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertIsNone(
                 timing["matrix_consumer_entry_to_bounded_return_ms"],
             )
+            self.assertEqual(timing["matrix_consumer_entry_ns"], 0)
             self.assertGreater(
                 timing["bounded_consumer_return_monotonic_ns"],
                 timing["governed_dispatch_monotonic_ns"],
@@ -7260,6 +7261,29 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertLess(direct_advisory_guard, second_advisory)
         guarded_branch = source[direct_advisory_guard:second_advisory]
         self.assertIn("already materialized one", guarded_branch)
+
+    def test_runtime_profile_advisory_diagnostic_survives_compact_projection(self):
+        diagnostic = {
+            "invocation": "IN_PROCESS_EXISTING_AUTOSWITCH_OWNER",
+            "in_process_error": "",
+            "advisory_status": "PASS",
+            "source_binding_still_current": True,
+            "exact_obligation_match": True,
+            "obligation_present": True,
+            "runtime_mutation_performed": False,
+        }
+        projection = self.refresh.compact_refresh_projection({
+            "runtime_profile_advisory_diagnostic": diagnostic,
+        })
+        self.assertEqual(
+            projection["runtime_profile_advisory_diagnostic"]
+            ["exact_obligation_match"],
+            True,
+        )
+        self.assertNotIn(
+            "in_process_error",
+            projection["runtime_profile_advisory_diagnostic"],
+        )
 
     def test_target_admission_summary_is_aggregate_and_identifier_free(self):
         summary = self.autoswitch.planner_target_admission_summary([

@@ -1989,6 +1989,7 @@ def run_bounded_delegated_service_failure_action(
         return {
             "schema_version": "v7.matrix-pretransaction-timing.v1",
             "spans": list(pretransaction_spans),
+            "matrix_consumer_entry_ns": int(matrix_consumer_entry_ns or 0),
             "bounded_consumer_entry_to_governed_dispatch_ms": (
                 total_to_dispatch_ms
             ),
@@ -6539,6 +6540,19 @@ def compact_refresh_projection(payload: dict[str, Any]) -> dict[str, Any]:
         "candidate_or_execution_forbidden": True,
         "full_child_payload_embedded": False,
     }
+    runtime_profile_advisory_diagnostic = payload.get(
+        "runtime_profile_advisory_diagnostic"
+    )
+    if isinstance(runtime_profile_advisory_diagnostic, dict):
+        projection["runtime_profile_advisory_diagnostic"] = {
+            key: runtime_profile_advisory_diagnostic.get(key)
+            for key in (
+                "invocation", "in_process_error", "advisory_status",
+                "source_binding_still_current", "exact_obligation_match",
+                "obligation_present", "runtime_mutation_performed",
+            )
+            if runtime_profile_advisory_diagnostic.get(key) not in (None, "")
+        }
     for key in (
         "prepared_class_decisions",
         "prepared_class_decision_freshness",
@@ -8114,6 +8128,23 @@ def main() -> int:
             (fresh_profile_advisory.get("consumer_result") or {})
             if isinstance(fresh_profile_advisory, dict) else {}
         )
+        # Planning can take long enough for the source scope to change.  Use
+        # the same existing Matrix/current-scope owner once more before
+        # accepting the advisory result.  This both removes the stale
+        # service-incident ambiguity and keeps the fast path fail-closed.
+        post_advisory_source_scope = current_failed_source_scope(
+            Path(args.event_dir), state_dir
+        )
+        post_advisory_source_constraint = (
+            runtime_profile_handoff_source_constraint(
+                state_dir=state_dir,
+                source_scope=post_advisory_source_scope,
+                runtime_hot_path_only=bool(args.runtime_hot_path_only),
+                persistent_matrix_owner=(
+                    os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+                ),
+            )
+        )
         proposed_scope = (
             proposed_obligation.get("current_source_scope")
             if isinstance(proposed_obligation.get("current_source_scope"), dict)
@@ -8121,13 +8152,38 @@ def main() -> int:
         )
         fresh_profile_advisory_matches_current_source = bool(
             str(proposed_obligation.get("channel") or "")
-            == str(profile_source_constraint.get("channel") or "")
+            == str(post_advisory_source_constraint.get("channel") or "")
             and str(proposed_obligation.get("source_incident_id") or "")
-            == str(profile_source_constraint.get("source_incident_id") or "")
+            == str(post_advisory_source_constraint.get("source_incident_id") or "")
             and str(proposed_scope.get("affected_scope_fingerprint") or "")
-            == str(profile_source_constraint.get("source_scope_fingerprint") or "")
+            == str(post_advisory_source_constraint.get("source_scope_fingerprint") or "")
             and int(proposed_scope.get("affected_scope_count") or 0) > 0
         )
+        payload["runtime_profile_advisory_diagnostic"] = {
+            "invocation": str(fresh_profile_advisory.get("invocation") or ""),
+            "in_process_error": str(
+                fresh_profile_advisory.get("in_process_error") or ""
+            )[:400],
+            "advisory_status": str(fresh_profile_advisory.get("status") or ""),
+            "source_binding_still_current": bool(
+                post_advisory_source_constraint
+                and str(post_advisory_source_constraint.get("channel") or "")
+                == str(profile_source_constraint.get("channel") or "")
+                and str(
+                    post_advisory_source_constraint.get("source_incident_id") or ""
+                )
+                == str(profile_source_constraint.get("source_incident_id") or "")
+                and str(
+                    post_advisory_source_constraint.get(
+                        "source_scope_fingerprint"
+                    ) or ""
+                )
+                == str(profile_source_constraint.get("source_scope_fingerprint") or "")
+            ),
+            "exact_obligation_match": fresh_profile_advisory_matches_current_source,
+            "obligation_present": bool(proposed_obligation),
+            "runtime_mutation_performed": False,
+        }
         # The first advisory is a source-bound current observation even when
         # it finds no executable target.  Retaining it prevents a second
         # identical Planner reconstruction later in this same Matrix cycle.

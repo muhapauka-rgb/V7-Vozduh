@@ -815,6 +815,63 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "CURRENT_SCOPE_ALREADY_OPEN",
         )
 
+    def test_runtime_profile_handoff_uses_matrix_owned_incident_when_services_have_multiple_ids(self):
+        """One source action scope stays exact when several services fail."""
+        args = argparse.Namespace(
+            apply=False,
+            emergency_failover_autonomy=False,
+            controlled_verifier_contention=False,
+            source_egress="vless",
+            runtime_profile_handoff_only=True,
+            state_dir=".",
+        )
+        planner = mock.Mock()
+        planner._performance_spans = []
+        planner.users = []
+        planner.matrix = {}
+        planner.service_prefs = {}
+        planner._explicit_required_services.return_value = []
+        planner.reconcile_runtime_profile_source_scope_reentry.return_value = {
+            "status": "CURRENT_SCOPE_ALREADY_OPEN", "updated": False,
+        }
+        planner.plan.return_value = {"decisions": []}
+        planner.materialize_service_failure_automation_advisory.return_value = {
+            "active": False,
+            "pre_obligation_scope_reconciliation": {"final_verdict": "PASS"},
+        }
+        planner.performance_timeline.return_value = {"spans": []}
+        matrix_binding = {
+            "channel": "vless",
+            "source_incident_id": "sfinc-matrix-owner",
+            "source_scope_fingerprint": "fresh-scope",
+            "affected_scope_count": 1,
+            "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+        }
+        with mock.patch.dict(self.autoswitch.os.environ, {
+            "V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1",
+            "V7_SERVICE_PROFILE_FAILURE_SCOPE": json.dumps(matrix_binding),
+        }, clear=False), mock.patch.object(
+            self.autoswitch, "AutoswitchPlanner", return_value=planner,
+        ), mock.patch.object(
+            self.autoswitch, "live_profile_failure_evidence",
+            return_value=(1, 1, {"sfinc-other-service", "sfinc-matrix-owner"}),
+        ), mock.patch.object(
+            self.autoswitch, "build_prepared_class_decision_projection",
+            return_value={},
+        ), mock.patch.object(
+            self.autoswitch, "validate_prepared_class_decision_projection",
+            return_value={},
+        ):
+            self.autoswitch.consume_service_failure_automation_only(args)
+
+        binding = planner.reconcile_runtime_profile_source_scope_reentry.call_args.args[0]
+        self.assertEqual(binding["source_incident_id"], "sfinc-matrix-owner")
+        self.assertEqual(binding["incident_ids"], ["sfinc-matrix-owner"])
+        self.assertEqual(
+            binding["source_scope"]["affected_scope_fingerprint"],
+            "fresh-scope",
+        )
+
     def test_fresh_runtime_profile_handoff_defers_passive_history_only_after_exact_l3_handoff(self):
         source = {
             "channel": "vless",

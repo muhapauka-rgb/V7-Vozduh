@@ -5834,6 +5834,13 @@ class AutoswitchPlanner:
                     "committed_plan_selected_move_count_normalized_from_packet"
                 )
             )
+            diagnostics["committed_selected_moves_rehydration"][
+                "committed_plan_selected_move_hash_normalized_from_packet"
+            ] = bool_value(
+                committed_rehydration.get(
+                    "committed_plan_selected_move_hash_normalized_from_packet"
+                )
+            )
         if committed_moves:
             plan["selected_moves"] = committed_moves
             summary["selected_moves"] = len(committed_moves)
@@ -17393,9 +17400,17 @@ class AutoswitchPlanner:
         )
         operation_hash = str(operation.get("selected_move_hash") or "")
         operation_count = to_int(operation.get("selected_move_count"), 0)
+        operation_hash_normalized_from_packet = False
         operation_count_normalized_from_packet = False
         if operation_hash and operation_count and approved_hash and operation_hash != approved_hash:
-            return []
+            # The selected-move hash belongs to the same broad pre-Packet
+            # scope as the count below. A current, command-bound Packet lock
+            # has already revalidated its own packet/operation/hash/Authority
+            # identity and is the only executable selection owner at Apply.
+            # Never make this exception for an unbound or legacy lock.
+            if not immutable_packet_binding:
+                return []
+            operation_hash_normalized_from_packet = True
         if operation_count and operation_count != len(selected):
             # The pre-Packet plan can still describe the whole Matrix scope
             # (including a certification identity) while the already-validated
@@ -17438,6 +17453,9 @@ class AutoswitchPlanner:
             "selected_move_count": len(selected),
             "selected_move_hash": approved_hash,
             "operation_identity_restored": True,
+            "committed_plan_selected_move_hash_normalized_from_packet": (
+                operation_hash_normalized_from_packet
+            ),
             "committed_plan_selected_move_count_normalized_from_packet": (
                 operation_count_normalized_from_packet
             ),

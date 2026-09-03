@@ -8791,9 +8791,6 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             planner = self.tool.AutoswitchPlanner(bootstrap_args)
             committed = planner.plan()
             self.assertEqual(len(committed["selected_moves"]), 2)
-            # The broad pre-Packet scope may include a certification identity;
-            # only the immutable Packet is executable for the ordinary cohort.
-            committed["operation"]["selected_move_count"] = 3
             barrier = self.approved_restore_barrier_from_plan(committed)
             packet_lock = json.loads(json.dumps(barrier["approved_plan_lock"]))
             operation_id = committed["operation"]["operation_id"]
@@ -8818,6 +8815,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     },
                 },
             })
+            # The broad pre-Packet scope may include a certification identity;
+            # only the immutable Packet is executable for the ordinary cohort.
+            committed["operation"]["selected_move_count"] = 3
+            committed["operation"]["selected_move_hash"] = "stale-pre-packet-scope"
             barrier["approved_plan_lock"].update({
                 "packet_id": "pkt-bounded-unit",
                 "operation_id": operation_id,
@@ -8835,7 +8836,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "--approved-packet-id", "pkt-bounded-unit",
                 "--approved-operation-id", operation_id,
                 "--approved-execution-lease-id", "lease-bounded-unit",
-                "--approved-selected-move-hash", committed["operation"]["selected_move_hash"],
+                "--approved-selected-move-hash", packet_lock["selected_move_hash"],
                 "--approved-authority-generation", generation,
             ])
             with mock.patch.object(
@@ -8864,6 +8865,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             revalidated["safety"]["selected_moves_diagnostics"]
             ["committed_selected_moves_rehydration"]
             ["committed_plan_selected_move_count_normalized_from_packet"]
+        )
+        self.assertTrue(
+            revalidated["safety"]["selected_moves_diagnostics"]
+            ["committed_selected_moves_rehydration"]
+            ["committed_plan_selected_move_hash_normalized_from_packet"]
         )
         self.assertEqual(
             [move["user_ip"] for move in revalidated["selected_moves"]],

@@ -379,6 +379,36 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
         self.assertEqual(handoff["final_verdict"], "READY")
         self.assertEqual(obligation, {})
 
+    def test_ordinary_terminal_empty_direct_handoff_yields_to_live_reentry(self):
+        """A historical target cannot make an empty terminal scope actionable."""
+        source = {
+            "channel": "1",
+            "source_incident_id": "incident-1",
+            "source_scope_fingerprint": "scope-1",
+            "scope_classification": "MIXED_ORDINARY_AND_CERTIFICATION",
+        }
+        terminal_obligation = {
+            "stop_safe_classification": "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED",
+            "bounded_recommendation_users": 1,
+            "current_source_scope": {
+                "affected_scope_count": 1,
+                "unresolved_scope_count": 0,
+                "affected_scope_fingerprint": "scope-1",
+            },
+        }
+        with mock.patch.object(
+            tool, "service_failure_direct_execution_handoff",
+            return_value={"final_verdict": "READY", "obligation": terminal_obligation},
+        ):
+            handoff, obligation = tool.direct_service_failure_handoff_for_scope(
+                state_dir=Path("/state"),
+                source_scope={"active_sources": [source]},
+                source_constraint=source,
+            )
+
+        self.assertEqual(handoff["final_verdict"], "READY")
+        self.assertEqual(obligation, {})
+
     def test_health_profile_source_constraint_beats_unrelated_larger_scope(self):
         scope = {
             "active_sources": [

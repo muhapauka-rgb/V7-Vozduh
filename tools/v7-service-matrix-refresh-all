@@ -6943,10 +6943,17 @@ def direct_service_failure_handoff_for_scope(
         "ORDINARY_PRODUCTION_ONLY",
         "MIXED_ORDINARY_AND_CERTIFICATION",
     }
+    obligation_scope = (
+        obligation.get("current_source_scope")
+        if isinstance(obligation.get("current_source_scope"), dict)
+        else {}
+    )
     if ordinary_scope and obligation and not (
         str(obligation.get("stop_safe_classification") or "")
         == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
         and int(obligation.get("bounded_recommendation_users") or 0) > 0
+        and int(obligation_scope.get("affected_scope_count") or 0) > 0
+        and int(obligation_scope.get("unresolved_scope_count") or 0) > 0
     ):
         obligation = {}
     return handoff, obligation

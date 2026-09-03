@@ -198,3 +198,20 @@ user assignment, route operation or new queue is introduced.
 
 Focused regressions prove both the one-source/one-confirmation law and the
 existing stale-failure, fresh-Matrix reuse and health-detector takeover laws.
+
+### Source-confirmation wave residual
+
+The first deployed source-union version reduced duplicate confirmation from six
+profile calls to three source calls, but a live failure-bearing batch still
+measured `4.637 s` post-processing (`3` receiver invocations across `3`
+sources).  The calls were still started serially even though their network
+observations are independent; only the canonical Matrix write is shared.
+
+The current correction launches the bounded source confirmations concurrently
+within the already-existing fast-producer cap, waits for that finite wave, then
+rebuilds the ephemeral Matrix index once.  Matrix's existing lock still
+serializes its short write and each non-confirmed source follows the existing
+fail-closed profile fallback.  No users, routes, Authority, Planner, Matrix
+schema, timer, queue, or recovery caller changes.  Focused regressions remain
+`4 PASS`; the next required evidence is a live failure-bearing detector cycle
+on the deployed fingerprint.

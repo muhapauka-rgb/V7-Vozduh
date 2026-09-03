@@ -1598,23 +1598,49 @@ for raw in open(sys.argv[1], encoding="utf-8"):
 for source in sorted(by_source):
     print(f"{source}\t{','.join(sorted(by_source[source]))}")
 PY
+    # Probe/confirm different sources concurrently, bounded by the same
+    # existing fast-producer cap.  Matrix remains serialized only for its
+    # short canonical write lock; waiting for one source's one-second network
+    # confirmation before starting the next was accidental pre-T0 delay.
+    source_confirmation_ok_file="$work_dir/source-confirmation-ok.tsv"
+    source_confirmation_pids=()
+    source_confirmation_started=0
+    flush_source_confirmation_wave() {
+      local confirmation_pid
+      for confirmation_pid in "${source_confirmation_pids[@]}"; do
+        wait "$confirmation_pid" || true
+      done
+      source_confirmation_pids=()
+      source_confirmation_started=0
+    }
     while IFS=$'\t' read -r source_id confirmed_services; do
       [ -n "$source_id" ] || continue
       [ -n "$confirmed_services" ] || continue
-      PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=$((PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT + 1))
-      if "$DEFINITIVE_MATRIX_COMMAND" "$source_id" all \
-          --services "$confirmed_services" \
-          --state-dir "$STATE_DIR" \
-          --event-dir "$CANONICAL_EVENT_DIR" \
-          --failure-persistence-samples 1 \
-          --failure-persistence-window-seconds 30 \
-          --role-fast-timeout \
-          --lock-timeout-sec 1 \
-          --timeout 1 >/dev/null 2>&1; then
-        printf '%s\n' "$source_id" >> "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE"
-        build_fast_matrix_fresh_failure_index
+      (
+        if "$DEFINITIVE_MATRIX_COMMAND" "$source_id" all \
+            --services "$confirmed_services" \
+            --state-dir "$STATE_DIR" \
+            --event-dir "$CANONICAL_EVENT_DIR" \
+            --failure-persistence-samples 1 \
+            --failure-persistence-window-seconds 30 \
+            --role-fast-timeout \
+            --lock-timeout-sec 1 \
+            --timeout 1 >/dev/null 2>&1; then
+          printf '%s\n' "$source_id" >> "$source_confirmation_ok_file"
+        fi
+      ) &
+      source_confirmation_pids+=("$!")
+      source_confirmation_started=$((source_confirmation_started + 1))
+      if [ "$source_confirmation_started" -ge "$FAST_PRODUCER_CONCURRENCY" ]; then
+        flush_source_confirmation_wave
       fi
     done < "$work_dir/source-confirmation-work.tsv"
+    flush_source_confirmation_wave
+    if [ -s "$source_confirmation_ok_file" ]; then
+      sort -u "$source_confirmation_ok_file" > "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE"
+      PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=$((PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT + $(wc -l < "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE")))
+      build_fast_matrix_fresh_failure_index
+    fi
   fi
   while IFS='|' read -r source_id profile_user services failure_count dns_services degraded_services failed_services unknown_services state_key completion_ns; do
     [ -n "$source_id" ] || continue

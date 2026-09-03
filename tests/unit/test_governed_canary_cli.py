@@ -8494,6 +8494,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             }
             original_plan = module.run_l3_production_validation_plan
             original_apply = module.run_autoswitch_apply
+            apply_calls = []
             original_binding = module.operation_scoped_binding.read_binding
             try:
                 module.run_l3_production_validation_plan = lambda **kwargs: {
@@ -8502,7 +8503,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "command": ["l3-plan"],
                     "payload": self.ready_l3_plan(),
                 }
-                module.run_autoswitch_apply = lambda **kwargs: {
+                def fake_apply(**kwargs):
+                    apply_calls.append(kwargs)
+                    return {
                     "ok": True,
                     "returncode": 0,
                     "payload": {
@@ -8526,7 +8529,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                             "status": "DEFERRED_AFTER_REQUIRED_SERVICE_S11",
                         },
                     },
-                }
+                    }
+                module.run_autoswitch_apply = fake_apply
                 module.operation_scoped_binding.read_binding = lambda **kwargs: {
                     "schema_version": module.operation_scoped_binding.SCHEMA_VERSION,
                     "status": "BOUND",
@@ -8571,6 +8575,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["stop_reason"], "")
         self.assertTrue(result["ordinary_runtime_required_service_s11_proven"])
         self.assertFalse(result["production_proven"])
+        self.assertEqual(len(apply_calls), 1)
+        self.assertTrue(apply_calls[0]["ordinary_service_failure_only"])
+        self.assertTrue(apply_calls[0]["runtime_hot_path_only"])
 
     def test_l3_reconciles_route_mutation_when_child_terminal_payload_is_missing(self):
         module = load_cli_module()

@@ -7458,6 +7458,14 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ordinary_service_failure_only=bool(
             getattr(args, "ordinary_service_failure_only", False)
         ),
+        # The persistent Matrix caller already established the exact current
+        # failure and Packet lineage. Preserve its hot-path marker at the
+        # ordinary governed-Apply boundary so the existing executor returns
+        # after required-service S11 instead of synchronously holding the
+        # recovered cohort behind passive history and learning closure.
+        runtime_hot_path_only=bool(
+            getattr(args, "runtime_hot_path_only", False)
+        ),
     )
     apply_completed_ns = time.monotonic_ns()
     # The route writer normally finalizes the adopted operation window.  This

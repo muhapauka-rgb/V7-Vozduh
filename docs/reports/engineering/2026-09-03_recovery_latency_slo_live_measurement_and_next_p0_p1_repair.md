@@ -12,7 +12,7 @@ law.  The formal closure audit records
 `RECOVERY_CHAIN_SIMPLIFICATION=CONSUMED`; it is not reopened here.
 
 GitHub and local `Updatesystem` are aligned at documentation commit
-`de17cbad7c80ada1f0779460705d9f392c7d3ea8`.  The latest semantic Runtime
+`d9b3fb6c`.  The latest semantic Runtime
 deployment is `f4322cbd362a02f79f9d505821a014fb5b58d11d` through
 `deploy-z8-14-Updatesystem-f4322cb-20260903T121009`.  Runtime hashes confirm
 the deployed health-loop, `v7-egress-diagnose`, Matrix writer and autoswitch
@@ -62,9 +62,35 @@ child's currently projected governed timeline.  That gap is not yet split by
 an existing timing receipt, so it is an **unattributed executor-envelope P0**
 rather than a safe optimisation target.
 
-No code or policy has been changed from this observation alone.  The next
-bounded action is to extend the existing Matrix-to-governed executor timing
-receipt so the outer subprocess/envelope interval is measured on the next
-normal V7-originated event; only then can a smallest existing-owner repair be
-admitted.  The target remains P95 <= 7 s and max <= 8 s; no SLO credit is
-claimed from this three-event evidence.
+No code or policy has been changed from this observation alone.  The target
+remains P95 <= 7 s and max <= 8 s; no SLO credit is claimed from this
+evidence.
+
+## Second fresh ordinary Runtime receipt
+
+At `2026-09-03T11:35Z`, while this Mission was waiting for a fresh incident,
+the normal health owner itself consumed two simultaneous current source
+failures.  This was not triggered, advanced, or completed by Codex.
+
+| Source | Ordinary users moved | T0 -> consumer start | T0 -> S11/consumer completion | Dominant measured interval | Result |
+| --- | ---: | ---: | ---: | --- | --- |
+| `vless` | 1 | 341 ms | 21.374 s | Apply/verify 5.103 s | automatic completed |
+| `1` | 3 | 110 ms | 26.820 s | Apply/verify 12.556 s | automatic completed |
+
+The second receipt resolves the earlier uncertainty: detector entry is not
+the active bottleneck.  The three-member `1` transaction performed three
+serial route-writer mutations (`1.946 + 1.898 + 1.805 s`), each followed by
+its own route/required-service S11 observation (`~1.1--1.2 s`).  Its full
+governed Apply/verify span was `12.556 s`; the one-member `vless` Apply/verify
+span was `5.103 s`.  The source/Matrix-to-consumer handoff remained fast
+(`110--341 ms`).
+
+This is valid production provenance (`V7_HEALTH_RUNTIME`,
+`ACTION_COMPLETED`, `runtime_mutation_performed=true`) and proves that V7 did
+automatically recover four ordinary users.  It also proves that a bounded
+multi-member recovery cannot meet the product 7/8-second clock while the
+current Program-mandated serial Apply/route-writer boundary remains.  That
+boundary is explicitly outside this Mission's admitted scope (no new
+concurrency or routing-core modernization).  It is therefore recorded as a
+measured **governed-Apply/data-plane P0**, not silently treated as a detector
+or advisory defect and not manually bypassed.

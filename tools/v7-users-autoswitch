@@ -2575,14 +2575,21 @@ def live_profile_failure_evidence(
         ):
             continue
         preference = preferences.get(str(getattr(user, "ip", "") or ""))
-        preference = preference if isinstance(preference, dict) else {}
-        required = normalize_service_ids(
-            list(baseline)
-            + list(
+        if isinstance(preference, dict):
+            profile_services = (
                 preference.get("required_services")
                 if "required_services" in preference
                 else preference.get("services") or []
             )
+        else:
+            # Keep the live advisory consumer aligned with the existing
+            # health producer, Planner and S11 contract.  An ordinary user
+            # without an explicit preference row inherits the canonical
+            # default profile; an explicit empty row above remains empty.
+            profile_services = DEFAULT_USER_PRIORITY_SERVICES
+        required = normalize_service_ids(
+            list(baseline)
+            + list(profile_services)
         )
         matching_t0s: list[int] = []
         for service_id in required:

@@ -154,6 +154,34 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(continuing_affected, 1)
         self.assertEqual(continuing_incidents, {"sfinc_current", "sfinc_old"})
 
+    def test_live_profile_failure_evidence_uses_default_only_without_preference_row(self):
+        """Live advisory must match health/Planner ordinary profile semantics."""
+        users = [
+            self.autoswitch.User(ip="10.7.0.6", current="failed", enabled=True),
+            self.autoswitch.User(ip="10.7.0.7", current="failed", enabled=True),
+        ]
+        matrix = {"items": {"failed": {"services": {"google": {
+            "ok": False,
+            "status": "FAIL",
+            "failure_state": "OBSERVED_CONTINUING",
+            "source_incident_id": "sfinc_default_profile",
+            "observation_monotonic_ns": 2_000,
+        }}}}}
+        preferences = {"users": {
+            # An explicit empty contract must not inherit the default.
+            "10.7.0.7": {"schema_version": 2, "services": []},
+        }}
+
+        affected, t0_ns, incidents = self.autoswitch.live_profile_failure_evidence(
+            users=users,
+            matrix=matrix,
+            service_preferences=preferences,
+            source="failed",
+        )
+
+        self.assertEqual((affected, t0_ns), (1, 2_000))
+        self.assertEqual(incidents, {"sfinc_default_profile"})
+
     def test_live_profile_failure_evidence_retains_only_exact_health_handoff_t0(self):
         """A delayed consumer may use only the T0 that its health owner saw."""
         users = [self.autoswitch.User(

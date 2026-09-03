@@ -36,19 +36,35 @@ host, but the available receipts do not prove causal overlap for every
 outlier.  This is a measured **unattributed detector-contention P1**, not yet
 an admitted code cause.
 
-## Required live evidence and decision
+## First fresh ordinary Runtime receipt
 
-There is no fresh failure-bearing ordinary event on the current fingerprint:
-the current detector has no raw failed profile contract and current Matrix
-failures are historical/other-source state, not a new automatic recovery
-receipt.  No Code, Matrix, Authority, Planner, route writer, user assignment,
-Candidate, Packet, Lease, Barrier or recovery consumer was invoked manually.
+At `2026-09-03T11:21Z`, the normal V7 health caller detected fresh
+profile-required failures and entered the existing governed chain without any
+manual user, target, Candidate, Packet, Lease, Barrier or route operation.
 
-The next admissible input is one real normal chain:
+| Source | Ordinary users moved | T0 -> consumer start | Consumer wall | Governed Apply/verify | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `1` | 3 | 331 ms | 14.885 s | 6.221 s | automatic completed |
+| `vless` | 1 | 368 ms | 12.141 s | 4.654 s | automatic completed |
+| `1` (new binding) | 1 | 118 ms | 12.237 s | 4.101 s | automatic completed |
 
-`v7-health -> Matrix -> ordinary scope -> normal governed recovery -> S11`.
+All three receipts carry `V7_HEALTH_RUNTIME` provenance and
+`ACTION_COMPLETED`; the final one is ordinary-production-only.  The Runtime
+therefore has a real caller-to-governed proof, but the SLO is **not met**:
+`T0 -> consumer completion` is greater than 8 seconds for every sample.
 
-It must record first valid failure through last required S11 plus detector,
-consumer, Apply and verification clocks.  Only then may the largest current
-P0/P1 be repaired through its existing owner.  The target remains P95 <= 7 s
-and max <= 8 s; no acceptance credit is claimed from the healthy baseline.
+The detector did not dominate these attempts: health handed Matrix the
+current binding in 118--368 ms.  The measured dominant owned interval is
+`apply_and_verification` (4.101--6.221 s), including route-writer subprocess,
+route visibility and required-service verification.  A further roughly
+7-second gap remains between the Matrix delegated-executor wall time and the
+child's currently projected governed timeline.  That gap is not yet split by
+an existing timing receipt, so it is an **unattributed executor-envelope P0**
+rather than a safe optimisation target.
+
+No code or policy has been changed from this observation alone.  The next
+bounded action is to extend the existing Matrix-to-governed executor timing
+receipt so the outer subprocess/envelope interval is measured on the next
+normal V7-originated event; only then can a smallest existing-owner repair be
+admitted.  The target remains P95 <= 7 s and max <= 8 s; no SLO credit is
+claimed from this three-event evidence.

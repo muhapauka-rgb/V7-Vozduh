@@ -227,3 +227,11 @@ used to claim the parallel failure result.  The ordinary healthy baseline was
 `2.480` and `2.468 s` from contract build through receipt, without a new
 `other_required` deadline miss in that interval.  The next actual failed
 source will provide the required failure-bearing evidence.
+
+### Admin access reconciliation
+
+The existing V7 Admin session was opened directly at `/admin-v2` on
+2026-09-03.  It reached the live overview without a new login prompt and its
+browser console had zero current errors.  This is an access/read-surface check
+only: it did not create a user, save a profile, select a channel, or invoke an
+operator recovery action.

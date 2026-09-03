@@ -16208,6 +16208,17 @@ class AutoswitchPlanner:
                 user for user in active
                 if str(user.current or "") == source_egress
             ]
+        if ordinary_service_failure_request:
+            # Matrix partitions a mixed failed source into ordinary and
+            # controlled-certification scopes.  The ordinary Runtime caller
+            # must consume only its partition; certification identities keep
+            # their separate reservation/operation owner.  Letting them enter
+            # this Planner cohort recreates the larger legacy denominator and
+            # makes the independently revalidated causal binding impossible.
+            active = [
+                user for user in active
+                if not bool_value(user.raw.get("certification_user"))
+            ]
         if self.args.user:
             active = [user for user in active if user.ip == self.args.user]
         if n10_small_cohort_context:

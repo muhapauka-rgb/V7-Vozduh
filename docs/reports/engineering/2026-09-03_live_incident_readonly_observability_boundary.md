@@ -56,6 +56,22 @@ caller.
 Focused regression: `61 PASS` (`test_admin_realtime_truth` and
 `test_v7_health_fast_deadline_loop`), including the late-confirmed route case.
 
+## Publication and Runtime reconciliation
+
+- Published commit: `c3fe79c9bab1717d0471cafbc2540d97e21f5de3` on
+  `Updatesystem`; GitHub independently resolves that same commit.
+- Safe deploy: `deploy-z8-14-Updatesystem-c3fe79c-20260903T110256`.
+  The first deploy invocation correctly refused a mixed Runtime because the
+  existing health-loop dependency also required a restart.  The second used
+  the explicit existing health restart path.
+- Post-deploy `v7-truth-check --all --json` is `FULLY_ALIGNED` with no
+  blockers: Runtime, GitHub and local all identify `c3fe79c9`; Admin and
+  `v7-health.service` are active and the live Matrix owner is proven.
+- Fresh authenticated `/api/live-status` after deploy reports VLESS as
+  `WARN`, one healthy service out of fourteen, and zero enabled ordinary users
+  currently assigned to it.  This is not a live affected-scope acceptance
+  case; no recovery transaction was manufactured.
+
 ## Result
 
 `LIVE_INCIDENT_STATE = AUTOMATIC_RECOVERY_FUNCTIONAL_BUT_SLO_FAIL`.

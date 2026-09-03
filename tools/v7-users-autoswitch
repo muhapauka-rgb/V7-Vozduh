@@ -15057,11 +15057,31 @@ class AutoswitchPlanner:
         lifecycle_state = normalize_authority_lifecycle_state(policy.get("authority_lifecycle_state")) or "CERTIFIED"
         bridge = dict(policy.get("authority_bridge") or {})
         action_contract = dict(policy.get("current_action_class_contract") or {})
-        action_contract_valid = bool(action_contract.get("valid", True))
-        action_contract_scope = action_contract.get("scope") if isinstance(action_contract.get("scope"), dict) else {}
-        action_contract_subject = action_contract.get("subject") if isinstance(action_contract.get("subject"), dict) else {}
+        # A one-use N10 product contract may bind only its own explicitly
+        # authorized product action. A current Matrix-backed ordinary failure
+        # uses the standing delegated recovery policy. Without this separation
+        # an unrelated but still visible N10 contract can silently discard all
+        # newly selected affected users before Packet creation.
+        ordinary_service_failure_context = bool_value(
+            getattr(self.args, "ordinary_service_failure_context", False)
+        )
+        n10_product_contract = str(
+            action_contract.get("action_class") or ""
+        ).upper() in {
+            operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
+            operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+        }
+        ignored_unrelated_product_contract = bool(
+            ordinary_service_failure_context and n10_product_contract
+        )
+        effective_action_contract = (
+            {} if ignored_unrelated_product_contract else action_contract
+        )
+        action_contract_valid = bool(effective_action_contract.get("valid", True))
+        action_contract_scope = effective_action_contract.get("scope") if isinstance(effective_action_contract.get("scope"), dict) else {}
+        action_contract_subject = effective_action_contract.get("subject") if isinstance(effective_action_contract.get("subject"), dict) else {}
         n10_unbound_target = (
-            str(action_contract.get("action_class") or "").upper()
+            str(effective_action_contract.get("action_class") or "").upper()
             in {
                 operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
                 operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
@@ -15075,28 +15095,28 @@ class AutoswitchPlanner:
         allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), class_budget), class_budget))
         if (
             action_contract_valid
-            and (action_contract.get("provenance") or {}).get("strict_provenance_contract")
-            and str(action_contract.get("action_class") or "").upper()
+            and (effective_action_contract.get("provenance") or {}).get("strict_provenance_contract")
+            and str(effective_action_contract.get("action_class") or "").upper()
             == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
         ):
             # The existing Authority owner issued this exact small product
             # scope.  It is a hard ceiling, not a general widening of the
             # normal policy budget.
             allowed_budget = min(
-                to_int(action_contract.get("max_users"), 0),
+                to_int(effective_action_contract.get("max_users"), 0),
                 len({str(item).strip() for item in (action_contract_subject.get("user_ips") or []) if str(item).strip()}),
             )
         if bridge_enabled:
             allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), 0), to_int(bridge.get("bridge_budget_ceiling"), 0)))
         selected_before = len(selected)
-        if action_contract_valid and (action_contract.get("provenance") or {}).get("strict_provenance_contract"):
+        if action_contract_valid and (effective_action_contract.get("provenance") or {}).get("strict_provenance_contract"):
             scoped_selected = [
                 move for move in selected
                 if (
                     str(move.get("user_ip") or "") in {
                         str(item).strip() for item in (action_contract_subject.get("user_ips") or []) if str(item).strip()
                     }
-                    if str(action_contract.get("action_class") or "").upper() == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                if str(effective_action_contract.get("action_class") or "").upper() == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
                     else str(move.get("user_ip") or "") == str(action_contract_subject.get("user_ip") or "")
                 )
                 and str(move.get("current_egress") or "") == str(action_contract_scope.get("source_egress") or "")
@@ -15144,7 +15164,22 @@ class AutoswitchPlanner:
             "prepared_authority_class": prepared_class,
             "certified_authority_class": certified_class,
             "authority_lifecycle_state": lifecycle_state,
-            "current_action_class_contract": action_contract,
+            "current_action_class_contract": effective_action_contract,
+            "ignored_unrelated_product_contract": {
+                "active": ignored_unrelated_product_contract,
+                "reason": (
+                    "ordinary_service_failure_uses_existing_standing_delegated_authority"
+                    if ignored_unrelated_product_contract else ""
+                ),
+                "ignored_action_class": (
+                    str(action_contract.get("action_class") or "")
+                    if ignored_unrelated_product_contract else ""
+                ),
+                "contract_id": (
+                    str(action_contract.get("contract_id") or "")
+                    if ignored_unrelated_product_contract else ""
+                ),
+            },
             "current_allowed_user_budget": allowed_budget,
             "next_authority_class": policy.get("next_authority_class") or AUTHORITY_CLASS_NEXT.get(authority_class, "CANARY"),
             "next_allowed_user_budget": to_int(policy.get("next_allowed_user_budget"), allowed_budget),
@@ -15159,7 +15194,7 @@ class AutoswitchPlanner:
             "trigger": "after_policy_selection_before_restore_barrier_snapshot_apply",
             "written_evidence": "plan.safety.authority_budget_gate",
             "blocked_actions": (
-                sorted(set(["selected_moves_above_authority_budget", "apply_above_authority_budget"] + list(action_contract.get("blockers") or [])))
+                sorted(set(["selected_moves_above_authority_budget", "apply_above_authority_budget"] + list(effective_action_contract.get("blockers") or [])))
                 if cap_applied or allowed_budget <= 0 or not action_contract_valid else []
             ),
             "next_state": next_state,
@@ -16017,8 +16052,12 @@ class AutoswitchPlanner:
         active_product_class = str(active_product_contract.get("action_class") or "").upper()
         active_product_scope = active_product_contract.get("scope") if isinstance(active_product_contract.get("scope"), dict) else {}
         active_product_subject = active_product_contract.get("subject") if isinstance(active_product_contract.get("subject"), dict) else {}
+        ordinary_service_failure_request = bool_value(
+            getattr(self.args, "ordinary_service_failure_context", False)
+        )
         n10_small_cohort_context = (
-            bool(active_product_contract.get("valid"))
+            not ordinary_service_failure_request
+            and bool(active_product_contract.get("valid"))
             and active_product_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
             and not target_egress
             and not source_egress
@@ -16208,7 +16247,8 @@ class AutoswitchPlanner:
             else {}
         )
         n10_ordinary_like_context = (
-            bool(current_action_contract.get("valid"))
+            not ordinary_service_failure_request
+            and bool(current_action_contract.get("valid"))
             and str(current_action_contract.get("action_class") or "").upper()
             in {
                 operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,

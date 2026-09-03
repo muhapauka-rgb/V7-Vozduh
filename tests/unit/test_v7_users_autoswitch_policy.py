@@ -10311,6 +10311,50 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(len(selected["moves"]), 2)
         self.assertNotEqual(selected["selected_move_hash"], operator_execution.EMPTY_SELECTED_MOVES_HASH)
 
+    def test_ordinary_failure_ignores_unrelated_strict_n10_contract(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        planner.args = SimpleNamespace(ordinary_service_failure_context=True)
+        planner.switch_policy = {"cooldown_seconds": 180}
+        planner.authority_budget_policy = {
+            "authority_class": "SMALL_BATCH",
+            "prepared_authority_class": "SMALL_BATCH",
+            "certified_authority_class": "SMALL_BATCH",
+            "authority_lifecycle_state": "CERTIFIED",
+            "current_allowed_user_budget": 4,
+            "current_action_class_contract": {
+                "valid": True,
+                "contract_id": "n10-unrelated",
+                "action_class": (
+                    operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS
+                ),
+                "subject": {"user_ip": "10.0.0.99"},
+                "scope": {
+                    "source_egress": "other-failed-source",
+                    "target_egress": "other-target",
+                },
+                "provenance": {"strict_provenance_contract": True},
+            },
+        }
+        planner._authority_lifecycle_model = lambda: {}
+        planner._authority_bridge_model = lambda: {}
+        planner._authority_certification_rules = lambda: {}
+        planner._authority_governance_policy = lambda *_args: {}
+        planner._authority_full_action_matrix = lambda: {}
+        planner._authority_action_matrix = lambda *_args: {}
+
+        selected, gate = planner._authority_budget_gate([
+            {
+                "user_ip": "10.0.0.2",
+                "current_egress": "failed-source",
+                "recommended_egress": "healthy-target",
+            },
+        ])
+
+        self.assertEqual([row["user_ip"] for row in selected], ["10.0.0.2"])
+        self.assertTrue(gate["ignored_unrelated_product_contract"]["active"])
+        self.assertEqual(gate["current_action_class_contract"], {})
+        self.assertEqual(gate["selected_moves_after_contract_scope"], 1)
+
     def test_n10_ignores_only_foreign_expired_clearance_until_fresh_packet_barrier(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

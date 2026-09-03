@@ -586,6 +586,40 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertTrue(definitive_log.exists())
             self.assertIn("vless all --services google", definitive_log.read_text(encoding="utf-8"))
 
+    def test_fast_batch_confirms_one_source_union_once_before_profile_reuse(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=vless protocol=vless interface=v7tun enabled=1\n")
+            (state / "users.registry").write_text(
+                "ip=profile-a current=vless enabled=1\n"
+                "ip=profile-b current=vless enabled=1\n", encoding="utf-8"
+            )
+            self.write_command(bin_dir, "ip", "echo '1: v7tun: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(
+                bin_dir, "batch-checker",
+                "printf '%s\\n' '{\"status\":\"PASS\",\"ok\":true,\"probe_count\":2,\"contracts\":[{\"source\":\"vless\",\"profile\":\"profile-a\",\"services\":[\"google\"],\"state_key\":\"vless-a\",\"failure_count\":1,\"failed_services\":[\"google:TIMEOUT\"]},{\"source\":\"vless\",\"profile\":\"profile-b\",\"services\":[\"youtube\"],\"state_key\":\"vless-b\",\"failure_count\":1,\"failed_services\":[\"youtube:TIMEOUT\"]}]}'\n",
+            )
+            definitive_log = root / "definitive.args"
+            self.write_command(bin_dir, "definitive", "printf '%s\\n' \"$*\" >> \"$DEFINITIVE_LOG\"\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["DEFINITIVE_LOG"] = str(definitive_log)
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--output", str(state / "fast.state"),
+                "--fast-producer-only", "--lightweight-batch-producer",
+                "--profile-service-suspicion-command", str(bin_dir / "batch-checker"),
+                "--shadow-trigger-command", "/bin/true",
+                "--definitive-matrix-command", str(bin_dir / "definitive"),
+                "--profile-service-failure-samples", "1", "--profile-service-cooldown-sec", "0",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(len(definitive_log.read_text(encoding="utf-8").splitlines()), 1)
+            self.assertIn("vless all --services google,youtube", definitive_log.read_text(encoding="utf-8"))
+            state_text = (state / "fast.state").read_text(encoding="utf-8")
+            self.assertEqual(state_text.count("SOURCE_CURRENT_NO_EXACT_FAILURE"), 4)
+
     def test_fast_batch_uses_one_second_parallel_sentinel_budget(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -43,6 +43,7 @@ FAST_PRODUCER_SCRIPT_STARTED_NS="0"
 FAST_PRODUCER_COMPLETION_MS=()
 PROFILE_SERVICE_PROBE_TIMEOUT_ARGS=(--timeout 5)
 FAST_MATRIX_FRESH_FAILURES_FILE=""
+FAST_BATCH_SOURCE_CONFIRMATIONS_FILE=""
 # The health owner accepts a profile-required Matrix observation for ten
 # seconds. Reusing a two-minute-old failure in this producer left the normal
 # caller with a correctly stale T0 and made a new placement on an already bad
@@ -1089,6 +1090,19 @@ EOF
       failure_count="1"
       matrix_failure_fallback="1"
       printf '%s_profile_matrix_failure_fallback=USED\n' "${state_key:-${source_id}_profile}" >> "$TMP"
+    elif [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ] \
+      && [ -n "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE" ] \
+      && [ -r "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE" ] \
+      && grep -Fqx -- "$source_id" "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE"; then
+      # The existing canonical Matrix writer has just checked the exact
+      # source-wide union for this current batch and found no matching fresh
+      # failure.  Repeating that identical writer call once per profile is
+      # pure synchronous duplication; retain STOP_SAFE and wait for the next
+      # ordinary observation instead.
+      printf '%s_profile_matrix_confirmation=CANONICAL_EXACT_CURRENT\n' "${state_key:-${source_id}_profile}" >> "$TMP"
+      printf '%s_profile_matrix_confirmation=SOURCE_CURRENT_NO_EXACT_FAILURE\n' "${state_key:-${source_id}_profile}" >> "$TMP"
+      printf '%s_profile_trigger_status=STOP_SAFE_SOURCE_CURRENT_NO_EXACT_FAILURE\n' "${state_key:-${source_id}_profile}" >> "$TMP"
+      return 0
     fi
   fi
   if [ -n "$unknown_services" ] && [ -z "$failed_services" ]; then
@@ -1555,6 +1569,53 @@ PY
   else
     FAST_PRODUCER_MAX_INFLIGHT="$FAST_PRODUCER_CONCURRENCY"
   fi
+  # Several effective profiles can share one source.  The batch sentinel
+  # observes them in parallel, but the old post-processing performed an
+  # identical canonical Matrix confirmation serially for every profile.
+  # Confirm the source's exact failed-service union once through the existing
+  # Matrix writer, refresh the same ephemeral current-failure index, then let
+  # each profile reuse only its matching confirmed service.  No profile is
+  # widened, no result becomes durable outside Matrix, and an unavailable
+  # confirmation falls back to the historical fail-closed per-profile path.
+  FAST_BATCH_SOURCE_CONFIRMATIONS_FILE="$work_dir/source-confirmed.tsv"
+  if [ -n "$DEFINITIVE_MATRIX_COMMAND" ]; then
+    python3 - "$parsed_file" > "$work_dir/source-confirmation-work.tsv" <<'PY'
+import sys
+
+by_source = {}
+for raw in open(sys.argv[1], encoding="utf-8"):
+    fields = raw.rstrip("\n").split("|")
+    if len(fields) < 8:
+        continue
+    source, _profile, _services, _count, _dns, _degraded, failed, unknown = fields[:8]
+    if not source or not failed or unknown:
+        continue
+    values = by_source.setdefault(source, set())
+    for item in failed.split(","):
+        service = item.split(":", 1)[0].strip()
+        if service:
+            values.add(service)
+for source in sorted(by_source):
+    print(f"{source}\t{','.join(sorted(by_source[source]))}")
+PY
+    while IFS=$'\t' read -r source_id confirmed_services; do
+      [ -n "$source_id" ] || continue
+      [ -n "$confirmed_services" ] || continue
+      PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=$((PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT + 1))
+      if "$DEFINITIVE_MATRIX_COMMAND" "$source_id" all \
+          --services "$confirmed_services" \
+          --state-dir "$STATE_DIR" \
+          --event-dir "$CANONICAL_EVENT_DIR" \
+          --failure-persistence-samples 1 \
+          --failure-persistence-window-seconds 30 \
+          --role-fast-timeout \
+          --lock-timeout-sec 1 \
+          --timeout 1 >/dev/null 2>&1; then
+        printf '%s\n' "$source_id" >> "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE"
+        build_fast_matrix_fresh_failure_index
+      fi
+    done < "$work_dir/source-confirmation-work.tsv"
+  fi
   while IFS='|' read -r source_id profile_user services failure_count dns_services degraded_services failed_services unknown_services state_key completion_ns; do
     [ -n "$source_id" ] || continue
     PROFILE_SERVICE_OBSERVATION_COUNT=$((PROFILE_SERVICE_OBSERVATION_COUNT + 1))
@@ -1582,6 +1643,7 @@ PY
   rm -rf "$work_dir"
   rm -f "$FAST_MATRIX_FRESH_FAILURES_FILE"
   FAST_MATRIX_FRESH_FAILURES_FILE=""
+  FAST_BATCH_SOURCE_CONFIRMATIONS_FILE=""
 }
 
 run_parallel_active_profile_suspicion_cycle() {
@@ -1721,11 +1783,11 @@ if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
   PROFILE_SERVICE_CONTRACT_COUNT="$(wc -l < "$PROFILE_CONTRACTS_FILE" | tr -d ' ')"
   PROFILE_SERVICE_ACTIVE_SOURCE_COUNT="$(cut -f1 "$PROFILE_CONTRACTS_FILE" | uniq | wc -l | tr -d ' ')"
   FAST_PRODUCER_CONTRACT_BUILD_COMPLETED_NS="$(monotonic_ns)"
-  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"; test -z "$FAST_MATRIX_FRESH_FAILURES_FILE" || rm -f "$FAST_MATRIX_FRESH_FAILURES_FILE"' EXIT
+  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"; test -z "$FAST_MATRIX_FRESH_FAILURES_FILE" || rm -f "$FAST_MATRIX_FRESH_FAILURES_FILE"; test -z "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE" || rm -f "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE"' EXIT
 elif [ "$HARD_SIGNAL_ONLY" = "1" ]; then
   ACTIVE_SOURCE_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-active-sources.XXXXXX")"
   build_active_hard_rows > "$ACTIVE_SOURCE_FILE"
-  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"; test -z "$FAST_MATRIX_FRESH_FAILURES_FILE" || rm -f "$FAST_MATRIX_FRESH_FAILURES_FILE"' EXIT
+  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"; test -z "$FAST_MATRIX_FRESH_FAILURES_FILE" || rm -f "$FAST_MATRIX_FRESH_FAILURES_FILE"; test -z "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE" || rm -f "$FAST_BATCH_SOURCE_CONFIRMATIONS_FILE"' EXIT
 fi
 
 : > "$TMP"

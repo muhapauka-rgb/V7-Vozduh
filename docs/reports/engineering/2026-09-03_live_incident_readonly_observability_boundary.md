@@ -177,3 +177,24 @@ on the live two-vCPU Runtime.  It is **rejected**: two waves produced a
 therefore to restore the previously proven twelve-probe one-wave cap
 immediately; no recovery semantics, user assignment or Matrix state was
 altered during this negative experiment.
+
+### Exact remaining postprocess repair
+
+The restored twelve-probe receipt then exposed the causal residual directly:
+network sampling was bounded (`2.837 s`), but postprocess reached `7.152 s`.
+The batch had six current profile contracts on three sources.  When multiple
+contracts on one source reported the same current suspicion, the existing
+shell consumer called the canonical Matrix confirmation once *per profile*,
+serially.  This was duplicate work before T0, not a valid safety requirement.
+
+The repair batches the exact failed-service union per source into one existing
+canonical Matrix call, refreshes the same ephemeral fresh-failure index, and
+lets each profile consume only its own matching current Matrix result.  If
+that source confirmation itself has no exact failure, every affected profile
+stops safe for that generation rather than repeating the same confirmation.
+An unavailable source confirmation keeps the previous per-profile fail-closed
+fallback.  Matrix remains the only persistent writer; no Planner, Authority,
+user assignment, route operation or new queue is introduced.
+
+Focused regressions prove both the one-source/one-confirmation law and the
+existing stale-failure, fresh-Matrix reuse and health-detector takeover laws.

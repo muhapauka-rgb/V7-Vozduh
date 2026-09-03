@@ -782,6 +782,33 @@ def canonical_profile_service_failure_bindings(
     return result
 
 
+def canonical_persistent_role_failure_bindings(
+    role_name: str,
+    matrix_state_file: Path,
+    users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
+    service_preferences_file: Path = DEFAULT_SERVICE_PREFERENCES_FILE,
+) -> list[dict[str, Any]]:
+    """Keep exact source bindings when HARD sees simultaneous failures."""
+    role = str(role_name or "")
+    if role in {"hard", "other_required"}:
+        bindings = canonical_profile_service_failure_bindings(
+            matrix_state_file,
+            users_registry_file,
+            service_preferences_file,
+        )
+        if bindings or role == "other_required":
+            return bindings
+    if role == "hard":
+        t0_ns = canonical_service_failure_t0_ns(
+            matrix_state_file,
+            users_registry_file,
+            "__channel_liveness__",
+            "DEFINITIVE_LOCAL_HARD_FAILURE",
+        )
+        return [{"t0_ns": t0_ns}] if t0_ns > 0 else []
+    return []
+
+
 def canonical_profile_service_failure_t0_ns(
     matrix_state_file: Path,
     users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
@@ -1220,13 +1247,19 @@ class RoleHealthLoop:
                 health_dispatch_context if isinstance(health_dispatch_context, dict) else {},
                 sort_keys=True,
             )
-            # HARD keeps its historical call contract. Service-specific roles
-            # carry an explicit label so their evidence cannot be misreported
-            # as a HARD-path interval.
+            # A source-bound HARD observation is also an exact profile/service
+            # handoff. Preserve that source through the existing service
+            # environment rather than collapsing simultaneous sources into
+            # one aggregate HARD packet.
             if (
                 isinstance(health_dispatch_context, dict)
-                and str(health_dispatch_context.get("service_role") or "")
-                in {"telegram", "other_required"}
+                and (
+                    str(health_dispatch_context.get("service_role") or "")
+                    in {"telegram", "other_required"}
+                    or bool(str(
+                        health_dispatch_context.get("profile_source_egress") or ""
+                    ))
+                )
             ):
                 os.environ["V7_SERVICE_T0_MONOTONIC_NS"] = str(t0_ns)
                 os.environ["V7_SERVICE_PERSISTENT_MATRIX_OWNER"] = "1"
@@ -1307,8 +1340,13 @@ class RoleHealthLoop:
         )
         if (
             isinstance(health_dispatch_context, dict)
-            and str(health_dispatch_context.get("service_role") or "")
-            in {"telegram", "other_required"}
+            and (
+                str(health_dispatch_context.get("service_role") or "")
+                in {"telegram", "other_required"}
+                or bool(str(
+                    health_dispatch_context.get("profile_source_egress") or ""
+                ))
+            )
         ):
             environment["V7_SERVICE_T0_MONOTONIC_NS"] = str(t0_ns)
             environment["V7_SERVICE_HEALTH_DISPATCH_CONTEXT"] = environment[
@@ -1940,8 +1978,9 @@ class RoleHealthLoop:
                 except OSError:
                     prepared_timing = {}
             if role.name in {"hard", "telegram", "other_required"} and self.persistent_matrix_ready:
-                if role.name == "other_required":
-                    profile_bindings = canonical_profile_service_failure_bindings(
+                if role.name in {"hard", "other_required"}:
+                    profile_bindings = canonical_persistent_role_failure_bindings(
+                        role.name,
                         self.matrix_state_file,
                         self.users_registry_file,
                     )
@@ -1953,7 +1992,7 @@ class RoleHealthLoop:
                         "__channel_liveness__" if role.name == "hard" else "telegram",
                         "DEFINITIVE_LOCAL_HARD_FAILURE" if role.name == "hard" else "",
                     )
-                if role.name != "other_required":
+                if role.name not in {"hard", "other_required"}:
                     profile_bindings[0]["t0_ns"] = t0_ns
                 for profile_binding in profile_bindings:
                     t0_ns = int(profile_binding.get("t0_ns") or 0)
@@ -1979,10 +2018,11 @@ class RoleHealthLoop:
                             profile_binding["source_egress"]
                         )
                     source_egress = str(profile_binding.get("source_egress") or "")
+                    dedupe_role = "other_required" if source_egress else role.name
                     self._consume_new_persistent_matrix_t0(
                         t0_ns,
                         context,
-                        dedupe_key=(f"{role.name}:{source_egress}" if source_egress else role.name),
+                        dedupe_key=(f"{dedupe_role}:{source_egress}" if source_egress else role.name),
                         dedupe_identity=str(profile_binding.get("dedupe_identity") or ""),
                     )
                     now_ns = monotonic_ns()

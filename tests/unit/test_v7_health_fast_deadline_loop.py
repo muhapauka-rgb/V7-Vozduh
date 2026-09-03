@@ -1231,6 +1231,50 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 matrix, users, preferences,
             ))
 
+    def test_hard_persistent_handoff_keeps_simultaneous_profile_sources_separate(self):
+        """A HARD wake must not collapse several live sources into one T0."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            preferences = root / "service-preferences.json"
+            matrix.write_text(json.dumps({"items": {
+                "failed-a": {"services": {"google": {
+                    "ok": False, "status": "FAIL",
+                    "failure_state": "OBSERVED_CONTINUING",
+                    "source_incident_id": "incident-a",
+                    "failure_event_id": "event-a",
+                    "observation_monotonic_ns": 100,
+                }}},
+                "failed-b": {"services": {"youtube": {
+                    "ok": False, "status": "FAIL",
+                    "failure_state": "OBSERVED_CONTINUING",
+                    "source_incident_id": "incident-b",
+                    "failure_event_id": "event-b",
+                    "observation_monotonic_ns": 200,
+                }}},
+            }}), encoding="utf-8")
+            users.write_text(
+                "ip=10.7.0.3 enabled=1 current=failed-a\n"
+                "ip=10.7.0.5 enabled=1 current=failed-b\n",
+                encoding="utf-8",
+            )
+            preferences.write_text(json.dumps({"users": {
+                "10.7.0.3": {"services": ["google"]},
+                "10.7.0.5": {"services": ["youtube"]},
+            }}), encoding="utf-8")
+
+            bindings = (
+                HEALTH_LOOP_MODULE.canonical_persistent_role_failure_bindings(
+                    "hard", matrix, users, preferences,
+                )
+            )
+
+        self.assertEqual(
+            [row["source_egress"] for row in bindings],
+            ["failed-a", "failed-b"],
+        )
+
     def test_profile_service_bindings_use_existing_default_only_when_row_is_missing(self):
         """Ordinary profiles must match the Admin/Planner default contract."""
         with tempfile.TemporaryDirectory() as td:

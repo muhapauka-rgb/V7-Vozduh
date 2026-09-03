@@ -94,3 +94,35 @@ boundary is explicitly outside this Mission's admitted scope (no new
 concurrency or routing-core modernization).  It is therefore recorded as a
 measured **governed-Apply/data-plane P0**, not silently treated as a detector
 or advisory defect and not manually bypassed.
+
+## Continuing live incident check
+
+The later live read found `v7-health.service=active` and additional normal
+Runtime receipts.  They confirm that the incident is current and that V7 is
+partly recovering it autonomously, but they also expose two separate failed
+closed paths that prevent this from being production-complete.
+
+| Source / result | Affected scope | Runtime mutation | T0 -> completion | Exact disposition |
+| --- | ---: | ---: | ---: | --- |
+| `1`, completed cohort | 3 | 2 users | 17.950 s | `ACTION_COMPLETED` |
+| `1`, completed cohort | 8 | 4 users | 23.870 s | `ACTION_COMPLETED` |
+| `vless`, stopped before Lease | 5 | 0 users | 16.517 s | `STOP_SAFE: autonomous_execution_control_denied_pre_lease` |
+
+The newest successful `1` transaction still has the same dominant governed
+Apply span (`8.345 s`), including four serialized route-writer mutations.
+The VLESS receipt is not a successful recovery: its existing operation-scoped
+execution-control owner rejected forward mutation before Lease.  The current
+control file is a valid but `CLOSED` one-operation window, bound to a distinct
+operation id and selected-move hash; cross-operation reuse is correctly
+forbidden.  A later related VLESS operation also stopped with
+`approved_plan_lock_selected_moves_missing`.  These are owner-backed
+STOP_SAFE results, not proof of user recovery and not conditions that Codex
+may manually advance.
+
+Consequently the live system currently proves three facts: normal detection
+and caller provenance exist; some governed cohorts complete; and recovery is
+not yet reliable because fresh VLESS transactions can be stopped by stale or
+nonmatching operation-scoped control/approved-lock state.  The latter is a
+separate existing-owner correctness residual from the serial Apply latency
+P0 and requires a bounded lifecycle reconciliation repair before any later
+SLO evidence can be credited.

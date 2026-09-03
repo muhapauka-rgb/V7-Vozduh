@@ -215,3 +215,15 @@ fail-closed profile fallback.  No users, routes, Authority, Planner, Matrix
 schema, timer, queue, or recovery caller changes.  Focused regressions remain
 `4 PASS`; the next required evidence is a live failure-bearing detector cycle
 on the deployed fingerprint.
+
+Safe deploy `deploy-z8-14-Updatesystem-f4322cb-20260903T121009` published
+commit `f4322cbd362a02f79f9d505821a014fb5b58d11d`; the remote
+`v7-egress-diagnose` SHA-256 is
+`b06d52cbc37fe11724ddd264c9e43ad9857de4c738cb64b38e9ebbadad01ad61` and
+`v7-health.service` is active.  Immediately after deployment, no source had a
+fresh raw failure (`receiver_invocation_count=0`), so no invented event was
+used to claim the parallel failure result.  The ordinary healthy baseline was
+`2.242`, `2.582`, `2.283`, `2.769`, `2.404`, `2.991`, `2.549`, `2.344`,
+`2.480` and `2.468 s` from contract build through receipt, without a new
+`other_required` deadline miss in that interval.  The next actual failed
+source will provide the required failure-bearing evidence.

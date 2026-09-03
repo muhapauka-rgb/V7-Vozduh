@@ -5793,6 +5793,36 @@ class AutoswitchPlanner:
             and not bool_value(snapshot_gate.get("stop_required"))
             else []
         )
+        # Keep the exact reason an immutable Packet lock did or did not
+        # rehydrate its executable scope.  This is bounded diagnostic data on
+        # the existing handoff, not a new state owner or gate.
+        diagnostics["committed_selected_moves_rehydration"] = {
+            "status": (
+                "REHYDRATED_FROM_APPROVED_PACKET_LOCK"
+                if committed_moves
+                else "NOT_REHYDRATED"
+            ),
+            "approved_plan_lock_ok": bool_value(
+                approved_plan_lock.get("ok")
+            ),
+            "approved_selected_move_count": int(
+                approved_plan_lock.get("selected_move_count") or 0
+            ),
+            "committed_plan_selected_move_count": int(
+                (plan.get("operation") or {}).get(
+                    "selected_move_count"
+                ) or 0
+            ),
+            "snapshot_gate_stop_required": bool_value(
+                snapshot_gate.get("stop_required")
+            ),
+            "snapshot_gate_material_change": bool_value(
+                snapshot_gate.get("snapshot_gate_material_change")
+            ),
+            "snapshot_gate_decision": str(
+                snapshot_gate.get("snapshot_gate_decision") or ""
+            ),
+        }
         if committed_moves:
             plan["selected_moves"] = committed_moves
             summary["selected_moves"] = len(committed_moves)

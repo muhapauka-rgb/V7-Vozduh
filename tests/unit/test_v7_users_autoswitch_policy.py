@@ -8824,6 +8824,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             )
             apply_args = self.args_for(root, [
                 "--apply", "--mode", "guarded", "--max-selected-moves", "2",
+                "--source-egress", "1",
                 "--approved-packet-id", "pkt-bounded-unit",
                 "--approved-operation-id", operation_id,
                 "--approved-execution-lease-id", "lease-bounded-unit",
@@ -8847,6 +8848,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(barrier_after["packet_lock_handoff"]["ok"])
         self.assertTrue(barrier_after["approved_plan_lock_validation"]["ok"])
         self.assertEqual(len(revalidated["selected_moves"]), 2)
+        self.assertEqual(
+            revalidated["safety"]["selected_moves_diagnostics"]
+            ["committed_selected_moves_rehydration"]["status"],
+            "REHYDRATED_FROM_APPROVED_PACKET_LOCK",
+        )
         self.assertEqual(
             [move["user_ip"] for move in revalidated["selected_moves"]],
             [move["user_ip"] for move in packet_lock["selected_moves"]],

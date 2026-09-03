@@ -7666,6 +7666,18 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 "reasons"
             ) or []
         )[:12],
+        "child_committed_selected_moves_rehydration": (
+            (apply_result.get("selected_moves_diagnostics") or {}).get(
+                "committed_selected_moves_rehydration"
+            )
+            if isinstance(
+                (apply_result.get("selected_moves_diagnostics") or {}).get(
+                    "committed_selected_moves_rehydration"
+                ),
+                dict,
+            )
+            else {}
+        ),
         "proof_blockers": list(
             production_proof_quality.get("blockers") or []
         )[:12],

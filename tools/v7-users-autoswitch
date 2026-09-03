@@ -22529,27 +22529,53 @@ class AutoswitchPlanner:
                 # history, not the cause of the live source-bound wake.
                 candidate_diagnostic["live_incident_mismatch_count"] += 1
                 continue
+            candidate_incident_key = str(row.get("incident_key") or self._passive_incident_projection_key(
+                str(row.get("source_incident_id") or row.get("object_id") or "")
+            ))
+            candidate_incident = pre_obligation_incidents.get(candidate_incident_key)
+            candidate_incident = candidate_incident if isinstance(candidate_incident, dict) else {}
+            candidate_scope = (
+                candidate_incident.get("current_source_scope")
+                if isinstance(candidate_incident.get("current_source_scope"), dict)
+                else (candidate_incident.get("scope_accounting")
+                      if isinstance(candidate_incident.get("scope_accounting"), dict) else {})
+            )
+            if not candidate_scope and isinstance(row.get("source_scope"), dict):
+                candidate_scope = row.get("source_scope") or {}
             terminal = str(row.get("terminal_outcome_classification") or "").upper()
-            if terminal.startswith(("RECOVERY", "EPISODE_EXPIRED")):
+            runtime_scope = runtime_binding.get("source_scope")
+            runtime_scope = runtime_scope if isinstance(runtime_scope, dict) else {}
+            # A recovery terminal describes the previous placement, not a
+            # permanent ban on this source incident.  The existing runtime
+            # profile re-entry owner may have reopened the exact same L3
+            # incident after a customer was assigned to the still-failed
+            # source again.  In that one source-bound case, consume the
+            # reopened current scope instead of letting historical RECOVERY
+            # prose suppress a fresh Matrix obligation.  Every identity is
+            # required to match; EPISODE_EXPIRED remains terminal.
+            reopened_current_recovery = bool(
+                terminal.startswith("RECOVERY")
+                and source_bound_live_recovery
+                and runtime_profile_handoff
+                and str(candidate_incident.get("incident_state") or "") == "OPEN"
+                and str(row.get("source_incident_id") or row.get("object_id") or "") in live_requested_incident_ids
+                and int(candidate_scope.get("unresolved_scope_count") or 0) > 0
+                and bool(str(candidate_scope.get("affected_scope_fingerprint") or ""))
+                and str(candidate_scope.get("affected_scope_fingerprint") or "") == str(runtime_scope.get("affected_scope_fingerprint") or "")
+                and int(candidate_scope.get("affected_scope_count") or 0) == int(runtime_scope.get("affected_scope_count") or 0)
+            )
+            if terminal.startswith("EPISODE_EXPIRED") or (
+                terminal.startswith("RECOVERY") and not reopened_current_recovery
+            ):
                 # These terminals are already consumed as no-action evidence.
                 # They must never outrank a newer open revalidation merely
-                # because they were appended later in the same batch.
+                # because they were appended later in the same batch.  An
+                # exact current-profile re-entry above is the only exception.
                 correct_terminals_skipped += 1
                 candidate_diagnostic["already_terminal_count"] += 1
                 continue
             obligation_id = self._service_failure_automation_obligation_id(row)
             if obligation_id:
-                candidate_incident_key = str(row.get("incident_key") or self._passive_incident_projection_key(
-                    str(row.get("source_incident_id") or row.get("object_id") or "")
-                ))
-                candidate_incident = pre_obligation_incidents.get(candidate_incident_key) if isinstance(pre_obligation_incidents.get(candidate_incident_key), dict) else {}
-                candidate_scope = (
-                    candidate_incident.get("current_source_scope")
-                    if isinstance(candidate_incident.get("current_source_scope"), dict)
-                    else (candidate_incident.get("scope_accounting") if isinstance(candidate_incident.get("scope_accounting"), dict) else {})
-                )
-                if not candidate_scope and isinstance(row.get("source_scope"), dict):
-                    candidate_scope = row.get("source_scope") or {}
                 candidate_scope_count = max(0, to_int(candidate_scope.get("affected_scope_count"), len(list(row.get("affected_users") or []))))
                 candidate_unresolved_count = max(
                     0,

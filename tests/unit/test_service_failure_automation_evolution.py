@@ -6154,6 +6154,87 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertTrue(result["active"])
             self.assertEqual(result["obligation"]["source_incident_id"], "sfinc_current")
 
+    def test_runtime_profile_reentry_consumes_reopened_recovery_terminal(self):
+        """A prior recovery cannot hide a newly affected current placement."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_id = "sfinc_reentered"
+            fingerprint = "current-reentered-scope"
+            closure = {
+                "object_type": "passive_production_event",
+                "object_id": incident_id,
+                "source_incident_id": incident_id,
+                "situation_id": "situation_reentered",
+                "decision_trace_id": "decision_reentered",
+                "terminal_outcome_classification": "RECOVERY_OBSERVED_NO_ACTION",
+                "event_provenance": "V7_HEALTH_RUNTIME",
+                "channel": "vless",
+                "observed_at": "2026-09-03T20:00:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                json.dumps(closure) + "\n", encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            incident_key = planner._passive_incident_projection_key(incident_id)
+            current_scope = {
+                "affected_scope_count": 1,
+                "affected_scope_fingerprint": fingerprint,
+                "unresolved_scope_count": 1,
+                "unresolved_scope_fingerprint": fingerprint,
+                "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+            }
+            planner.l3_runtime_state = {
+                "incidents": {
+                    incident_key: {
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "incident_id": incident_id,
+                        "channel": "vless",
+                        "incident_state": "OPEN",
+                        "current_source_scope": current_scope,
+                    },
+                },
+            }
+            planner.l3_runtime_state_file.write_text(
+                json.dumps(planner.l3_runtime_state), encoding="utf-8",
+            )
+            planner.args = SimpleNamespace(
+                runtime_profile_handoff_only=True,
+                ordinary_service_failure_context=True,
+                runtime_profile_failure_binding={
+                    "source": "vless",
+                    "incident_ids": [incident_id],
+                    "source_scope": current_scope,
+                },
+            )
+            planner.users = []
+            planner.matrix = {}
+            planner.service_prefs = {}
+            planner._standing_delegated_policy_status = lambda: {
+                "valid": False,
+            }
+
+            result = planner.materialize_service_failure_automation_advisory(
+                {"decisions": [{
+                    "user_ip": "10.7.0.6",
+                    "current_egress": "vless",
+                    "recommended_egress": "awg0",
+                }]},
+                source_egress="vless",
+            )
+
+            self.assertTrue(result["active"], result)
+            self.assertEqual(
+                result["obligation"]["source_incident_id"], incident_id,
+            )
+            self.assertEqual(
+                result["obligation"]["current_source_scope"]
+                ["affected_scope_fingerprint"],
+                fingerprint,
+            )
+
     def test_passive_terminal_projects_compact_dual_lifecycle_and_omp_successor(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

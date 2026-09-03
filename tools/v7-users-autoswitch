@@ -25770,7 +25770,19 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         # flag lets the existing Planner express that narrow recovery fact
         # instead of applying the ordinary placement persistence delay.
         args.ordinary_service_failure_context = True
+    # The advisory wrapper previously began timing only after construction of
+    # the existing Planner.  On the live path that left several seconds inside
+    # the consumer wall but outside every advisory child span.  Keep one exact
+    # envelope for that existing constructor; it is diagnostic-only and does
+    # not alter Planner inputs, ownership, or execution semantics.
+    advisory_planner_initialization_started_ns = time.monotonic_ns()
     planner = AutoswitchPlanner(args)
+    planner._record_performance_span(
+        "advisory_planner_initialization",
+        advisory_planner_initialization_started_ns,
+        owner="tools/v7-users-autoswitch.AutoswitchPlanner",
+        parent="service_failure_advisory",
+    )
     if runtime_profile_handoff:
         # Keep one exact source/profile/Matrix binding from the health owner
         # before read-only planning takes time. Apply still revalidates it.

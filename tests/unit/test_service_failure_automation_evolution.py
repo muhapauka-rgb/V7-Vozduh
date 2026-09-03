@@ -799,6 +799,12 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
              mock.patch.object(self.autoswitch, "validate_prepared_class_decision_projection", return_value={}):
             result = self.autoswitch.consume_service_failure_automation_only(args)
 
+        planner._record_performance_span.assert_any_call(
+            "advisory_planner_initialization",
+            mock.ANY,
+            owner="tools/v7-users-autoswitch.AutoswitchPlanner",
+            parent="service_failure_advisory",
+        )
         planner.reconcile_bounded_cohort_closure_obligations.assert_not_called()
         profile_binding = planner.reconcile_runtime_profile_source_scope_reentry.call_args.args[0]
         self.assertEqual(

@@ -780,6 +780,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         planner.matrix = {}
         planner.service_prefs = {}
         planner._explicit_required_services.return_value = []
+        planner.reconcile_runtime_profile_source_scope_reentry.side_effect = [
+            {"status": "CURRENT_PROFILE_SOURCE_SCOPE_REENTRY_RECONCILED", "updated": True},
+            {"status": "CURRENT_SCOPE_ALREADY_OPEN", "updated": False},
+        ]
         planner.plan.return_value = {"decisions": []}
         planner.materialize_service_failure_automation_advisory.return_value = {
             "active": False,
@@ -797,11 +801,18 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
 
         planner.reconcile_bounded_cohort_closure_obligations.assert_not_called()
         profile_binding = planner.reconcile_runtime_profile_source_scope_reentry.call_args.args[0]
+        self.assertEqual(
+            planner.reconcile_runtime_profile_source_scope_reentry.call_count, 2,
+        )
         self.assertEqual(profile_binding["source"], "vless")
         self.assertEqual(profile_binding["source_incident_id"], "sfinc-current")
         self.assertEqual(
             result["bounded_closure_reconciliation"]["status"],
             "DEFERRED_UNTIL_AFTER_RUNTIME_GOVERNED_ATTEMPT",
+        )
+        self.assertEqual(
+            result["post_plan_runtime_profile_scope_reconciliation"]["status"],
+            "CURRENT_SCOPE_ALREADY_OPEN",
         )
 
     def test_fresh_runtime_profile_handoff_defers_passive_history_only_after_exact_l3_handoff(self):

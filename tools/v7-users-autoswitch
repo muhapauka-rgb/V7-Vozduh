@@ -25870,6 +25870,24 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         owner="tools/v7-users-autoswitch.AutoswitchPlanner.plan",
         parent="service_failure_advisory",
     )
+    post_plan_runtime_profile_scope_reconciliation = {
+        "status": "NOT_REQUESTED", "updated": False,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+    if runtime_profile_handoff:
+        # plan() may reconcile historical outcome projections while building
+        # its read-only decision.  Reassert the same exact Matrix/registry
+        # re-entry after that work and before the advisory reloads L3 state;
+        # otherwise a terminal projection can restore unresolved=0 and make
+        # the current customer disappear.  This is the same existing L3
+        # owner and creates no execution object or authority.
+        post_plan_runtime_profile_scope_reconciliation = (
+            planner.reconcile_runtime_profile_source_scope_reentry(
+                args.runtime_profile_failure_binding
+            )
+        )
     prepared_projection_started_ns = time.monotonic_ns()
     ordinary_users = [
         row for row in parse_registry(Path(args.state_dir) / "users.registry")
@@ -25939,6 +25957,9 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         "execution_outcome_reconciliation": execution_outcome_reconciliation,
         "bounded_closure_reconciliation": bounded_closure_reconciliation,
         "runtime_profile_scope_reconciliation": runtime_profile_scope_reconciliation,
+        "post_plan_runtime_profile_scope_reconciliation": (
+            post_plan_runtime_profile_scope_reconciliation
+        ),
         "performance_timeline": planner.performance_timeline(),
         "forbidden_effects": {
             "runtime_apply": False,

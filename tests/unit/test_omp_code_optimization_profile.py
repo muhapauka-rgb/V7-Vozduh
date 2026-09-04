@@ -247,6 +247,18 @@ def code_optimization_material_change_admission(changed_dependencies):
         ))
         self.assertTrue(campaign["no_cps_effect"])
 
+    def test_operational_campaign_accepts_honest_zero_or_one_cleanup_only(self):
+        self.assertTrue(self.lib.code_optimization_cleanup_proof_set_valid([]))
+        self.assertTrue(self.lib.code_optimization_cleanup_proof_set_valid([
+            {"cleanup_id": "cleanup-proven-v1"},
+        ]))
+        self.assertFalse(self.lib.code_optimization_cleanup_proof_set_valid([
+            {},
+        ]))
+        self.assertFalse(self.lib.code_optimization_cleanup_proof_set_valid([
+            {"cleanup_id": "cleanup-a"}, {"cleanup_id": "cleanup-b"},
+        ]))
+
     def test_operational_campaign_is_deterministic_and_supports_compact_scopes(self):
         first = self.lib.code_optimization_operational_campaign(root=ROOT)
         second = self.lib.code_optimization_operational_campaign(root=ROOT, mode="CONTINUE")

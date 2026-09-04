@@ -28330,6 +28330,24 @@ def code_optimization_operational_anti_regrowth(source: str) -> dict[str, Any]:
     }
 
 
+def code_optimization_cleanup_proof_set_valid(
+    cleanup_proofs: Any,
+) -> bool:
+    """Accept an honest zero or one uniquely identified bounded cleanup."""
+    if not isinstance(cleanup_proofs, list) or len(cleanup_proofs) > 1:
+        return False
+    cleanup_ids = [
+        str(item.get("cleanup_id") or "")
+        for item in cleanup_proofs
+        if isinstance(item, dict)
+    ]
+    return (
+        len(cleanup_ids) == len(cleanup_proofs)
+        and all(cleanup_ids)
+        and len(set(cleanup_ids)) == len(cleanup_ids)
+    )
+
+
 def code_optimization_operational_campaign(
     *, root: Path = ROOT, mode: str = "FULL_BASELINE",
     domain_id: str = "", changed_dependencies: Optional[Iterable[str]] = None,
@@ -28520,6 +28538,7 @@ def code_optimization_operational_campaign(
         "operational_domain_discovery_rule": code_optimization_operational_anti_regrowth(source),
     }
     cleanup_ids = {str(item.get("cleanup_id")) for item in cleanup_proofs if item.get("cleanup_id")}
+    cleanup_proof_set_valid = code_optimization_cleanup_proof_set_valid(cleanup_proofs)
     final_gate = mission_completion_evidence_gate({
         "MISSION_TYPE": "ACCEPTANCE", "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION",
         "INDEPENDENT_ACCEPTANCE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
@@ -28534,7 +28553,7 @@ def code_optimization_operational_campaign(
         interim_gate.get("completion_verdict") == "CONTINUE_SAME_MISSION",
         len(domain_submissions) == len(selected_ids),
         all(item["final_verdict"] == "PASS" for item in domain_submissions),
-        bool(all_hypotheses), bool(attempts), len(cleanup_ids) == 1,
+        bool(all_hypotheses), bool(attempts), cleanup_proof_set_valid,
         all(value.get("final_verdict") == "PASS" for value in anti_regrowth.values()),
         final_gate.get("completion_verdict") == "COMPLETE_WITH_LEGAL_TERMINAL",
         cps_before == cps_after,

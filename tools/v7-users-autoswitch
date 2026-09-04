@@ -25838,14 +25838,16 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         if (
             str(matrix_scope_binding.get("channel") or "") == requested_source
             # Several required services may fail on the same source at once.
-            # The Matrix current-scope owner has already selected the one
-            # source incident which owns this routing-action scope.  Requiring
-            # the service-level set to contain exactly one id discards that
-            # lawful source binding and sends the Runtime through a second
-            # passive/advisory reconstruction.  The selected Matrix incident
-            # must still be present in fresh live service evidence; then bind
-            # this transaction to that exact id only.
-            and matrix_scope_incident in incident_ids
+            # Their service-level incident ids are not the Matrix owner's
+            # source-incident id: the latter canonically groups the exact
+            # current affected routing scope.  Requiring identity membership
+            # between those two layers rejects every real grouped incident
+            # and re-enters passive + duplicate advisory work.  Fresh service
+            # evidence above proves the profile failure; channel, count and
+            # fingerprint below bind it to the exact current Matrix source
+            # scope.  The caller re-reads that Matrix binding after planning
+            # before it can feed the governed executor.
+            and bool(matrix_scope_incident)
             and matrix_scope_count == affected
             and bool(matrix_scope_fingerprint)
         ):

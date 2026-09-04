@@ -860,7 +860,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.autoswitch, "AutoswitchPlanner", return_value=planner,
         ), mock.patch.object(
             self.autoswitch, "live_profile_failure_evidence",
-            return_value=(1, 1, {"sfinc-other-service", "sfinc-matrix-owner"}),
+            return_value=(
+                1,
+                1,
+                {"sfinc-service-google", "sfinc-service-telegram"},
+            ),
         ), mock.patch.object(
             self.autoswitch, "build_prepared_class_decision_projection",
             return_value={},

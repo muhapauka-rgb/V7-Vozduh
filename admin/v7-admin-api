@@ -28049,6 +28049,11 @@ def html_page_v2():
       await switchV2UserEgressInline(ip, egress, userEffectiveChannel(userRowByIp(ip)) || '');
     }
     const USER_SWITCH_DEADLINE_MS = 7000;
+    // A route mutation itself remains bounded by the seven-second operator
+    // contract.  This longer, browser-local interval is only admission wait
+    // while the one canonical execution-control window is held by a live V7
+    // transaction.  It is deliberately not a server queue or a new owner.
+    const USER_SWITCH_ADMISSION_WAIT_MS = 45000;
     const USER_SWITCH_RETRY_MS = 140;
     const USER_SWITCH_RETRY_MAX_MS = 700;
     const pause = ms => new Promise(resolve => window.setTimeout(resolve, ms));
@@ -28058,7 +28063,7 @@ def html_page_v2():
     function operatorRebindApplied(d={}) {
       return !!d?._http_ok && !d.error && ['APPLIED_AND_VERIFIED', 'ALREADY_BOUND'].includes(String(d.status || ''));
     }
-    async function requestOperatorProfileEgressRebind(ip='', egress='', deadlineAt=Date.now() + USER_SWITCH_DEADLINE_MS) {
+    async function requestOperatorProfileEgressRebind(ip='', egress='', deadlineAt=Date.now() + USER_SWITCH_ADMISSION_WAIT_MS) {
       let last = {};
       let retries = 0;
       while (Date.now() < deadlineAt) {
@@ -28077,8 +28082,8 @@ def html_page_v2():
       }
       return {
         ...last,
-        error: 'operator_profile_rebind_deadline_exceeded',
-        message: 'Предыдущее защищённое переключение не освободило окно за 7 секунд.',
+        error: 'operator_profile_rebind_admission_wait_exceeded',
+        message: 'Защищённое окно не освободилось за 45 секунд; маршрут не менялся.',
         _http_ok: false,
       };
     }
@@ -28109,15 +28114,15 @@ def html_page_v2():
       closeInlineEgressMenu();
       if (!ip || !egress || egress === previous) return;
       setUserSwitchOptimistic(ip, egress, previous);
-      showToast('Канал выбран', `${egress}. Переключаю пользователя в фоне, максимум 7 секунд.`, 'info');
+      showToast('Канал выбран', `${egress}. Ожидаю защищённое окно; после его освобождения маршрут подтверждается максимум за 7 секунд.`, 'info');
       const deadline = window.setTimeout(() => {
         const pending = userSwitchPending[ip];
         if (pending?.egress === egress) {
-          showToast('Переключение требует проверки', `${egress}: подтверждение не получено за 7 секунд.`, 'warn');
+          showToast('Ожидает защищённого окна', `${egress}: другая операция V7 ещё завершается; выбор сохранён и будет подтверждён после освобождения окна.`, 'warn');
         }
       }, USER_SWITCH_DEADLINE_MS);
       try {
-        const d = await requestOperatorProfileEgressRebind(ip, egress);
+        const d = await requestOperatorProfileEgressRebind(ip, egress, Date.now() + USER_SWITCH_ADMISSION_WAIT_MS);
         if (!operatorRebindApplied(d)) {
           rollbackUserSwitchOptimistic(ip);
           showToast('Канал не переключён', actionErrorReason(d), 'bad');

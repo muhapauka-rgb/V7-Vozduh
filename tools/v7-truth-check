@@ -1248,6 +1248,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--reconcile-recovery-latency-slo-reentry", action="store_true", help="Atomically activate the existing unfinished V5.3 recovery-latency SLO product contract; CPS/OMP only, never Runtime execution.")
     parser.add_argument("--reconcile-recovery-stability-foundation", action="store_true", help="Atomically admit the existing Recovery Stability Foundation through CPS/OMP; never runs Runtime recovery.")
     parser.add_argument("--reconcile-recovery-apply-frontier", action="store_true", help="Atomically reconcile the current governed Apply/S11 audit through CPS/OMP; never runs Runtime recovery.")
+    parser.add_argument("--omp-bounded-execution-profile-proof", action="store_true", help="Run one disposable read-only BDP admission, GPT decision-profile result, exact review and existing completion-gate proof; never writes CPS or Runtime.")
+    parser.add_argument("--omp-responsibility-subgraph-proof", action="store_true", help="Derive one bounded static recovery responsibility subgraph and bind it through the existing read-only profile/review/completion gate; no BDP Mission, CPS, Runtime or production effect.")
+    parser.add_argument("--omp-code-optimization-profile-proof", action="store_true", help="Run one bounded read-only Code Optimization profile and fresh-subgraph binding proof; selects zero candidates when canonical semantic evidence is insufficient and never writes CPS, Runtime or source product behavior.")
+    parser.add_argument("--omp-mission-integrity-proof", action="store_true", help="Run the existing Code Optimization path through premature-terminal rejection, same-Mission continuation, local adaptation and final Mission-intent-bound completion.")
+    parser.add_argument("--omp-code-optimization-submit", default="", metavar="PATH", help="Submit one bounded read-only Code Optimization JSON payload through the existing OMP completion gate; input is disposable and never persisted.")
     parser.add_argument("--continue-omp-change", action="append", default=None, help="Owner-backed dependency identity used for selective invalidation certification.")
     parser.add_argument("--continue-omp-persist-cps", action="store_true", help="Atomically persist each bounded Continue OMP transition to CPS.")
     parser.add_argument("--continue-omp-iterations", type=int, default=sync_lib.OMP_CONTINUATION_MAX_ITERATIONS)
@@ -1300,6 +1305,71 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.omp_bounded_execution_profile_proof:
+        result = sync_lib.bounded_execution_profile_contract_proof(root=ROOT_DIR)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"bounded_execution_profile={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"profile_identity_valid={result.get('profile_identity_valid', False)}")
+            print(f"completion_consumer_valid={result.get('completion_consumer_valid', False)}")
+            print(f"no_cps_effect={result.get('no_cps_effect', False)}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.omp_responsibility_subgraph_proof:
+        result = sync_lib.bounded_responsibility_subgraph_contract_proof(root=ROOT_DIR)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"responsibility_subgraph_proof={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"no_bdp_mission_created={result.get('no_bdp_mission_created', False)}")
+            print(f"no_cps_effect={result.get('no_cps_effect', False)}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.omp_mission_integrity_proof:
+        result = sync_lib.bounded_mission_integrity_non_test_proof(root=ROOT_DIR)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"mission_integrity={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"terminal={result.get('terminal', 'REAL_PROOF_FAILED')}")
+            print(f"no_cps_effect={result.get('no_cps_effect', False)}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.omp_code_optimization_profile_proof:
+        result = sync_lib.bounded_code_optimization_contract_proof(root=ROOT_DIR)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"code_optimization_profile={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"audit_terminal={result.get('audit', {}).get('terminal_verdict', 'STOP_SAFE')}")
+            print(f"selected_candidate_count={result.get('selected_candidate_count', 0)}")
+            print(f"no_cps_effect={result.get('no_cps_effect', False)}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.omp_code_optimization_submit:
+        payload_path = None
+        if args.omp_code_optimization_submit != "-":
+            payload_path = Path(args.omp_code_optimization_submit)
+            if not payload_path.is_file():
+                print(json.dumps({"final_verdict": "STOP_SAFE", "errors": ["code_optimization_submission_input_missing"]}, ensure_ascii=False))
+                return 2
+        try:
+            payload = json.loads(sys.stdin.read() if args.omp_code_optimization_submit == "-" else payload_path.read_text(encoding="utf-8"))
+            result = sync_lib.submit_code_optimization_result(
+                profile=payload["profile"], subgraph=payload["subgraph"],
+                evidence_package=payload["evidence_package"], output=payload["output"], reviews=payload["reviews"],
+                mission_intent=payload.get("mission_intent"),
+                adaptation_records=payload.get("adaptation_records"),
+                completed_outcomes=payload.get("completed_outcomes"),
+                remaining_authorized_work=payload.get("remaining_authorized_work"),
+                requested_mission_terminal=payload.get("requested_mission_terminal", ""),
+                mission_terminal_evidence=payload.get("mission_terminal_evidence"),
+                next_executable_action=payload.get("next_executable_action", ""),
+            )
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            result = {"final_verdict": "STOP_SAFE", "errors": [f"code_optimization_submission_input_invalid:{type(exc).__name__}"]}
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"code_optimization_submitted_run={result.get('final_verdict', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
     if args.reconcile_active_standing_delegated_policy:
         result = reconcile_active_standing_policy_from_runtime(root=ROOT_DIR)
         if args.json:

@@ -58,8 +58,21 @@ S11. No new owner, queue, cache, persistent state or route writer was added.
 
 ## Next Evidence
 
-Deploy only through `tools/v7-safe-deploy`, then wait for the normal
-`v7-health.service` caller to observe a fresh ordinary Matrix incident. Record
-the same monotonic receipt. No manual recovery is permitted. The next measured
-dominant span determines whether the residual is still preparation or the
-separate governed Apply/verification frontier.
+## Runtime Deployment and Postfix Observation
+
+The approved safe deploy completed at 2026-09-04 09:57:56 MSK with the
+required explicit restart of the persistent health owner. Runtime
+`/usr/local/bin/v7-users-autoswitch` now has SHA-256
+`e4d6eb5835fb51a77b17dffeb261c6bf61ed61412c80ea342584ba3ea19046b8`,
+matching commit `96260e3f`; `v7-health.service` is active.
+
+The normal `other_required` health producer is running on its existing 3.5 s
+cadence. Its latest owner output is `CONTROLLED_OBSERVATION_ONLY`, with no new
+Matrix profile T0, no active operation, and no lease. Older Matrix failures
+are stale observations, not a fresh recovery event. Consequently this turn
+creates no synthetic incident and earns no SLO credit.
+
+The next valid evidence is one new ordinary Matrix T0 observed and consumed by
+the normal `v7-health.service` caller. Its receipt will determine whether the
+dominant residual remains preparation or has moved to governed
+Apply/verification. No manual recovery is permitted.

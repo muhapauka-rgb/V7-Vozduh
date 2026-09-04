@@ -4040,7 +4040,49 @@ def mission_completion_evidence_gate(contract: dict[str, Any]) -> dict[str, Any]
     if contract.get("DEPLOY_REQUIRED"):
         required.append("DEPLOY_PROVEN")
 
+    profile_governed = isinstance(contract.get("EXECUTION_PROFILE_CONTRACT"), dict)
+    profile_binding = (
+        execution_profile_completion_binding(contract)
+        if profile_governed else None
+    )
+    if profile_governed:
+        required.append("EXECUTION_PROFILE_BINDING_PROVEN")
+
+    # A responsibility-subgraph result is derived Engineering evidence, not a
+    # second graph owner.  When a caller elects to consume one, bind its exact
+    # immutable identity through the already-existing completion gate.
+    subgraph_governed = isinstance(contract.get("RESPONSIBILITY_SUBGRAPH_RESULT"), dict)
+    subgraph_binding = (
+        responsibility_subgraph_completion_binding(contract)
+        if subgraph_governed else None
+    )
+    if subgraph_governed:
+        required.append("RESPONSIBILITY_SUBGRAPH_BINDING_PROVEN")
+
+    integrity_governed = isinstance(contract.get("MISSION_INTENT_CONTRACT"), dict)
+    integrity_binding = (
+        mission_integrity_completion_binding(contract)
+        if integrity_governed else None
+    )
+    if integrity_governed:
+        required.append("MISSION_INTEGRITY_BINDING_PROVEN")
+
     evidence_present = {field: contract.get(field) is True for field in required}
+    if profile_governed:
+        evidence_present["EXECUTION_PROFILE_BINDING_PROVEN"] = (
+            profile_binding is not None
+            and profile_binding.get("final_verdict") == "PASS"
+        )
+    if subgraph_governed:
+        evidence_present["RESPONSIBILITY_SUBGRAPH_BINDING_PROVEN"] = (
+            subgraph_binding is not None
+            and subgraph_binding.get("final_verdict") == "PASS"
+        )
+    if integrity_governed:
+        evidence_present["MISSION_INTEGRITY_BINDING_PROVEN"] = (
+            integrity_binding is not None
+            and integrity_binding.get("final_verdict") == "PASS"
+        )
     if material_change:
         evidence_present["STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED"] = (
             contract.get("STRUCTURAL_COMPLEXITY_DELTA_ACCEPTED") is True
@@ -4085,6 +4127,17 @@ def mission_completion_evidence_gate(contract: dict[str, Any]) -> dict[str, Any]
         verdict = "PROGRAM_INCOMPLETE"
     else:
         verdict = "PREPARED_NOT_CONSUMED"
+
+    if integrity_governed and integrity_binding is not None:
+        integrity_terminal = integrity_binding.get("terminal_class")
+        if integrity_terminal == "CONTINUE_SAME_MISSION":
+            verdict = "CONTINUE_SAME_MISSION"
+        elif integrity_terminal == "MISSION_INTEGRITY_REJECTED":
+            verdict = "MISSION_INTEGRITY_REJECTED"
+        elif integrity_terminal == "MISSION_CLARIFICATION_REQUIRED_ACCEPTED":
+            verdict = "MISSION_CLARIFICATION_REQUIRED"
+        elif integrity_terminal == "STOP_SAFE_EXACT_GAP_ACCEPTED":
+            verdict = "STOP_SAFE_EXACT_GAP"
 
     return {
         "schema": "v7-omp-mission-completion-evidence/v1",
@@ -4144,6 +4197,28 @@ def mission_completion_evidence_gate(contract: dict[str, Any]) -> dict[str, Any]
         "simplification_first_change_consumed": (
             material_change and not missing and not invalid_change_classification
         ) if material_change else "NOT_APPLICABLE",
+        "execution_profile_governed": profile_governed,
+        "execution_profile_binding": profile_binding,
+        "execution_profile_binding_consumed": (
+            profile_binding is not None
+            and profile_binding.get("final_verdict") == "PASS"
+        ) if profile_governed else "NOT_APPLICABLE",
+        "responsibility_subgraph_governed": subgraph_governed,
+        "responsibility_subgraph_binding": subgraph_binding,
+        "responsibility_subgraph_binding_consumed": (
+            subgraph_binding is not None
+            and subgraph_binding.get("final_verdict") == "PASS"
+        ) if subgraph_governed else "NOT_APPLICABLE",
+        "mission_integrity_governed": integrity_governed,
+        "mission_integrity_binding": integrity_binding,
+        "mission_intent_fingerprint": (
+            integrity_binding.get("mission_intent_fingerprint")
+            if integrity_binding is not None else "NOT_APPLICABLE"
+        ),
+        "same_mission_continuation_required": (
+            integrity_binding is not None
+            and integrity_binding.get("terminal_class") == "CONTINUE_SAME_MISSION"
+        ) if integrity_governed else "NOT_APPLICABLE",
         "legal_terminal": legal_terminal and legal_terminal_proven,
         "completion_verdict": verdict,
     }
@@ -10995,6 +11070,767 @@ BDP_CANDIDATE_REQUIRED_FIELDS = (
     "codex_readiness",
 )
 
+EXECUTION_PROFILE_TYPES = {"GPT_DECISION_REVIEW", "CODE_OPTIMIZATION"}
+EXECUTION_PROFILE_REQUIRED_FIELDS = (
+    "profile_type",
+    "profile_version",
+    "mission_id",
+    "run_nonce",
+    "input_fingerprint",
+    "repo_fingerprint",
+    "mutation_class",
+    "authority_class",
+    "tool_class_allowlist",
+    "output_schema",
+    "required_reviews",
+    "terminal_consumer",
+    "max_duration",
+    "max_steps",
+    "retry_policy",
+    "cancellation_policy",
+)
+EXECUTION_PROFILE_REVIEW_TYPES = {
+    "ARCHITECTURE_REVIEW",
+    "SAFETY_REGRESSION_REVIEW",
+    "EVIDENCE_REVIEW",
+    "QUALITY_COMPLEXITY_REVIEW",
+    "MISSION_INTEGRITY_REVIEW",
+}
+EXECUTION_PROFILE_REVIEW_VERDICTS = {
+    "PASS",
+    "FAIL_WITH_EXACT_INVARIANT",
+    "INSUFFICIENT_EVIDENCE",
+}
+GPT_DECISION_REVIEW_OUTPUT_FIELDS = (
+    "mission_reference",
+    "profile_reference",
+    "input_fingerprint",
+    "current_facts",
+    "as_is",
+    "to_be",
+    "exact_residual",
+    "options",
+    "recommended_option",
+    "owner_impact",
+    "state_impact",
+    "safety_impact",
+    "latency_impact",
+    "structural_impact",
+    "owner_decision_required",
+    "owner_decision_reason",
+    "unproven_claims",
+    "terminal_verdict",
+)
+GPT_DECISION_REVIEW_TERMINALS = {
+    "PASS_DECISION_READY",
+    "OWNER_DECISION_REQUIRED",
+    "INSUFFICIENT_EVIDENCE",
+}
+CODE_OPTIMIZATION_OUTPUT_FIELDS = (
+    "mission_reference",
+    "profile_reference",
+    "input_fingerprint",
+    "domain_id",
+    "responsibility_subgraph",
+    "canonical_to_be_references",
+    "structural_baseline",
+    "responsibility_classifications",
+    "semantic_necessity_classifications",
+    "counterfactual_hypotheses",
+    "ranked_candidates",
+    "selected_first_candidate",
+    "owner_decision_required",
+    "unproven_edges",
+    "unproven_claims",
+    "terminal_verdict",
+)
+CODE_OPTIMIZATION_TERMINALS = {
+    "PASS_CANDIDATE_READY",
+    "NO_SAFE_COUNTERFACTUAL_CANDIDATE",
+    "INSUFFICIENT_EVIDENCE",
+}
+CODE_OPTIMIZATION_EVIDENCE_CLASSES = {
+    "BOUNDED_STATIC_SOURCE", "EXECUTABLE_CALLER", "CURRENT_CONSUMER",
+    "STATE_READ_WRITE", "PROCESS_SERVICE_ENTRYPOINT", "TEST_REPLAY",
+    "CONTROLLED_RUNTIME", "PRODUCTION_RUNTIME_RECEIPT",
+    "COMPATIBILITY_CONSUMER", "HISTORICAL",
+}
+
+
+def _execution_contract_fingerprint(value: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+MISSION_ADAPTATION_CLASSES = {
+    "LOCAL_EXECUTION_ADAPTATION",
+    "MISSION_CLARIFICATION_REQUIRED",
+    "STOP_SAFE_EXACT_GAP",
+}
+MISSION_INTENT_FIELDS = (
+    "mission_id", "objective", "required_outcomes", "definition_of_done",
+    "authorized_effect_boundary", "prohibited_effects", "owner_authority_boundary",
+    "required_reviews", "legal_terminals", "intermediate_non_terminals",
+    "continuation_policy", "input_fingerprint", "repo_fingerprint",
+)
+
+
+def _mission_intent_normalize(value: Any) -> Any:
+    """Normalize semantic identity while ignoring harmless formatting."""
+    if isinstance(value, str):
+        return " ".join(value.split())
+    if isinstance(value, dict):
+        return {str(key): _mission_intent_normalize(value[key]) for key in sorted(value)}
+    if isinstance(value, (list, tuple, set)):
+        normalized = [_mission_intent_normalize(item) for item in value]
+        return sorted(normalized, key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True))
+    return value
+
+
+def mission_intent_contract(**fields: Any) -> dict[str, Any]:
+    """Bind immutable Mission purpose separately from its technical method."""
+    normalized = {field: _mission_intent_normalize(fields.get(field)) for field in MISSION_INTENT_FIELDS}
+    errors: list[str] = []
+    for field in MISSION_INTENT_FIELDS:
+        if normalized.get(field) in (None, "", []):
+            errors.append(f"mission_intent_field_missing:{field}")
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{8,200}", str(normalized.get("mission_id") or "")):
+        errors.append("mission_intent_mission_id_invalid")
+    for field in ("input_fingerprint", "repo_fingerprint"):
+        if not re.fullmatch(r"[0-9a-f]{64}", str(normalized.get(field) or "")):
+            errors.append(f"mission_intent_{field}_invalid")
+    for field in (
+        "required_outcomes", "definition_of_done", "authorized_effect_boundary",
+        "prohibited_effects", "owner_authority_boundary", "required_reviews",
+        "legal_terminals", "intermediate_non_terminals",
+    ):
+        if not isinstance(normalized.get(field), list):
+            errors.append(f"mission_intent_{field}_invalid")
+    identity = {"schema": "v7.omp-mission-intent.v1", **normalized}
+    fingerprint = _execution_contract_fingerprint(identity)
+    unique = sorted(set(errors))
+    return {
+        **identity, "mission_intent_fingerprint": fingerprint,
+        "final_verdict": "PASS" if not unique else "STOP_SAFE", "errors": unique,
+    }
+
+
+def mission_adaptation_record(
+    mission_intent: dict[str, Any], *, adaptation_class: str,
+    discovered_fact: str, original_proposed_method: str, adapted_method: str,
+    objective_preserved: bool, definition_of_done_preserved: bool,
+    effect_boundary_preserved_or_narrowed: bool, owner_boundary_preserved: bool,
+    pending_required_outcomes: Iterable[str], completed_required_outcomes: Iterable[str],
+    continuation_action: str, evidence_references: Iterable[str],
+) -> dict[str, Any]:
+    """Create an immutable, duplicate-safe execution adaptation record."""
+    payload = {
+        "schema": "v7.omp-mission-adaptation.v1",
+        "mission_id": mission_intent.get("mission_id"),
+        "mission_intent_fingerprint": mission_intent.get("mission_intent_fingerprint"),
+        "class": adaptation_class,
+        "discovered_fact": _mission_intent_normalize(discovered_fact),
+        "original_proposed_method": _mission_intent_normalize(original_proposed_method),
+        "adapted_method": _mission_intent_normalize(adapted_method),
+        "objective_preserved": objective_preserved,
+        "definition_of_done_preserved": definition_of_done_preserved,
+        "effect_boundary_preserved_or_narrowed": effect_boundary_preserved_or_narrowed,
+        "owner_boundary_preserved": owner_boundary_preserved,
+        "pending_required_outcomes": _mission_intent_normalize(list(pending_required_outcomes)),
+        "completed_required_outcomes": _mission_intent_normalize(list(completed_required_outcomes)),
+        "continuation_action": _mission_intent_normalize(continuation_action),
+        "evidence_references": _mission_intent_normalize(list(evidence_references)),
+    }
+    payload["adaptation_identity"] = _execution_contract_fingerprint({
+        "mission_intent_fingerprint": payload["mission_intent_fingerprint"],
+        "class": payload["class"], "discovered_fact": payload["discovered_fact"],
+        "original_proposed_method": payload["original_proposed_method"],
+    })
+    payload["adaptation_fingerprint"] = _execution_contract_fingerprint(payload)
+    return payload
+
+
+def mission_integrity_completion_binding(contract: dict[str, Any]) -> dict[str, Any]:
+    """Enforce intent preservation and prevent microsteps from ending Missions."""
+    intent = contract.get("MISSION_INTENT_CONTRACT")
+    errors: list[str] = []
+    if not isinstance(intent, dict):
+        return {"final_verdict": "NOT_APPLICABLE", "errors": []}
+    recalculated = mission_intent_contract(**{field: intent.get(field) for field in MISSION_INTENT_FIELDS})
+    if recalculated.get("final_verdict") != "PASS":
+        errors.extend(recalculated.get("errors") or [])
+    if intent.get("mission_intent_fingerprint") != recalculated.get("mission_intent_fingerprint"):
+        errors.append("mission_intent_fingerprint_mismatch")
+    required = set(map(str, intent.get("required_outcomes") or []))
+    completed = set(map(str, contract.get("PROVEN_COMPLETED_OUTCOMES") or []))
+    unknown_completed = completed - required
+    if unknown_completed:
+        errors.append("mission_completed_outcome_not_required")
+    missing = sorted(required - completed)
+    remaining = sorted(set(map(str, contract.get("REMAINING_AUTHORIZED_WORK") or [])) | set(missing))
+    claimed_dod = _mission_intent_normalize(contract.get("CLAIMED_DEFINITION_OF_DONE", intent.get("definition_of_done")))
+    if claimed_dod != intent.get("definition_of_done"):
+        errors.append("mission_definition_of_done_silently_narrowed")
+    adaptations = contract.get("MISSION_ADAPTATION_RECORDS") or []
+    if not isinstance(adaptations, list):
+        adaptations = []
+        errors.append("mission_adaptation_records_invalid")
+    seen: set[str] = set()
+    identities: dict[str, str] = {}
+    adaptation_status: list[dict[str, Any]] = []
+    for record in adaptations:
+        record_errors: list[str] = []
+        if not isinstance(record, dict):
+            record_errors.append("mission_adaptation_record_invalid")
+            record = {}
+        fingerprint = str(record.get("adaptation_fingerprint") or "")
+        computed = _execution_contract_fingerprint({key: value for key, value in record.items() if key != "adaptation_fingerprint"})
+        if fingerprint != computed:
+            record_errors.append("mission_adaptation_fingerprint_mismatch")
+        duplicate = fingerprint in seen
+        seen.add(fingerprint)
+        adaptation_identity = str(record.get("adaptation_identity") or "")
+        if not re.fullmatch(r"[0-9a-f]{64}", adaptation_identity):
+            record_errors.append("mission_adaptation_identity_invalid")
+        elif adaptation_identity in identities and identities[adaptation_identity] != fingerprint:
+            record_errors.append("mission_adaptation_identity_conflict")
+        else:
+            identities[adaptation_identity] = fingerprint
+        if record.get("mission_intent_fingerprint") != intent.get("mission_intent_fingerprint"):
+            record_errors.append("mission_adaptation_intent_mismatch")
+        if record.get("class") not in MISSION_ADAPTATION_CLASSES:
+            record_errors.append("mission_adaptation_class_invalid")
+        if record.get("class") == "LOCAL_EXECUTION_ADAPTATION" and not all(
+            record.get(field) is True for field in (
+                "objective_preserved", "definition_of_done_preserved",
+                "effect_boundary_preserved_or_narrowed", "owner_boundary_preserved",
+            )
+        ):
+            record_errors.append("mission_local_adaptation_boundary_expanded")
+        if not str(record.get("continuation_action") or ""):
+            record_errors.append("mission_adaptation_continuation_missing")
+        errors.extend(record_errors)
+        adaptation_status.append({
+            "adaptation_fingerprint": fingerprint, "duplicate": duplicate,
+            "final_verdict": "PASS" if not record_errors else "STOP_SAFE",
+            "errors": record_errors,
+        })
+    requested = str(contract.get("REQUESTED_MISSION_TERMINAL") or "")
+    terminal_evidence = contract.get("MISSION_TERMINAL_EVIDENCE") or {}
+    if not isinstance(terminal_evidence, dict):
+        terminal_evidence = {}
+        errors.append("mission_terminal_evidence_invalid")
+    next_mission = set(map(str, contract.get("NEXT_MISSION_REQUIRED_OUTCOMES") or []))
+    if next_mission & set(remaining):
+        errors.append("next_mission_carries_current_remainder")
+    terminal_class = "CONTINUE_SAME_MISSION"
+    if requested == "FULL_COMPLETION":
+        if missing or remaining:
+            errors.append("mission_required_outcomes_incomplete")
+        elif not errors:
+            terminal_class = "FULL_COMPLETION_ACCEPTED"
+    elif requested == "MISSION_CLARIFICATION_REQUIRED":
+        fields = (
+            "exact_ambiguity", "exact_alternatives", "alternative_impacts",
+            "canonical_owner_resolution_failure", "exact_decision_requested",
+            "last_safe_proven_output", "reentry_condition",
+        )
+        if not all(terminal_evidence.get(field) for field in fields):
+            errors.append("mission_clarification_evidence_incomplete")
+        elif terminal_evidence.get("choice_class") == "LOCAL_IMPLEMENTATION_CHOICE":
+            errors.append("mission_clarification_used_for_local_choice")
+        elif not errors:
+            terminal_class = "MISSION_CLARIFICATION_REQUIRED_ACCEPTED"
+    elif requested == "STOP_SAFE_EXACT_GAP":
+        fields = (
+            "exact_blocking_fact", "evidence", "violated_invariant_or_missing_authority",
+            "responsible_owner", "last_proven_output", "minimal_next_action", "reentry_condition",
+        )
+        if not all(terminal_evidence.get(field) for field in fields):
+            errors.append("mission_stop_safe_evidence_incomplete")
+        elif terminal_evidence.get("blocker_class") == "UNFINISHED_AUTHORIZED_WORK":
+            errors.append("mission_fake_stop_safe_unfinished_authorized_work")
+        elif not errors:
+            terminal_class = "STOP_SAFE_EXACT_GAP_ACCEPTED"
+    else:
+        if requested:
+            errors.append("mission_intermediate_milestone_requested_as_terminal")
+        if not missing and not remaining:
+            errors.append("mission_terminal_class_invalid")
+    if errors and any(error in errors for error in (
+        "mission_intent_fingerprint_mismatch", "mission_definition_of_done_silently_narrowed",
+        "mission_local_adaptation_boundary_expanded", "mission_adaptation_intent_mismatch",
+    )):
+        terminal_class = "MISSION_INTEGRITY_REJECTED"
+    return {
+        "schema": "v7.omp-mission-integrity-completion-binding.v1",
+        "mission_id": intent.get("mission_id"),
+        "mission_intent_fingerprint": intent.get("mission_intent_fingerprint"),
+        "requested_terminal": requested or "NONE",
+        "required_outcomes": sorted(required), "completed_outcomes": sorted(completed),
+        "unmet_outcomes": missing, "remaining_authorized_work": remaining,
+        "adaptation_status": adaptation_status,
+        "duplicate_adaptations_idempotent": all(item["final_verdict"] == "PASS" for item in adaptation_status),
+        "preserved_authorization": terminal_class == "CONTINUE_SAME_MISSION",
+        "no_new_mission": not bool(next_mission & set(remaining)),
+        "no_user_prompt_required": terminal_class == "CONTINUE_SAME_MISSION",
+        "next_executable_action": str(contract.get("NEXT_EXECUTABLE_ACTION") or ""),
+        "terminal_class": terminal_class,
+        "final_verdict": "PASS" if terminal_class in {
+            "FULL_COMPLETION_ACCEPTED", "MISSION_CLARIFICATION_REQUIRED_ACCEPTED",
+            "STOP_SAFE_EXACT_GAP_ACCEPTED", "CONTINUE_SAME_MISSION",
+        } and terminal_class != "MISSION_INTEGRITY_REJECTED" else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+    }
+
+
+def admit_execution_profile_contract(
+    profile: dict[str, Any], *, mission_id: str,
+) -> dict[str, Any]:
+    """Bind one read-only profile to an already accepted OMP Mission.
+
+    This is an immutable Engineering-plane admission contract.  It dispatches
+    no model, writes no state and grants no source, Runtime or Authority
+    capability.  The returned fingerprint is consumed by the existing Mission
+    completion gate.
+    """
+    errors: list[str] = []
+    if not isinstance(profile, dict):
+        profile = {}
+        errors.append("execution_profile_contract_invalid")
+    missing = [
+        field for field in EXECUTION_PROFILE_REQUIRED_FIELDS
+        if profile.get(field) in (None, "", [])
+    ]
+    errors.extend(f"execution_profile_field_missing:{field}" for field in missing)
+    profile_type = str(profile.get("profile_type") or "")
+    if profile_type not in EXECUTION_PROFILE_TYPES:
+        errors.append("execution_profile_type_unauthorized")
+    if str(profile.get("mission_id") or "") != mission_id:
+        errors.append("execution_profile_mission_identity_mismatch")
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{8,160}", str(profile.get("run_nonce") or "")):
+        errors.append("execution_profile_run_nonce_invalid")
+    for field in ("input_fingerprint", "repo_fingerprint"):
+        if not re.fullmatch(r"[0-9a-f]{64}", str(profile.get(field) or "")):
+            errors.append(f"execution_profile_{field}_invalid")
+    allowlist = profile.get("tool_class_allowlist")
+    if allowlist != ["READ_ONLY_ENGINEERING_EVIDENCE"]:
+        errors.append("execution_profile_tool_allowlist_unauthorized")
+    if profile.get("mutation_class") != "READ_ONLY":
+        errors.append("execution_profile_mutation_class_unauthorized")
+    if profile.get("authority_class") != "NONE_ENGINEERING_READ_ONLY":
+        errors.append("execution_profile_authority_class_unauthorized")
+    if profile_type == "GPT_DECISION_REVIEW":
+        if profile.get("output_schema") != "v7.gpt-decision-review-result.v1":
+            errors.append("execution_profile_output_schema_invalid")
+    if profile_type == "CODE_OPTIMIZATION":
+        if profile.get("output_schema") != "v7.code-optimization-result.v1":
+            errors.append("execution_profile_output_schema_invalid")
+    reviews = profile.get("required_reviews")
+    if not isinstance(reviews, list) or not reviews:
+        errors.append("execution_profile_required_reviews_invalid")
+        reviews = []
+    elif len(reviews) != len(set(map(str, reviews))):
+        errors.append("execution_profile_required_reviews_duplicate")
+    if any(str(item) not in EXECUTION_PROFILE_REVIEW_TYPES for item in reviews):
+        errors.append("execution_profile_required_review_type_invalid")
+    if profile_type == "GPT_DECISION_REVIEW" and reviews not in (
+        ["ARCHITECTURE_REVIEW"],
+        ["ARCHITECTURE_REVIEW", "MISSION_INTEGRITY_REVIEW"],
+    ):
+        errors.append("gpt_decision_review_requires_architecture_review")
+    if profile_type == "CODE_OPTIMIZATION" and reviews not in ([
+        "ARCHITECTURE_REVIEW", "EVIDENCE_REVIEW",
+    ], [
+        "ARCHITECTURE_REVIEW", "SAFETY_REGRESSION_REVIEW",
+        "EVIDENCE_REVIEW", "QUALITY_COMPLEXITY_REVIEW",
+    ], [
+        "ARCHITECTURE_REVIEW", "EVIDENCE_REVIEW", "MISSION_INTEGRITY_REVIEW",
+    ], [
+        "ARCHITECTURE_REVIEW", "SAFETY_REGRESSION_REVIEW",
+        "EVIDENCE_REVIEW", "QUALITY_COMPLEXITY_REVIEW", "MISSION_INTEGRITY_REVIEW",
+    ]):
+        errors.append("code_optimization_requires_exact_architecture_and_evidence_reviews")
+    mission_intent_fingerprint = str(profile.get("mission_intent_fingerprint") or "")
+    if mission_intent_fingerprint:
+        if not re.fullmatch(r"[0-9a-f]{64}", mission_intent_fingerprint):
+            errors.append("execution_profile_mission_intent_fingerprint_invalid")
+        if "MISSION_INTEGRITY_REVIEW" not in reviews:
+            errors.append("execution_profile_mission_integrity_review_missing")
+    if profile.get("terminal_consumer") != "MISSION_COMPLETION_EVIDENCE_GATE":
+        errors.append("execution_profile_terminal_consumer_invalid")
+    for field, upper in (("max_duration", 3600), ("max_steps", 100)):
+        value = profile.get(field)
+        if not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= upper:
+            errors.append(f"execution_profile_{field}_invalid")
+    if profile.get("retry_policy") not in {"NO_RETRY", "ONE_EXACT_RETRY"}:
+        errors.append("execution_profile_retry_policy_invalid")
+    if profile.get("cancellation_policy") != "CALLER_CONTROLLED_FAIL_CLOSED":
+        errors.append("execution_profile_cancellation_policy_invalid")
+
+    normalized = {
+        field: profile.get(field)
+        for field in EXECUTION_PROFILE_REQUIRED_FIELDS
+    }
+    if isinstance(normalized.get("tool_class_allowlist"), list):
+        normalized["tool_class_allowlist"] = list(normalized["tool_class_allowlist"])
+    if isinstance(normalized.get("required_reviews"), list):
+        normalized["required_reviews"] = list(normalized["required_reviews"])
+    if mission_intent_fingerprint:
+        normalized["mission_intent_fingerprint"] = mission_intent_fingerprint
+    fingerprint = _execution_contract_fingerprint({
+        "schema": "v7.omp-execution-profile-contract.v1",
+        **normalized,
+    })
+    unique = sorted(set(errors))
+    return {
+        "schema": "v7.omp-execution-profile-contract.v1",
+        **normalized,
+        "profile_fingerprint": fingerprint,
+        "profile_identity_valid": not unique,
+        "dispatch_performed": False,
+        "tool_allowlist_enforcement": "DECLARED_NOT_ENFORCED_EXTERNAL_EXECUTOR_BOUNDARY",
+        "time_step_retry_enforcement": "DECLARED_NOT_ENFORCED_EXTERNAL_EXECUTOR_BOUNDARY",
+        "prompt_injection_boundary": "OUTER_PROFILE_CONTRACT_OVERRIDES_UNTRUSTED_EVIDENCE",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "final_verdict": "PASS" if not unique else "STOP_SAFE",
+        "errors": unique,
+    }
+
+
+def execution_profile_completion_binding(contract: dict[str, Any]) -> dict[str, Any]:
+    """Validate result and independent-review identity for one admitted profile."""
+    errors: list[str] = []
+    admitted = contract.get("EXECUTION_PROFILE_CONTRACT")
+    result = contract.get("EXECUTION_PROFILE_RESULT")
+    reviews = contract.get("EXECUTION_PROFILE_REVIEWS")
+    if not isinstance(admitted, dict):
+        admitted = {}
+        errors.append("execution_profile_contract_missing")
+    if not isinstance(result, dict):
+        result = {}
+        errors.append("execution_profile_result_missing")
+    if not isinstance(reviews, list):
+        reviews = []
+        errors.append("execution_profile_reviews_invalid")
+
+    mission_id = str(admitted.get("mission_id") or "")
+    admission_check = admit_execution_profile_contract(admitted, mission_id=mission_id)
+    errors.extend(admission_check.get("errors") or [])
+    profile_fingerprint = str(admitted.get("profile_fingerprint") or "")
+    if profile_fingerprint != admission_check.get("profile_fingerprint"):
+        errors.append("execution_profile_fingerprint_mismatch")
+    current_identity = {
+        "mission_id": str(contract.get("CURRENT_MISSION_ID") or ""),
+        "run_nonce": str(contract.get("CURRENT_RUN_NONCE") or ""),
+        "input_fingerprint": str(contract.get("CURRENT_INPUT_FINGERPRINT") or ""),
+        "repo_fingerprint": str(contract.get("CURRENT_REPO_FINGERPRINT") or ""),
+    }
+    for field in current_identity:
+        expected = str(admitted.get(field) or "")
+        if current_identity[field] != expected:
+            errors.append(f"execution_profile_current_{field}_mismatch")
+    if contract.get("MISSION_CURRENT") is not True or contract.get("MISSION_SUPERSEDED") is True:
+        errors.append("execution_profile_mission_stale_or_superseded")
+
+    echoed_fields = (
+        "profile_type", "profile_version", "mission_id", "run_nonce",
+        "input_fingerprint", "repo_fingerprint", "profile_fingerprint",
+    )
+    for field in echoed_fields:
+        if result.get(field) != admitted.get(field):
+            errors.append(f"execution_profile_result_{field}_mismatch")
+    mission_intent_fingerprint = str(admitted.get("mission_intent_fingerprint") or "")
+    if mission_intent_fingerprint:
+        intent = contract.get("MISSION_INTENT_CONTRACT")
+        if not isinstance(intent, dict) or intent.get("mission_intent_fingerprint") != mission_intent_fingerprint:
+            errors.append("execution_profile_current_mission_intent_fingerprint_mismatch")
+        if result.get("mission_intent_fingerprint") != mission_intent_fingerprint:
+            errors.append("execution_profile_result_mission_intent_fingerprint_mismatch")
+    if result.get("schema") != admitted.get("output_schema"):
+        errors.append("execution_profile_result_schema_invalid")
+    payload = result.get("output")
+    if not isinstance(payload, dict):
+        payload = {}
+        errors.append("execution_profile_output_invalid")
+    profile_type = str(admitted.get("profile_type") or "")
+    output_fields = (
+        GPT_DECISION_REVIEW_OUTPUT_FIELDS
+        if profile_type == "GPT_DECISION_REVIEW"
+        else CODE_OPTIMIZATION_OUTPUT_FIELDS
+        if profile_type == "CODE_OPTIMIZATION"
+        else ()
+    )
+    missing_output = [field for field in output_fields if field not in payload]
+    errors.extend(f"execution_profile_output_field_missing:{field}" for field in missing_output)
+    if payload.get("mission_reference") != mission_id:
+        errors.append("execution_profile_output_mission_reference_mismatch")
+    if payload.get("profile_reference") != profile_fingerprint:
+        errors.append("execution_profile_output_profile_reference_mismatch")
+    if payload.get("input_fingerprint") != admitted.get("input_fingerprint"):
+        errors.append("execution_profile_output_input_fingerprint_mismatch")
+    terminal = str(payload.get("terminal_verdict") or "")
+    terminals = (
+        GPT_DECISION_REVIEW_TERMINALS
+        if profile_type == "GPT_DECISION_REVIEW"
+        else CODE_OPTIMIZATION_TERMINALS
+        if profile_type == "CODE_OPTIMIZATION"
+        else set()
+    )
+    if terminal not in terminals:
+        errors.append("execution_profile_output_terminal_invalid")
+    owner_required = payload.get("owner_decision_required")
+    if not isinstance(owner_required, bool):
+        errors.append("execution_profile_owner_decision_flag_invalid")
+    if profile_type == "GPT_DECISION_REVIEW" and terminal == "OWNER_DECISION_REQUIRED" and (
+        owner_required is not True or not str(payload.get("owner_decision_reason") or "").strip()
+    ):
+        errors.append("execution_profile_owner_decision_reason_missing")
+    if profile_type == "GPT_DECISION_REVIEW" and terminal == "PASS_DECISION_READY" and owner_required is not False:
+        errors.append("execution_profile_pass_cannot_require_owner_decision")
+    if profile_type == "CODE_OPTIMIZATION":
+        selected = payload.get("selected_first_candidate")
+        ranked = payload.get("ranked_candidates")
+        if not isinstance(ranked, list):
+            errors.append("code_optimization_ranked_candidates_invalid")
+        if terminal == "PASS_CANDIDATE_READY" and not isinstance(selected, dict):
+            errors.append("code_optimization_selected_candidate_missing")
+        if terminal in {"NO_SAFE_COUNTERFACTUAL_CANDIDATE", "INSUFFICIENT_EVIDENCE"} and selected is not None:
+            errors.append("code_optimization_terminal_cannot_select_candidate")
+
+    output_fingerprint = _execution_contract_fingerprint(payload)
+    if result.get("output_fingerprint") != output_fingerprint:
+        errors.append("execution_profile_output_fingerprint_mismatch")
+    result_identity = {
+        "schema": result.get("schema"),
+        **{field: result.get(field) for field in echoed_fields},
+        "output_fingerprint": output_fingerprint,
+    }
+    if mission_intent_fingerprint:
+        result_identity["mission_intent_fingerprint"] = mission_intent_fingerprint
+    result_fingerprint = _execution_contract_fingerprint(result_identity)
+    if result.get("result_fingerprint") != result_fingerprint:
+        errors.append("execution_profile_result_fingerprint_mismatch")
+    expected_result = str(contract.get("EXPECTED_RESULT_FINGERPRINT") or "")
+    if expected_result != result_fingerprint:
+        errors.append("execution_profile_expected_result_fingerprint_mismatch")
+    existing_results = contract.get("EXISTING_RESULT_FINGERPRINTS") or []
+    if not isinstance(existing_results, list):
+        errors.append("execution_profile_existing_results_invalid")
+        existing_results = []
+    conflicting = sorted({str(item) for item in existing_results if str(item) != result_fingerprint})
+    if conflicting:
+        errors.append("execution_profile_ambiguous_result_fingerprint")
+
+    required_reviews = list(admitted.get("required_reviews") or [])
+    reviews_by_type: dict[str, list[dict[str, Any]]] = {}
+    for review in reviews:
+        if not isinstance(review, dict):
+            errors.append("execution_profile_review_record_invalid")
+            continue
+        review_type = str(review.get("review_type") or "")
+        reviews_by_type.setdefault(review_type, []).append(review)
+    review_status: dict[str, str] = {}
+    for review_type in required_reviews:
+        matches = reviews_by_type.get(review_type, [])
+        if len(matches) != 1:
+            errors.append(f"execution_profile_required_review_count_invalid:{review_type}")
+            review_status[review_type] = "MISSING_OR_AMBIGUOUS"
+            continue
+        review = matches[0]
+        for field, expected in (
+            ("mission_id", mission_id),
+            ("run_nonce", admitted.get("run_nonce")),
+            ("profile_fingerprint", profile_fingerprint),
+            ("input_fingerprint", admitted.get("input_fingerprint")),
+            ("submitted_output_fingerprint", output_fingerprint),
+        ):
+            if review.get(field) != expected:
+                errors.append(f"execution_profile_review_{field}_mismatch:{review_type}")
+        if mission_intent_fingerprint and review.get("mission_intent_fingerprint") != mission_intent_fingerprint:
+            errors.append(f"execution_profile_review_mission_intent_fingerprint_mismatch:{review_type}")
+        if review.get("submitted_output_modified") is not False:
+            errors.append(f"execution_profile_review_modified_submission:{review_type}")
+        if not str(review.get("review_context_id") or "") or (
+            review.get("review_context_id") == result.get("executor_context_id")
+        ):
+            errors.append(f"execution_profile_review_context_not_separate:{review_type}")
+        verdict = str(review.get("review_verdict") or "")
+        if verdict not in EXECUTION_PROFILE_REVIEW_VERDICTS:
+            errors.append(f"execution_profile_review_verdict_invalid:{review_type}")
+        elif verdict != "PASS":
+            errors.append(f"execution_profile_review_not_pass:{review_type}:{verdict}")
+        review_payload = {
+            key: value for key, value in review.items()
+            if key != "review_output_fingerprint"
+        }
+        computed_review_fingerprint = _execution_contract_fingerprint(review_payload)
+        if review.get("review_output_fingerprint") != computed_review_fingerprint:
+            errors.append(f"execution_profile_review_output_fingerprint_mismatch:{review_type}")
+        review_status[review_type] = verdict or "INVALID"
+
+    if admitted.get("terminal_consumer") != "MISSION_COMPLETION_EVIDENCE_GATE":
+        errors.append("execution_profile_completion_consumer_invalid")
+    unique = sorted(set(errors))
+    duplicate = bool(existing_results) and not conflicting and not unique
+    return {
+        "schema": "v7.omp-execution-profile-completion-binding.v1",
+        "profile_fingerprint": profile_fingerprint,
+        "result_fingerprint": result_fingerprint,
+        "output_fingerprint": output_fingerprint,
+        "review_status": review_status,
+        "identity_binding": "PASS" if not unique else "FAIL",
+        "schema_independence_proven": not unique,
+        "model_level_independence_proven": False,
+        "duplicate_disposition": "IDEMPOTENT_EXACT_DUPLICATE" if duplicate else "FIRST_EXACT_RESULT" if not existing_results else "REJECTED_AMBIGUOUS_RESULT",
+        "cps_effect": "NONE",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "final_verdict": "PASS" if not unique else "STOP_SAFE",
+        "errors": unique,
+    }
+
+
+def gpt_decision_review_profile_contract(
+    *, mission_id: str, run_nonce: str, input_fingerprint: str,
+    repo_fingerprint: str, mission_intent_fingerprint: str = "",
+) -> dict[str, Any]:
+    """Produce the minimum admitted read-only decision-review profile."""
+    return {
+        "profile_type": "GPT_DECISION_REVIEW",
+        "profile_version": "v1",
+        "mission_id": mission_id,
+        "run_nonce": run_nonce,
+        "input_fingerprint": input_fingerprint,
+        "repo_fingerprint": repo_fingerprint,
+        "mutation_class": "READ_ONLY",
+        "authority_class": "NONE_ENGINEERING_READ_ONLY",
+        "tool_class_allowlist": ["READ_ONLY_ENGINEERING_EVIDENCE"],
+        "output_schema": "v7.gpt-decision-review-result.v1",
+        "required_reviews": [
+            "ARCHITECTURE_REVIEW",
+            *(["MISSION_INTEGRITY_REVIEW"] if mission_intent_fingerprint else []),
+        ],
+        **({"mission_intent_fingerprint": mission_intent_fingerprint} if mission_intent_fingerprint else {}),
+        "terminal_consumer": "MISSION_COMPLETION_EVIDENCE_GATE",
+        "max_duration": 900,
+        "max_steps": 40,
+        "retry_policy": "NO_RETRY",
+        "cancellation_policy": "CALLER_CONTROLLED_FAIL_CLOSED",
+    }
+
+
+def code_optimization_profile_contract(
+    *, mission_id: str, run_nonce: str, input_fingerprint: str,
+    repo_fingerprint: str, continuous_acceptance: bool = False,
+    mission_intent_fingerprint: str = "",
+) -> dict[str, Any]:
+    """Return the minimum read-only optimization profile.
+
+    This profile can derive advisory Engineering evidence only.  It cannot
+    create a successor, write source, CPS, Runtime or production state, or
+    certify itself: Architecture and Evidence reviews bind the same immutable
+    output before the existing completion consumer may accept it.
+    """
+    return {
+        "profile_type": "CODE_OPTIMIZATION",
+        "profile_version": "v1",
+        "mission_id": mission_id,
+        "run_nonce": run_nonce,
+        "input_fingerprint": input_fingerprint,
+        "repo_fingerprint": repo_fingerprint,
+        "mutation_class": "READ_ONLY",
+        "authority_class": "NONE_ENGINEERING_READ_ONLY",
+        "tool_class_allowlist": ["READ_ONLY_ENGINEERING_EVIDENCE"],
+        "output_schema": "v7.code-optimization-result.v1",
+        "required_reviews": (
+            [
+                "ARCHITECTURE_REVIEW", "SAFETY_REGRESSION_REVIEW",
+                "EVIDENCE_REVIEW", "QUALITY_COMPLEXITY_REVIEW",
+            ]
+            if continuous_acceptance
+            else ["ARCHITECTURE_REVIEW", "EVIDENCE_REVIEW"]
+        ) + (["MISSION_INTEGRITY_REVIEW"] if mission_intent_fingerprint else []),
+        **({"mission_intent_fingerprint": mission_intent_fingerprint} if mission_intent_fingerprint else {}),
+        "terminal_consumer": "MISSION_COMPLETION_EVIDENCE_GATE",
+        "max_duration": 900,
+        "max_steps": 60,
+        "retry_policy": "NO_RETRY",
+        "cancellation_policy": "CALLER_CONTROLLED_FAIL_CLOSED",
+    }
+
+
+def gpt_decision_review_result_contract(
+    admitted_profile: dict[str, Any], output: dict[str, Any], *,
+    executor_context_id: str,
+) -> dict[str, Any]:
+    """Produce an immutable external-executor result for gate validation."""
+    result = {
+        "schema": admitted_profile.get("output_schema"),
+        "profile_type": admitted_profile.get("profile_type"),
+        "profile_version": admitted_profile.get("profile_version"),
+        "mission_id": admitted_profile.get("mission_id"),
+        "run_nonce": admitted_profile.get("run_nonce"),
+        "input_fingerprint": admitted_profile.get("input_fingerprint"),
+        "repo_fingerprint": admitted_profile.get("repo_fingerprint"),
+        "profile_fingerprint": admitted_profile.get("profile_fingerprint"),
+        **({
+            "mission_intent_fingerprint": admitted_profile.get("mission_intent_fingerprint"),
+        } if admitted_profile.get("mission_intent_fingerprint") else {}),
+        "executor_context_id": executor_context_id,
+        "execution_engine_provenance": "EXTERNAL_EXECUTOR_UNVERIFIED",
+        "prompt_profile_fingerprint": admitted_profile.get("profile_fingerprint"),
+        "tool_action_log_fingerprint": "NONE_READ_ONLY_PROOF",
+        "tool_allowlist_enforcement": "DECLARED_NOT_ENFORCED_EXTERNAL_EXECUTOR_BOUNDARY",
+        "time_step_retry_enforcement": "DECLARED_NOT_ENFORCED_EXTERNAL_EXECUTOR_BOUNDARY",
+        "output": output,
+    }
+    result["output_fingerprint"] = _execution_contract_fingerprint(output)
+    result_identity = {
+        "schema": result["schema"],
+        **{
+            field: result[field]
+            for field in (
+                "profile_type", "profile_version", "mission_id", "run_nonce",
+                "input_fingerprint", "repo_fingerprint", "profile_fingerprint",
+            )
+        },
+        "output_fingerprint": result["output_fingerprint"],
+    }
+    if result.get("mission_intent_fingerprint"):
+        result_identity["mission_intent_fingerprint"] = result["mission_intent_fingerprint"]
+    result["result_fingerprint"] = _execution_contract_fingerprint(result_identity)
+    return result
+
+
+def execution_profile_review_record(
+    admitted_profile: dict[str, Any], result: dict[str, Any], *,
+    review_type: str, review_verdict: str, review_context_id: str,
+) -> dict[str, Any]:
+    """Produce one schema-independent review bound to the exact output."""
+    review = {
+        "schema": "v7.omp-execution-profile-review.v1",
+        "mission_id": admitted_profile.get("mission_id"),
+        "run_nonce": admitted_profile.get("run_nonce"),
+        "profile_fingerprint": admitted_profile.get("profile_fingerprint"),
+        "input_fingerprint": admitted_profile.get("input_fingerprint"),
+        **({
+            "mission_intent_fingerprint": admitted_profile.get("mission_intent_fingerprint"),
+        } if admitted_profile.get("mission_intent_fingerprint") else {}),
+        "submitted_output_fingerprint": result.get("output_fingerprint"),
+        "review_type": review_type,
+        "review_verdict": review_verdict,
+        "review_context_id": review_context_id,
+        "submitted_output_modified": False,
+        "independence_proof_level": "SCHEMA_CONTEXT_SEPARATION_ONLY",
+    }
+    review["review_output_fingerprint"] = _execution_contract_fingerprint(review)
+    return review
+
 
 def _bdp_normalized_value(value: Any) -> Any:
     if isinstance(value, str):
@@ -11038,6 +11874,7 @@ def omp_candidate_admission_decision(
     *,
     mission_id: str = "",
     existing_candidate_ids: Optional[Iterable[str]] = None,
+    execution_profile_contract: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Consume one BDP Candidate through the existing bounded OMP admission gates."""
     missing = [
@@ -11081,15 +11918,29 @@ def omp_candidate_admission_decision(
         if candidate.get(field) is not False:
             errors.append(f"candidate_boundary_invalid:{field}")
 
+    resolved_mission_id = mission_id or f"V7_OMP_BDP_{identity[:24].upper()}_V1"
+    accepted_before_profile = not errors
+    profile_admission: Optional[dict[str, Any]] = None
+    if execution_profile_contract is not None:
+        if not accepted_before_profile:
+            errors.append("execution_profile_requires_accepted_mission")
+        else:
+            profile_admission = admit_execution_profile_contract(
+                execution_profile_contract,
+                mission_id=resolved_mission_id,
+            )
+            errors.extend(profile_admission.get("errors") or [])
     unique = sorted(set(errors))
     accepted = not unique
-    resolved_mission_id = mission_id or f"V7_OMP_BDP_{identity[:24].upper()}_V1"
     decision_payload = {
         "schema": "v7.omp-candidate-admission-trace.v1",
         "candidate_instance_id": candidate_id,
         "candidate_identity": identity,
         "mission_id": resolved_mission_id if accepted else "NONE",
         "decision": "MISSION_ACCEPTED" if accepted else "MISSION_NOT_APPLICABLE" if duplicate else "MISSION_REJECTED",
+        "profile_fingerprint": (
+            profile_admission.get("profile_fingerprint") if profile_admission else "NONE"
+        ),
         "errors": unique,
     }
     decision_fingerprint = hashlib.sha256(
@@ -11106,6 +11957,8 @@ def omp_candidate_admission_decision(
         "mission_id": resolved_mission_id if accepted else "NONE",
         "decision_trace_id": f"ompdt_{decision_fingerprint[:24]}",
         "decision_fingerprint": decision_fingerprint,
+        "execution_profile_contract": profile_admission,
+        "execution_profile_governed": profile_admission is not None,
         "mission_executed": False,
         "runtime_impact": "NONE",
         "production_impact": "NONE",
@@ -11237,6 +12090,7 @@ def bdp_development_impulse_handoff(
     *,
     existing_candidates: Optional[Iterable[Any]] = None,
     mission_id: str = "",
+    execution_profile_contract: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Route one bounded owner-backed BDP gap to OMP, or return legal no-action."""
     errors: list[str] = []
@@ -11384,7 +12238,11 @@ def bdp_development_impulse_handoff(
             "errors": [],
         }
 
-    admission = omp_candidate_admission_decision(candidate, mission_id=mission_id)
+    admission = omp_candidate_admission_decision(
+        candidate,
+        mission_id=mission_id,
+        execution_profile_contract=execution_profile_contract,
+    )
     return {
         "schema": "v7-omp-bdp-development-impulse-handoff/v1",
         "handoff_status": "CANDIDATE_CONSUMED_BY_OMP" if admission["final_verdict"] == "PASS" else "STOP_SAFE",
@@ -11400,6 +12258,161 @@ def bdp_development_impulse_handoff(
         "authority_expansion": False,
         "final_verdict": admission["final_verdict"],
         "errors": admission["errors"],
+    }
+
+
+def bounded_execution_profile_contract_proof(*, root: Path = ROOT) -> dict[str, Any]:
+    """Run one disposable read-only BDP→profile→review→completion proof."""
+    mission_id = "V7_OMP_BOUNDED_EXECUTION_PROFILE_READ_ONLY_PROOF_V1"
+    run_nonce = "profile-proof-20260904-v1"
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_before = cps_path.read_bytes() if cps_path.is_file() else b""
+    input_fingerprint = _execution_contract_fingerprint({
+        "mission_id": mission_id,
+        "purpose": "read-only execution profile identity proof",
+        "active_cps_fingerprint": hashlib.sha256(cps_before).hexdigest(),
+    })
+    try:
+        repo_identity = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=str(root), text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False,
+        ).stdout.strip()
+    except OSError:
+        repo_identity = ""
+    repo_fingerprint = hashlib.sha256(repo_identity.encode("utf-8")).hexdigest()
+    profile = gpt_decision_review_profile_contract(
+        mission_id=mission_id,
+        run_nonce=run_nonce,
+        input_fingerprint=input_fingerprint,
+        repo_fingerprint=repo_fingerprint,
+    )
+    gap = {
+        "primary_class": "EXECUTION_PROFILE_IDENTITY_BINDING",
+        "secondary_classes": ["EXISTING_OWNER_CONTRACT_EXTENSION"],
+        "execution_depth": "L2",
+        "engineering_intent": "Bind one read-only decision profile to an admitted OMP Mission.",
+        "current_reality": "OMP admission and completion exist without profile-result identity binding.",
+        "expected_reality": "One exact profile result and review are consumed by the existing completion gate.",
+        "engineering_chain": "BDP->CANDIDATE->OMP->PROFILE->RESULT->REVIEW->COMPLETION",
+        "engineering_chain_segment": "ADMISSION_TO_COMPLETION_CONSUMER",
+        "behaviour_instance": "Disposable read-only execution profile proof.",
+        "behaviour": "OMP bounded Mission execution contract",
+        "automation_logic": "Existing BDP admission and Mission Completion Evidence Gate.",
+        "automation_break": "PROFILE_RESULT_IDENTITY_NOT_MACHINE_BOUND",
+        "existing_rule": "Discover Bind Validate Prove through existing owners.",
+        "current_outcome": "PROFILE_BINDING_UNPROVEN",
+        "expected_outcome": "PROFILE_BINDING_CONSUMED_READ_ONLY",
+        "intent_closure_state": "AUTOMATION_BREAK",
+        "owner": "EXISTING_BDP_AND_OMP_COMPLETION_OWNERS",
+        "producer": "BDP_DISCOVERY_ECONOMY",
+        "consumer": "MISSION_COMPLETION_EVIDENCE_GATE",
+        "evidence": "Current admission and completion implementation.",
+        "implementation_scope": "tools/v7_sync_lib.py existing admission/completion owners",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "dependencies": "EXISTING_CONTRACTS_READY",
+        "verification": "Focused deterministic read-only contract tests.",
+        "verification_context": "Profile, result, review, stale and duplicate identity fixtures.",
+        "rollback": "Remove optional profile fields and completion validation.",
+        "authority": "EXISTING_ENGINEERING_PLANE_AUTHORITY",
+        "authority_context": "Read-only; no expansion or CPS projection.",
+        "terminal_path": "MISSION_COMPLETION_EVIDENCE_GATE",
+        "implementation_readiness": "IMPLEMENTATION_READY",
+        "omp_consumer": "OMP_CANDIDATE_ADMISSION",
+        "codex_readiness": "CODEX_READY_WITH_LIMITS",
+        "new_owner_required": False,
+        "new_architecture_required": False,
+    }
+    handoff = bdp_development_impulse_handoff(
+        {
+            "state_generation": "cpsgen_PROFILE_PROOF_20260904_V1",
+            "discovery_economy_decision": "DISCOVERY_NOT_REQUIRED_REUSE_EVIDENCE",
+            "engineering_gaps": [gap],
+            "real_world_limit_intents": 0,
+        },
+        mission_id=mission_id,
+        execution_profile_contract=profile,
+    )
+    admitted = (handoff.get("admission") or {}).get("execution_profile_contract") or {}
+    output = {
+        "mission_reference": mission_id,
+        "profile_reference": admitted.get("profile_fingerprint"),
+        "input_fingerprint": input_fingerprint,
+        "current_facts": ["OMP admission and completion gate are existing owners"],
+        "as_is": "Admission is prepared and external execution is read-only.",
+        "to_be": "The same immutable identity reaches the existing completion consumer.",
+        "exact_residual": "No CPS projection is permitted in this proof.",
+        "options": ["reuse existing admission and completion owners"],
+        "recommended_option": "reuse existing admission and completion owners",
+        "owner_impact": "NONE",
+        "state_impact": "NONE",
+        "safety_impact": "READ_ONLY",
+        "latency_impact": "NOT_APPLICABLE",
+        "structural_impact": "BOUNDED_EXISTING_CONTRACT_EXTENSION",
+        "owner_decision_required": False,
+        "owner_decision_reason": "NONE",
+        "unproven_claims": ["model-level reviewer independence", "external budget enforcement"],
+        "terminal_verdict": "PASS_DECISION_READY",
+    }
+    result = gpt_decision_review_result_contract(
+        admitted, output, executor_context_id="external-executor-proof-context",
+    )
+    review = execution_profile_review_record(
+        admitted, result,
+        review_type="ARCHITECTURE_REVIEW",
+        review_verdict="PASS",
+        review_context_id="independent-architecture-review-proof-context",
+    )
+    completion = mission_completion_evidence_gate({
+        "MISSION_TYPE": "ACCEPTANCE",
+        "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION",
+        "INDEPENDENT_ACCEPTANCE_PROVEN": True,
+        "NEXT_OUTPUT_PROVEN": True,
+        "EXECUTION_PROFILE_CONTRACT": admitted,
+        "EXECUTION_PROFILE_RESULT": result,
+        "EXECUTION_PROFILE_REVIEWS": [review],
+        "CURRENT_MISSION_ID": mission_id,
+        "CURRENT_RUN_NONCE": run_nonce,
+        "CURRENT_INPUT_FINGERPRINT": input_fingerprint,
+        "CURRENT_REPO_FINGERPRINT": repo_fingerprint,
+        "MISSION_CURRENT": True,
+        "MISSION_SUPERSEDED": False,
+        "EXPECTED_RESULT_FINGERPRINT": result.get("result_fingerprint"),
+        "EXISTING_RESULT_FINGERPRINTS": [],
+    })
+    cps_after = cps_path.read_bytes() if cps_path.is_file() else b""
+    pass_proof = all((
+        handoff.get("final_verdict") == "PASS",
+        completion.get("completion_verdict") == "COMPLETE_WITH_LEGAL_TERMINAL",
+        completion.get("execution_profile_binding_consumed") is True,
+        cps_before == cps_after,
+    ))
+    return {
+        "schema": "v7.omp-bounded-execution-profile-proof.v1",
+        "profile_contract_present": bool(admitted),
+        "profile_identity_valid": admitted.get("final_verdict") == "PASS",
+        "result_identity_valid": (
+            (completion.get("execution_profile_binding") or {}).get("identity_binding") == "PASS"
+        ),
+        "required_reviews_present": (
+            (completion.get("execution_profile_binding") or {}).get("review_status", {}).get("ARCHITECTURE_REVIEW") == "PASS"
+        ),
+        "review_fingerprints_valid": (
+            (completion.get("execution_profile_binding") or {}).get("final_verdict") == "PASS"
+        ),
+        "completion_consumer_valid": completion.get("execution_profile_binding_consumed") is True,
+        "no_cps_effect": cps_before == cps_after,
+        "handoff": handoff,
+        "result": result,
+        "reviews": [review],
+        "completion": completion,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "user_movement": 0,
+        "route_impact": "NONE",
+        "authority_impact": "NONE",
+        "final_verdict": "PASS" if pass_proof else "STOP_SAFE",
+        "errors": [] if pass_proof else ["bounded_execution_profile_proof_failed"],
     }
 
 
@@ -24049,6 +25062,31 @@ def continue_omp_engineering_control_loop(
         )
         if background_certified and changed_dependencies is not None:
             ordinary_frontier = []
+        if changed_dependencies is not None:
+            optimization = code_optimization_material_change_admission(changed_dependencies, root=root)
+            if optimization.get("reason") == "ANTI_REGROWTH_STOP_SAFE":
+                return {
+                    "schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE",
+                    "program_terminal": "CODE_OPTIMIZATION_ANTI_REGROWTH_VIOLATION",
+                    "trigger": "Continue OMP material-change flow",
+                    "real_caller": "continue_omp_engineering_control_loop",
+                    "real_consumer": "code_optimization_bridge_anti_regrowth",
+                    "code_optimization_admission": optimization,
+                    "transitions": [], "internal_iteration_count": 1,
+                    "runtime_impact": "NONE", "production_impact": "NONE",
+                    "authority_impact": "NONE", "errors": ["anti_regrowth_rule_failed"],
+                }
+            if optimization.get("eligible"):
+                return {
+                    "schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "PASS",
+                    "program_terminal": "CODE_OPTIMIZATION_READ_ONLY_ADMISSION_READY",
+                    "trigger": "Continue OMP material-change flow",
+                    "real_caller": "continue_omp_engineering_control_loop",
+                    "real_consumer": optimization["real_consumer"],
+                    "code_optimization_admission": optimization,
+                    "transitions": [{"transaction_terminal": "CODE_OPTIMIZATION_READ_ONLY_ADMITTED", "changed_dependencies": optimization["changed_dependencies"], "no_user_prompt": True}],
+                    "internal_iteration_count": 1, "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE", "errors": [],
+                }
         truth_lifecycle = {
             "cps": "VALID", "scenario_corpus": "VALID", "dependency_bindings": "VALID",
             "scenario_results": "REVALIDATION_REQUIRED", "owner": "OMP+CURRENT_TRUTH_OWNERS",
@@ -25886,6 +26924,1148 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         "bdp_real_world_limit_intents_preserved": development_impulse.get("real_world_limit_intents_preserved", 0),
         "errors": unique,
     }
+
+
+RESPONSIBILITY_SUBGRAPH_SCHEMA = "v7.responsibility-subgraph-derived-evidence.v1"
+RESPONSIBILITY_SUBGRAPH_DOMAIN_ID = "ORDINARY_SERVICE_FAILURE_GOVERNED_RECOVERY_EXECUTION"
+RESPONSIBILITY_SUBGRAPH_GENERATOR_VERSION = "v1"
+RESPONSIBILITY_SUBGRAPH_NODE_TYPES = {
+    "FILE", "FUNCTION", "STATE_SURFACE", "LOCK", "LEASE", "PROCESS",
+    "SYSTEMD_UNIT", "TEST_SURFACE", "TERMINAL_CONSUMER",
+}
+RESPONSIBILITY_SUBGRAPH_EDGE_TYPES = {
+    "CALLS", "READS", "WRITES", "ACQUIRES_LOCK", "USES_LEASE",
+    "SPAWNS", "INVOKED_BY_SYSTEMD", "PASSES_TO", "RETURNS_TO",
+}
+RESPONSIBILITY_SUBGRAPH_SEMANTIC_STATUSES = {
+    "NECESSARY", "REDUNDANT", "SUPERSEDED", "UNCLASSIFIED",
+}
+RESPONSIBILITY_SUBGRAPH_PILOT_PATHS = (
+    "tools/v7-users-autoswitch",
+    "admin_core/operator_execution.py",
+    "admin_core/operator_execution_pipeline.py",
+    "tools/v7-service-matrix-test",
+    "systemd/v7-health.service",
+)
+RESPONSIBILITY_SUBGRAPH_PILOT_SEEDS = (
+    "tools/v7-users-autoswitch:build_service_failure_adaptive_cohort_contract",
+    "admin_core/operator_execution.py:execute_packet",
+    "admin_core/operator_execution_pipeline.py:governed_apply_policy",
+    "systemd/v7-health.service",
+)
+
+# A second bounded domain is deliberately an explicit branch, not a discovery
+# registry.  It lets the existing producer analyse its own read-only OMP
+# completion path without treating the active Runtime recovery frontier as an
+# optimization experiment.
+OMP_COMPLETION_SUBGRAPH_DOMAIN_ID = "OMP_EXECUTION_PROFILE_COMPLETION_LIFECYCLE"
+OMP_COMPLETION_SUBGRAPH_PATHS = ("tools/v7-truth-check", "tools/v7_sync_lib.py")
+OMP_COMPLETION_SUBGRAPH_SEEDS = (
+    "tools/v7-truth-check:main",
+    "tools/v7_sync_lib.py:submit_code_optimization_result",
+    "tools/v7_sync_lib.py:execution_profile_completion_binding",
+    "tools/v7_sync_lib.py:mission_completion_evidence_gate",
+)
+
+# A second responsibility domain of the same OMP owner.  It describes the
+# existing material-change caller; it does not create another owner or system.
+OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID = "OMP_CODE_OPTIMIZATION_MATERIAL_CHANGE_BRIDGE"
+OMP_CODE_OPTIMIZATION_BRIDGE_PATHS = OMP_COMPLETION_SUBGRAPH_PATHS
+OMP_CODE_OPTIMIZATION_BRIDGE_SEEDS = (
+    "tools/v7-truth-check:main",
+    "tools/v7_sync_lib.py:continue_omp_engineering_control_loop",
+    "tools/v7_sync_lib.py:code_optimization_material_change_admission",
+    "tools/v7_sync_lib.py:submit_code_optimization_result",
+)
+
+
+def _responsibility_subgraph_domain_config(domain_id: str) -> tuple[tuple[str, ...], tuple[str, ...], dict[str, str]] | None:
+    if domain_id == RESPONSIBILITY_SUBGRAPH_DOMAIN_ID:
+        return (RESPONSIBILITY_SUBGRAPH_PILOT_PATHS, RESPONSIBILITY_SUBGRAPH_PILOT_SEEDS, {
+            "responsibility": RESPONSIBILITY_SUBGRAPH_DOMAIN_ID,
+            "owner": "tools/v7-users-autoswitch", "plane": "ENGINEERING_EVIDENCE_ONLY",
+        })
+    if domain_id == OMP_COMPLETION_SUBGRAPH_DOMAIN_ID:
+        return (OMP_COMPLETION_SUBGRAPH_PATHS, OMP_COMPLETION_SUBGRAPH_SEEDS, {
+            "responsibility": OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
+            "owner": "tools/v7_sync_lib.py", "plane": "ENGINEERING_EVIDENCE_ONLY",
+        })
+    if domain_id == OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID:
+        return (OMP_CODE_OPTIMIZATION_BRIDGE_PATHS, OMP_CODE_OPTIMIZATION_BRIDGE_SEEDS, {
+            "responsibility": OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,
+            "owner": "OMP:continue_omp_engineering_control_loop", "plane": "ENGINEERING_EVIDENCE_ONLY",
+        })
+    return None
+
+
+def _responsibility_subgraph_fingerprint(value: Any) -> str:
+    """Fingerprint canonical structural content, never wall-clock metadata."""
+    return hashlib.sha256(json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+
+
+def _responsibility_subgraph_source_fingerprint(root: Path, paths: Iterable[str]) -> str:
+    records: list[dict[str, str]] = []
+    for relative in sorted({str(item) for item in paths}):
+        path = root / relative
+        if not path.is_file():
+            records.append({"path": relative, "sha256": "MISSING"})
+            continue
+        records.append({
+            "path": relative,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        })
+    return _responsibility_subgraph_fingerprint(records)
+
+
+def responsibility_subgraph_pilot_request(*, root: Path = ROOT, domain_id: str = RESPONSIBILITY_SUBGRAPH_DOMAIN_ID) -> dict[str, Any]:
+    """Return the one bounded, source-only recovery responsibility request."""
+    config = _responsibility_subgraph_domain_config(domain_id)
+    if config is None:
+        raise ValueError("responsibility_subgraph_domain_unauthorized")
+    paths, seeds, canonical = config
+    repo_fingerprint = _responsibility_subgraph_source_fingerprint(root, paths)
+    request = {
+        "schema": "v7.responsibility-subgraph-request.v1",
+        "mission_id": "V7_EXISTING_DISCOVERY_OWNER_DOMAIN_RESPONSIBILITY_SUBGRAPH_PRODUCER_V1",
+        "run_nonce": "responsibility-subgraph-proof-v1",
+        "profile_id": "GPT_DECISION_REVIEW",
+        "input_id": "ordinary-service-failure-recovery-pilot-v1",
+        "domain_id": domain_id,
+        "repo_fingerprint": repo_fingerprint,
+        "canonical_references": canonical,
+        "seed_entrypoints": list(seeds), "path_allowlist": list(paths),
+        "max_depth": 2,
+        "max_files": len(paths),
+        "max_edges": 800 if domain_id in {OMP_COMPLETION_SUBGRAPH_DOMAIN_ID, OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID} else 160,
+        "max_unknown_references": 4000 if domain_id in {OMP_COMPLETION_SUBGRAPH_DOMAIN_ID, OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID} else 500,
+        "ttl_seconds": 900,
+        "generator_version": RESPONSIBILITY_SUBGRAPH_GENERATOR_VERSION,
+    }
+    request["input_fingerprint"] = _responsibility_subgraph_fingerprint({
+        key: value for key, value in request.items() if key != "input_fingerprint"
+    })
+    return request
+
+
+def _responsibility_subgraph_validate_request(
+    request: dict[str, Any], *, root: Path,
+) -> tuple[dict[str, Any], list[str]]:
+    errors: list[str] = []
+    if not isinstance(request, dict):
+        return {}, ["responsibility_subgraph_request_invalid"]
+    normalized = dict(request)
+    if normalized.get("schema") != "v7.responsibility-subgraph-request.v1":
+        errors.append("responsibility_subgraph_schema_invalid")
+    config = _responsibility_subgraph_domain_config(str(normalized.get("domain_id") or ""))
+    if config is None:
+        errors.append("responsibility_subgraph_domain_unauthorized")
+        paths_allowed, seeds_allowed, canonical_expected = (), (), {}
+    else:
+        paths_allowed, seeds_allowed, canonical_expected = config
+    condition = normalized.get("entry_condition")
+    authorized_conditions = {
+        OMP_COMPLETION_SUBGRAPH_DOMAIN_ID: "CLI_FLAG:--omp-code-optimization-submit",
+        OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID: "CLI_FLAG:--continue-omp-change",
+    }
+    if condition not in (None, "") and condition != authorized_conditions.get(normalized.get("domain_id")):
+        errors.append("responsibility_subgraph_entry_condition_unauthorized")
+    for field in ("mission_id", "run_nonce", "profile_id", "input_id", "generator_version"):
+        if not re.fullmatch(r"[A-Za-z0-9_.:-]{2,200}", str(normalized.get(field) or "")):
+            errors.append(f"responsibility_subgraph_{field}_invalid")
+    paths = normalized.get("path_allowlist")
+    if not isinstance(paths, list) or not paths or len(paths) != len(set(map(str, paths))):
+        errors.append("responsibility_subgraph_path_allowlist_invalid")
+        paths = []
+    clean_paths: list[str] = []
+    for raw in paths:
+        relative = str(raw)
+        candidate = Path(relative)
+        if candidate.is_absolute() or ".." in candidate.parts or relative not in paths_allowed:
+            errors.append(f"responsibility_subgraph_path_unauthorized:{relative}")
+            continue
+        if not (root / relative).is_file():
+            errors.append(f"responsibility_subgraph_path_missing:{relative}")
+            continue
+        clean_paths.append(relative)
+    seeds = normalized.get("seed_entrypoints")
+    if not isinstance(seeds, list) or not seeds or len(seeds) != len(set(map(str, seeds))):
+        errors.append("responsibility_subgraph_seed_entrypoints_invalid")
+        seeds = []
+    if any(str(seed) not in seeds_allowed for seed in seeds):
+        errors.append("responsibility_subgraph_seed_unauthorized")
+    for field, lower, upper in (("max_depth", 1, 4), ("max_files", 1, len(paths_allowed)), ("max_edges", 1, 800), ("max_unknown_references", 1, 4000), ("ttl_seconds", 1, 3600)):
+        value = normalized.get(field)
+        if not isinstance(value, int) or isinstance(value, bool) or not lower <= value <= upper:
+            errors.append(f"responsibility_subgraph_{field}_invalid")
+    if len(clean_paths) > int(normalized.get("max_files") or 0):
+        errors.append("responsibility_subgraph_file_bound_exceeded")
+    expected_repo = _responsibility_subgraph_source_fingerprint(root, clean_paths)
+    if normalized.get("repo_fingerprint") != expected_repo:
+        errors.append("responsibility_subgraph_repo_fingerprint_mismatch")
+    canonical = normalized.get("canonical_references")
+    if not isinstance(canonical, dict) or set(canonical) != {"responsibility", "owner", "plane"}:
+        errors.append("responsibility_subgraph_canonical_references_invalid")
+    elif canonical != canonical_expected:
+        errors.append("responsibility_subgraph_canonical_references_mismatch")
+    expected_input = _responsibility_subgraph_fingerprint({
+        key: value for key, value in normalized.items() if key != "input_fingerprint"
+    })
+    if normalized.get("input_fingerprint") != expected_input:
+        errors.append("responsibility_subgraph_input_fingerprint_mismatch")
+    normalized["path_allowlist"] = clean_paths
+    return normalized, sorted(set(errors))
+
+
+def _responsibility_subgraph_call_name(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return ""
+
+
+def _responsibility_subgraph_function_nodes(
+    root: Path, paths: Iterable[str], seeds: Iterable[str], *, max_depth: int,
+    entry_condition: str = "",
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Derive only direct AST facts; unresolved/dynamic expressions remain unknown."""
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+    unknown: list[dict[str, Any]] = []
+    definitions: dict[str, list[dict[str, Any]]] = {}
+    parsed: dict[str, ast.AST] = {}
+    for relative in paths:
+        path = root / relative
+        if path.suffix == ".service":
+            node_id = f"SYSTEMD_UNIT:{relative}"
+            nodes.append({"node_id": node_id, "node_type": "SYSTEMD_UNIT", "path": relative, "line": 1, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED"})
+            for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if line.startswith("ExecStart"):
+                    target = line.split("=", 1)[1].strip().split(" ", 1)[0]
+                    edges.append({"edge_type": "INVOKED_BY_SYSTEMD", "source": node_id, "target": target, "path": relative, "line": line_number, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED"})
+            continue
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, SyntaxError) as exc:
+            unknown.append({"kind": "SOURCE_PARSE_UNKNOWN", "path": relative, "detail": str(exc)})
+            continue
+        parsed[relative] = tree
+        nodes.append({"node_id": f"FILE:{relative}", "node_type": "FILE", "path": relative, "line": 1, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED"})
+        for item in ast.walk(tree):
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                record = {"node_id": f"FUNCTION:{relative}:{item.name}", "node_type": "FUNCTION", "path": relative, "name": item.name, "line": item.lineno, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED"}
+                definitions.setdefault(item.name, []).append(record)
+                nodes.append(record)
+    selected = set(str(seed) for seed in seeds)
+    selected_function_ids = {
+        f"FUNCTION:{seed.split(':', 1)[0]}:{seed.split(':', 1)[1]}"
+        for seed in selected if ":" in seed
+    }
+    # A bounded direct-call closure only.  Ambiguous or dynamic calls are
+    # retained as unknown evidence, never guessed into a graph edge.
+    frontier = set(selected_function_ids)
+    for _ in range(max_depth):
+        new_frontier: set[str] = set()
+        for relative, tree in parsed.items():
+            for function in (item for item in ast.walk(tree) if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))):
+                source_id = f"FUNCTION:{relative}:{function.name}"
+                if source_id not in frontier:
+                    continue
+                call_scope: ast.AST = function
+                if entry_condition and relative == "tools/v7-truth-check" and function.name == "main":
+                    branch_attribute = {
+                        "CLI_FLAG:--omp-code-optimization-submit": "omp_code_optimization_submit",
+                        "CLI_FLAG:--continue-omp-change": "continue_omp",
+                    }.get(entry_condition, "")
+                    branches = [
+                        item for item in ast.walk(function)
+                        if isinstance(item, ast.If) and branch_attribute
+                        and branch_attribute in ast.unparse(item.test)
+                    ]
+                    if len(branches) != 1:
+                        unknown.append({"kind": "ENTRY_CONDITION_BRANCH_UNRESOLVED", "path": relative, "source": source_id, "condition": entry_condition})
+                        continue
+                    call_scope = ast.Module(body=branches[0].body, type_ignores=[])
+                for call in (item for item in ast.walk(call_scope) if isinstance(item, ast.Call)):
+                    called = _responsibility_subgraph_call_name(call.func)
+                    matches = definitions.get(called, [])
+                    if len(matches) == 1:
+                        target_id = matches[0]["node_id"]
+                        edge = {"edge_type": "CALLS", "source": source_id, "target": target_id, "path": relative, "line": call.lineno, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED"}
+                        if edge not in edges:
+                            edges.append(edge)
+                        new_frontier.add(target_id)
+                    elif called:
+                        unknown.append({"kind": "UNRESOLVED_OR_AMBIGUOUS_STATIC_CALL", "path": relative, "line": call.lineno, "source": source_id, "called": called})
+        new_frontier -= frontier
+        if not new_frontier:
+            break
+        frontier |= new_frontier
+    allowed_nodes = {item["node_id"] for item in nodes if item["node_type"] != "FUNCTION"} | frontier
+    return [item for item in nodes if item["node_id"] in allowed_nodes], [item for item in edges if item["source"] in allowed_nodes], unknown
+
+
+def derive_responsibility_subgraph(request: dict[str, Any], *, root: Path = ROOT) -> dict[str, Any]:
+    """Produce one disposable, bounded responsibility subgraph from source only."""
+    normalized, errors = _responsibility_subgraph_validate_request(request, root=root)
+    if errors:
+        return {"schema": RESPONSIBILITY_SUBGRAPH_SCHEMA, "truth_class": "DERIVED_EVIDENCE", "final_verdict": "STOP_SAFE", "errors": errors, "cps_impact": "NONE", "runtime_impact": "NONE", "authority_impact": "NONE"}
+    nodes, edges, unknown = _responsibility_subgraph_function_nodes(
+        root, normalized["path_allowlist"], normalized["seed_entrypoints"],
+        max_depth=normalized["max_depth"], entry_condition=str(normalized.get("entry_condition") or ""),
+    )
+    if len(edges) > normalized["max_edges"] or len(unknown) > normalized["max_unknown_references"]:
+        return {"schema": RESPONSIBILITY_SUBGRAPH_SCHEMA, "truth_class": "DERIVED_EVIDENCE", "final_verdict": "STOP_SAFE", "errors": ["responsibility_subgraph_output_bound_exceeded"], "cps_impact": "NONE", "runtime_impact": "NONE", "authority_impact": "NONE"}
+    # Canonical refs intentionally stay outside AS-IS nodes: they label the
+    # evidence, rather than creating synthetic implementation graph nodes.
+    structure = {
+        "schema": RESPONSIBILITY_SUBGRAPH_SCHEMA,
+        "domain_id": normalized["domain_id"],
+        "repo_fingerprint": normalized["repo_fingerprint"],
+        "generator_version": normalized["generator_version"],
+        "canonical_references": normalized["canonical_references"],
+        "seed_entrypoints": normalized["seed_entrypoints"],
+        "entry_condition": normalized.get("entry_condition") or None,
+        "nodes": sorted(nodes, key=lambda item: item["node_id"]),
+        "edges": sorted(edges, key=lambda item: (item["source"], item["target"], item["line"])),
+        "unknown_references": sorted(unknown, key=lambda item: (item.get("path", ""), item.get("line", 0), item.get("kind", ""))),
+        "evidence_classes": {
+            "static_source_and_direct_call_edges": "CURRENT_SOURCE_PROVEN",
+            "systemd_unit_declarations": "CURRENT_SOURCE_PROVEN",
+            "state_surfaces": "UNKNOWN_NOT_DERIVED",
+            "lock_and_lease_behavior": "UNKNOWN_NOT_DERIVED",
+            "process_behavior": "UNKNOWN_NOT_DERIVED",
+            "runtime_or_production_observation": "NOT_OBSERVED",
+        },
+    }
+    subgraph_fingerprint = _responsibility_subgraph_fingerprint(structure)
+    counterfactual = [
+        {"reference_type": "STATIC_EDGE", "source": edge["source"], "target": edge["target"], "semantic_necessity_status": "UNCLASSIFIED"}
+        for edge in structure["edges"]
+    ]
+    result = {
+        **structure,
+        "subgraph_fingerprint": subgraph_fingerprint,
+        "evidence_fingerprint_scope": "CANONICAL_STATIC_STRUCTURE_ONLY",
+        "truth_class": "DERIVED_EVIDENCE",
+        "canonical": False,
+        "discardable": True,
+        "decision_authority": "NONE",
+        "cps_impact": "NONE",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "counterfactual_references": counterfactual,
+        "structural_delta": {"baseline": "NONE_CURRENT_ONLY", "signals": [], "semantic_classification": "UNCLASSIFIED"},
+        "freshness": {"status": "FRESH_AT_DERIVATION", "ttl_seconds": normalized["ttl_seconds"], "expiry_enforced_externally": False},
+    }
+    generated_at = datetime.now(timezone.utc)
+    result["generated_at"] = generated_at.isoformat()
+    result["expires_at"] = (generated_at + timedelta(seconds=normalized["ttl_seconds"])).isoformat()
+    result["result_fingerprint_scope"] = "FULL_DERIVED_RESULT_INCLUDING_FRESHNESS_METADATA"
+    result["final_verdict"] = "PASS"
+    result["errors"] = []
+    result["result_fingerprint"] = _responsibility_subgraph_fingerprint({
+        key: value for key, value in result.items() if key != "result_fingerprint"
+    })
+    return result
+
+
+def responsibility_subgraph_structural_delta(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    """Compare two derived snapshots without assigning removal semantics."""
+    def identities(value: dict[str, Any], key: str) -> set[str]:
+        if not isinstance(value, dict):
+            return set()
+        if key == "nodes":
+            return {str(item.get("node_id")) for item in value.get(key, []) if isinstance(item, dict)}
+        return {_responsibility_subgraph_fingerprint(item) for item in value.get(key, []) if isinstance(item, dict)}
+    before_nodes, after_nodes = identities(before, "nodes"), identities(after, "nodes")
+    before_edges, after_edges = identities(before, "edges"), identities(after, "edges")
+    delta = {
+        "before_subgraph_fingerprint": before.get("subgraph_fingerprint"),
+        "after_subgraph_fingerprint": after.get("subgraph_fingerprint"),
+        "added_nodes": sorted(after_nodes - before_nodes),
+        "removed_nodes": sorted(before_nodes - after_nodes),
+        "added_edges": sorted(after_edges - before_edges),
+        "removed_edges": sorted(before_edges - after_edges),
+        "regression_signals": [],
+        "semantic_classification": "UNCLASSIFIED",
+    }
+    delta["structural_delta_fingerprint"] = _responsibility_subgraph_fingerprint(delta)
+    return delta
+
+
+CODE_OPTIMIZATION_CANONICAL_TO_BE_PATHS = (
+    "docs/reference/V7_CANONICAL_REFERENCE.md",
+    "docs/reference/SYSTEM_MAP.md",
+    "docs/reference/V7_RUNTIME_MODEL.md",
+    # The active Service Failure Program owns the durable domain contract for
+    # ordinary recovery.  The topology references above cannot by themselves
+    # prove the domain's exact S11 terminal or causal order.
+    "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md",
+)
+
+CODE_OPTIMIZATION_SERVICE_FAILURE_SPINE_MARKERS = (
+    "CURRENT_SERVICE_FAILURE_HEALTH_AND_RECOVERY_ARCHITECTURE",
+    "V5.3 N0–N11",
+    "T_FIRST_VALID_FAILURE_OBSERVATION",
+    "T_GLOBAL_ALL_AFFECTED_RECOVERED",
+    "S11_SERVER_SIDE_RECOVERY_VERIFIED",
+    "-> Candidate -> Packet -> Lease -> Barrier -> Apply -> required-service S11",
+)
+
+
+def _code_optimization_canonical_references(root: Path) -> list[dict[str, str]]:
+    references: list[dict[str, str]] = []
+    for relative in CODE_OPTIMIZATION_CANONICAL_TO_BE_PATHS:
+        path = root / relative
+        if not path.is_file():
+            references.append({"path": relative, "status": "MISSING"})
+            continue
+        references.append({
+            "path": relative,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "status": "CURRENT_REFERENCE_PRESENT",
+        })
+    return references
+
+
+def _code_optimization_service_failure_spine_revalidation(
+    root: Path,
+) -> dict[str, Any]:
+    """Revalidate only the active Program's durable recovery contract.
+
+    This intentionally says nothing about a live caller, consumer, lease,
+    apply, or S11 receipt.  It prevents a bounded static audit from treating
+    generic topology as the domain contract while preserving those Runtime
+    facts as fail-closed evidence requirements.
+    """
+    relative = "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md"
+    path = root / relative
+    if not path.is_file():
+        return {
+            "path": relative,
+            "status": "MISSING_CURRENT_SERVICE_FAILURE_PROGRAM",
+            "missing_markers": list(CODE_OPTIMIZATION_SERVICE_FAILURE_SPINE_MARKERS),
+        }
+    try:
+        source = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return {
+            "path": relative,
+            "status": "UNREADABLE_CURRENT_SERVICE_FAILURE_PROGRAM",
+            "missing_markers": list(CODE_OPTIMIZATION_SERVICE_FAILURE_SPINE_MARKERS),
+        }
+    missing = [
+        marker for marker in CODE_OPTIMIZATION_SERVICE_FAILURE_SPINE_MARKERS
+        if marker not in source
+    ]
+    return {
+        "path": relative,
+        "status": (
+            "CANONICAL_DURABLE_CAUSAL_SPINE_REVALIDATED"
+            if not missing else "INCOMPLETE_CURRENT_SERVICE_FAILURE_SPINE"
+        ),
+        "missing_markers": missing,
+    }
+
+
+def _code_optimization_structural_baseline(
+    subgraph: dict[str, Any], *, root: Path,
+) -> dict[str, Any]:
+    """Count source structure only; metrics are signals, never refactor orders."""
+    paths = sorted({
+        str(node.get("path")) for node in subgraph.get("nodes", [])
+        if isinstance(node, dict) and node.get("node_type") in {"FILE", "SYSTEMD_UNIT"}
+    })
+    metrics = {
+        "file_count": len(paths), "executable_loc": 0, "function_count": 0,
+        "branch_count": 0, "largest_functions": [],
+        "call_edge_count": len(subgraph.get("edges") or []),
+        "unknown_edge_count": len(subgraph.get("unknown_references") or []),
+        "systemd_surface_count": sum(path.endswith(".service") for path in paths),
+        "state_surface_count": "UNKNOWN_NOT_DERIVED",
+        "lock_lease_count": "UNKNOWN_NOT_DERIVED",
+        "process_subprocess_hops": "UNKNOWN_NOT_DERIVED",
+        "hot_path_hops": "UNKNOWN_NOT_DERIVED",
+        "durable_writes": "UNKNOWN_NOT_DERIVED",
+        "history_reads": "UNKNOWN_NOT_DERIVED",
+        "compatibility_fallback_paths": "UNKNOWN_NOT_DERIVED",
+        "test_surfaces": "NOT_IN_CURRENT_BOUNDED_PATH_ALLOWLIST",
+    }
+    branch_types = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.Try)
+    match_type = getattr(ast, "Match", None)
+    if isinstance(match_type, type):
+        branch_types += (match_type,)
+    functions: list[dict[str, Any]] = []
+    for relative in paths:
+        path = root / relative
+        if not path.is_file() or path.suffix == ".service":
+            continue
+        try:
+            source = path.read_text(encoding="utf-8")
+            tree = ast.parse(source)
+        except (OSError, UnicodeDecodeError, SyntaxError):
+            continue
+        metrics["executable_loc"] += sum(1 for line in source.splitlines() if line.strip() and not line.lstrip().startswith("#"))
+        for item in ast.walk(tree):
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                metrics["function_count"] += 1
+                end = int(getattr(item, "end_lineno", item.lineno))
+                functions.append({"path": relative, "function": item.name, "loc": end - item.lineno + 1})
+            if isinstance(item, branch_types):
+                metrics["branch_count"] += 1
+    metrics["largest_functions"] = sorted(
+        functions, key=lambda item: (-item["loc"], item["path"], item["function"]),
+    )[:10]
+    return metrics
+
+
+def code_optimization_domain_audit(
+    subgraph: dict[str, Any], *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Create bounded advisory optimization evidence without selecting by force."""
+    if not isinstance(subgraph, dict) or subgraph.get("final_verdict") != "PASS":
+        return {"schema": "v7.code-optimization-domain-audit.v1", "final_verdict": "STOP_SAFE_FRESH_SUBGRAPH_UNAVAILABLE", "errors": ["fresh_subgraph_required"]}
+    references = _code_optimization_canonical_references(root)
+    spine = _code_optimization_service_failure_spine_revalidation(root)
+    baseline = _code_optimization_structural_baseline(subgraph, root=root)
+    unknown_edges = list(subgraph.get("unknown_references") or [])
+    spine_revalidated = (
+        spine.get("status") == "CANONICAL_DURABLE_CAUSAL_SPINE_REVALIDATED"
+    )
+    # A durable causal contract is necessary but does not prove that this
+    # bounded source snapshot has a current Runtime caller/consumer path or
+    # a real S11 outcome.  Consequently no source region is a refactor
+    # candidate until an owner-backed counterfactual can be supplied.
+    to_be_status = (
+        "CANONICAL_DURABLE_CAUSAL_SPINE_REVALIDATED"
+        if spine_revalidated else "INCOMPLETE_DOMAIN_SPECIFIC_CAUSAL_SPINE"
+    )
+    audit = {
+        "schema": "v7.code-optimization-domain-audit.v1",
+        "domain_id": subgraph.get("domain_id"),
+        "subgraph_fingerprint": subgraph.get("subgraph_fingerprint"),
+        "canonical_to_be_references": references,
+        "canonical_to_be_status": to_be_status,
+        "canonical_causal_spine_revalidation": spine,
+        "as_is_scope": "COMPLETE_ONLY_WITHIN_CURRENT_SUBGRAPH_BOUNDS",
+        "structural_baseline": baseline,
+        "responsibility_classifications": [{
+            "region": "ORDINARY_SERVICE_FAILURE_GOVERNED_RECOVERY_EXECUTION",
+            "classification": (
+                "CANONICAL_DURABLE_SPINE_REVALIDATED"
+                if spine_revalidated else "UNKNOWN"
+            ),
+            "evidence_class": (
+                "CANONICAL_DURABLE_PLUS_BOUNDED_STATIC_SOURCE"
+                if spine_revalidated else "BOUNDED_STATIC_SOURCE_ONLY"
+            ),
+            "reason": (
+                "The active Program defines the current S11 causal contract; "
+                "bounded static source does not prove live state, lock, process "
+                "or behavioral semantics."
+                if spine_revalidated else
+                "Current static topology does not prove complete state, lock, process or behavior semantics."
+            ),
+        }],
+        "semantic_necessity_classifications": [{
+            "scope": "all static nodes and edges",
+            "classification": "UNKNOWN",
+            "reason": "Reachability and direct calls are not counterfactual semantic proof.",
+        }],
+        "counterfactual_hypotheses": [],
+        "ranked_candidates": [],
+        "selected_first_candidate": None,
+        "owner_decision_required": False,
+        "unproven_edges": unknown_edges,
+        "unproven_claims": [
+            *( [] if spine_revalidated else ["exact current domain-specific S11 causal spine"] ),
+            "current real caller and consumer from health through the governed recovery chain",
+            "fresh identity-bound Packet/Lease/Barrier/Apply receipt",
+            "current all-affected-member required-service S11 terminal",
+            "state, lock/lease and subprocess necessity",
+            "semantic redundancy of any reachable or consumed path",
+            "runtime and production behavioral effect",
+        ],
+        "terminal_verdict": "INSUFFICIENT_EVIDENCE",
+        "final_verdict": "INSUFFICIENT_EVIDENCE",
+        "errors": (
+            [
+                "runtime_caller_consumer_and_s11_receipt_unproven",
+                "counterfactual_semantic_candidate_unproven",
+            ] if spine_revalidated else ["canonical_to_be_responsibility_spine_unproven"]
+        ),
+    }
+    audit["audit_fingerprint"] = _responsibility_subgraph_fingerprint(audit)
+    return audit
+
+
+def code_optimization_evidence_package(
+    *, mission_id: str, run_nonce: str, profile: dict[str, Any], subgraph: dict[str, Any], root: Path = ROOT,
+) -> dict[str, Any]:
+    """Create disposable, exact-source evidence; never a durable evidence store."""
+    refs = _code_optimization_canonical_references(root)
+    items = [{
+        "evidence_id": "subgraph-static-v1", "producer": "derive_responsibility_subgraph",
+        "owner": subgraph.get("canonical_references", {}).get("owner"),
+        "evidence_class": "BOUNDED_STATIC_SOURCE", "freshness": "FRESH_AT_DERIVATION",
+        "source_reference": subgraph.get("result_fingerprint"),
+        "supports_claims": ["bounded_source_topology", "direct_static_call_edges"],
+        "does_not_support_claims": ["runtime_behavior", "semantic_redundancy", "authority"],
+        "invalidation_triggers": ["repo_fingerprint_change", "subgraph_expiry"],
+    }, {
+        "evidence_id": "cli-caller-v1", "producer": "tools/v7-truth-check",
+        "owner": "tools/v7-truth-check", "evidence_class": "EXECUTABLE_CALLER",
+        "freshness": "CURRENT_SOURCE", "source_reference": "tools/v7-truth-check:main",
+        "supports_claims": ["current_engineering_cli_caller", "submitted_result_dispatch"],
+        "does_not_support_claims": ["runtime_behavior", "semantic_redundancy"],
+        "invalidation_triggers": ["repo_fingerprint_change"],
+    }, {
+        "evidence_id": "completion-consumer-v1", "producer": "mission_completion_evidence_gate",
+        "owner": "tools/v7_sync_lib.py", "evidence_class": "CURRENT_CONSUMER",
+        "freshness": "CURRENT_SOURCE", "source_reference": "tools/v7_sync_lib.py:mission_completion_evidence_gate",
+        "supports_claims": ["completion_terminal_consumer", "result_review_binding"],
+        "does_not_support_claims": ["runtime_behavior", "semantic_redundancy"],
+        "invalidation_triggers": ["repo_fingerprint_change"],
+    }, {
+        "evidence_id": "replay-test-v1", "producer": "tests/unit/test_omp_code_optimization_profile.py",
+        "owner": "tests", "evidence_class": "TEST_REPLAY", "freshness": "CURRENT_SOURCE",
+        "source_reference": "tests/unit/test_omp_code_optimization_profile.py",
+        "supports_claims": ["validator_replay", "fail_closed_contract"],
+        "does_not_support_claims": ["production_behavior", "semantic_redundancy"],
+        "invalidation_triggers": ["test_or_repo_fingerprint_change"],
+    }]
+    generated = datetime.now(timezone.utc)
+    package = {
+        "schema": "v7.code-optimization-evidence-package.v1", "mission_id": mission_id,
+        "run_nonce": run_nonce, "profile_fingerprint": profile.get("profile_fingerprint"),
+        "domain_id": subgraph.get("domain_id"), "repository_fingerprint": subgraph.get("repo_fingerprint"),
+        "responsibility_subgraph_fingerprint": subgraph.get("subgraph_fingerprint"),
+        "responsibility_subgraph_result_fingerprint": subgraph.get("result_fingerprint"),
+        "canonical_references": refs, "generated_at": generated.isoformat(),
+        "expires_at": (generated + timedelta(minutes=15)).isoformat(), "evidence_items": items,
+        "disposable": True, "durable_store_created": False,
+    }
+    package["evidence_fingerprint"] = _execution_contract_fingerprint(package)
+    return package
+
+
+def validate_code_optimization_evidence_package(package: dict[str, Any], *, profile: dict[str, Any], subgraph: dict[str, Any], now: datetime | None = None) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(package, dict) or package.get("schema") != "v7.code-optimization-evidence-package.v1":
+        return ["code_optimization_evidence_package_invalid"]
+    expected = {"mission_id": profile.get("mission_id"), "run_nonce": profile.get("run_nonce"), "profile_fingerprint": profile.get("profile_fingerprint"), "domain_id": subgraph.get("domain_id"), "repository_fingerprint": subgraph.get("repo_fingerprint"), "responsibility_subgraph_fingerprint": subgraph.get("subgraph_fingerprint"), "responsibility_subgraph_result_fingerprint": subgraph.get("result_fingerprint")}
+    for key, value in expected.items():
+        if package.get(key) != value: errors.append(f"code_optimization_evidence_{key}_mismatch")
+    fingerprint = _execution_contract_fingerprint({key: value for key, value in package.items() if key != "evidence_fingerprint"})
+    if package.get("evidence_fingerprint") != fingerprint: errors.append("code_optimization_evidence_fingerprint_mismatch")
+    try:
+        current = now or datetime.now(timezone.utc)
+        if current > datetime.fromisoformat(str(package.get("expires_at"))): errors.append("code_optimization_evidence_expired")
+    except ValueError: errors.append("code_optimization_evidence_freshness_invalid")
+    seen: set[str] = set()
+    for item in package.get("evidence_items", []):
+        evidence_id = item.get("evidence_id") if isinstance(item, dict) else None
+        if evidence_id in seen: errors.append("code_optimization_evidence_duplicate_id")
+        seen.add(str(evidence_id))
+        if not isinstance(item, dict) or item.get("evidence_class") not in CODE_OPTIMIZATION_EVIDENCE_CLASSES or not evidence_id or not item.get("producer") or not item.get("owner") or not isinstance(item.get("supports_claims"), list) or not item.get("supports_claims"):
+            errors.append("code_optimization_evidence_item_invalid")
+    return sorted(set(errors))
+
+
+def submit_code_optimization_result(
+    *, profile: dict[str, Any], subgraph: dict[str, Any],
+    evidence_package: dict[str, Any], output: dict[str, Any],
+    reviews: list[dict[str, Any]], mission_intent: Optional[dict[str, Any]] = None,
+    adaptation_records: Optional[list[dict[str, Any]]] = None,
+    completed_outcomes: Optional[Iterable[str]] = None,
+    remaining_authorized_work: Optional[Iterable[str]] = None,
+    requested_mission_terminal: str = "",
+    mission_terminal_evidence: Optional[dict[str, Any]] = None,
+    next_executable_action: str = "",
+) -> dict[str, Any]:
+    """Validate a Codex-authored bounded result; deterministic code never authors semantic claims."""
+    errors = validate_code_optimization_evidence_package(evidence_package, profile=profile, subgraph=subgraph)
+    evidence_items = {item.get("evidence_id"): item for item in evidence_package.get("evidence_items", []) if isinstance(item, dict)}
+    evidence_ids = set(evidence_items)
+    for item in output.get("responsibility_classifications", []):
+        if not isinstance(item, dict) or item.get("classification") not in {"ESSENTIAL", "SAFETY_ESSENTIAL", "OBSERVABILITY_ESSENTIAL", "COMPATIBILITY_CURRENT", "ACTIVE_BUT_REDUNDANT_CANDIDATE", "SUPERSEDED_CANDIDATE", "HISTORICAL_ONLY", "UNKNOWN"}:
+            errors.append("code_optimization_classification_invalid"); continue
+        ids = set(item.get("evidence_item_ids") or [])
+        claim = str(item.get("claim_type") or "")
+        if item.get("classification") != "UNKNOWN" and (not ids or not ids.issubset(evidence_ids) or not claim or any(claim not in evidence_items[i].get("supports_claims", []) for i in ids)):
+            errors.append("code_optimization_classification_evidence_missing")
+        if item.get("classification") != "UNKNOWN" and not all(item.get(k) for k in ("subject", "caller", "consumer", "behavior_state_effect", "semantic_contribution", "invalidation_triggers")):
+            errors.append("code_optimization_classification_contract_invalid")
+    for candidate in output.get("ranked_candidates", []):
+        required = {"caller", "consumer", "control_path", "counterfactual_path", "proof_plan", "evidence_item_ids"}
+        ids = set(candidate.get("evidence_item_ids") or []) if isinstance(candidate, dict) else set()
+        if not isinstance(candidate, dict) or not required.issubset(candidate) or not ids or not ids.issubset(evidence_ids): errors.append("code_optimization_candidate_contract_invalid")
+    selected = output.get("selected_first_candidate")
+    ranked = output.get("ranked_candidates") or []
+    if selected is not None and selected not in ranked: errors.append("code_optimization_selected_candidate_not_ranked")
+    if output.get("terminal_verdict") == "PASS_CANDIDATE_READY" and (selected is None or len(ranked) < 1): errors.append("code_optimization_selected_candidate_missing")
+    if output.get("terminal_verdict") == "NO_SAFE_COUNTERFACTUAL_CANDIDATE" and not output.get("considered_mechanisms"):
+        errors.append("code_optimization_honest_zero_mechanisms_missing")
+    result = gpt_decision_review_result_contract(profile, output, executor_context_id="external-codex-bounded-code-optimization")
+    completion_contract = {
+        "MISSION_TYPE": "ACCEPTANCE", "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION", "INDEPENDENT_ACCEPTANCE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
+        "EXECUTION_PROFILE_CONTRACT": profile, "EXECUTION_PROFILE_RESULT": result, "EXECUTION_PROFILE_REVIEWS": reviews, "RESPONSIBILITY_SUBGRAPH_RESULT": subgraph,
+        "CURRENT_MISSION_ID": profile.get("mission_id"), "CURRENT_RUN_NONCE": profile.get("run_nonce"), "CURRENT_INPUT_FINGERPRINT": profile.get("input_fingerprint"), "CURRENT_REPO_FINGERPRINT": profile.get("repo_fingerprint"), "CURRENT_EVIDENCE_TIME": datetime.now(timezone.utc).isoformat(), "MISSION_CURRENT": True, "MISSION_SUPERSEDED": False, "EXPECTED_RESULT_FINGERPRINT": result.get("result_fingerprint"), "EXISTING_RESULT_FINGERPRINTS": [],
+    }
+    if mission_intent is not None:
+        completion_contract.update({
+            "MISSION_INTENT_CONTRACT": mission_intent,
+            "MISSION_ADAPTATION_RECORDS": adaptation_records or [],
+            "PROVEN_COMPLETED_OUTCOMES": list(completed_outcomes or []),
+            "REMAINING_AUTHORIZED_WORK": list(remaining_authorized_work or []),
+            "REQUESTED_MISSION_TERMINAL": requested_mission_terminal,
+            "MISSION_TERMINAL_EVIDENCE": mission_terminal_evidence or {},
+            "NEXT_EXECUTABLE_ACTION": next_executable_action,
+        })
+    completion = mission_completion_evidence_gate(completion_contract)
+    continuation = completion.get("completion_verdict") == "CONTINUE_SAME_MISSION"
+    if completion.get("completion_verdict") != "COMPLETE_WITH_LEGAL_TERMINAL" and not continuation:
+        errors.append("code_optimization_completion_binding_failed")
+    return {
+        "schema": "v7.code-optimization-submitted-run.v1",
+        "evidence_package": evidence_package, "result": result, "completion": completion,
+        "final_verdict": "CONTINUE_SAME_MISSION" if continuation and not errors else "PASS" if not errors else "STOP_SAFE",
+        "errors": sorted(set(errors)), "cps_effect": "NONE", "runtime_impact": "NONE",
+        "production_impact": "NONE", "authority_impact": "NONE",
+    }
+
+
+def bounded_mission_integrity_non_test_proof(*, root: Path = ROOT) -> dict[str, Any]:
+    """Run one real Code Optimization submission through continue-then-complete."""
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_before = cps_path.read_bytes() if cps_path.is_file() else b""
+    admission = code_optimization_material_change_admission(
+        ["tools/v7_sync_lib.py"], root=root,
+    )
+    request = admission.get("request") or {}
+    subgraph = admission.get("subgraph") or {}
+    required_outcomes = [
+        "EXISTING_OWNER_DOMAIN_RESOLVED",
+        "PREMATURE_MICROSTEP_TERMINAL_REJECTED",
+        "LOCAL_EXECUTION_ADAPTATION_CONSUMED",
+        "SECOND_DOMAIN_BOUND",
+        "ANTI_REGROWTH_CONSUMED",
+        "IMMUTABLE_RESULT_AND_REVIEWS_CONSUMED",
+    ]
+    intent = mission_intent_contract(
+        mission_id="V7_BOUNDED_EXECUTOR_CRITICAL_ADAPTATION_MISSION_INTEGRITY_AND_NO_MICROSTEP_TERMINAL_V1",
+        objective="Preserve Mission intent, adapt technical method locally, and reject microstep completion.",
+        required_outcomes=required_outcomes,
+        definition_of_done=[
+            "same_mission_continues_after_local_adaptation",
+            "premature_terminal_rejected", "all_required_outcomes_consumed",
+        ],
+        authorized_effect_boundary=["ENGINEERING_READ_ONLY", "SOURCE_AND_TEST_CONTRACT_EXTENSION"],
+        prohibited_effects=["CPS_MUTATION", "RUNTIME", "PRODUCTION", "NEW_OWNER", "AUTHORITY_EXPANSION"],
+        owner_authority_boundary=["OMP", "MISSION_COMPLETION_EVIDENCE_GATE", "EXISTING_CODE_OPTIMIZATION"],
+        required_reviews=[
+            "ARCHITECTURE_REVIEW", "SAFETY_REGRESSION_REVIEW", "EVIDENCE_REVIEW",
+            "QUALITY_COMPLEXITY_REVIEW", "MISSION_INTEGRITY_REVIEW",
+        ],
+        legal_terminals=["FULL_COMPLETION", "MISSION_CLARIFICATION_REQUIRED", "STOP_SAFE_EXACT_GAP"],
+        intermediate_non_terminals=["BRIDGE_IMPLEMENTED", "TESTS_PASS", "REPORT_CREATED", "ADMISSION_READY"],
+        continuation_policy="CONTINUE_SAME_MISSION_WHILE_AUTHORIZED_WORK_REMAINS",
+        input_fingerprint=str(request.get("input_fingerprint") or ""),
+        repo_fingerprint=str(request.get("repo_fingerprint") or ""),
+    )
+    profile = admit_execution_profile_contract(code_optimization_profile_contract(
+        mission_id=intent["mission_id"], run_nonce="mission-integrity-real-proof-v1",
+        input_fingerprint=intent["input_fingerprint"], repo_fingerprint=intent["repo_fingerprint"],
+        continuous_acceptance=True,
+        mission_intent_fingerprint=intent["mission_intent_fingerprint"],
+    ), mission_id=intent["mission_id"])
+    package = code_optimization_evidence_package(
+        mission_id=profile["mission_id"], run_nonce=profile["run_nonce"],
+        profile=profile, subgraph=subgraph, root=root,
+    )
+    adaptation = mission_adaptation_record(
+        intent, adaptation_class="LOCAL_EXECUTION_ADAPTATION",
+        discovered_fact="existing responsibility-domain configuration already owns material path resolution",
+        original_proposed_method="add a private material-path allowlist",
+        adapted_method="reuse existing owner/domain resolver and continue the same Mission",
+        objective_preserved=True, definition_of_done_preserved=True,
+        effect_boundary_preserved_or_narrowed=True, owner_boundary_preserved=True,
+        pending_required_outcomes=required_outcomes[2:],
+        completed_required_outcomes=required_outcomes[:2],
+        continuation_action="bind second domain, anti-regrowth and immutable reviews",
+        evidence_references=[
+            "tools/v7_sync_lib.py:code_optimization_resolve_material_change_domain",
+            "tools/v7_sync_lib.py:code_optimization_bridge_anti_regrowth",
+        ],
+    )
+    output = {
+        "mission_reference": profile["mission_id"],
+        "profile_reference": profile["profile_fingerprint"],
+        "input_fingerprint": profile["input_fingerprint"],
+        "domain_id": subgraph.get("domain_id"),
+        "responsibility_subgraph": {key: subgraph.get(key) for key in (
+            "domain_id", "repo_fingerprint", "subgraph_fingerprint",
+            "result_fingerprint", "generated_at", "expires_at",
+        )},
+        "canonical_to_be_references": ["docs/reference/V7_EXECUTION_MISSION_PROTOCOL.md"],
+        "structural_baseline": {
+            "original_method": "private allowlist",
+            "adapted_method": "existing owner resolver",
+        },
+        "responsibility_classifications": [{
+            "subject": "mission_completion_evidence_gate", "classification": "SAFETY_ESSENTIAL",
+            "evidence_item_ids": ["completion-consumer-v1"], "claim_type": "result_review_binding",
+            "caller": "submit_code_optimization_result", "consumer": "mission_completion_evidence_gate",
+            "behavior_state_effect": "rejects premature or mismatched completion",
+            "semantic_contribution": "preserves Mission intent and exact terminal",
+            "invalidation_triggers": ["repo_fingerprint_change"],
+        }],
+        "semantic_necessity_classifications": [{
+            "scope": "Mission integrity completion binding", "classification": "SAFETY_ESSENTIAL",
+        }],
+        "counterfactual_hypotheses": [{
+            "control": "microstep accepted as terminal", "counterfactual": "same Mission continuation",
+        }],
+        "ranked_candidates": [], "selected_first_candidate": None,
+        "owner_decision_required": False, "unproven_edges": [], "unproven_claims": [],
+        "considered_mechanisms": [{
+            "subject": "new coordinator", "rejection_reason": "existing completion owner is sufficient",
+        }],
+        "terminal_verdict": "NO_SAFE_COUNTERFACTUAL_CANDIDATE",
+    }
+    provisional = gpt_decision_review_result_contract(
+        profile, output, executor_context_id="mission-integrity-real-proof-executor",
+    )
+    reviews = [
+        execution_profile_review_record(
+            profile, provisional, review_type=review_type, review_verdict="PASS",
+            review_context_id=f"mission-integrity-{review_type.lower()}",
+        )
+        for review_type in profile.get("required_reviews") or []
+    ]
+    common = {
+        "profile": profile, "subgraph": subgraph, "evidence_package": package,
+        "output": output, "reviews": reviews, "mission_intent": intent,
+        "adaptation_records": [adaptation],
+    }
+    interim_completed = required_outcomes[:2]
+    interim = submit_code_optimization_result(
+        **common, completed_outcomes=interim_completed,
+        remaining_authorized_work=required_outcomes[2:],
+        requested_mission_terminal="BRIDGE_IMPLEMENTED",
+        next_executable_action="consume local adaptation and finish remaining outcomes",
+    )
+    final = submit_code_optimization_result(
+        **common, completed_outcomes=required_outcomes,
+        remaining_authorized_work=[], requested_mission_terminal="FULL_COMPLETION",
+        next_executable_action="consume legal terminal",
+    )
+    cps_after = cps_path.read_bytes() if cps_path.is_file() else b""
+    passed = all((
+        admission.get("eligible") is True,
+        intent.get("final_verdict") == "PASS",
+        profile.get("final_verdict") == "PASS",
+        interim.get("final_verdict") == "CONTINUE_SAME_MISSION",
+        interim.get("completion", {}).get("completion_verdict") == "CONTINUE_SAME_MISSION",
+        final.get("final_verdict") == "PASS",
+        final.get("completion", {}).get("completion_verdict") == "COMPLETE_WITH_LEGAL_TERMINAL",
+        final.get("result", {}).get("mission_intent_fingerprint") == intent.get("mission_intent_fingerprint"),
+        all(review.get("mission_intent_fingerprint") == intent.get("mission_intent_fingerprint") for review in reviews),
+        cps_before == cps_after,
+    ))
+    return {
+        "schema": "v7.bounded-executor-mission-integrity-real-proof.v1",
+        "mission_intent": intent, "adaptation": adaptation,
+        "original_method": adaptation["original_proposed_method"],
+        "discovered_fact": adaptation["discovered_fact"],
+        "adapted_method": adaptation["adapted_method"],
+        "intent_preservation": {
+            "objective_preserved": adaptation["objective_preserved"],
+            "definition_of_done_preserved": adaptation["definition_of_done_preserved"],
+            "effect_boundary_preserved_or_narrowed": adaptation["effect_boundary_preserved_or_narrowed"],
+            "owner_boundary_preserved": adaptation["owner_boundary_preserved"],
+        },
+        "interim": interim, "final": final,
+        "same_mission_fingerprint": intent["mission_intent_fingerprint"],
+        "no_cps_effect": cps_before == cps_after,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "terminal": "V7_BOUNDED_EXECUTOR_CRITICAL_ADAPTATION_AND_MISSION_INTEGRITY_ACTIVE" if passed else "REAL_PROOF_FAILED",
+        "errors": [] if passed else ["mission_integrity_real_proof_failed"],
+    }
+
+
+def code_optimization_resolve_material_change_domain(
+    changed_dependencies: Iterable[str],
+) -> dict[str, Any]:
+    """Resolve material paths from existing owner/domain configuration."""
+    changed = sorted({str(item) for item in changed_dependencies if str(item)})
+    report_only = tuple(
+        item for item in changed
+        if item.startswith(("docs/reports/", "docs/prompts/")) or item.startswith("tests/")
+    )
+    material = sorted(set(changed) - set(report_only))
+    # Phase-3 admission is deliberately limited to the existing OMP bridge.
+    # Other configured domains retain their own live frontier and owner.
+    domains = (OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,)
+    matches: list[dict[str, Any]] = []
+    for domain_id in domains:
+        config = _responsibility_subgraph_domain_config(domain_id)
+        if config is None:
+            continue
+        paths, _, canonical = config
+        affected = sorted(set(material) & set(paths))
+        if affected:
+            matches.append({
+                "domain_id": domain_id,
+                "owner": canonical["owner"],
+                "affected_paths": affected,
+            })
+    if len(matches) != 1:
+        reason = "OWNERLESS_MATERIAL_CHANGE" if not matches else "AMBIGUOUS_MATERIAL_CHANGE_OWNER"
+        return {
+            "final_verdict": "STOP_SAFE", "reason": reason,
+            "changed_dependencies": changed, "report_only_paths": list(report_only),
+            "matches": matches,
+        }
+    return {
+        "final_verdict": "PASS", "reason": "EXISTING_OWNER_DOMAIN_RESOLVED",
+        "changed_dependencies": changed, "report_only_paths": list(report_only),
+        **matches[0],
+    }
+
+
+def code_optimization_bridge_anti_regrowth(source: str) -> dict[str, Any]:
+    """Detect recurrence of the removed private material-path allowlist."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        return {
+            "final_verdict": "STOP_SAFE", "recurrence_detected": True,
+            "reason": f"SOURCE_PARSE_UNKNOWN:{exc.msg}",
+        }
+    targets = [
+        node for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == "code_optimization_material_change_admission"
+    ]
+    if len(targets) != 1:
+        return {
+            "final_verdict": "STOP_SAFE", "recurrence_detected": True,
+            "reason": "MATERIAL_CHANGE_ADMISSION_DEFINITION_AMBIGUOUS",
+        }
+    target = targets[0]
+    private_allowlist = any(
+        isinstance(node, (ast.Assign, ast.AnnAssign))
+        and any(
+            isinstance(name, ast.Name) and name.id in {"allowed", "allowlist", "owned_paths"}
+            for name in (
+                list(node.targets) if isinstance(node, ast.Assign) else [node.target]
+            )
+        )
+        for node in ast.walk(target)
+    )
+    resolver_consumed = any(
+        isinstance(node, ast.Call)
+        and _responsibility_subgraph_call_name(node.func) == "code_optimization_resolve_material_change_domain"
+        for node in ast.walk(target)
+    )
+    recurrence = private_allowlist or not resolver_consumed
+    return {
+        "schema": "v7.code-optimization-anti-regrowth-check.v1",
+        "rule_id": "NO_PRIVATE_MATERIAL_CHANGE_PATH_ALLOWLIST",
+        "recurrence_detected": recurrence,
+        "private_allowlist_detected": private_allowlist,
+        "existing_owner_resolver_consumed": resolver_consumed,
+        "final_verdict": "STOP_SAFE" if recurrence else "PASS",
+        "reason": "REMOVED_DUPLICATE_RESPONSIBILITY_MAPPING_RECURRED" if recurrence else "EXISTING_OWNER_MAPPING_PRESERVED",
+    }
+
+
+def code_optimization_material_change_admission(changed_dependencies: Iterable[str], *, root: Path = ROOT) -> dict[str, Any]:
+    """Existing OMP change-flow admission for the repeatable read-only profile."""
+    changed = sorted({str(item) for item in changed_dependencies if str(item)})
+    resolution = code_optimization_resolve_material_change_domain(changed)
+    if resolution.get("final_verdict") != "PASS":
+        return {"eligible": False, "changed_dependencies": changed, "resolution": resolution, "reason": resolution["reason"]}
+    source_path = root / "tools/v7_sync_lib.py"
+    anti_regrowth = code_optimization_bridge_anti_regrowth(source_path.read_text(encoding="utf-8"))
+    if anti_regrowth.get("final_verdict") != "PASS":
+        return {"eligible": False, "changed_dependencies": changed, "resolution": resolution, "anti_regrowth": anti_regrowth, "reason": "ANTI_REGROWTH_STOP_SAFE"}
+    affected = resolution["affected_paths"]
+    request = responsibility_subgraph_pilot_request(root=root, domain_id=OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID)
+    request.update({"mission_id": "V7_CODE_OPTIMIZATION_MATERIAL_CHANGE_READ_ONLY_ADMISSION_V1", "run_nonce": "omp-change-" + _execution_contract_fingerprint({"paths": affected, "domain": resolution["domain_id"]})[:24], "profile_id": "CODE_OPTIMIZATION", "entry_condition": "CLI_FLAG:--continue-omp-change"})
+    request["input_fingerprint"] = _responsibility_subgraph_fingerprint({k: v for k, v in request.items() if k != "input_fingerprint"})
+    subgraph = derive_responsibility_subgraph(request, root=root)
+    profile = admit_execution_profile_contract(code_optimization_profile_contract(mission_id=request["mission_id"], run_nonce=request["run_nonce"], input_fingerprint=request["input_fingerprint"], repo_fingerprint=request["repo_fingerprint"], continuous_acceptance=True), mission_id=request["mission_id"])
+    eligible = subgraph.get("final_verdict") == "PASS" and profile.get("final_verdict") == "PASS"
+    return {
+        "eligible": eligible, "changed_dependencies": changed,
+        "change_fingerprint": _execution_contract_fingerprint({"paths": affected, "repo": request["repo_fingerprint"]}),
+        "affected_responsibility": resolution["domain_id"], "resolution": resolution,
+        "anti_regrowth": anti_regrowth, "request": request, "subgraph": subgraph,
+        "profile": profile,
+        "self_generated_hypotheses": [{
+            "hypothesis_id": "H1_PRIVATE_PATH_MAPPING_DUPLICATION",
+            "classification": "ACTIVE_BUT_REDUNDANT_CANDIDATE",
+            "control_path": "private hardcoded material-path allowlist",
+            "counterfactual_path": "existing responsibility-domain configuration resolver",
+            "ranking_reason": "removes duplicate ownership semantics without changing caller or consumer",
+        }],
+        "real_consumer": "tools/v7-truth-check --omp-code-optimization-submit - --json",
+        "mutation_class": "READ_ONLY", "cps_impact": "NONE",
+        "runtime_impact": "NONE", "authority_impact": "NONE",
+    }
+
+
+def bounded_code_optimization_contract_proof(*, root: Path = ROOT) -> dict[str, Any]:
+    """Verify the exact read-only profile path with an honest zero-candidate audit."""
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_before = cps_path.read_bytes() if cps_path.is_file() else b""
+    request = responsibility_subgraph_pilot_request(root=root)
+    request["mission_id"] = "V7_CODE_OPTIMIZATION_EXECUTION_PROFILE_AND_FIRST_DOMAIN_AUDIT_V1"
+    request["run_nonce"] = "code-optimization-profile-proof-v1"
+    request["profile_id"] = "CODE_OPTIMIZATION"
+    request["input_fingerprint"] = _responsibility_subgraph_fingerprint({
+        key: value for key, value in request.items() if key != "input_fingerprint"
+    })
+    subgraph = derive_responsibility_subgraph(request, root=root)
+    audit = code_optimization_domain_audit(subgraph, root=root)
+    profile = code_optimization_profile_contract(
+        mission_id=request["mission_id"], run_nonce=request["run_nonce"],
+        input_fingerprint=request["input_fingerprint"], repo_fingerprint=request["repo_fingerprint"],
+    )
+    admitted = admit_execution_profile_contract(profile, mission_id=request["mission_id"])
+    output = {
+        "mission_reference": request["mission_id"],
+        "profile_reference": admitted.get("profile_fingerprint"),
+        "input_fingerprint": request["input_fingerprint"],
+        "domain_id": subgraph.get("domain_id"),
+        "responsibility_subgraph": {key: subgraph.get(key) for key in ("domain_id", "repo_fingerprint", "subgraph_fingerprint", "result_fingerprint", "generated_at", "expires_at")},
+        **{key: audit.get(key) for key in (
+            "canonical_to_be_references", "structural_baseline",
+            "responsibility_classifications", "semantic_necessity_classifications",
+            "counterfactual_hypotheses", "ranked_candidates",
+            "selected_first_candidate", "owner_decision_required", "unproven_edges",
+            "unproven_claims", "terminal_verdict",
+        )},
+    }
+    result = gpt_decision_review_result_contract(
+        admitted, output, executor_context_id="code-optimization-executor-proof",
+    )
+    reviews = [
+        execution_profile_review_record(admitted, result, review_type="ARCHITECTURE_REVIEW", review_verdict="PASS", review_context_id="code-optimization-architecture-review"),
+        execution_profile_review_record(admitted, result, review_type="EVIDENCE_REVIEW", review_verdict="PASS", review_context_id="code-optimization-evidence-review"),
+    ]
+    completion = mission_completion_evidence_gate({
+        "MISSION_TYPE": "ACCEPTANCE", "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION",
+        "INDEPENDENT_ACCEPTANCE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
+        "EXECUTION_PROFILE_CONTRACT": admitted, "EXECUTION_PROFILE_RESULT": result,
+        "EXECUTION_PROFILE_REVIEWS": reviews, "RESPONSIBILITY_SUBGRAPH_RESULT": subgraph,
+        "CURRENT_MISSION_ID": request["mission_id"], "CURRENT_RUN_NONCE": request["run_nonce"],
+        "CURRENT_INPUT_FINGERPRINT": request["input_fingerprint"], "CURRENT_REPO_FINGERPRINT": request["repo_fingerprint"],
+        "CURRENT_EVIDENCE_TIME": datetime.now(timezone.utc).isoformat(), "MISSION_CURRENT": True,
+        "MISSION_SUPERSEDED": False, "EXPECTED_RESULT_FINGERPRINT": result.get("result_fingerprint"), "EXISTING_RESULT_FINGERPRINTS": [],
+    })
+    cps_after = cps_path.read_bytes() if cps_path.is_file() else b""
+    passed = all((
+        admitted.get("final_verdict") == "PASS",
+        audit.get("terminal_verdict") == "INSUFFICIENT_EVIDENCE",
+        completion.get("completion_verdict") == "COMPLETE_WITH_LEGAL_TERMINAL",
+        completion.get("execution_profile_binding_consumed") is True,
+        completion.get("responsibility_subgraph_binding_consumed") is True,
+        cps_before == cps_after,
+    ))
+    return {
+        "schema": "v7.omp-code-optimization-profile-proof.v1",
+        "profile": admitted, "subgraph": subgraph, "audit": audit,
+        "result": result, "reviews": reviews, "completion": completion,
+        "selected_candidate_count": 0,
+        "no_cps_effect": cps_before == cps_after,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else ["code_optimization_contract_proof_failed"],
+    }
+
+
+def responsibility_subgraph_completion_binding(contract: dict[str, Any]) -> dict[str, Any]:
+    """Bind a derived result to the exact admitted profile output and review."""
+    errors: list[str] = []
+    subgraph = contract.get("RESPONSIBILITY_SUBGRAPH_RESULT")
+    result = contract.get("EXECUTION_PROFILE_RESULT")
+    if not isinstance(subgraph, dict):
+        subgraph = {}
+        errors.append("responsibility_subgraph_result_missing")
+    if subgraph.get("final_verdict") != "PASS":
+        errors.append("responsibility_subgraph_not_pass")
+    if subgraph.get("truth_class") != "DERIVED_EVIDENCE" or subgraph.get("canonical") is not False or subgraph.get("decision_authority") != "NONE":
+        errors.append("responsibility_subgraph_truth_boundary_invalid")
+    structure = {key: subgraph.get(key) for key in ("schema", "domain_id", "repo_fingerprint", "generator_version", "canonical_references", "seed_entrypoints", "entry_condition", "nodes", "edges", "unknown_references", "evidence_classes")}
+    if subgraph.get("subgraph_fingerprint") != _responsibility_subgraph_fingerprint(structure):
+        errors.append("responsibility_subgraph_fingerprint_mismatch")
+    full_result = {
+        key: value for key, value in subgraph.items()
+        if key != "result_fingerprint"
+    }
+    if subgraph.get("result_fingerprint") != _responsibility_subgraph_fingerprint(full_result):
+        errors.append("responsibility_subgraph_result_fingerprint_mismatch")
+    evidence_time = contract.get("CURRENT_EVIDENCE_TIME")
+    try:
+        now = datetime.fromisoformat(str(evidence_time))
+        generated_at = datetime.fromisoformat(str(subgraph.get("generated_at") or ""))
+        expires_at = datetime.fromisoformat(str(subgraph.get("expires_at") or ""))
+        if generated_at > now or now > expires_at:
+            errors.append("responsibility_subgraph_stale_or_future")
+    except (TypeError, ValueError):
+        errors.append("responsibility_subgraph_freshness_time_invalid")
+    freshness = subgraph.get("freshness")
+    if not isinstance(freshness, dict) or freshness.get("status") != "FRESH_AT_DERIVATION":
+        errors.append("responsibility_subgraph_freshness_status_invalid")
+    if not isinstance(result, dict) or not isinstance(result.get("output"), dict):
+        errors.append("responsibility_subgraph_profile_result_missing")
+        output_binding = {}
+    else:
+        output_binding = result["output"].get("responsibility_subgraph") or {}
+    expected = {"domain_id": subgraph.get("domain_id"), "repo_fingerprint": subgraph.get("repo_fingerprint"), "subgraph_fingerprint": subgraph.get("subgraph_fingerprint"), "result_fingerprint": subgraph.get("result_fingerprint"), "generated_at": subgraph.get("generated_at"), "expires_at": subgraph.get("expires_at")}
+    if output_binding != expected:
+        errors.append("responsibility_subgraph_profile_output_binding_mismatch")
+    profile_binding = execution_profile_completion_binding(contract)
+    if profile_binding.get("final_verdict") != "PASS":
+        errors.append("responsibility_subgraph_profile_review_binding_invalid")
+    unique = sorted(set(errors))
+    return {"schema": "v7.responsibility-subgraph-completion-binding.v1", "subgraph_fingerprint": subgraph.get("subgraph_fingerprint", "NONE"), "profile_binding": profile_binding, "final_verdict": "PASS" if not unique else "STOP_SAFE", "errors": unique}
+
+
+def bounded_responsibility_subgraph_contract_proof(*, root: Path = ROOT) -> dict[str, Any]:
+    """Exercise existing profile/review/completion consumers with no BDP or CPS write."""
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_before = cps_path.read_bytes() if cps_path.is_file() else b""
+    request = responsibility_subgraph_pilot_request(root=root)
+    subgraph = derive_responsibility_subgraph(request, root=root)
+    profile = gpt_decision_review_profile_contract(
+        mission_id=request["mission_id"], run_nonce=request["run_nonce"],
+        input_fingerprint=request["input_fingerprint"], repo_fingerprint=request["repo_fingerprint"],
+    )
+    admitted = admit_execution_profile_contract(profile, mission_id=request["mission_id"])
+    output = {
+        "mission_reference": request["mission_id"], "profile_reference": admitted.get("profile_fingerprint"), "input_fingerprint": request["input_fingerprint"],
+        "current_facts": ["bounded static responsibility subgraph derived"], "as_is": "Derived evidence has no runtime observation.", "to_be": "Existing completion owner binds the immutable review input.", "exact_residual": "No semantic necessity verdict and no CPS projection.", "options": ["reuse existing OMP profile and completion gate"], "recommended_option": "reuse existing OMP profile and completion gate", "owner_impact": "NONE", "state_impact": "NONE", "safety_impact": "READ_ONLY", "latency_impact": "NOT_APPLICABLE", "structural_impact": "BOUNDED_EXISTING_CONTRACT_EXTENSION", "owner_decision_required": False, "owner_decision_reason": "NONE", "unproven_claims": ["runtime behavior", "external reviewer independence"], "terminal_verdict": "PASS_DECISION_READY",
+        "responsibility_subgraph": {key: subgraph.get(key) for key in ("domain_id", "repo_fingerprint", "subgraph_fingerprint", "result_fingerprint", "generated_at", "expires_at")},
+    }
+    result = gpt_decision_review_result_contract(admitted, output, executor_context_id="responsibility-subgraph-executor-proof")
+    review = execution_profile_review_record(admitted, result, review_type="ARCHITECTURE_REVIEW", review_verdict="PASS", review_context_id="responsibility-subgraph-independent-review")
+    completion = mission_completion_evidence_gate({
+        "MISSION_TYPE": "ACCEPTANCE", "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION", "INDEPENDENT_ACCEPTANCE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
+        "EXECUTION_PROFILE_CONTRACT": admitted, "EXECUTION_PROFILE_RESULT": result, "EXECUTION_PROFILE_REVIEWS": [review], "RESPONSIBILITY_SUBGRAPH_RESULT": subgraph,
+        "CURRENT_MISSION_ID": request["mission_id"], "CURRENT_RUN_NONCE": request["run_nonce"], "CURRENT_INPUT_FINGERPRINT": request["input_fingerprint"], "CURRENT_REPO_FINGERPRINT": request["repo_fingerprint"], "CURRENT_EVIDENCE_TIME": datetime.now(timezone.utc).isoformat(), "MISSION_CURRENT": True, "MISSION_SUPERSEDED": False, "EXPECTED_RESULT_FINGERPRINT": result.get("result_fingerprint"), "EXISTING_RESULT_FINGERPRINTS": [],
+    })
+    cps_after = cps_path.read_bytes() if cps_path.is_file() else b""
+    passed = all((subgraph.get("final_verdict") == "PASS", admitted.get("final_verdict") == "PASS", completion.get("completion_verdict") == "COMPLETE_WITH_LEGAL_TERMINAL", completion.get("responsibility_subgraph_binding_consumed") is True, cps_before == cps_after))
+    return {"schema": "v7.omp-responsibility-subgraph-proof.v1", "request": request, "subgraph": subgraph, "profile": admitted, "result": result, "reviews": [review], "completion": completion, "no_bdp_mission_created": True, "no_cps_effect": cps_before == cps_after, "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE", "final_verdict": "PASS" if passed else "STOP_SAFE", "errors": [] if passed else ["responsibility_subgraph_contract_proof_failed"]}
 
 
 def python_function_call_sites(root: Path, target: str) -> dict[str, Any]:

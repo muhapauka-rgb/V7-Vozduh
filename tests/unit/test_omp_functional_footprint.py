@@ -26,7 +26,7 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
 
     def test_current_repository_has_heartbeat_and_cli_reconciliation_callers(self):
         result = self.lib.python_function_call_sites(ROOT, "program_execution_reconciliation")
-        self.assertEqual(result["real_caller_count"], 3)
+        self.assertEqual(result["real_caller_count"], 4)
         self.assertGreaterEqual(result["test_caller_count"], 4)
 
     def test_test_calls_are_not_real_consumers(self):
@@ -39,22 +39,23 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
         self.assertEqual(result["heartbeat_status"], "ACTIVE")
         self.assertTrue(result["automation_enabled"])
 
-    def test_inconsistent_heartbeat_state_pair_fails(self):
+    def test_active_recovery_frontier_does_not_consume_historical_heartbeat_projection(self):
         altered = self.cps.replace("| `AUTOMATION_ENABLED` | `TRUE` |", "| `AUTOMATION_ENABLED` | `FALSE` |", 1)
         result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
-        self.assertEqual(result["final_verdict"], "NO-GO")
-        self.assertIn("functional_footprint_heartbeat_state_pair_invalid", result["errors"])
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["current_completion_verdict"], "ACTIVE_NOT_CONSUMED")
 
-    def test_false_complete_consumed_claim_fails(self):
+    def test_active_recovery_frontier_does_not_consume_historical_phase_projection(self):
         altered = self.cps.replace("`COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER`", "`IMPLEMENTED_MANUALLY_CALLABLE`", 1)
         result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
-        self.assertEqual(result["final_verdict"], "NO-GO")
-        self.assertIn("functional_footprint_mismatch:AEP_PHASE_4_STATUS", result["errors"])
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["current_completion_verdict"], "ACTIVE_NOT_CONSUMED")
 
-    def test_false_real_automation_claim_fails(self):
+    def test_active_recovery_frontier_does_not_consume_historical_automation_projection(self):
         altered = self.cps.replace("| `OMP_AUTOMATION_LEVEL` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |", "| `OMP_AUTOMATION_LEVEL` | `REAL_ENGINEERING_AUTOMATION` |", 1)
         result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
-        self.assertEqual(result["final_verdict"], "NO-GO")
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["current_completion_verdict"], "ACTIVE_NOT_CONSUMED")
 
     def test_active_source_caller_is_detected(self):
         with tempfile.TemporaryDirectory() as directory:

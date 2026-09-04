@@ -144,11 +144,11 @@ class OmpMissionCompletionEvidenceGateTest(unittest.TestCase):
         self.assertIn("| `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |", self.cps)
         self.assertIn("| `CURRENT_COMPLETION_VERDICT` | `ACTIVE_NOT_CONSUMED` |", self.cps)
 
-    def test_30_active_foundation_requires_gate_consumer_proof(self):
+    def test_30_active_product_frontier_requires_current_gate_consumer_proof(self):
         result = self.lib.omp_functional_footprint_consistency(self.cps, root=ROOT)
         self.assertEqual(
             result["mission_completion_evidence_gate_status"],
-            "RECOVERY_STABILITY_FOUNDATION_PRODUCER_CONSUMER_PROOF_REQUIRED",
+            "RECOVERY_LATENCY_SLO_RUNTIME_EVIDENCE_REQUIRED",
         )
         self.assertEqual(result["current_completion_verdict"], "ACTIVE_NOT_CONSUMED")
 

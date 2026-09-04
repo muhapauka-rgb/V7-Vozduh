@@ -10467,6 +10467,30 @@ Governance mapping:
 
 No separate capability lifecycle, roadmap, owner, or master program is allowed.
 
+#### Bounded execution profile identity
+
+An accepted BDP/OMP Mission may optionally carry one
+`execution_profile_contract` after Candidate acceptance. The profile is an
+immutable Engineering execution constraint, not an owner, Planner, Authority,
+frontier, dispatcher or current-state surface. The first admitted profile is
+the read-only `GPT_DECISION_REVIEW`; it binds Mission ID, run nonce, input and
+repository fingerprints, read-only tool class, bounded duration/steps and the
+existing Mission Completion Evidence Gate consumer.
+
+The external OMP/operator-to-Codex boundary remains unchanged. A returned
+result must echo the exact profile identity, carry an immutable output/result
+fingerprint and provide every required review bound to that output. The
+existing `mission_completion_evidence_gate` fails closed on stale Mission,
+identity drift, ambiguous result, missing review, different reviewed output or
+non-PASS required review. Historical Missions without an explicitly admitted
+profile remain governed by their existing completion contracts.
+
+This first binding performs no model dispatch, CPS projection, Runtime,
+production, route, user or Authority mutation. Tool/time/step enforcement at
+the external executor boundary is recorded as
+`DECLARED_NOT_ENFORCED_EXTERNAL_EXECUTOR_BOUNDARY`; schema/context separation
+does not claim model-level reviewer independence.
+
 ### 31.7 Program Navigation
 
 Separate `ARCHITECTURAL_INVARIANTS.md` and `PROGRAM_MAP.md` files are not created.
@@ -12185,3 +12209,16 @@ truth must agree.
 Completion is not implied by LOC, a report, a code split, a commit, a test or
 a deployed library. A future `STEADY_STATE_OPERATIONS` transition remains an
 existing OMP/CPS decision after independent consumer and production evidence.
+## Bounded Mission Integrity Continuation Law
+
+For a bounded execution profile carrying `MISSION_INTENT_FINGERPRINT`, OMP must
+retain the same Mission until all immutable `REQUIRED_OUTCOMES` are proved or a
+real `MISSION_CLARIFICATION_REQUIRED` / `STOP_SAFE_EXACT_GAP` boundary is
+accepted by `mission_completion_evidence_gate`.
+
+`LOCAL_EXECUTION_ADAPTATION` changes only the technical method and is consumed
+inside the current Mission. `CONTINUE_SAME_MISSION` is an executable OMP result,
+not a terminal and not authority to create a successor Mission. Tests, reports,
+commits, admission, bridges and other microsteps cannot carry the unconsumed
+remainder into a new Mission. Legacy Missions without the optional intent
+contract keep their current completion rules.

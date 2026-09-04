@@ -710,3 +710,143 @@ This handoff synthesizes rather than copies:
 
 When sources have different current-looking claims, this document labels old
 claims `SUPERSEDED` or `REVALIDATION_REQUIRED` rather than averaging them.
+
+---
+
+# 26. 2026-09-04 — Agentic Engineering And Code Optimization Delta
+
+**Update mode:** `ADDITIVE`
+**Old handoff content removed:** `NO`
+**Evidence status:** local read-only Engineering evidence; CPS/Canonical
+acceptance is not inferred from a report or proof alone.
+
+## CURRENT — product frontier supersession
+
+Section 24 is preserved as its stated 2026-08-14 CPS snapshot. Its active
+programme, RS6 stage and Matrix-probe successor are:
+
+```text
+SUPERSEDED_BY_CURRENT_FACT:
+ACTIVE_PROGRAM = V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1
+CURRENT_PROGRAM_EXECUTION_FRONTIER = V7_RECOVERY_LATENCY_SLO_FINAL_EXECUTION_AND_CLOSURE
+CURRENT_EXECUTION_MISSION_STATE = MISSION_ACTIVE
+CURRENT_COMPLETION_CONTRACT = RECOVERY_LATENCY_SLO_PRODUCT_CONTRACT
+```
+
+The current product clock remains the CPS/contract-owned recovery interval
+from `T_FIRST_VALID_FAILURE_OBSERVATION` to the last affected required S11.
+Agentic Engineering and Code Optimization work neither replace nor execute
+this product frontier.
+
+## CURRENT — agentic Engineering direction
+
+Do not build a separate Agent System. The governing sequence is:
+
+```text
+DISCOVER -> REUSE -> EXTEND -> IMPLEMENT
+```
+
+AI-assisted roles are bounded Execution/Review profiles inside the existing
+OMP Engineering boundary. They are not owners, Programs, Planners,
+Coordinators, CPS frontiers, truth sources, Runtime services or persistent
+agents. The durable chain remains:
+
+```text
+Product goal -> V7 Program -> CPS/OMP -> current frontier
+  -> bounded profile -> code/test/evidence -> existing completion/residual consumer
+```
+
+The existing-owner capability audit verdict was
+`EXTEND_EXISTING_EXECUTION_CONTRACT`: no new Coordinator, Agent Frontier,
+Function Graph owner, Program, OMP/CPS, Runtime truth owner or persistent
+state was admitted.
+
+## CURRENT — bounded profile evidence
+
+The original admitted profile remains `GPT_DECISION_REVIEW`. It binds exact
+Mission/run/profile/input/repository identity, a read-only tool class and the
+existing completion consumer. Its independent-review proof level remains
+`SCHEMA_CONTEXT_SEPARATION_ONLY`; model-level independence and external
+tool/time/step/retry enforcement are not proven.
+
+`CODE_OPTIMIZATION` is now also a bounded `READ_ONLY` profile type. It has no
+source/CPS/Runtime/production/user/route mutation capability, no successor
+admission capability and no self-certification capability. It requires exact
+`ARCHITECTURE_REVIEW` and `EVIDENCE_REVIEW` records over the same immutable
+output. A general `CODEX_IMPLEMENTATION`, Safety Review or UI Delivery profile
+is **INTENDED_NOT_IMPLEMENTED** unless a later current contract admits it.
+
+## CURRENT — responsibility-subgraph evidence
+
+`derive_responsibility_subgraph` is a current on-demand derived-evidence
+producer under the existing Engineering/OMP completion boundary. Its only
+admitted pilot domain is:
+
+```text
+ORDINARY_SERVICE_FAILURE_GOVERNED_RECOVERY_EXECUTION
+```
+
+The result is non-canonical, discardable and non-authorizing, with CPS,
+Runtime, Production and Authority effect `NONE`. It is bounded to five source
+surfaces and, in the current proof, contained 34 nodes, 58 direct static edges
+and 439 retained unknown references. Unknown dynamic/state/lock/process facts
+are not invented.
+
+The completion binding now validates the exact domain, repository,
+subgraph/result fingerprints, generated time, expiry and freshness status.
+Expired or mismatched evidence stops safe. No BDP Mission or CPS projection is
+created by this local proof.
+
+`responsibility_subgraph_structural_delta` is an on-demand structural baseline
+and review input only. `CONTINUOUS_ANTI_REGROWTH_ACTIVE` is **NOT_PROVEN**:
+there is no background scanner, watcher, daemon, graph service, persistent
+registry or automatic signal consumer.
+
+## CURRENT — first Code Optimization audit
+
+`V7_CODE_OPTIMIZATION_EXECUTION_PROFILE_AND_FIRST_DOMAIN_AUDIT_V1` executed as
+a local read-only contract proof. It correctly applies `ZERO_OR_ONE` candidate
+selection rather than forcing a cleanup target.
+
+```text
+PROFILE/REVIEW/COMPLETION CONTRACT = PASS
+SUBGRAPH BINDING = PASS
+CPS/RUNTIME/PRODUCTION/AUTHORITY EFFECT = NONE
+FIRST COUNTERFACTUAL CANDIDATE COUNT = 0
+SUBSTANTIVE DOMAIN AUDIT TERMINAL = INSUFFICIENT_EVIDENCE
+```
+
+Canonical Reference, SYSTEM_MAP and Runtime Model confirm durable topology but
+do not currently provide a complete, current, domain-specific ordinary-recovery
+causal spine through the exact required S11 terminal. The audit therefore does
+not infer semantic necessity, redundancy, supersession, compatibility removal,
+caller/consumer behavior or a counterfactual path from static reachability.
+
+`V7_CODE_OPTIMIZATION_FIRST_COUNTERFACTUAL_PROOF_AND_BOUNDED_CLEANUP_V1` is
+**NOT_ADMITTED**. The exact next action for Code Optimization is not cleanup:
+the existing canonical owner must provide or revalidate the current
+ordinary-recovery causal spine and exact S11 facts. Until then, cleanup
+selection is `STOP_SAFE_TO_BE_RESPONSIBILITY_AMBIGUOUS`.
+
+## PRESERVED — optimization law
+
+The optimization unit is a responsibility subgraph, not a file. A large file
+is a hotspot signal only. Reachable, consumed, behaviorally effective and
+semantically necessary are distinct claims. A future cleanup can be considered
+only after caller/consumer/state/behavior evidence and an equivalent
+Control-versus-Counterfactual proof preserve required safety, route/kernel
+truth, required-service S11, rollback, re-entry and a current compatibility
+consumer where applicable. Tests alone are insufficient.
+
+## Continuation rule
+
+For any new context: read CPS first, then this handoff, Canonical Reference,
+SYSTEM_MAP and current OMP. Treat the reports listed below as historical
+evidence, not current truth. Recompute the exact CPS successor before action.
+
+Relevant 2026-09-04 evidence:
+
+- `docs/reports/engineering/2026-09-04_v7_agent_capability_existing_owner_audit_and_admission_decision.md`
+- `docs/reports/engineering/2026-09-04_v7_omp_bounded_execution_profile_identity_and_completion_binding_v1.md`
+- `docs/reports/engineering/2026-09-04_v7_existing_discovery_owner_domain_responsibility_subgraph_producer_v1.md`
+- `docs/reports/engineering/2026-09-04_v7_code_optimization_execution_profile_and_first_domain_audit_v1.md`

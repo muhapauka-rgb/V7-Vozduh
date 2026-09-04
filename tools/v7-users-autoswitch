@@ -25871,7 +25871,17 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
             # scope.  The caller re-reads that Matrix binding after planning
             # before it can feed the governed executor.
             and bool(matrix_scope_incident)
-            and matrix_scope_count == affected
+            # Matrix owns the full ordinary scope on this failed source,
+            # while this profile-specific join contains only the members
+            # whose required service is currently failed.  Equality wrongly
+            # discarded a lawful current binding whenever unaffected ordinary
+            # members shared the source, forcing a passive-first bridge and a
+            # second identical advisory pass.  The contained, non-empty
+            # profile subset is sufficient only to preserve the same exact
+            # Matrix source/incident/scope binding; the existing Planner and
+            # governed executor still select and revalidate every member and
+            # target.
+            and 0 < affected <= matrix_scope_count
             and bool(matrix_scope_fingerprint)
         ):
             args.runtime_profile_failure_binding["source_incident_id"] = (

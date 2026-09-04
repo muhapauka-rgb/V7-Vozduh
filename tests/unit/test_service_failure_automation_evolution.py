@@ -850,7 +850,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "channel": "vless",
             "source_incident_id": "sfinc-matrix-owner",
             "source_scope_fingerprint": "fresh-scope",
-            "affected_scope_count": 1,
+            # The Matrix source scope contains all ordinary members assigned
+            # to the failed source.  The profile join below deliberately
+            # contains only one member whose required service failed.
+            "affected_scope_count": 3,
             "scope_classification": "ORDINARY_PRODUCTION_ONLY",
         }
         with mock.patch.dict(self.autoswitch.os.environ, {

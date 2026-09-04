@@ -1,0 +1,65 @@
+# V7 Recovery Latency: Fresh Postfix Profile-Scope Subset Repair
+
+## Scope
+
+`V7_RECOVERY_LATENCY_SLO_FRESH_POSTFIX_MEASUREMENT_AND_DOMINANT_APPLY_SUBSPAN_REPAIR`.
+This report concerns one automatic ordinary recovery observed after the
+persistent-owner deployment. No user, source, target, Candidate, Packet,
+Lease, Barrier, route, registry, Matrix or Authority state was manually
+advanced for this investigation.
+
+## Fresh Runtime Evidence
+
+The existing `v7-health.service` caller completed automatic operation
+`runtime_autoswitch_b5eb68ec00bc89b48f17e5e7` for three ordinary members from
+`awg3` at 2026-09-04 09:18 MSK. The health receipt recorded:
+
+| Span | Measured |
+| --- | ---: |
+| Matrix T0 to consumer start | 407 ms |
+| Matrix T0 to required-service S11 | 24,971 ms |
+| Matrix T0 to consumer completion | 25,321 ms |
+| Matrix pre-governed | 16,078 ms |
+| Governed execution to S11 | 24,563 ms from consumer entry; governed child wall 8,810 ms |
+| Governed Apply and verification | 6,120 ms |
+
+The receipt is valid automatic Runtime evidence, but fails the product
+`<= 7 s` / `> 8 s` contract. It is not SLO credit.
+
+The pre-governed envelope was attributable: initial source/handoff reads
+136 ms, fresh profile advisory 7,264 ms, passive bridge 3,343 ms, and a second
+advisory 5,224 ms. Apply itself remained an independent P1 at 6,120 ms.
+
+## Proven Cause and Repair
+
+The existing runtime-profile binding compared the full Matrix ordinary source
+scope with the smaller set of profiles whose required service actually failed
+using equality. For a mixed source, ordinary members with no failed required
+service made that false despite the source, Matrix incident and scope
+fingerprint being exact. The advisory then lost the exact binding and entered
+the passive-first bridge followed by another advisory pass.
+
+`tools/v7-users-autoswitch` now accepts only a non-empty affected profile set
+contained in the exact Matrix ordinary scope (`0 < affected <= scope count`).
+It preserves the same channel, Matrix incident id and scope fingerprint. The
+existing Planner still derives members and targets; the governed executor still
+revalidates current facts and owns Candidate, Packet, Lease, Barrier, Apply and
+S11. No new owner, queue, cache, persistent state or route writer was added.
+
+## Verification
+
+- Focused runtime-profile binding and duplicate-advisory tests: 4 PASS.
+- The affected broader suites were started. Their first failure is a pre-existing
+  CPS/OMP consistency fixture (`cps_current_stop_divergence`, related durable
+  program-state projections) in
+  `test_accounted_scope_projects_active_incident_drain_into_source_cps`; it is
+  unrelated to this source-scope predicate and was not changed here.
+- `git diff --check`: PASS.
+
+## Next Evidence
+
+Deploy only through `tools/v7-safe-deploy`, then wait for the normal
+`v7-health.service` caller to observe a fresh ordinary Matrix incident. Record
+the same monotonic receipt. No manual recovery is permitted. The next measured
+dominant span determines whether the residual is still preparation or the
+separate governed Apply/verification frontier.

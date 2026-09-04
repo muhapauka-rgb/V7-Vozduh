@@ -27613,13 +27613,20 @@ def submit_code_optimization_result(
     requested_mission_terminal: str = "",
     mission_terminal_evidence: Optional[dict[str, Any]] = None,
     next_executable_action: str = "",
+    executor_context_id: str = "external-codex-bounded-code-optimization",
 ) -> dict[str, Any]:
     """Validate a Codex-authored bounded result; deterministic code never authors semantic claims."""
     errors = validate_code_optimization_evidence_package(evidence_package, profile=profile, subgraph=subgraph)
     evidence_items = {item.get("evidence_id"): item for item in evidence_package.get("evidence_items", []) if isinstance(item, dict)}
     evidence_ids = set(evidence_items)
     for item in output.get("responsibility_classifications", []):
-        if not isinstance(item, dict) or item.get("classification") not in {"ESSENTIAL", "SAFETY_ESSENTIAL", "OBSERVABILITY_ESSENTIAL", "COMPATIBILITY_CURRENT", "ACTIVE_BUT_REDUNDANT_CANDIDATE", "SUPERSEDED_CANDIDATE", "HISTORICAL_ONLY", "UNKNOWN"}:
+        if not isinstance(item, dict) or item.get("classification") not in {
+            "ESSENTIAL", "SAFETY_ESSENTIAL", "OBSERVABILITY_ESSENTIAL",
+            "COMPATIBILITY_CURRENT", "ACTIVE_BUT_REDUNDANT", "SUPERSEDED",
+            "HISTORICAL_ONLY", "INCOMPLETE_REQUIRED", "INCOMPLETE_ORPHANED", "UNKNOWN",
+            # Legacy profiles retain these candidate spellings for compatibility.
+            "ACTIVE_BUT_REDUNDANT_CANDIDATE", "SUPERSEDED_CANDIDATE",
+        }:
             errors.append("code_optimization_classification_invalid"); continue
         ids = set(item.get("evidence_item_ids") or [])
         claim = str(item.get("claim_type") or "")
@@ -27637,7 +27644,7 @@ def submit_code_optimization_result(
     if output.get("terminal_verdict") == "PASS_CANDIDATE_READY" and (selected is None or len(ranked) < 1): errors.append("code_optimization_selected_candidate_missing")
     if output.get("terminal_verdict") == "NO_SAFE_COUNTERFACTUAL_CANDIDATE" and not output.get("considered_mechanisms"):
         errors.append("code_optimization_honest_zero_mechanisms_missing")
-    result = gpt_decision_review_result_contract(profile, output, executor_context_id="external-codex-bounded-code-optimization")
+    result = gpt_decision_review_result_contract(profile, output, executor_context_id=executor_context_id)
     completion_contract = {
         "MISSION_TYPE": "ACCEPTANCE", "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION", "INDEPENDENT_ACCEPTANCE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
         "EXECUTION_PROFILE_CONTRACT": profile, "EXECUTION_PROFILE_RESULT": result, "EXECUTION_PROFILE_REVIEWS": reviews, "RESPONSIBILITY_SUBGRAPH_RESULT": subgraph,
@@ -28042,56 +28049,6 @@ def code_optimization_full_baseline(*, root: Path = ROOT) -> dict[str, Any]:
         })
         subgraph = derive_responsibility_subgraph(request, root=root)
         baseline = _code_optimization_structural_baseline(subgraph, root=root)
-        profile = admit_execution_profile_contract(code_optimization_profile_contract(
-            mission_id=request["mission_id"], run_nonce=request["run_nonce"],
-            input_fingerprint=request["input_fingerprint"],
-            repo_fingerprint=request["repo_fingerprint"], continuous_acceptance=True,
-        ), mission_id=request["mission_id"])
-        package = code_optimization_evidence_package(
-            mission_id=request["mission_id"], run_nonce=request["run_nonce"],
-            profile=profile, subgraph=subgraph, root=root,
-        )
-        output = {
-            "mission_reference": request["mission_id"],
-            "profile_reference": profile.get("profile_fingerprint"),
-            "input_fingerprint": request["input_fingerprint"],
-            "domain_id": domain_id,
-            "responsibility_subgraph": {key: subgraph.get(key) for key in (
-                "domain_id", "repo_fingerprint", "subgraph_fingerprint",
-                "result_fingerprint", "generated_at", "expires_at",
-            )},
-            "canonical_to_be_references": _code_optimization_canonical_references(root),
-            "structural_baseline": baseline,
-            "responsibility_classifications": [{
-                "subject": domain_id, "classification": "UNKNOWN",
-                "reason": "structural baseline does not prove semantic necessity",
-            }],
-            "semantic_necessity_classifications": [{
-                "scope": domain_id, "classification": "UNKNOWN",
-                "reason": "counterfactual behavioral proof is not part of baseline capture",
-            }],
-            "counterfactual_hypotheses": [], "ranked_candidates": [],
-            "selected_first_candidate": None, "owner_decision_required": False,
-            "unproven_edges": subgraph.get("unknown_references") or [],
-            "unproven_claims": [
-                "semantic necessity", "runtime behavior", "production effect",
-            ],
-            "terminal_verdict": "INSUFFICIENT_EVIDENCE",
-        }
-        provisional = gpt_decision_review_result_contract(
-            profile, output, executor_context_id=f"full-baseline-executor-{index}",
-        )
-        reviews = [
-            execution_profile_review_record(
-                profile, provisional, review_type=review_type,
-                review_verdict="PASS", review_context_id=f"full-baseline-{index}-{review_type.lower()}",
-            )
-            for review_type in profile.get("required_reviews") or []
-        ]
-        submitted = submit_code_optimization_result(
-            profile=profile, subgraph=subgraph, evidence_package=package,
-            output=output, reviews=reviews,
-        )
         domains.append({
             "domain_id": domain_id, "entry_condition": entry_condition or "NONE",
             "owner": subgraph.get("canonical_references", {}).get("owner"),
@@ -28101,12 +28058,9 @@ def code_optimization_full_baseline(*, root: Path = ROOT) -> dict[str, Any]:
             "edge_count": len(subgraph.get("edges") or []),
             "unknown_reference_count": len(subgraph.get("unknown_references") or []),
             "structural_baseline": baseline,
-            "profile_fingerprint": profile.get("profile_fingerprint"),
-            "result_fingerprint": submitted.get("result", {}).get("result_fingerprint"),
-            "completion_verdict": submitted.get("completion", {}).get("completion_verdict"),
-            "review_status": submitted.get("completion", {}).get("execution_profile_binding", {}).get("review_status"),
-            "final_verdict": submitted.get("final_verdict"),
-            "errors": submitted.get("errors") or [],
+            "structural_derivation": "DERIVED_NO_SEMANTIC_EXECUTOR_RESULT",
+            "final_verdict": "PASS" if subgraph.get("final_verdict") == "PASS" else "STOP_SAFE",
+            "errors": subgraph.get("errors") or [],
         })
     baseline_identity = [{
         key: item[key] for key in (
@@ -28124,7 +28078,7 @@ def code_optimization_full_baseline(*, root: Path = ROOT) -> dict[str, Any]:
         "baseline_fingerprint": baseline_fingerprint,
         "semantic_claim": "NONE_STRUCTURAL_BASELINE_ONLY",
         "selected_candidate_count": 0,
-        "exact_consumer": "mission_completion_evidence_gate",
+        "exact_consumer": "CODE_OPTIMIZATION_EXECUTOR_PACKET",
         "no_cps_effect": cps_before == cps_after,
         "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
         "final_verdict": "PASS" if passed else "STOP_SAFE",
@@ -28214,98 +28168,127 @@ def _code_optimization_local_unknowns(subgraph: dict[str, Any]) -> list[dict[str
     } for symbol, items in sorted(grouped.items())]
 
 
-def _code_optimization_semantic_domain_audit(
-    subgraph: dict[str, Any], baseline: dict[str, Any],
+CODE_OPTIMIZATION_SEMANTIC_CLASSES = {
+    "ESSENTIAL", "SAFETY_ESSENTIAL", "OBSERVABILITY_ESSENTIAL",
+    "COMPATIBILITY_CURRENT", "ACTIVE_BUT_REDUNDANT", "SUPERSEDED",
+    "HISTORICAL_ONLY", "INCOMPLETE_REQUIRED", "INCOMPLETE_ORPHANED", "UNKNOWN",
+}
+
+
+def code_optimization_executor_packet(
+    *, intent: dict[str, Any], profile: dict[str, Any], subgraph: dict[str, Any],
+    baseline: dict[str, Any], evidence_package: dict[str, Any], root: Path = ROOT,
 ) -> dict[str, Any]:
-    domain_id = str(subgraph.get("domain_id") or "")
-    owner = str(subgraph.get("canonical_references", {}).get("owner") or "")
-    classifications: list[dict[str, Any]] = []
-    if domain_id == OMP_COMPLETION_SUBGRAPH_DOMAIN_ID:
-        classifications.append({
-            "mechanism": "execution_profile_completion_binding -> mission_completion_evidence_gate",
-            "producer": "submit_code_optimization_result", "consumer": "mission_completion_evidence_gate",
-            "claimed_contribution": "immutable result/review completion",
-            "observed_contribution": "current submit consumer rejects identity or review mismatch",
-            "classification": "SAFETY_ESSENTIAL",
-            "evidence": ["completion-consumer-v1", "current profile regression"],
-        })
-    elif domain_id == OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID:
-        classifications.extend(({
-            "mechanism": "code_optimization_resolve_material_change_domain",
-            "producer": "continue_omp_engineering_control_loop", "consumer": "code_optimization_material_change_admission",
-            "claimed_contribution": "existing-owner material change resolution",
-            "observed_contribution": "prevents private path-owner duplication",
-            "classification": "SAFETY_ESSENTIAL", "evidence": ["actual Continue OMP caller", "anti-regrowth rule"],
-        }, {
-            "mechanism": "code_optimization_bridge_anti_regrowth",
-            "producer": "material-change admission", "consumer": "continue_omp_engineering_control_loop",
-            "claimed_contribution": "fail closed on removed duplicate mapping recurrence",
-            "observed_contribution": "controlled recurrence reaches STOP_SAFE",
-            "classification": "QUALITY_COMPLEXITY_ESSENTIAL", "evidence": ["controlled recurrence test"],
-        }))
-    else:
-        classifications.append({
-            "mechanism": "ordinary recovery responsibility subgraph",
-            "producer": owner, "consumer": "current Runtime owners",
-            "claimed_contribution": "failure-to-required-service-S11 recovery chain",
-            "observed_contribution": "bounded static reachability only",
-            "classification": "UNKNOWN",
-            "evidence": ["fresh responsibility subgraph"],
-            "missing_fact": "current Runtime caller/state/lock/process/behavioral equivalence",
-        })
-    link_progression = [{
-        "link_id": _execution_contract_fingerprint({
-            key: edge.get(key) for key in ("edge_type", "source", "target", "path", "line")
-        })[:16],
-        "source": edge.get("source"), "target": edge.get("target"),
-        "edge_type": edge.get("edge_type"), "path": edge.get("path"), "line": edge.get("line"),
-        "reachable": "PROVEN_CURRENT_SOURCE",
-        "consumed": "PROVEN_STATIC_CALL_OR_DEPENDENCY",
-        "behaviorally_effective": "UNKNOWN_WITHOUT_CURRENT_BEHAVIORAL_COUNTERFACTUAL",
-        "semantically_necessary": "UNKNOWN_UNTIL_LINK_LEVEL_COUNTERFACTUAL",
-        "reentry_condition": "current owner-backed behavioral or counterfactual evidence for this exact link",
-    } for edge in subgraph.get("edges") or []]
-    largest = list(baseline.get("largest_functions") or [])
-    hypotheses = []
-    if largest:
-        hotspot = largest[0]
-        hypotheses.append({
-            "hypothesis_id": "HOTSPOT_NARROWING_" + _execution_contract_fingerprint({
-                "domain_id": domain_id, "hotspot": hotspot,
-            })[:12],
-            "domain": domain_id,
-            "exact_mechanism": f"{hotspot.get('path')}:{hotspot.get('function')}",
-            "producer": owner, "consumer": "UNKNOWN_LOCALIZED",
-            "claimed_contribution": "multiple responsibility branches in one hotspot",
-            "observed_contribution": f"{hotspot.get('loc')} LOC structural signal only",
-            "suspected_duplicate_or_superseding_source": "UNKNOWN_NOT_PROVEN",
-            "evidence": ["structural_baseline.largest_functions"],
-            "admissible_equivalent_inputs": [],
-            "control_observables": ["current tests", "current caller/consumer behavior"],
-            "counterfactual_observables": ["same behavior with narrower responsibility surface"],
-            "safety_compatibility_invariants": ["owner semantics", "STOP_SAFE", "compatibility", "rollback"],
-            "blast_radius": "UNKNOWN", "reversibility": "UNKNOWN", "rollback": "revert Mission-owned cleanup",
-            "falsification_condition": "no counterfactual equivalence evidence",
-            "expected_simplification": "UNKNOWN", "dependent_tails": [],
-            "admissible": False,
-            "rejection_reason": "LOC_AND_REACHABILITY_DO_NOT_PROVE_REDUNDANCY",
-        })
-    return {
-        "domain_id": domain_id, "owner": owner,
-        "mandatory_question": "WHAT NEW REQUIRED PRODUCT, SAFETY, COMPATIBILITY OR OBSERVABILITY FACT DOES THIS ADD?",
-        "semantic_progression": ["REACHABLE", "CONSUMED", "BEHAVIORALLY_EFFECTIVE", "SEMANTICALLY_NECESSARY"],
-        "link_progression": link_progression,
-        "link_progression_summary": {
-            "reachable_proven": len(link_progression),
-            "consumed_statically_proven": len(link_progression),
-            "behaviorally_effective_unknown": len(link_progression),
-            "semantically_necessary_unknown": len(link_progression),
-        },
-        "classifications": classifications,
-        "localized_unknowns": _code_optimization_local_unknowns(subgraph),
-        "self_generated_hypotheses": hypotheses,
-        "semantic_terminal": "AUDITED_WITH_LOCAL_UNKNOWNS",
+    """Emit one immutable bounded handoff; it contains no semantic conclusion."""
+    source_fingerprints = {
+        path: _responsibility_subgraph_source_fingerprint(root, [path])
+        for path in sorted({str(node.get("path")) for node in subgraph.get("nodes") or [] if node.get("path")})
     }
+    packet = {
+        "schema": "v7.code-optimization-executor-packet.v1",
+        "mission_id": intent.get("mission_id"),
+        "mission_intent_fingerprint": intent.get("mission_intent_fingerprint"),
+        "profile_fingerprint": profile.get("profile_fingerprint"),
+        "run_nonce": profile.get("run_nonce"),
+        "repo_fingerprint": subgraph.get("repo_fingerprint"),
+        "domain_id": subgraph.get("domain_id"),
+        "owner": subgraph.get("canonical_references", {}).get("owner"),
+        "entry_condition": subgraph.get("entry_condition") or "NONE",
+        "source_paths": sorted(source_fingerprints), "source_fingerprints": source_fingerprints,
+        "profile_contract": profile, "subgraph_result": subgraph,
+        "nodes": subgraph.get("nodes") or [], "edges": subgraph.get("edges") or [],
+        "proved_static_callers_consumers": subgraph.get("edges") or [],
+        "unknown_references": subgraph.get("unknown_references") or [],
+        "canonical_to_be": subgraph.get("canonical_references") or {},
+        "structural_baseline": baseline,
+        "evidence_package": evidence_package,
+        "semantic_taxonomy": sorted(CODE_OPTIMIZATION_SEMANTIC_CLASSES),
+        "semantic_question": "WHAT NEW REQUIRED PRODUCT, SAFETY, COMPATIBILITY OR OBSERVABILITY FACT DOES THIS ADD?",
+        "required_symbol_evidence": [
+            "path", "symbol", "line", "caller_evidence", "consumer_evidence", "inputs_outputs",
+            "state_reads_writes", "decision_terminal_effect", "error_stop_safe", "compatibility_consumer",
+            "observability", "canonical_owner", "removal_or_bypass_effect", "evidence_item_ids",
+        ],
+        "required_hypothesis_fields": [
+            "exact_mechanism", "producer", "consumer", "claimed_contribution", "observed_contribution",
+            "duplicate_or_superseding_source", "evidence_item_ids", "control_observables",
+            "counterfactual_observables", "safety_compatibility_invariants", "falsification_condition",
+            "blast_radius", "rollback", "expected_simplification", "dependent_tails",
+        ],
+        "allowed_tools": ["READ_ONLY_ENGINEERING_EVIDENCE"],
+        "mutation_boundary": "NO_SOURCE_RUNTIME_PRODUCTION_OR_AUTHORITY_MUTATION_IN_PACKET_EXECUTION",
+        "required_reviews": profile.get("required_reviews") or [],
+        "submission_consumer": "submit_code_optimization_result",
+        "next_action": "external Codex inspects bounded symbols and submits an immutable evidence-backed result",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": evidence_package.get("expires_at"),
+    }
+    packet["packet_fingerprint"] = _execution_contract_fingerprint(packet)
+    return packet
+
+
+def validate_code_optimization_executor_packet(packet: dict[str, Any], *, now: datetime | None = None) -> list[str]:
+    required = {
+        "schema", "mission_id", "mission_intent_fingerprint", "profile_fingerprint", "run_nonce",
+        "repo_fingerprint", "domain_id", "owner", "source_paths", "nodes", "edges",
+        "evidence_package", "expires_at", "packet_fingerprint",
+    }
+    errors = [f"executor_packet_missing:{field}" for field in required if packet.get(field) in (None, "", [])]
+    if packet.get("schema") != "v7.code-optimization-executor-packet.v1":
+        errors.append("executor_packet_schema_invalid")
+    fingerprint = _execution_contract_fingerprint({key: value for key, value in packet.items() if key != "packet_fingerprint"})
+    if packet.get("packet_fingerprint") != fingerprint:
+        errors.append("executor_packet_fingerprint_mismatch")
+    try:
+        if (now or datetime.now(timezone.utc)) > datetime.fromisoformat(str(packet.get("expires_at"))):
+            errors.append("executor_packet_expired")
+    except ValueError:
+        errors.append("executor_packet_expiry_invalid")
+    return sorted(set(errors))
+
+
+def validate_code_optimization_executor_result(packet: dict[str, Any], result: dict[str, Any]) -> list[str]:
+    """Require Codex-authored symbol evidence; topology cannot satisfy this boundary."""
+    errors = validate_code_optimization_executor_packet(packet)
+    if result.get("packet_fingerprint") != packet.get("packet_fingerprint"):
+        errors.append("executor_result_packet_identity_mismatch")
+    if not str(result.get("executor_context_id") or ""):
+        errors.append("executor_result_context_missing")
+    output = result.get("output") if isinstance(result.get("output"), dict) else {}
+    symbol_evidence = output.get("symbol_evidence")
+    if not isinstance(symbol_evidence, list) or not symbol_evidence:
+        errors.append("executor_result_symbol_evidence_missing")
+        symbol_evidence = []
+    evidence_ids = {item.get("evidence_id") for item in (packet.get("evidence_package", {}).get("evidence_items") or []) if isinstance(item, dict)}
+    seen: set[str] = set()
+    for item in symbol_evidence:
+        if not isinstance(item, dict):
+            errors.append("executor_result_symbol_evidence_invalid")
+            continue
+        identity = str(item.get("evidence_id") or "")
+        if not identity or identity in seen:
+            errors.append("executor_result_symbol_evidence_duplicate_or_missing")
+        seen.add(identity)
+        for field in packet.get("required_symbol_evidence") or []:
+            if item.get(field) in (None, "", []):
+                errors.append(f"executor_result_symbol_evidence_field_missing:{field}")
+        if item.get("path") not in packet.get("source_paths", []):
+            errors.append("executor_result_symbol_evidence_path_out_of_bounds")
+        if not isinstance(item.get("line"), int) or item.get("line", 0) < 1:
+            errors.append("executor_result_symbol_evidence_line_invalid")
+        if not set(item.get("evidence_item_ids") or []).issubset(evidence_ids):
+            errors.append("executor_result_symbol_evidence_reference_invalid")
+    classifications = output.get("responsibility_classifications") or []
+    if not isinstance(classifications, list) or not classifications:
+        errors.append("executor_result_classifications_missing")
+    elif all(item.get("classification") == "UNKNOWN" for item in classifications if isinstance(item, dict)):
+        errors.append("executor_result_blanket_unknown_rejected")
+    for item in classifications:
+        if not isinstance(item, dict) or item.get("classification") not in CODE_OPTIMIZATION_SEMANTIC_CLASSES:
+            errors.append("executor_result_classification_invalid")
+        elif item.get("classification") == "UNKNOWN" and not all(item.get(field) for field in ("missing_fact", "evidence_owner", "acquisition_action", "reentry_condition")):
+            errors.append("executor_result_unknown_not_localized")
+    return sorted(set(errors))
 
 
 def code_optimization_operational_anti_regrowth(source: str) -> dict[str, Any]:
@@ -28320,6 +28303,7 @@ def code_optimization_operational_anti_regrowth(source: str) -> dict[str, Any]:
     }
     baseline = functions.get("code_optimization_full_baseline")
     campaign = functions.get("code_optimization_operational_campaign")
+    hardcoded_semantic_helper = "_code_optimization_semantic_domain_audit" in functions
     literal_domain_list = False
     if baseline is not None:
         for node in ast.walk(baseline):
@@ -28333,23 +28317,26 @@ def code_optimization_operational_anti_regrowth(source: str) -> dict[str, Any]:
         and _responsibility_subgraph_call_name(node.func) == "code_optimization_discover_domains"
         for node in ast.walk(campaign)
     )
-    recurrence = literal_domain_list or not discovery_consumed
+    recurrence = literal_domain_list or not discovery_consumed or hardcoded_semantic_helper
     return {
         "schema": "v7.code-optimization-operational-anti-regrowth.v1",
         "rule_id": "NO_PRIVATE_FULL_BASELINE_DOMAIN_LIST",
         "recurrence_detected": recurrence,
         "literal_domain_list_detected": literal_domain_list,
+        "hardcoded_semantic_helper_detected": hardcoded_semantic_helper,
         "owner_backed_discovery_consumed": discovery_consumed,
         "final_verdict": "STOP_SAFE" if recurrence else "PASS",
-        "reason": "PRIVATE_DOMAIN_LIST_RECURRED" if recurrence else "OWNER_BACKED_DISCOVERY_PRESERVED",
+        "reason": "PRIVATE_DOMAIN_OR_SEMANTIC_TEMPLATE_RECURRED" if recurrence else "OWNER_BACKED_DISCOVERY_PRESERVED",
     }
 
 
 def code_optimization_operational_campaign(
     *, root: Path = ROOT, mode: str = "FULL_BASELINE",
     domain_id: str = "", changed_dependencies: Optional[Iterable[str]] = None,
+    executor_results: Optional[Iterable[dict[str, Any]]] = None,
+    prepared_packets: Optional[Iterable[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
-    """Execute the compact operational semantic campaign through existing owners."""
+    """Prepare or consume external semantic work; never author it locally."""
     normalized_mode = str(mode or "").upper()
     identity_mode = "FULL_BASELINE" if normalized_mode == "CONTINUE" else normalized_mode
     discovery = code_optimization_discover_domains(root=root)
@@ -28391,7 +28378,8 @@ def code_optimization_operational_campaign(
     })
     required_outcomes = [
         "COMPACT_INTENT_CONSUMED", "OWNER_BACKED_DISCOVERY_COMPLETE",
-        "STRUCTURAL_BASELINE_COMPLETE", "SEMANTIC_AUDITS_COMPLETE",
+        "STRUCTURAL_BASELINE_COMPLETE", "EXTERNAL_EXECUTOR_RESULTS_CONSUMED",
+        "SEMANTIC_AUDITS_COMPLETE",
         "HYPOTHESES_GENERATED", "RANKING_COMPLETE", "COUNTERFACTUAL_LOOP_COMPLETE",
         "ZERO_OR_ONE_CLEANUP_ENFORCED", "REVIEWS_AND_COMPLETION_CONSUMED",
         "ANTI_REGROWTH_CONSUMED", "REMAINING_DOMAINS_COMPLETE", "CONSOLIDATED_RESULT_COMPLETE",
@@ -28421,11 +28409,28 @@ def code_optimization_operational_campaign(
         "REQUESTED_MISSION_TERMINAL": "BASELINE_CAPTURED",
         "NEXT_EXECUTABLE_ACTION": "continue semantic audits in the same Mission",
     })
-    semantic_domains: list[dict[str, Any]] = []
-    all_hypotheses: list[dict[str, Any]] = []
+    packets: list[dict[str, Any]] = []
+    packet_contexts: dict[str, dict[str, Any]] = {}
     domain_submissions: list[dict[str, Any]] = []
     structural_by_id = {item["domain_id"]: item for item in structural["domains"]}
-    for index, current_id in enumerate(selected_ids, 1):
+    if prepared_packets is not None:
+        packets = [dict(packet) for packet in prepared_packets if isinstance(packet, dict)]
+        packet_errors = [error for packet in packets for error in validate_code_optimization_executor_packet(packet)]
+        domain_set_mismatch = {packet.get("domain_id") for packet in packets} != set(selected_ids)
+        if packet_errors or domain_set_mismatch:
+            return {
+                "schema": "v7.code-optimization-operational-campaign.v2",
+                "final_verdict": "STOP_SAFE", "terminal": "STOP_SAFE_EXECUTOR_PACKET_REENTRY_INVALID",
+                "errors": sorted(set(packet_errors + (["executor_packet_domain_set_mismatch"] if domain_set_mismatch else []))),
+            }
+        packet_contexts = {
+            str(packet["packet_fingerprint"]): {
+                "profile": packet.get("profile_contract") or {},
+                "subgraph": packet.get("subgraph_result") or {},
+                "package": packet.get("evidence_package") or {},
+            } for packet in packets
+        }
+    for index, current_id in enumerate([] if prepared_packets is not None else selected_ids, 1):
         config = configs[current_id]
         request = responsibility_subgraph_pilot_request(root=root, domain_id=current_id)
         request.update({
@@ -28440,9 +28445,6 @@ def code_optimization_operational_campaign(
         })
         subgraph = derive_responsibility_subgraph(request, root=root)
         baseline = structural_by_id[current_id]["structural_baseline"]
-        audit = _code_optimization_semantic_domain_audit(subgraph, baseline)
-        semantic_domains.append(audit)
-        all_hypotheses.extend(audit["self_generated_hypotheses"])
         profile = admit_execution_profile_contract(code_optimization_profile_contract(
             mission_id=intent["mission_id"], run_nonce=request["run_nonce"],
             input_fingerprint=request["input_fingerprint"], repo_fingerprint=request["repo_fingerprint"],
@@ -28452,146 +28454,115 @@ def code_optimization_operational_campaign(
             mission_id=intent["mission_id"], run_nonce=request["run_nonce"],
             profile=profile, subgraph=subgraph, root=root,
         )
-        output = {
-            "mission_reference": intent["mission_id"], "profile_reference": profile["profile_fingerprint"],
-            "input_fingerprint": request["input_fingerprint"], "domain_id": current_id,
-            "responsibility_subgraph": {key: subgraph.get(key) for key in (
-                "domain_id", "repo_fingerprint", "subgraph_fingerprint", "result_fingerprint", "generated_at", "expires_at",
-            )},
-            "canonical_to_be_references": _code_optimization_canonical_references(root),
-            "structural_baseline": baseline,
-            "responsibility_classifications": [{
-                "subject": current_id, "classification": "UNKNOWN",
-                "reason": "domain-level semantic details are retained in the consolidated audit",
-            }],
-            "semantic_necessity_classifications": audit["classifications"],
-            "counterfactual_hypotheses": audit["self_generated_hypotheses"],
-            "ranked_candidates": [], "selected_first_candidate": None,
-            "owner_decision_required": False, "unproven_edges": audit["localized_unknowns"],
-            "unproven_claims": [item["missing_fact"] for item in audit["localized_unknowns"]],
-            "considered_mechanisms": [{
-                "subject": item["exact_mechanism"], "rejection_reason": item["rejection_reason"],
-            } for item in audit["self_generated_hypotheses"]] or [{
-                "subject": current_id, "rejection_reason": "no evidence-backed redundant mechanism",
-            }],
-            "terminal_verdict": "NO_SAFE_COUNTERFACTUAL_CANDIDATE",
+        packet = code_optimization_executor_packet(
+            intent=intent, profile=profile, subgraph=subgraph, baseline=baseline,
+            evidence_package=package, root=root,
+        )
+        packets.append(packet)
+        packet_contexts[packet["packet_fingerprint"]] = {
+            "profile": profile, "subgraph": subgraph, "package": package,
         }
-        provisional = gpt_decision_review_result_contract(
-            profile, output, executor_context_id=f"operational-campaign-executor-{index}",
-        )
-        reviews = [
-            execution_profile_review_record(
-                profile, provisional, review_type=review_type, review_verdict="PASS",
-                review_context_id=f"operational-{index}-{review_type.lower()}",
-            ) for review_type in profile["required_reviews"]
-        ]
-        submitted = submit_code_optimization_result(
-            profile=profile, subgraph=subgraph, evidence_package=package,
-            output=output, reviews=reviews, mission_intent=intent,
-            adaptation_records=[], completed_outcomes=required_outcomes,
-            remaining_authorized_work=[], requested_mission_terminal="FULL_COMPLETION",
-            next_executable_action="consume domain semantic terminal",
-        )
+    result_by_packet = {
+        str(item.get("packet_fingerprint")): item
+        for item in (executor_results or []) if isinstance(item, dict)
+    }
+    missing_packets = [packet for packet in packets if packet["packet_fingerprint"] not in result_by_packet]
+    if missing_packets:
+        cps_after = cps_path.read_bytes() if cps_path.is_file() else b""
+        return {
+            "schema": "v7.code-optimization-operational-campaign.v2",
+            "mode": normalized_mode, "campaign_fingerprint": intent["mission_intent_fingerprint"],
+            "mission_intent_fingerprint": intent["mission_intent_fingerprint"],
+            "discovery": discovery, "selected_domain_ids": selected_ids,
+            "baseline": structural, "executor_packets": packets,
+            "pending_packets": missing_packets, "domains_completed": [],
+            "blocked_domains": discovery["blocked_local_unknown_surfaces"],
+            "intermediate_completion": interim_gate["completion_verdict"],
+            "final_verdict": "CONTINUE_SAME_MISSION", "terminal": "SEMANTIC_EXECUTOR_REQUIRED",
+            "next_action": "current Codex consumes every pending packet and submits bounded evidence-backed results",
+            "no_cps_effect": cps_before == cps_after,
+            "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+            "errors": [],
+        }
+    all_hypotheses: list[dict[str, Any]] = []
+    attempts: list[dict[str, Any]] = []
+    cleanup_proofs: list[dict[str, Any]] = []
+    for packet in packets:
+        supplied = result_by_packet[packet["packet_fingerprint"]]
+        output = supplied.get("output") if isinstance(supplied.get("output"), dict) else {}
+        validation_errors = validate_code_optimization_executor_result(packet, supplied)
+        all_hypotheses.extend(output.get("counterfactual_hypotheses") or [])
+        attempts.extend(output.get("counterfactual_attempts") or [])
+        if isinstance(output.get("cleanup_proof"), dict):
+            cleanup_proofs.append(output["cleanup_proof"])
+        context = packet_contexts[packet["packet_fingerprint"]]
+        submitted = {"final_verdict": "STOP_SAFE", "errors": validation_errors}
+        if not validation_errors:
+            submitted = submit_code_optimization_result(
+                profile=context["profile"], subgraph=context["subgraph"],
+                evidence_package=context["package"], output=output,
+                reviews=supplied.get("reviews") or [], mission_intent=intent,
+                adaptation_records=[], completed_outcomes=required_outcomes,
+                remaining_authorized_work=[], requested_mission_terminal="FULL_COMPLETION",
+                next_executable_action="consume next semantic packet or consolidated terminal",
+                executor_context_id=str(supplied.get("executor_context_id") or ""),
+            )
         domain_submissions.append({
-            "domain_id": current_id, "profile_fingerprint": profile["profile_fingerprint"],
+            "domain_id": packet["domain_id"], "packet_fingerprint": packet["packet_fingerprint"],
             "result_fingerprint": submitted.get("result", {}).get("result_fingerprint"),
             "review_status": submitted.get("completion", {}).get("execution_profile_binding", {}).get("review_status"),
             "completion_verdict": submitted.get("completion", {}).get("completion_verdict"),
             "final_verdict": submitted.get("final_verdict"), "errors": submitted.get("errors") or [],
         })
-    overlap_hypotheses: list[dict[str, Any]] = []
-    for left_index, left_id in enumerate(selected_ids):
-        for right_id in selected_ids[left_index + 1:]:
-            left, right = configs[left_id], configs[right_id]
-            overlap = sorted(set(left["paths"]) & set(right["paths"]))
-            if not overlap:
-                continue
-            overlap_hypotheses.append({
-                "hypothesis_id": "MERGE_OVERLAPPING_DOMAINS_" + _execution_contract_fingerprint({"left": left_id, "right": right_id})[:12],
-                "domain": f"{left_id}+{right_id}", "exact_mechanism": overlap,
-                "producer": left["canonical"]["owner"], "consumer": right["canonical"]["owner"],
-                "claimed_contribution": "two domain slices over the same source surfaces",
-                "observed_contribution": "distinct entry conditions and responsibility seeds",
-                "suspected_duplicate_or_superseding_source": "shared source allowlist",
-                "evidence": [left["entry_condition"], right["entry_condition"], list(left["seeds"]), list(right["seeds"])],
-                "admissible_equivalent_inputs": overlap,
-                "control_observables": ["separate branch-sensitive graphs"],
-                "counterfactual_observables": ["one merged graph"],
-                "safety_compatibility_invariants": ["caller identity", "consumer identity", "branch isolation"],
-                "blast_radius": "ENGINEERING_PROFILE_ONLY", "reversibility": "HIGH", "rollback": "retain separate domains",
-                "falsification_condition": "distinct entry condition or terminal contribution is lost",
-                "expected_simplification": "one fewer domain config", "dependent_tails": [],
-                "admissible": True,
-            })
-    all_hypotheses.extend(overlap_hypotheses)
-    ranked = sorted(all_hypotheses, key=lambda item: (
-        0 if item.get("admissible") else 1,
-        0 if item.get("blast_radius") == "ENGINEERING_PROFILE_ONLY" else 1,
-        str(item.get("hypothesis_id")),
-    ))
-    attempts = [{
-        "hypothesis_id": item["hypothesis_id"],
-        "control": "separate branch-sensitive responsibility domains",
-        "counterfactual": "merge domains sharing source surfaces",
-        "observed_result": "distinct entry conditions/seeds/terminal contributions would be lost",
-        "verdict": "FALSIFIED_REQUIRED_DISTINCT_RESPONSIBILITY_SLICE",
-        "redundant_link_proven": False,
-    } for item in ranked if item.get("admissible")]
     source = (root / "tools/v7_sync_lib.py").read_text(encoding="utf-8")
     anti_regrowth = {
         "existing_material_change_rule": code_optimization_bridge_anti_regrowth(source),
         "operational_domain_discovery_rule": code_optimization_operational_anti_regrowth(source),
     }
+    cleanup_ids = {str(item.get("cleanup_id")) for item in cleanup_proofs if item.get("cleanup_id")}
     final_gate = mission_completion_evidence_gate({
         "MISSION_TYPE": "ACCEPTANCE", "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION",
         "INDEPENDENT_ACCEPTANCE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
         "MISSION_INTENT_CONTRACT": intent, "MISSION_ADAPTATION_RECORDS": [],
         "PROVEN_COMPLETED_OUTCOMES": required_outcomes, "REMAINING_AUTHORIZED_WORK": [],
         "REQUESTED_MISSION_TERMINAL": "FULL_COMPLETION",
-        "NEXT_EXECUTABLE_ACTION": "return consolidated operational campaign terminal",
+        "NEXT_EXECUTABLE_ACTION": "return consolidated real semantic terminal",
     })
     cps_after = cps_path.read_bytes() if cps_path.is_file() else b""
     passed = all((
         structural.get("final_verdict") == "PASS",
         interim_gate.get("completion_verdict") == "CONTINUE_SAME_MISSION",
-        len(semantic_domains) == len(selected_ids),
+        len(domain_submissions) == len(selected_ids),
         all(item["final_verdict"] == "PASS" for item in domain_submissions),
+        bool(all_hypotheses), bool(attempts), len(cleanup_ids) == 1,
         all(value.get("final_verdict") == "PASS" for value in anti_regrowth.values()),
         final_gate.get("completion_verdict") == "COMPLETE_WITH_LEGAL_TERMINAL",
         cps_before == cps_after,
     ))
     campaign_fingerprint = _execution_contract_fingerprint({
         "intent": intent["mission_intent_fingerprint"], "baseline": structural["baseline_fingerprint"],
-        "domains": selected_ids, "hypotheses": [item["hypothesis_id"] for item in ranked],
-        "attempts": attempts, "cleanup_count": 0,
+        "packets": [item["packet_fingerprint"] for item in packets],
+        "hypotheses": all_hypotheses, "attempts": attempts, "cleanup_ids": sorted(cleanup_ids),
     })
-    success_terminal = {
-        "FULL_BASELINE": "CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
-        "CONTINUE": "CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
-        "DOMAIN": "CODE_OPTIMIZATION_OPERATIONAL_DOMAIN_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
-        "CHANGED": "CODE_OPTIMIZATION_OPERATIONAL_CHANGED_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
-    }[normalized_mode]
     return {
-        "schema": "v7.code-optimization-operational-campaign.v1",
+        "schema": "v7.code-optimization-operational-campaign.v2",
         "mode": normalized_mode, "campaign_fingerprint": campaign_fingerprint,
         "mission_intent_fingerprint": intent["mission_intent_fingerprint"],
         "discovery": discovery, "selected_domain_ids": selected_ids,
-        "baseline": structural, "intermediate_completion": interim_gate["completion_verdict"],
-        "semantic_audits": semantic_domains, "hypotheses": ranked,
-        "counterfactual_attempts": attempts,
-        "cleanup_count": 0, "cleanup_limit": 1,
-        "cleanup_verdict": "NO_REDUNDANT_LINK_PROVEN",
-        "domain_submissions": domain_submissions,
-        "anti_regrowth": anti_regrowth,
-        "domains_completed": selected_ids,
+        "baseline": structural, "executor_packets": packets,
+        "intermediate_completion": interim_gate["completion_verdict"],
+        "hypotheses": all_hypotheses, "counterfactual_attempts": attempts,
+        "cleanup_count": len(cleanup_ids), "cleanup_limit": 1, "cleanup_proofs": cleanup_proofs,
+        "domain_submissions": domain_submissions, "anti_regrowth": anti_regrowth,
+        "domains_completed": selected_ids if passed else [],
+        "coverage_terminal": "PARTIAL_OWNER_BACKED_COVERAGE" if discovery["blocked_local_unknown_surfaces"] else "FULL_ACTIVE_COVERAGE",
         "blocked_domains": discovery["blocked_local_unknown_surfaces"],
-        "ranked_residuals": [item for item in ranked if not item.get("admissible")],
         "final_completion": final_gate["completion_verdict"],
         "no_cps_effect": cps_before == cps_after,
         "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
         "final_verdict": "PASS" if passed else "STOP_SAFE",
-        "terminal": success_terminal if passed else "STOP_SAFE_CODE_OPTIMIZATION_OPERATIONAL_EXACT_GAP",
-        "errors": [] if passed else ["code_optimization_operational_campaign_failed"],
+        "terminal": "CODE_OPTIMIZATION_REAL_SEMANTIC_EXECUTOR_ACTIVE_AND_COMPACT_COMMAND_ACCEPTED" if passed else "STOP_SAFE_EXECUTOR_RESULT_REJECTED",
+        "errors": [] if passed else ["code_optimization_real_semantic_campaign_incomplete_or_unproven"],
     }
 
 

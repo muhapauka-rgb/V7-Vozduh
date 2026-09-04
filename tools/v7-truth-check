@@ -1345,7 +1345,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"campaign_fingerprint={result.get('campaign_fingerprint', result.get('discovery_fingerprint', 'NONE'))}")
             print(f"domains_completed={len(result.get('domains_completed', result.get('admitted_domains', [])))}")
             print(f"cleanup_count={result.get('cleanup_count', 0)}")
-        return 0 if result.get("final_verdict") == "PASS" else 2
+        return 0 if result.get("final_verdict") in {"PASS", "CONTINUE_SAME_MISSION"} else 2
     if args.omp_bounded_execution_profile_proof:
         result = sync_lib.bounded_execution_profile_contract_proof(root=ROOT_DIR)
         if args.json:

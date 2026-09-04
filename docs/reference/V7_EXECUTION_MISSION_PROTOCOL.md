@@ -3016,10 +3016,10 @@ Every selected domain binds one immutable Mission intent and all five reviews:
 Architecture, Safety/Regression, Evidence, Quality/Complexity and Mission
 Integrity. Structural baseline, discovery, audit and ranking are intermediate
 outputs and therefore return `CONTINUE_SAME_MISSION` while authorized outcomes
-remain. A successful no-cleanup full campaign ends only at:
+remain. A successful real semantic full campaign ends only at:
 
 ```text
-CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN
+CODE_OPTIMIZATION_REAL_SEMANTIC_EXECUTOR_ACTIVE_AND_COMPACT_COMMAND_ACCEPTED
 ```
 
 `STATUS` recomputes current owner-backed identity; it creates no queue or
@@ -3029,3 +3029,27 @@ existing evidence owner and re-entry condition. Anti-regrowth fails closed if a
 private FULL_BASELINE domain list reappears or the campaign stops consuming
 owner-backed discovery. The entire contract is Engineering-plane and has no
 CPS, Runtime, production, Product Contract or Authority effect.
+
+## 31. Real Semantic Executor Boundary
+
+`CODE_OPTIMIZATION FULL_BASELINE` has two distinct layers. Existing OMP code
+only discovers owner-backed domains, derives bounded subgraphs, captures a
+structural baseline, binds freshness and emits immutable
+`CODE_OPTIMIZATION_EXECUTOR_PACKET`s. It must never infer behavioral effect,
+semantic necessity, hypotheses, counterfactual success or review PASS from
+domain identity, LOC, topology, tests or documentation.
+
+Each packet binds Mission intent, profile/repository/subgraph identity, expiry,
+owner, entry condition, source paths and fingerprints, nodes/edges, known
+static callers/consumers, unknown references, canonical references, structural
+baseline, evidence package, taxonomy, allowed read-only tools, exact review
+set and submission consumer. Without a fresh external Codex result, the only
+lawful result is `CONTINUE_SAME_MISSION` with `SEMANTIC_EXECUTOR_REQUIRED`.
+
+The current Codex task consumes packets by inspecting bounded source symbols
+and relevant callers, consumers, state, errors, compatibility and terminals.
+It submits symbol-level evidence through the existing result consumer. Every
+non-UNKNOWN class must bind current evidence; every UNKNOWN is local and names
+the missing fact, evidence owner, acquisition action and re-entry condition.
+Schema contexts separate five reviews, but schema separation alone is not proof
+of independent human/model judgment and that limitation remains explicit.

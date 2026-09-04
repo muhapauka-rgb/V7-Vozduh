@@ -230,54 +230,36 @@ def code_optimization_material_change_admission(changed_dependencies):
             self.lib.OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,
         })
         self.assertTrue(all(
-            item["completion_verdict"] == "COMPLETE_WITH_LEGAL_TERMINAL"
+            item["structural_derivation"] == "DERIVED_NO_SEMANTIC_EXECUTOR_RESULT"
             for item in baseline["domains"]
         ))
 
-    def test_operational_campaign_completes_same_mission_with_honest_zero(self):
+    def test_operational_campaign_requires_external_executor_before_semantic_completion(self):
         campaign = self.lib.code_optimization_operational_campaign(root=ROOT)
-        self.assertEqual(campaign["final_verdict"], "PASS")
-        self.assertEqual(
-            campaign["terminal"],
-            "CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
-        )
+        self.assertEqual(campaign["final_verdict"], "CONTINUE_SAME_MISSION")
+        self.assertEqual(campaign["terminal"], "SEMANTIC_EXECUTOR_REQUIRED")
         self.assertEqual(campaign["intermediate_completion"], "CONTINUE_SAME_MISSION")
-        self.assertEqual(campaign["cleanup_count"], 0)
-        self.assertLessEqual(campaign["cleanup_count"], campaign["cleanup_limit"])
-        self.assertEqual(len(campaign["domains_completed"]), 3)
-        self.assertTrue(campaign["hypotheses"])
-        self.assertTrue(campaign["counterfactual_attempts"])
+        self.assertEqual(len(campaign["executor_packets"]), 3)
+        self.assertEqual(len(campaign["pending_packets"]), 3)
         self.assertTrue(all(
-            audit["link_progression_summary"]["reachable_proven"] == len(audit["link_progression"])
-            and audit["link_progression_summary"]["semantically_necessary_unknown"] == len(audit["link_progression"])
-            for audit in campaign["semantic_audits"]
-        ))
-        self.assertTrue(all(
-            item["verdict"] == "FALSIFIED_REQUIRED_DISTINCT_RESPONSIBILITY_SLICE"
-            for item in campaign["counterfactual_attempts"]
-        ))
-        self.assertTrue(all(
-            len(item["review_status"]) == 5 and item["final_verdict"] == "PASS"
-            for item in campaign["domain_submissions"]
-        ))
-        self.assertTrue(all(
-            item["final_verdict"] == "PASS" for item in campaign["anti_regrowth"].values()
+            self.lib.validate_code_optimization_executor_packet(packet) == []
+            for packet in campaign["executor_packets"]
         ))
         self.assertTrue(campaign["no_cps_effect"])
 
     def test_operational_campaign_is_deterministic_and_supports_compact_scopes(self):
         first = self.lib.code_optimization_operational_campaign(root=ROOT)
         second = self.lib.code_optimization_operational_campaign(root=ROOT, mode="CONTINUE")
-        self.assertEqual(first["campaign_fingerprint"], second["campaign_fingerprint"])
+        self.assertEqual(first["mission_intent_fingerprint"], second["mission_intent_fingerprint"])
         domain = self.lib.code_optimization_operational_campaign(
             root=ROOT, mode="DOMAIN", domain_id=self.lib.OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
         )
-        self.assertEqual(domain["domains_completed"], [self.lib.OMP_COMPLETION_SUBGRAPH_DOMAIN_ID])
-        self.assertEqual(domain["terminal"], "CODE_OPTIMIZATION_OPERATIONAL_DOMAIN_COMPLETE_NO_REDUNDANT_LINK_PROVEN")
+        self.assertEqual(domain["selected_domain_ids"], [self.lib.OMP_COMPLETION_SUBGRAPH_DOMAIN_ID])
+        self.assertEqual(domain["terminal"], "SEMANTIC_EXECUTOR_REQUIRED")
         changed = self.lib.code_optimization_operational_campaign(
             root=ROOT, mode="CHANGED", changed_dependencies=["tools/v7_sync_lib.py"],
         )
-        self.assertEqual(set(changed["domains_completed"]), {
+        self.assertEqual({packet["domain_id"] for packet in changed["executor_packets"]}, {
             self.lib.OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
             self.lib.OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,
         })

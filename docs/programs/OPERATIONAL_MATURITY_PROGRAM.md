@@ -12243,4 +12243,15 @@ compatibility retained after migration proof.
 
 Completion is recomputed from current repository identity and never advances
 the active Product frontier. The no-redundancy success terminal is
-`CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN`.
+`CODE_OPTIMIZATION_REAL_SEMANTIC_EXECUTOR_ACTIVE_AND_COMPACT_COMMAND_ACCEPTED`.
+
+## Code Optimization Real Semantic Executor Consumption
+
+The structural layer may not complete semantic work. It emits a fresh,
+immutable bounded executor packet and returns same-Mission continuation until
+the current Codex executor consumes it. The external result must be
+symbol-level, evidence-bound and reviewed through the existing profile and
+completion gate. Reintroduced hardcoded semantic classification or automatic
+review PASS is an anti-regrowth failure. No packet, queue, daemon, owner,
+frontier or durable registry is added; packet re-entry is an in-memory bounded
+handoff under existing OMP.

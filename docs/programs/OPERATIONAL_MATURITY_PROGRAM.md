@@ -12222,3 +12222,25 @@ not a terminal and not authority to create a successor Mission. Tests, reports,
 commits, admission, bridges and other microsteps cannot carry the unconsumed
 remainder into a new Mission. Legacy Missions without the optional intent
 contract keep their current completion rules.
+
+## Operational Code Optimization Consumption Law
+
+OMP consumes `CODE_OPTIMIZATION FULL_BASELINE`, `CHANGED`, `DOMAIN`, `CONTINUE`
+and `STATUS` through the existing `CODE_OPTIMIZATION` execution profile and
+`mission_completion_evidence_gate`. It derives bounded responsibility domains
+from their existing owner configuration on every invocation; a copied private
+domain registry is forbidden.
+
+For `FULL_BASELINE`, structural capture is only an internal milestone. OMP keeps
+the same immutable Mission active until every admitted domain has a semantic
+audit, localized unknowns, self-generated ranked hypotheses, an admissible
+counterfactual attempt when one exists, five consumed reviews, completion-gate
+consumption and anti-regrowth proof. At most one evidence-backed cleanup may be
+performed; no cleanup is performed when redundancy is not proved. Continuous
+acceptance also detects recurrence of duplicate responsibility, a third related
+special-case branch, a new state surface, a new process hop or superseded
+compatibility retained after migration proof.
+
+Completion is recomputed from current repository identity and never advances
+the active Product frontier. The no-redundancy success terminal is
+`CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN`.

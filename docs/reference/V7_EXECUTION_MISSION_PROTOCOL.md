@@ -2985,3 +2985,47 @@ method, then must continue. GPT/review contexts verify immutable result and
 intent preservation without modifying either. V7 canonical owners retain
 truth. No coordinator, Agent System, queue, Runtime state or parallel lifecycle
 is introduced.
+
+## 30. Operational Code Optimization Compact Intent Contract
+
+The existing OMP owner accepts these compact execution intents:
+
+```text
+CODE_OPTIMIZATION FULL_BASELINE
+CODE_OPTIMIZATION CHANGED <dependency>...
+CODE_OPTIMIZATION DOMAIN <domain_id>
+CODE_OPTIMIZATION CONTINUE
+CODE_OPTIMIZATION STATUS
+```
+
+`FULL_BASELINE` is an operational semantic campaign, not a structural report.
+OMP derives the admitted responsibility domains from current owner-backed
+configuration, captures their bounded structural baselines, and then continues
+the same Mission through reachability, current consumption, behavioral effect
+and semantic necessity. A documented capability without a proven current
+producer, consumer and execution path does not satisfy a required role.
+
+The campaign must generate and rank its own bounded hypotheses, attempt the
+highest admissible counterfactual, and consume no more than one proved cleanup
+per invocation. Zero cleanup is the required honest result when no redundant or
+superseded link is proved. File size alone is never evidence of redundancy: the
+optimization unit is the complete responsibility subgraph across source,
+Runtime support, systemd, tests and generated/projection surfaces.
+
+Every selected domain binds one immutable Mission intent and all five reviews:
+Architecture, Safety/Regression, Evidence, Quality/Complexity and Mission
+Integrity. Structural baseline, discovery, audit and ranking are intermediate
+outputs and therefore return `CONTINUE_SAME_MISSION` while authorized outcomes
+remain. A successful no-cleanup full campaign ends only at:
+
+```text
+CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN
+```
+
+`STATUS` recomputes current owner-backed identity; it creates no queue or
+registry. `CHANGED` and `DOMAIN` select bounded slices of the same owner map.
+Unknown caller, state, compatibility or behavior facts remain localized with an
+existing evidence owner and re-entry condition. Anti-regrowth fails closed if a
+private FULL_BASELINE domain list reappears or the campaign stops consuming
+owner-backed discovery. The entire contract is Engineering-plane and has no
+CPS, Runtime, production, Product Contract or Authority effect.

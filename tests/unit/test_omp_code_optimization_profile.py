@@ -220,7 +220,7 @@ def code_optimization_material_change_admission(changed_dependencies):
     def test_full_baseline_consumes_every_currently_admitted_domain(self):
         baseline = self.lib.code_optimization_full_baseline(root=ROOT)
         self.assertEqual(baseline["final_verdict"], "PASS")
-        self.assertEqual(baseline["terminal"], "CODE_OPTIMIZATION_FULL_BASELINE_CONSUMED")
+        self.assertEqual(baseline["terminal"], "CODE_OPTIMIZATION_STRUCTURAL_BASELINE_CAPTURED_INTERNAL")
         self.assertEqual(baseline["domain_count"], 3)
         self.assertTrue(baseline["no_cps_effect"])
         self.assertEqual(baseline["semantic_claim"], "NONE_STRUCTURAL_BASELINE_ONLY")
@@ -233,6 +233,71 @@ def code_optimization_material_change_admission(changed_dependencies):
             item["completion_verdict"] == "COMPLETE_WITH_LEGAL_TERMINAL"
             for item in baseline["domains"]
         ))
+
+    def test_operational_campaign_completes_same_mission_with_honest_zero(self):
+        campaign = self.lib.code_optimization_operational_campaign(root=ROOT)
+        self.assertEqual(campaign["final_verdict"], "PASS")
+        self.assertEqual(
+            campaign["terminal"],
+            "CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
+        )
+        self.assertEqual(campaign["intermediate_completion"], "CONTINUE_SAME_MISSION")
+        self.assertEqual(campaign["cleanup_count"], 0)
+        self.assertLessEqual(campaign["cleanup_count"], campaign["cleanup_limit"])
+        self.assertEqual(len(campaign["domains_completed"]), 3)
+        self.assertTrue(campaign["hypotheses"])
+        self.assertTrue(campaign["counterfactual_attempts"])
+        self.assertTrue(all(
+            audit["link_progression_summary"]["reachable_proven"] == len(audit["link_progression"])
+            and audit["link_progression_summary"]["semantically_necessary_unknown"] == len(audit["link_progression"])
+            for audit in campaign["semantic_audits"]
+        ))
+        self.assertTrue(all(
+            item["verdict"] == "FALSIFIED_REQUIRED_DISTINCT_RESPONSIBILITY_SLICE"
+            for item in campaign["counterfactual_attempts"]
+        ))
+        self.assertTrue(all(
+            len(item["review_status"]) == 5 and item["final_verdict"] == "PASS"
+            for item in campaign["domain_submissions"]
+        ))
+        self.assertTrue(all(
+            item["final_verdict"] == "PASS" for item in campaign["anti_regrowth"].values()
+        ))
+        self.assertTrue(campaign["no_cps_effect"])
+
+    def test_operational_campaign_is_deterministic_and_supports_compact_scopes(self):
+        first = self.lib.code_optimization_operational_campaign(root=ROOT)
+        second = self.lib.code_optimization_operational_campaign(root=ROOT, mode="CONTINUE")
+        self.assertEqual(first["campaign_fingerprint"], second["campaign_fingerprint"])
+        domain = self.lib.code_optimization_operational_campaign(
+            root=ROOT, mode="DOMAIN", domain_id=self.lib.OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
+        )
+        self.assertEqual(domain["domains_completed"], [self.lib.OMP_COMPLETION_SUBGRAPH_DOMAIN_ID])
+        self.assertEqual(domain["terminal"], "CODE_OPTIMIZATION_OPERATIONAL_DOMAIN_COMPLETE_NO_REDUNDANT_LINK_PROVEN")
+        changed = self.lib.code_optimization_operational_campaign(
+            root=ROOT, mode="CHANGED", changed_dependencies=["tools/v7_sync_lib.py"],
+        )
+        self.assertEqual(set(changed["domains_completed"]), {
+            self.lib.OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
+            self.lib.OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,
+        })
+
+    def test_owner_backed_discovery_and_private_registry_recurrence(self):
+        discovery = self.lib.code_optimization_discover_domains(root=ROOT)
+        self.assertEqual(discovery["final_verdict"], "PASS")
+        self.assertEqual(len(discovery["discovered_domains"]), 3)
+        self.assertFalse(discovery["duplicate_registry_created"])
+        self.assertTrue(discovery["excluded_classes"])
+        recurrence = """
+def code_optimization_full_baseline():
+    domain_specs = (\"A\", \"B\")
+def code_optimization_operational_campaign():
+    return None
+"""
+        anti = self.lib.code_optimization_operational_anti_regrowth(recurrence)
+        self.assertEqual(anti["final_verdict"], "STOP_SAFE")
+        self.assertTrue(anti["literal_domain_list_detected"])
+        self.assertFalse(anti["owner_backed_discovery_consumed"])
 
 
 if __name__ == "__main__":

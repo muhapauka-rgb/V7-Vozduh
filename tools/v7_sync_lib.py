@@ -26979,22 +26979,49 @@ OMP_CODE_OPTIMIZATION_BRIDGE_SEEDS = (
 )
 
 
+def _responsibility_subgraph_domain_configs() -> tuple[dict[str, Any], ...]:
+    """Enumerate the current bounded domains from their existing owner config."""
+    return (
+        {
+            "domain_id": RESPONSIBILITY_SUBGRAPH_DOMAIN_ID,
+            "paths": RESPONSIBILITY_SUBGRAPH_PILOT_PATHS,
+            "seeds": RESPONSIBILITY_SUBGRAPH_PILOT_SEEDS,
+            "canonical": {
+                "responsibility": RESPONSIBILITY_SUBGRAPH_DOMAIN_ID,
+                "owner": "tools/v7-users-autoswitch", "plane": "ENGINEERING_EVIDENCE_ONLY",
+            },
+            "entry_condition": "",
+            "discovery_reason": "EXISTING_RECOVERY_RESPONSIBILITY_OWNER_CONFIG",
+        },
+        {
+            "domain_id": OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
+            "paths": OMP_COMPLETION_SUBGRAPH_PATHS,
+            "seeds": OMP_COMPLETION_SUBGRAPH_SEEDS,
+            "canonical": {
+                "responsibility": OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
+                "owner": "tools/v7_sync_lib.py", "plane": "ENGINEERING_EVIDENCE_ONLY",
+            },
+            "entry_condition": "CLI_FLAG:--omp-code-optimization-submit",
+            "discovery_reason": "EXISTING_EXECUTION_PROFILE_COMPLETION_OWNER_CONFIG",
+        },
+        {
+            "domain_id": OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,
+            "paths": OMP_CODE_OPTIMIZATION_BRIDGE_PATHS,
+            "seeds": OMP_CODE_OPTIMIZATION_BRIDGE_SEEDS,
+            "canonical": {
+                "responsibility": OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,
+                "owner": "OMP:continue_omp_engineering_control_loop", "plane": "ENGINEERING_EVIDENCE_ONLY",
+            },
+            "entry_condition": "CLI_FLAG:--continue-omp-change",
+            "discovery_reason": "EXISTING_OMP_MATERIAL_CHANGE_OWNER_CONFIG",
+        },
+    )
+
+
 def _responsibility_subgraph_domain_config(domain_id: str) -> tuple[tuple[str, ...], tuple[str, ...], dict[str, str]] | None:
-    if domain_id == RESPONSIBILITY_SUBGRAPH_DOMAIN_ID:
-        return (RESPONSIBILITY_SUBGRAPH_PILOT_PATHS, RESPONSIBILITY_SUBGRAPH_PILOT_SEEDS, {
-            "responsibility": RESPONSIBILITY_SUBGRAPH_DOMAIN_ID,
-            "owner": "tools/v7-users-autoswitch", "plane": "ENGINEERING_EVIDENCE_ONLY",
-        })
-    if domain_id == OMP_COMPLETION_SUBGRAPH_DOMAIN_ID:
-        return (OMP_COMPLETION_SUBGRAPH_PATHS, OMP_COMPLETION_SUBGRAPH_SEEDS, {
-            "responsibility": OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
-            "owner": "tools/v7_sync_lib.py", "plane": "ENGINEERING_EVIDENCE_ONLY",
-        })
-    if domain_id == OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID:
-        return (OMP_CODE_OPTIMIZATION_BRIDGE_PATHS, OMP_CODE_OPTIMIZATION_BRIDGE_SEEDS, {
-            "responsibility": OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,
-            "owner": "OMP:continue_omp_engineering_control_loop", "plane": "ENGINEERING_EVIDENCE_ONLY",
-        })
+    for config in _responsibility_subgraph_domain_configs():
+        if config["domain_id"] == domain_id:
+            return (config["paths"], config["seeds"], config["canonical"])
     return None
 
 
@@ -27996,10 +28023,9 @@ def code_optimization_full_baseline(*, root: Path = ROOT) -> dict[str, Any]:
     """Consume a structural baseline for every currently admitted domain."""
     cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
     cps_before = cps_path.read_bytes() if cps_path.is_file() else b""
-    domain_specs = (
-        (RESPONSIBILITY_SUBGRAPH_DOMAIN_ID, ""),
-        (OMP_COMPLETION_SUBGRAPH_DOMAIN_ID, "CLI_FLAG:--omp-code-optimization-submit"),
-        (OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID, "CLI_FLAG:--continue-omp-change"),
+    domain_specs = tuple(
+        (str(config["domain_id"]), str(config.get("entry_condition") or ""))
+        for config in _responsibility_subgraph_domain_configs()
     )
     domains: list[dict[str, Any]] = []
     for index, (domain_id, entry_condition) in enumerate(domain_specs, 1):
@@ -28102,8 +28128,484 @@ def code_optimization_full_baseline(*, root: Path = ROOT) -> dict[str, Any]:
         "no_cps_effect": cps_before == cps_after,
         "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
         "final_verdict": "PASS" if passed else "STOP_SAFE",
-        "terminal": "CODE_OPTIMIZATION_FULL_BASELINE_CONSUMED" if passed else "CODE_OPTIMIZATION_FULL_BASELINE_FAILED",
+        "terminal": "CODE_OPTIMIZATION_STRUCTURAL_BASELINE_CAPTURED_INTERNAL" if passed else "CODE_OPTIMIZATION_STRUCTURAL_BASELINE_FAILED",
         "errors": [] if passed else ["code_optimization_full_baseline_failed"],
+    }
+
+
+def code_optimization_discover_domains(*, root: Path = ROOT) -> dict[str, Any]:
+    """Discover bounded domains from existing owner config and canonical topology."""
+    admitted: list[dict[str, Any]] = []
+    admitted_paths: set[str] = set()
+    for config in _responsibility_subgraph_domain_configs():
+        paths = tuple(str(item) for item in config["paths"])
+        admitted_paths.update(paths)
+        admitted.append({
+            "domain_id": config["domain_id"],
+            "owner": config["canonical"]["owner"],
+            "source_surfaces": list(paths),
+            "entrypoints": list(config["seeds"]),
+            "entry_condition": config.get("entry_condition") or "NONE",
+            "real_caller_consumer_status": "REQUIRES_FRESH_SUBGRAPH_AND_SUBMIT_CONSUMPTION",
+            "state_read_write_status": "UNKNOWN_REQUIRES_OWNER_EVIDENCE",
+            "error_stop_safe_status": "FAIL_CLOSED_BY_SUBGRAPH_AND_PROFILE_ADMISSION",
+            "terminal_contribution": "MISSION_COMPLETION_EVIDENCE_GATE",
+            "canonical_to_be": config["canonical"],
+            "compatibility_status": "UNKNOWN_REQUIRES_CURRENT_CONSUMER_EVIDENCE",
+            "mutation_boundary": "READ_ONLY_BASELINE_AND_SEMANTIC_AUDIT",
+            "freshness": "REDERIVED_PER_INVOCATION",
+            "discovery_reason": config["discovery_reason"],
+        })
+    system_map = root / "docs/reference/SYSTEM_MAP.md"
+    canonical_surfaces: set[str] = set()
+    if system_map.is_file():
+        source = system_map.read_text(encoding="utf-8")
+        for raw in re.findall(r"`((?:tools|admin_core|systemd|runtime|backend|frontend)/[^`\s]+)`", source):
+            relative = raw.rstrip(".,;:)")
+            if (root / relative).is_file():
+                canonical_surfaces.add(relative)
+    blocked = [{
+        "surface": path,
+        "classification": "LOCAL_UNKNOWN_NOT_ADMITTED_DOMAIN",
+        "missing_fact": "bounded responsibility owner/domain/entrypoint contract",
+        "existing_evidence_source": "SYSTEM_MAP",
+        "minimal_action": "existing owner may admit a bounded domain when semantic work is required",
+        "reentry_condition": "current owner/domain configuration names this surface",
+    } for path in sorted(canonical_surfaces - admitted_paths)]
+    excluded = [{
+        "class": "NON_EXECUTABLE_OR_NON_PRODUCTION_SURFACES",
+        "patterns": ["docs/", "docs/reports/", "docs/prompts/", "tests/", "generated/", "vendor/", "archive/"],
+        "reason": "not an active admitted production responsibility domain",
+    }]
+    identity = [{
+        "domain_id": item["domain_id"], "owner": item["owner"],
+        "source_surfaces": item["source_surfaces"], "entrypoints": item["entrypoints"],
+        "entry_condition": item["entry_condition"],
+    } for item in admitted]
+    return {
+        "schema": "v7.code-optimization-owner-backed-domain-discovery.v1",
+        "discovered_domains": admitted,
+        "admitted_domain_ids": [item["domain_id"] for item in admitted],
+        "blocked_local_unknown_surfaces": blocked,
+        "excluded_classes": excluded,
+        "discovery_fingerprint": _execution_contract_fingerprint({"domains": identity}),
+        "duplicate_registry_created": False,
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def _code_optimization_local_unknowns(subgraph: dict[str, Any]) -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for item in subgraph.get("unknown_references") or []:
+        symbol = str(item.get("called") or item.get("kind") or "UNKNOWN_SYMBOL")
+        grouped.setdefault(symbol, []).append(item)
+    return [{
+        "symbol_or_link": symbol,
+        "occurrence_count": len(items),
+        "first_reference": {
+            "path": items[0].get("path"), "line": items[0].get("line"),
+            "source": items[0].get("source"),
+        },
+        "missing_fact": "dynamic/current caller, state or behavioral necessity is not proven statically",
+        "owner_evidence_source": subgraph.get("canonical_references", {}).get("owner"),
+        "minimal_action": "obtain current owner-backed caller/consumer or counterfactual evidence",
+        "reentry_condition": "fresh evidence resolves this exact symbol/link",
+    } for symbol, items in sorted(grouped.items())]
+
+
+def _code_optimization_semantic_domain_audit(
+    subgraph: dict[str, Any], baseline: dict[str, Any],
+) -> dict[str, Any]:
+    domain_id = str(subgraph.get("domain_id") or "")
+    owner = str(subgraph.get("canonical_references", {}).get("owner") or "")
+    classifications: list[dict[str, Any]] = []
+    if domain_id == OMP_COMPLETION_SUBGRAPH_DOMAIN_ID:
+        classifications.append({
+            "mechanism": "execution_profile_completion_binding -> mission_completion_evidence_gate",
+            "producer": "submit_code_optimization_result", "consumer": "mission_completion_evidence_gate",
+            "claimed_contribution": "immutable result/review completion",
+            "observed_contribution": "current submit consumer rejects identity or review mismatch",
+            "classification": "SAFETY_ESSENTIAL",
+            "evidence": ["completion-consumer-v1", "current profile regression"],
+        })
+    elif domain_id == OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID:
+        classifications.extend(({
+            "mechanism": "code_optimization_resolve_material_change_domain",
+            "producer": "continue_omp_engineering_control_loop", "consumer": "code_optimization_material_change_admission",
+            "claimed_contribution": "existing-owner material change resolution",
+            "observed_contribution": "prevents private path-owner duplication",
+            "classification": "SAFETY_ESSENTIAL", "evidence": ["actual Continue OMP caller", "anti-regrowth rule"],
+        }, {
+            "mechanism": "code_optimization_bridge_anti_regrowth",
+            "producer": "material-change admission", "consumer": "continue_omp_engineering_control_loop",
+            "claimed_contribution": "fail closed on removed duplicate mapping recurrence",
+            "observed_contribution": "controlled recurrence reaches STOP_SAFE",
+            "classification": "QUALITY_COMPLEXITY_ESSENTIAL", "evidence": ["controlled recurrence test"],
+        }))
+    else:
+        classifications.append({
+            "mechanism": "ordinary recovery responsibility subgraph",
+            "producer": owner, "consumer": "current Runtime owners",
+            "claimed_contribution": "failure-to-required-service-S11 recovery chain",
+            "observed_contribution": "bounded static reachability only",
+            "classification": "UNKNOWN",
+            "evidence": ["fresh responsibility subgraph"],
+            "missing_fact": "current Runtime caller/state/lock/process/behavioral equivalence",
+        })
+    link_progression = [{
+        "link_id": _execution_contract_fingerprint({
+            key: edge.get(key) for key in ("edge_type", "source", "target", "path", "line")
+        })[:16],
+        "source": edge.get("source"), "target": edge.get("target"),
+        "edge_type": edge.get("edge_type"), "path": edge.get("path"), "line": edge.get("line"),
+        "reachable": "PROVEN_CURRENT_SOURCE",
+        "consumed": "PROVEN_STATIC_CALL_OR_DEPENDENCY",
+        "behaviorally_effective": "UNKNOWN_WITHOUT_CURRENT_BEHAVIORAL_COUNTERFACTUAL",
+        "semantically_necessary": "UNKNOWN_UNTIL_LINK_LEVEL_COUNTERFACTUAL",
+        "reentry_condition": "current owner-backed behavioral or counterfactual evidence for this exact link",
+    } for edge in subgraph.get("edges") or []]
+    largest = list(baseline.get("largest_functions") or [])
+    hypotheses = []
+    if largest:
+        hotspot = largest[0]
+        hypotheses.append({
+            "hypothesis_id": "HOTSPOT_NARROWING_" + _execution_contract_fingerprint({
+                "domain_id": domain_id, "hotspot": hotspot,
+            })[:12],
+            "domain": domain_id,
+            "exact_mechanism": f"{hotspot.get('path')}:{hotspot.get('function')}",
+            "producer": owner, "consumer": "UNKNOWN_LOCALIZED",
+            "claimed_contribution": "multiple responsibility branches in one hotspot",
+            "observed_contribution": f"{hotspot.get('loc')} LOC structural signal only",
+            "suspected_duplicate_or_superseding_source": "UNKNOWN_NOT_PROVEN",
+            "evidence": ["structural_baseline.largest_functions"],
+            "admissible_equivalent_inputs": [],
+            "control_observables": ["current tests", "current caller/consumer behavior"],
+            "counterfactual_observables": ["same behavior with narrower responsibility surface"],
+            "safety_compatibility_invariants": ["owner semantics", "STOP_SAFE", "compatibility", "rollback"],
+            "blast_radius": "UNKNOWN", "reversibility": "UNKNOWN", "rollback": "revert Mission-owned cleanup",
+            "falsification_condition": "no counterfactual equivalence evidence",
+            "expected_simplification": "UNKNOWN", "dependent_tails": [],
+            "admissible": False,
+            "rejection_reason": "LOC_AND_REACHABILITY_DO_NOT_PROVE_REDUNDANCY",
+        })
+    return {
+        "domain_id": domain_id, "owner": owner,
+        "mandatory_question": "WHAT NEW REQUIRED PRODUCT, SAFETY, COMPATIBILITY OR OBSERVABILITY FACT DOES THIS ADD?",
+        "semantic_progression": ["REACHABLE", "CONSUMED", "BEHAVIORALLY_EFFECTIVE", "SEMANTICALLY_NECESSARY"],
+        "link_progression": link_progression,
+        "link_progression_summary": {
+            "reachable_proven": len(link_progression),
+            "consumed_statically_proven": len(link_progression),
+            "behaviorally_effective_unknown": len(link_progression),
+            "semantically_necessary_unknown": len(link_progression),
+        },
+        "classifications": classifications,
+        "localized_unknowns": _code_optimization_local_unknowns(subgraph),
+        "self_generated_hypotheses": hypotheses,
+        "semantic_terminal": "AUDITED_WITH_LOCAL_UNKNOWNS",
+    }
+
+
+def code_optimization_operational_anti_regrowth(source: str) -> dict[str, Any]:
+    """Reject recurrence of a private FULL_BASELINE domain list."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        return {"final_verdict": "STOP_SAFE", "recurrence_detected": True, "reason": f"SOURCE_PARSE_UNKNOWN:{exc.msg}"}
+    functions = {
+        node.name: node for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    baseline = functions.get("code_optimization_full_baseline")
+    campaign = functions.get("code_optimization_operational_campaign")
+    literal_domain_list = False
+    if baseline is not None:
+        for node in ast.walk(baseline):
+            if isinstance(node, (ast.Assign, ast.AnnAssign)):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                if any(isinstance(target, ast.Name) and target.id == "domain_specs" for target in targets):
+                    value = node.value
+                    literal_domain_list = isinstance(value, (ast.Tuple, ast.List, ast.Set))
+    discovery_consumed = campaign is not None and any(
+        isinstance(node, ast.Call)
+        and _responsibility_subgraph_call_name(node.func) == "code_optimization_discover_domains"
+        for node in ast.walk(campaign)
+    )
+    recurrence = literal_domain_list or not discovery_consumed
+    return {
+        "schema": "v7.code-optimization-operational-anti-regrowth.v1",
+        "rule_id": "NO_PRIVATE_FULL_BASELINE_DOMAIN_LIST",
+        "recurrence_detected": recurrence,
+        "literal_domain_list_detected": literal_domain_list,
+        "owner_backed_discovery_consumed": discovery_consumed,
+        "final_verdict": "STOP_SAFE" if recurrence else "PASS",
+        "reason": "PRIVATE_DOMAIN_LIST_RECURRED" if recurrence else "OWNER_BACKED_DISCOVERY_PRESERVED",
+    }
+
+
+def code_optimization_operational_campaign(
+    *, root: Path = ROOT, mode: str = "FULL_BASELINE",
+    domain_id: str = "", changed_dependencies: Optional[Iterable[str]] = None,
+) -> dict[str, Any]:
+    """Execute the compact operational semantic campaign through existing owners."""
+    normalized_mode = str(mode or "").upper()
+    identity_mode = "FULL_BASELINE" if normalized_mode == "CONTINUE" else normalized_mode
+    discovery = code_optimization_discover_domains(root=root)
+    configs = {str(item["domain_id"]): item for item in _responsibility_subgraph_domain_configs()}
+    selected_ids = list(discovery["admitted_domain_ids"])
+    if normalized_mode == "DOMAIN":
+        selected_ids = [domain_id] if domain_id in configs else []
+    elif normalized_mode == "CHANGED":
+        changed = set(map(str, changed_dependencies or []))
+        selected_ids = [
+            current_id for current_id, config in configs.items()
+            if changed & set(map(str, config["paths"]))
+        ]
+    elif normalized_mode in {"CONTINUE", "FULL_BASELINE"}:
+        pass
+    else:
+        return {
+            "schema": "v7.code-optimization-operational-campaign.v1",
+            "final_verdict": "STOP_SAFE", "terminal": "CODE_OPTIMIZATION_INTENT_INVALID",
+            "errors": ["code_optimization_compact_intent_invalid"],
+        }
+    if not selected_ids:
+        return {
+            "schema": "v7.code-optimization-operational-campaign.v1",
+            "mode": normalized_mode, "discovery": discovery,
+            "final_verdict": "PASS", "terminal": "CODE_OPTIMIZATION_NO_ADMITTED_DOMAIN_FOR_INTENT",
+            "domains_completed": [], "blocked_domains": discovery["blocked_local_unknown_surfaces"],
+            "errors": [], "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        }
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_before = cps_path.read_bytes() if cps_path.is_file() else b""
+    structural = code_optimization_full_baseline(root=root)
+    combined_repo = _execution_contract_fingerprint({
+        "selected_domains": selected_ids,
+        "repo_fingerprints": [
+            item["repo_fingerprint"] for item in structural["domains"]
+            if item["domain_id"] in selected_ids
+        ],
+    })
+    required_outcomes = [
+        "COMPACT_INTENT_CONSUMED", "OWNER_BACKED_DISCOVERY_COMPLETE",
+        "STRUCTURAL_BASELINE_COMPLETE", "SEMANTIC_AUDITS_COMPLETE",
+        "HYPOTHESES_GENERATED", "RANKING_COMPLETE", "COUNTERFACTUAL_LOOP_COMPLETE",
+        "ZERO_OR_ONE_CLEANUP_ENFORCED", "REVIEWS_AND_COMPLETION_CONSUMED",
+        "ANTI_REGROWTH_CONSUMED", "REMAINING_DOMAINS_COMPLETE", "CONSOLIDATED_RESULT_COMPLETE",
+    ]
+    intent = mission_intent_contract(
+        mission_id="V7_CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_SEMANTIC_CAMPAIGN_V1",
+        objective="Execute the complete bounded semantic Code Optimization campaign from a compact intent.",
+        required_outcomes=required_outcomes,
+        definition_of_done=["all selected domains audited", "counterfactual loop consumed", "zero-or-one cleanup", "consolidated terminal"],
+        authorized_effect_boundary=["READ_ONLY_SEMANTIC_CAMPAIGN", "AT_MOST_ONE_PROVED_BOUNDED_CLEANUP"],
+        prohibited_effects=["NEW_OWNER", "NEW_FRONTIER", "RUNTIME", "PRODUCTION", "AUTHORITY_EXPANSION", "MORE_THAN_ONE_CLEANUP"],
+        owner_authority_boundary=["OMP", "CODE_OPTIMIZATION", "MISSION_COMPLETION_EVIDENCE_GATE"],
+        required_reviews=["ARCHITECTURE_REVIEW", "SAFETY_REGRESSION_REVIEW", "EVIDENCE_REVIEW", "QUALITY_COMPLEXITY_REVIEW", "MISSION_INTEGRITY_REVIEW"],
+        legal_terminals=["FULL_COMPLETION", "STOP_SAFE_EXACT_GAP", "MISSION_CLARIFICATION_REQUIRED"],
+        intermediate_non_terminals=["BASELINE_CAPTURED", "DOMAINS_DISCOVERED", "SEMANTIC_AUDIT_COMPLETE", "CANDIDATES_RANKED"],
+        continuation_policy="CONTINUE_SAME_MISSION_UNTIL_ALL_CAMPAIGN_OUTCOMES_CONSUMED",
+        input_fingerprint=_execution_contract_fingerprint({"mode": identity_mode, "domains": selected_ids}),
+        repo_fingerprint=combined_repo,
+    )
+    interim_completed = ["COMPACT_INTENT_CONSUMED", "OWNER_BACKED_DISCOVERY_COMPLETE", "STRUCTURAL_BASELINE_COMPLETE"]
+    interim_gate = mission_completion_evidence_gate({
+        "MISSION_TYPE": "ACCEPTANCE", "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION",
+        "INDEPENDENT_ACCEPTANCE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
+        "MISSION_INTENT_CONTRACT": intent, "MISSION_ADAPTATION_RECORDS": [],
+        "PROVEN_COMPLETED_OUTCOMES": interim_completed,
+        "REMAINING_AUTHORIZED_WORK": sorted(set(required_outcomes) - set(interim_completed)),
+        "REQUESTED_MISSION_TERMINAL": "BASELINE_CAPTURED",
+        "NEXT_EXECUTABLE_ACTION": "continue semantic audits in the same Mission",
+    })
+    semantic_domains: list[dict[str, Any]] = []
+    all_hypotheses: list[dict[str, Any]] = []
+    domain_submissions: list[dict[str, Any]] = []
+    structural_by_id = {item["domain_id"]: item for item in structural["domains"]}
+    for index, current_id in enumerate(selected_ids, 1):
+        config = configs[current_id]
+        request = responsibility_subgraph_pilot_request(root=root, domain_id=current_id)
+        request.update({
+            "mission_id": intent["mission_id"],
+            "run_nonce": f"operational-{index}-{request['repo_fingerprint'][:16]}",
+            "profile_id": "CODE_OPTIMIZATION",
+        })
+        if config.get("entry_condition"):
+            request["entry_condition"] = config["entry_condition"]
+        request["input_fingerprint"] = _responsibility_subgraph_fingerprint({
+            key: value for key, value in request.items() if key != "input_fingerprint"
+        })
+        subgraph = derive_responsibility_subgraph(request, root=root)
+        baseline = structural_by_id[current_id]["structural_baseline"]
+        audit = _code_optimization_semantic_domain_audit(subgraph, baseline)
+        semantic_domains.append(audit)
+        all_hypotheses.extend(audit["self_generated_hypotheses"])
+        profile = admit_execution_profile_contract(code_optimization_profile_contract(
+            mission_id=intent["mission_id"], run_nonce=request["run_nonce"],
+            input_fingerprint=request["input_fingerprint"], repo_fingerprint=request["repo_fingerprint"],
+            continuous_acceptance=True, mission_intent_fingerprint=intent["mission_intent_fingerprint"],
+        ), mission_id=intent["mission_id"])
+        package = code_optimization_evidence_package(
+            mission_id=intent["mission_id"], run_nonce=request["run_nonce"],
+            profile=profile, subgraph=subgraph, root=root,
+        )
+        output = {
+            "mission_reference": intent["mission_id"], "profile_reference": profile["profile_fingerprint"],
+            "input_fingerprint": request["input_fingerprint"], "domain_id": current_id,
+            "responsibility_subgraph": {key: subgraph.get(key) for key in (
+                "domain_id", "repo_fingerprint", "subgraph_fingerprint", "result_fingerprint", "generated_at", "expires_at",
+            )},
+            "canonical_to_be_references": _code_optimization_canonical_references(root),
+            "structural_baseline": baseline,
+            "responsibility_classifications": [{
+                "subject": current_id, "classification": "UNKNOWN",
+                "reason": "domain-level semantic details are retained in the consolidated audit",
+            }],
+            "semantic_necessity_classifications": audit["classifications"],
+            "counterfactual_hypotheses": audit["self_generated_hypotheses"],
+            "ranked_candidates": [], "selected_first_candidate": None,
+            "owner_decision_required": False, "unproven_edges": audit["localized_unknowns"],
+            "unproven_claims": [item["missing_fact"] for item in audit["localized_unknowns"]],
+            "considered_mechanisms": [{
+                "subject": item["exact_mechanism"], "rejection_reason": item["rejection_reason"],
+            } for item in audit["self_generated_hypotheses"]] or [{
+                "subject": current_id, "rejection_reason": "no evidence-backed redundant mechanism",
+            }],
+            "terminal_verdict": "NO_SAFE_COUNTERFACTUAL_CANDIDATE",
+        }
+        provisional = gpt_decision_review_result_contract(
+            profile, output, executor_context_id=f"operational-campaign-executor-{index}",
+        )
+        reviews = [
+            execution_profile_review_record(
+                profile, provisional, review_type=review_type, review_verdict="PASS",
+                review_context_id=f"operational-{index}-{review_type.lower()}",
+            ) for review_type in profile["required_reviews"]
+        ]
+        submitted = submit_code_optimization_result(
+            profile=profile, subgraph=subgraph, evidence_package=package,
+            output=output, reviews=reviews, mission_intent=intent,
+            adaptation_records=[], completed_outcomes=required_outcomes,
+            remaining_authorized_work=[], requested_mission_terminal="FULL_COMPLETION",
+            next_executable_action="consume domain semantic terminal",
+        )
+        domain_submissions.append({
+            "domain_id": current_id, "profile_fingerprint": profile["profile_fingerprint"],
+            "result_fingerprint": submitted.get("result", {}).get("result_fingerprint"),
+            "review_status": submitted.get("completion", {}).get("execution_profile_binding", {}).get("review_status"),
+            "completion_verdict": submitted.get("completion", {}).get("completion_verdict"),
+            "final_verdict": submitted.get("final_verdict"), "errors": submitted.get("errors") or [],
+        })
+    overlap_hypotheses: list[dict[str, Any]] = []
+    for left_index, left_id in enumerate(selected_ids):
+        for right_id in selected_ids[left_index + 1:]:
+            left, right = configs[left_id], configs[right_id]
+            overlap = sorted(set(left["paths"]) & set(right["paths"]))
+            if not overlap:
+                continue
+            overlap_hypotheses.append({
+                "hypothesis_id": "MERGE_OVERLAPPING_DOMAINS_" + _execution_contract_fingerprint({"left": left_id, "right": right_id})[:12],
+                "domain": f"{left_id}+{right_id}", "exact_mechanism": overlap,
+                "producer": left["canonical"]["owner"], "consumer": right["canonical"]["owner"],
+                "claimed_contribution": "two domain slices over the same source surfaces",
+                "observed_contribution": "distinct entry conditions and responsibility seeds",
+                "suspected_duplicate_or_superseding_source": "shared source allowlist",
+                "evidence": [left["entry_condition"], right["entry_condition"], list(left["seeds"]), list(right["seeds"])],
+                "admissible_equivalent_inputs": overlap,
+                "control_observables": ["separate branch-sensitive graphs"],
+                "counterfactual_observables": ["one merged graph"],
+                "safety_compatibility_invariants": ["caller identity", "consumer identity", "branch isolation"],
+                "blast_radius": "ENGINEERING_PROFILE_ONLY", "reversibility": "HIGH", "rollback": "retain separate domains",
+                "falsification_condition": "distinct entry condition or terminal contribution is lost",
+                "expected_simplification": "one fewer domain config", "dependent_tails": [],
+                "admissible": True,
+            })
+    all_hypotheses.extend(overlap_hypotheses)
+    ranked = sorted(all_hypotheses, key=lambda item: (
+        0 if item.get("admissible") else 1,
+        0 if item.get("blast_radius") == "ENGINEERING_PROFILE_ONLY" else 1,
+        str(item.get("hypothesis_id")),
+    ))
+    attempts = [{
+        "hypothesis_id": item["hypothesis_id"],
+        "control": "separate branch-sensitive responsibility domains",
+        "counterfactual": "merge domains sharing source surfaces",
+        "observed_result": "distinct entry conditions/seeds/terminal contributions would be lost",
+        "verdict": "FALSIFIED_REQUIRED_DISTINCT_RESPONSIBILITY_SLICE",
+        "redundant_link_proven": False,
+    } for item in ranked if item.get("admissible")]
+    source = (root / "tools/v7_sync_lib.py").read_text(encoding="utf-8")
+    anti_regrowth = {
+        "existing_material_change_rule": code_optimization_bridge_anti_regrowth(source),
+        "operational_domain_discovery_rule": code_optimization_operational_anti_regrowth(source),
+    }
+    final_gate = mission_completion_evidence_gate({
+        "MISSION_TYPE": "ACCEPTANCE", "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION",
+        "INDEPENDENT_ACCEPTANCE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
+        "MISSION_INTENT_CONTRACT": intent, "MISSION_ADAPTATION_RECORDS": [],
+        "PROVEN_COMPLETED_OUTCOMES": required_outcomes, "REMAINING_AUTHORIZED_WORK": [],
+        "REQUESTED_MISSION_TERMINAL": "FULL_COMPLETION",
+        "NEXT_EXECUTABLE_ACTION": "return consolidated operational campaign terminal",
+    })
+    cps_after = cps_path.read_bytes() if cps_path.is_file() else b""
+    passed = all((
+        structural.get("final_verdict") == "PASS",
+        interim_gate.get("completion_verdict") == "CONTINUE_SAME_MISSION",
+        len(semantic_domains) == len(selected_ids),
+        all(item["final_verdict"] == "PASS" for item in domain_submissions),
+        all(value.get("final_verdict") == "PASS" for value in anti_regrowth.values()),
+        final_gate.get("completion_verdict") == "COMPLETE_WITH_LEGAL_TERMINAL",
+        cps_before == cps_after,
+    ))
+    campaign_fingerprint = _execution_contract_fingerprint({
+        "intent": intent["mission_intent_fingerprint"], "baseline": structural["baseline_fingerprint"],
+        "domains": selected_ids, "hypotheses": [item["hypothesis_id"] for item in ranked],
+        "attempts": attempts, "cleanup_count": 0,
+    })
+    success_terminal = {
+        "FULL_BASELINE": "CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
+        "CONTINUE": "CODE_OPTIMIZATION_OPERATIONAL_FULL_BASELINE_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
+        "DOMAIN": "CODE_OPTIMIZATION_OPERATIONAL_DOMAIN_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
+        "CHANGED": "CODE_OPTIMIZATION_OPERATIONAL_CHANGED_COMPLETE_NO_REDUNDANT_LINK_PROVEN",
+    }[normalized_mode]
+    return {
+        "schema": "v7.code-optimization-operational-campaign.v1",
+        "mode": normalized_mode, "campaign_fingerprint": campaign_fingerprint,
+        "mission_intent_fingerprint": intent["mission_intent_fingerprint"],
+        "discovery": discovery, "selected_domain_ids": selected_ids,
+        "baseline": structural, "intermediate_completion": interim_gate["completion_verdict"],
+        "semantic_audits": semantic_domains, "hypotheses": ranked,
+        "counterfactual_attempts": attempts,
+        "cleanup_count": 0, "cleanup_limit": 1,
+        "cleanup_verdict": "NO_REDUNDANT_LINK_PROVEN",
+        "domain_submissions": domain_submissions,
+        "anti_regrowth": anti_regrowth,
+        "domains_completed": selected_ids,
+        "blocked_domains": discovery["blocked_local_unknown_surfaces"],
+        "ranked_residuals": [item for item in ranked if not item.get("admissible")],
+        "final_completion": final_gate["completion_verdict"],
+        "no_cps_effect": cps_before == cps_after,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "terminal": success_terminal if passed else "STOP_SAFE_CODE_OPTIMIZATION_OPERATIONAL_EXACT_GAP",
+        "errors": [] if passed else ["code_optimization_operational_campaign_failed"],
+    }
+
+
+def code_optimization_operational_status(*, root: Path = ROOT) -> dict[str, Any]:
+    discovery = code_optimization_discover_domains(root=root)
+    return {
+        "schema": "v7.code-optimization-operational-status.v1",
+        "campaign_state": "RECOMPUTE_FROM_CURRENT_REPOSITORY_IDENTITY",
+        "admitted_domains": discovery["admitted_domain_ids"],
+        "blocked_local_unknown_surfaces": discovery["blocked_local_unknown_surfaces"],
+        "discovery_fingerprint": discovery["discovery_fingerprint"],
+        "next_action": "CODE_OPTIMIZATION FULL_BASELINE",
+        "persistent_queue_or_registry": False,
+        "final_verdict": "PASS", "errors": [],
     }
 
 

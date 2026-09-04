@@ -1211,6 +1211,10 @@ def human_report(result: dict[str, Any]) -> str:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Read-only V7 source-of-truth convergence gate.")
+    parser.add_argument(
+        "compact_intent", nargs="*",
+        help="Compact OMP intent: CODE_OPTIMIZATION FULL_BASELINE|CHANGED|DOMAIN|CONTINUE|STATUS.",
+    )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--local", action="store_true", help="Run local workspace checks only.")
     mode.add_argument("--github", action="store_true", help="Run local plus read-only git ls-remote checks.")
@@ -1251,7 +1255,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--omp-bounded-execution-profile-proof", action="store_true", help="Run one disposable read-only BDP admission, GPT decision-profile result, exact review and existing completion-gate proof; never writes CPS or Runtime.")
     parser.add_argument("--omp-responsibility-subgraph-proof", action="store_true", help="Derive one bounded static recovery responsibility subgraph and bind it through the existing read-only profile/review/completion gate; no BDP Mission, CPS, Runtime or production effect.")
     parser.add_argument("--omp-code-optimization-profile-proof", action="store_true", help="Run one bounded read-only Code Optimization profile and fresh-subgraph binding proof; selects zero candidates when canonical semantic evidence is insufficient and never writes CPS, Runtime or source product behavior.")
-    parser.add_argument("--omp-code-optimization-full-baseline", action="store_true", help="Capture and consume one structural baseline for every currently admitted Code Optimization responsibility domain; no whole-repository graph, CPS, Runtime or production effect.")
+    parser.add_argument("--omp-code-optimization-full-baseline", action="store_true", help="Run the operational semantic Code Optimization campaign for every currently admitted responsibility domain; no CPS, Runtime or production effect.")
     parser.add_argument("--omp-mission-integrity-proof", action="store_true", help="Run the existing Code Optimization path through premature-terminal rejection, same-Mission continuation, local adaptation and final Mission-intent-bound completion.")
     parser.add_argument("--omp-code-optimization-submit", default="", metavar="PATH", help="Submit one bounded read-only Code Optimization JSON payload through the existing OMP completion gate; input is disposable and never persisted.")
     parser.add_argument("--continue-omp-change", action="append", default=None, help="Owner-backed dependency identity used for selective invalidation certification.")
@@ -1306,6 +1310,42 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.compact_intent:
+        raw = list(args.compact_intent)
+        normalized = [item.upper() for item in raw]
+        if normalized[0] != "CODE_OPTIMIZATION" or len(normalized) < 2:
+            result = {
+                "final_verdict": "STOP_SAFE", "terminal": "CODE_OPTIMIZATION_INTENT_INVALID",
+                "errors": ["expected: CODE_OPTIMIZATION FULL_BASELINE|CHANGED|DOMAIN|CONTINUE|STATUS"],
+            }
+        elif normalized[1] == "STATUS" and len(normalized) == 2:
+            result = sync_lib.code_optimization_operational_status(root=ROOT_DIR)
+        elif normalized[1] == "FULL_BASELINE" and len(normalized) == 2:
+            result = sync_lib.code_optimization_operational_campaign(root=ROOT_DIR, mode="FULL_BASELINE")
+        elif normalized[1] == "CONTINUE" and len(normalized) == 2:
+            result = sync_lib.code_optimization_operational_campaign(root=ROOT_DIR, mode="CONTINUE")
+        elif normalized[1] == "DOMAIN" and len(raw) == 3:
+            result = sync_lib.code_optimization_operational_campaign(
+                root=ROOT_DIR, mode="DOMAIN", domain_id=raw[2],
+            )
+        elif normalized[1] == "CHANGED" and len(raw) >= 3:
+            result = sync_lib.code_optimization_operational_campaign(
+                root=ROOT_DIR, mode="CHANGED", changed_dependencies=raw[2:],
+            )
+        else:
+            result = {
+                "final_verdict": "STOP_SAFE", "terminal": "CODE_OPTIMIZATION_INTENT_INVALID",
+                "errors": ["compact_intent_shape_invalid"],
+            }
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"code_optimization={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"terminal={result.get('terminal', result.get('campaign_state', 'STOP_SAFE'))}")
+            print(f"campaign_fingerprint={result.get('campaign_fingerprint', result.get('discovery_fingerprint', 'NONE'))}")
+            print(f"domains_completed={len(result.get('domains_completed', result.get('admitted_domains', [])))}")
+            print(f"cleanup_count={result.get('cleanup_count', 0)}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
     if args.omp_bounded_execution_profile_proof:
         result = sync_lib.bounded_execution_profile_contract_proof(root=ROOT_DIR)
         if args.json:
@@ -1326,13 +1366,13 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"no_cps_effect={result.get('no_cps_effect', False)}")
         return 0 if result.get("final_verdict") == "PASS" else 2
     if args.omp_code_optimization_full_baseline:
-        result = sync_lib.code_optimization_full_baseline(root=ROOT_DIR)
+        result = sync_lib.code_optimization_operational_campaign(root=ROOT_DIR, mode="FULL_BASELINE")
         if args.json:
             print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
         else:
             print(f"code_optimization_full_baseline={result.get('final_verdict', 'STOP_SAFE')}")
-            print(f"terminal={result.get('terminal', 'CODE_OPTIMIZATION_FULL_BASELINE_FAILED')}")
-            print(f"baseline_fingerprint={result.get('baseline_fingerprint', 'NONE')}")
+            print(f"terminal={result.get('terminal', 'STOP_SAFE_CODE_OPTIMIZATION_OPERATIONAL_EXACT_GAP')}")
+            print(f"campaign_fingerprint={result.get('campaign_fingerprint', 'NONE')}")
         return 0 if result.get("final_verdict") == "PASS" else 2
     if args.omp_mission_integrity_proof:
         result = sync_lib.bounded_mission_integrity_non_test_proof(root=ROOT_DIR)

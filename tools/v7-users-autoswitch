@@ -25918,6 +25918,45 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
                 args.runtime_profile_failure_binding
             )
         )
+    runtime_profile_passive_bridge = {
+        "status": "NOT_REQUIRED",
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+    if (
+        runtime_profile_handoff
+        and str(runtime_profile_scope_reconciliation.get("status") or "")
+        == "STOP_SAFE_RUNTIME_PROFILE_SCOPE_INCIDENT_AMBIGUOUS"
+        and int(
+            runtime_profile_scope_reconciliation.get("matching_incident_count")
+            or 0
+        ) == 0
+    ):
+        # A brand-new Matrix source incident has no L3 row yet.  The former
+        # path discarded this already-loaded Planner, started a passive
+        # interpreter to create the row, then started a second advisory
+        # interpreter to reconstruct the same decision.  Consume the exact
+        # capture through the existing passive owner in this invocation and
+        # continue with the same Planner.  Ambiguous/nonzero matches never
+        # enter this bridge, and the governed executor still owns every
+        # Candidate, Packet, Lease, Barrier and route mutation.
+        passive_bridge_started_ns = time.monotonic_ns()
+        runtime_profile_passive_bridge = (
+            planner._consume_passive_production_events()
+        )
+        planner.l3_runtime_state = planner._load_l3_runtime_state()
+        runtime_profile_scope_reconciliation = (
+            planner.reconcile_runtime_profile_source_scope_reentry(
+                args.runtime_profile_failure_binding
+            )
+        )
+        planner._record_performance_span(
+            "advisory_runtime_profile_passive_bridge",
+            passive_bridge_started_ns,
+            owner="tools/v7-users-autoswitch._consume_passive_production_events",
+            parent="service_failure_advisory",
+        )
     planner._record_performance_span(
         "advisory_bounded_closure_reconciliation",
         bounded_closure_reconciliation_started_ns,
@@ -26027,6 +26066,7 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         "execution_outcome_reconciliation": execution_outcome_reconciliation,
         "bounded_closure_reconciliation": bounded_closure_reconciliation,
         "runtime_profile_scope_reconciliation": runtime_profile_scope_reconciliation,
+        "runtime_profile_passive_bridge": runtime_profile_passive_bridge,
         "post_plan_runtime_profile_scope_reconciliation": (
             post_plan_runtime_profile_scope_reconciliation
         ),

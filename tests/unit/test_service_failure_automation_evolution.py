@@ -882,6 +882,77 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "fresh-scope",
         )
 
+    def test_new_runtime_profile_incident_reuses_loaded_planner_for_passive_bridge(self):
+        """A new Matrix incident must not require passive plus two Planners."""
+        args = argparse.Namespace(
+            apply=False,
+            emergency_failover_autonomy=False,
+            controlled_verifier_contention=False,
+            source_egress="vless",
+            runtime_profile_handoff_only=True,
+            state_dir=".",
+        )
+        planner = mock.Mock()
+        planner._performance_spans = []
+        planner.users = []
+        planner.matrix = {}
+        planner.service_prefs = {}
+        planner._explicit_required_services.return_value = []
+        planner.reconcile_runtime_profile_source_scope_reentry.side_effect = [
+            {
+                "status": "STOP_SAFE_RUNTIME_PROFILE_SCOPE_INCIDENT_AMBIGUOUS",
+                "updated": False,
+                "matching_incident_count": 0,
+            },
+            {"status": "CURRENT_SCOPE_ALREADY_OPEN", "updated": False},
+            {"status": "CURRENT_SCOPE_ALREADY_OPEN", "updated": False},
+        ]
+        planner._consume_passive_production_events.return_value = {
+            "active": True,
+            "reason": "consumed",
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+        planner._load_l3_runtime_state.return_value = {"incidents": {}}
+        planner.plan.return_value = {"decisions": []}
+        planner.materialize_service_failure_automation_advisory.return_value = {
+            "active": False,
+            "pre_obligation_scope_reconciliation": {"final_verdict": "PASS"},
+        }
+        planner.performance_timeline.return_value = {"spans": []}
+        with mock.patch.dict(self.autoswitch.os.environ, {
+            "V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1",
+            "V7_SERVICE_PROFILE_FAILURE_SCOPE": json.dumps({
+                "channel": "vless",
+                "source_incident_id": "sfinc-current",
+                "source_scope_fingerprint": "fresh-scope",
+                "affected_scope_count": 1,
+                "scope_classification": "ORDINARY_PRODUCTION_ONLY",
+            }),
+        }, clear=False), mock.patch.object(
+            self.autoswitch, "AutoswitchPlanner", return_value=planner,
+        ), mock.patch.object(
+            self.autoswitch, "live_profile_failure_evidence",
+            return_value=(1, 1, {"sfinc-service"}),
+        ), mock.patch.object(
+            self.autoswitch, "build_prepared_class_decision_projection",
+            return_value={},
+        ), mock.patch.object(
+            self.autoswitch, "validate_prepared_class_decision_projection",
+            return_value={},
+        ):
+            result = self.autoswitch.consume_service_failure_automation_only(args)
+
+        planner._consume_passive_production_events.assert_called_once_with()
+        planner._load_l3_runtime_state.assert_called_once_with()
+        self.assertEqual(
+            planner.reconcile_runtime_profile_source_scope_reentry.call_count, 3,
+        )
+        self.assertEqual(
+            result["runtime_profile_passive_bridge"]["reason"], "consumed",
+        )
+
     def test_fresh_runtime_profile_handoff_defers_passive_history_only_after_exact_l3_handoff(self):
         source = {
             "channel": "vless",

@@ -12,7 +12,8 @@
 
 ## Final fingerprint and Runtime truth
 
-- Local/GitHub/deployed commit: `090e801961b5a426dc53a844a7b28d4c3e9e68e0`.
+- Deployed implementation fingerprint: `090e801961b5a426dc53a844a7b28d4c3e9e68e0`.
+- GitHub/local source contains that implementation unchanged; later commits update this report only and do not change the deployed Runtime fingerprint.
 - Safe-deploy manifest: `deploy-z8-14-Updatesystem-090e801-20260904T083829`.
 - `v7-health.service = active`, start `2026-09-04 08:38:47 MSK`, persistent Matrix `READY`.
 - Runtime hashes:

@@ -12242,16 +12242,40 @@ special-case branch, a new state surface, a new process hop or superseded
 compatibility retained after migration proof.
 
 Completion is recomputed from current repository identity and never advances
-the active Product frontier. The no-redundancy success terminal is
-`CODE_OPTIMIZATION_REAL_SEMANTIC_EXECUTOR_ACTIVE_AND_COMPACT_COMMAND_ACCEPTED`.
+the active Product frontier. Product-domain consumption may return the internal
+terminal
+`CODE_OPTIMIZATION_REAL_SEMANTIC_EXECUTOR_ACTIVE_AND_COMPACT_COMMAND_ACCEPTED`,
+but that terminal does not accept the native Agent Runtime. The only full
+command terminal is `V7_CODE_OPTIMIZATION_AGENT_RUNTIME_FULLY_ACCEPTED`, and it
+requires both full current product-domain consumption and the independent
+hidden benchmark gate below.
 
 ## Code Optimization Real Semantic Executor Consumption
 
 The structural layer may not complete semantic work. It emits a fresh,
 immutable bounded executor packet and returns same-Mission continuation until
-the current Codex executor consumes it. The external result must be
-symbol-level, evidence-bound and reviewed through the existing profile and
-completion gate. Reintroduced hardcoded semantic classification or automatic
-review PASS is an anti-regrowth failure. No packet, queue, daemon, owner,
-frontier or durable registry is added; packet re-entry is an in-memory bounded
-handoff under existing OMP.
+the current Codex executor consumes it. Each campaign uses exactly two distinct
+native contexts: one `ANALYST` for evidence, semantic classification and
+counterfactual reasoning, and one independent `REVIEWER`. The Reviewer checks
+Architecture, Safety/Regression, Evidence, Quality/Complexity and Mission
+Integrity in one immutable context, returning only rejected candidate IDs.
+Platform-issued identities, exact packet fingerprints and immutable output
+fingerprints are consumed by the existing completion binding; reused contexts
+and automatic PASS are rejected. At most one targeted Analyst re-entry is
+allowed; a second rejection is a precise STOP_SAFE terminal.
+
+`FULL_BASELINE` additionally runs a disposable hidden benchmark. Its fresh
+executor receives a dynamically live bounded fixture and mission question but
+not the redundant symbol or expected answer. Cleanup is two-stage: a read-only
+candidate must first prove `REDUNDANT_LINK_PROVEN`; only a separately
+fingerprint-bound authorization may permit exactly one fixture-only cleanup.
+One independent all-aspect Reviewer verdict, behavior/error/state equivalence,
+zero residue and zero product/CPS/Runtime/Production/Authority effect are mandatory.
+The deterministic `tools/v7-code-optimization-bundle accept` gate binds this
+benchmark proof to the full product-domain consumption before the full-command
+terminal can be emitted.
+
+Reintroduced hardcoded semantic classification or automatic review PASS is an
+anti-regrowth failure. No packet, queue, daemon, owner, frontier or durable
+registry is added; disposable packet re-entry remains a bounded handoff under
+existing OMP and `mission_completion_evidence_gate`.

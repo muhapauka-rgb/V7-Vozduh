@@ -221,14 +221,14 @@ def code_optimization_material_change_admission(changed_dependencies):
         baseline = self.lib.code_optimization_full_baseline(root=ROOT)
         self.assertEqual(baseline["final_verdict"], "PASS")
         self.assertEqual(baseline["terminal"], "CODE_OPTIMIZATION_STRUCTURAL_BASELINE_CAPTURED_INTERNAL")
-        self.assertEqual(baseline["domain_count"], 3)
+        self.assertGreater(baseline["domain_count"], 3)
         self.assertTrue(baseline["no_cps_effect"])
         self.assertEqual(baseline["semantic_claim"], "NONE_STRUCTURAL_BASELINE_ONLY")
-        self.assertEqual({item["domain_id"] for item in baseline["domains"]}, {
+        self.assertTrue({
             self.lib.RESPONSIBILITY_SUBGRAPH_DOMAIN_ID,
             self.lib.OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
             self.lib.OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,
-        })
+        }.issubset({item["domain_id"] for item in baseline["domains"]}))
         self.assertTrue(all(
             item["structural_derivation"] == "DERIVED_NO_SEMANTIC_EXECUTOR_RESULT"
             for item in baseline["domains"]
@@ -238,9 +238,26 @@ def code_optimization_material_change_admission(changed_dependencies):
         campaign = self.lib.code_optimization_operational_campaign(root=ROOT)
         self.assertEqual(campaign["final_verdict"], "CONTINUE_SAME_MISSION")
         self.assertEqual(campaign["terminal"], "SEMANTIC_EXECUTOR_REQUIRED")
+        packet = campaign["pending_packets"][0]
+        lifetime = (
+            datetime.fromisoformat(packet["expires_at"])
+            - datetime.fromisoformat(packet["generated_at"])
+        )
+        self.assertGreaterEqual(lifetime, timedelta(hours=5, minutes=59))
+        stale = copy.deepcopy(packet)
+        first_path = stale["source_paths"][0]
+        stale["source_fingerprints"][first_path] = "0" * 64
+        stale["packet_fingerprint"] = self.lib._execution_contract_fingerprint({
+            key: value for key, value in stale.items()
+            if key != "packet_fingerprint"
+        })
+        self.assertIn(
+            f"executor_packet_source_stale:{first_path}",
+            self.lib.validate_code_optimization_executor_packet(stale, root=ROOT),
+        )
         self.assertEqual(campaign["intermediate_completion"], "CONTINUE_SAME_MISSION")
-        self.assertEqual(len(campaign["executor_packets"]), 3)
-        self.assertEqual(len(campaign["pending_packets"]), 3)
+        self.assertGreater(len(campaign["executor_packets"]), 3)
+        self.assertEqual(len(campaign["pending_packets"]), len(campaign["executor_packets"]))
         self.assertTrue(all(
             self.lib.validate_code_optimization_executor_packet(packet) == []
             for packet in campaign["executor_packets"]
@@ -279,7 +296,12 @@ def code_optimization_material_change_admission(changed_dependencies):
     def test_owner_backed_discovery_and_private_registry_recurrence(self):
         discovery = self.lib.code_optimization_discover_domains(root=ROOT)
         self.assertEqual(discovery["final_verdict"], "PASS")
-        self.assertEqual(len(discovery["discovered_domains"]), 3)
+        self.assertGreater(len(discovery["discovered_domains"]), 3)
+        self.assertEqual(discovery["blocked_local_unknown_surfaces"], [])
+        self.assertTrue(any(
+            item["discovery_reason"] == "SYSTEM_MAP_CURRENT_OWNER_SURFACE"
+            for item in discovery["discovered_domains"]
+        ))
         self.assertFalse(discovery["duplicate_registry_created"])
         self.assertTrue(discovery["excluded_classes"])
         recurrence = """

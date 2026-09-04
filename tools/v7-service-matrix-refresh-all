@@ -322,6 +322,7 @@ def in_process_autoswitch_args(
         vless_activity_file=str(module.DEFAULT_VLESS_ACTIVITY_FILE),
         restore_barrier_file=str(module.DEFAULT_RESTORE_BARRIER_FILE),
         user="",
+        service="",
         target_egress="",
         source_egress="",
         mode="",

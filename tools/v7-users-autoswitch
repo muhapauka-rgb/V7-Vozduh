@@ -9843,14 +9843,37 @@ class AutoswitchPlanner:
                 or failure_samples >= max(1, to_int(self.service_signal_policy.get("service_failure_persistence_samples"), 3))
                 or bad_for_seconds >= max(1, to_int(self.service_signal_policy.get("service_failure_persistence_window_seconds"), 180))
             )
+            # The ordinary profile-recovery caller reaches this final mutable
+            # Packet check only after the live health owner has already
+            # established an owner-backed Matrix failure.  A freshly observed
+            # service failure can therefore be younger than the generic
+            # persistence threshold while still being the exact cause bound
+            # into the approved Packet.  Requiring three samples again here
+            # made the Apply child prefer an unrelated older L3 incident and
+            # reject its own current Packet as an incident/source mismatch.
+            # Keep the generic Planner threshold unchanged; only the existing
+            # ordinary-service-failure context may consume the Matrix owner's
+            # explicit incident + event identity at this last continuity
+            # check.
+            owner_observed_current = bool(
+                bool_value(
+                    getattr(self.args, "ordinary_service_failure_context", False)
+                )
+                and str(row.get("failure_state") or "").startswith("OBSERVED_")
+                and str(row.get("source_incident_id") or "")
+                and str(row.get("failure_event_id") or "")
+            )
             failed = row.get("ok") is False or row.get("available") is False or status in {"DOWN", "FAIL", "ERROR", "NOT_STARTED"}
             # A source incident must be backed by a durable episode, not a
             # single reset/timeout observed by an otherwise fresh probe.
-            if failed and persistent:
+            if failed and (persistent or owner_observed_current):
                 failures.append({
                     "service": service,
                     "status": status or str(row.get("status") or ""),
-                    "truth_class": "PERSISTENT_FAIL",
+                    "truth_class": (
+                        "PERSISTENT_FAIL"
+                        if persistent else "OWNER_OBSERVED_CURRENT_FAIL"
+                    ),
                     "failure_episode_id": str(row.get("failure_episode_id") or ""),
                     "failure_samples": failure_samples,
                     "bad_for_seconds": bad_for_seconds,

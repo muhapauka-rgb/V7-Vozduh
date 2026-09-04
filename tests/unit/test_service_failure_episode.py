@@ -5290,6 +5290,71 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 fresh_stop["command"],
             )
 
+            parsed_commands = []
+
+            class InProcessParser:
+                def parse_args(self, argv):
+                    parsed_commands.append(list(argv))
+                    return SimpleNamespace(
+                        state_dir=str(state_dir),
+                        event_dir=str(event_dir),
+                        snapshot_root="",
+                        audit_dir="",
+                        execution_lease_file="",
+                        compact_transaction_receipt=True,
+                    )
+
+            in_process_module = SimpleNamespace(
+                default_audit_dir=lambda current_state: current_state.parent / "audit",
+                execute_governed_transaction=lambda *_args, **_kwargs: {
+                    "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                    "transaction_status": "COMPLETED",
+                    "runtime_mutation_performed": True,
+                    "apply_executed": True,
+                    "users_moved": 1,
+                },
+                compact_transaction_result=lambda result: dict(result),
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"V7_SERVICE_PERSISTENT_MATRIX_OWNER": "1"},
+            ), mock.patch.object(
+                self.refresh,
+                "in_process_governed_runtime",
+                return_value=(in_process_module, InProcessParser()),
+            ), mock.patch.object(
+                self.refresh,
+                "reconcile_finished_unapplied_ordinary_lease",
+                return_value={"ok": True, "status": "NO_ORPHAN"},
+            ), mock.patch.object(
+                self.refresh.subprocess, "run",
+            ) as external_run:
+                in_process = (
+                    self.refresh.run_bounded_delegated_service_failure_action(
+                        str(executor),
+                        state_dir=state_dir,
+                        event_dir=event_dir,
+                        policy_file=policy_file,
+                        service_failure_obligation=obligation,
+                        fresh_matrix_runtime_handoff=True,
+                        runtime_hot_path_only=True,
+                    )
+                )
+            external_run.assert_not_called()
+            self.assertEqual(in_process["status"], "ACTION_COMPLETED")
+            self.assertEqual(in_process["users_moved"], 1)
+            self.assertEqual(
+                in_process["governed_runtime_invocation"]["mode"],
+                "EXISTING_OWNER_IN_PROCESS",
+            )
+            self.assertFalse(
+                in_process["governed_runtime_invocation"]
+                ["new_runtime_process_created"]
+            )
+            self.assertIn(
+                "--runtime-hot-path-only", parsed_commands[0],
+            )
+
             executor.write_text(
                 "#!/usr/bin/env python3\n"
                 "import json\n"

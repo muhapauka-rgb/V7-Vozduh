@@ -773,6 +773,13 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 "stage": "route_writer_subprocess_and_low_level_mutation",
                 "duration_ms": 2100.0,
                 "parent": "apply_and_verification",
+                "details": {
+                    "writer_stage_timings_ms": {
+                        "lock_wait": 1200.0,
+                        "kernel_mutation": 150.0,
+                    },
+                    "member_fingerprint": "must-not-leak",
+                },
             },
             {
                 "stage": "required_service_verification",
@@ -809,6 +816,18 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("route_writer_subprocess_and_low_level_mutation", stages)
         self.assertIn("required_service_verification", stages)
         self.assertLessEqual(len(stages), 32)
+        route_writer = next(
+            row
+            for row in receipt["governed_execution_timing"]
+            ["apply_timing"]["spans"]
+            if row["stage"]
+            == "route_writer_subprocess_and_low_level_mutation"
+        )
+        self.assertEqual(
+            route_writer["writer_stage_timings_ms"],
+            {"lock_wait": 1200.0, "kernel_mutation": 150.0},
+        )
+        self.assertNotIn("member_fingerprint", route_writer)
 
     def test_terminal_pre_governed_return_is_fully_attributed(self):
         loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())

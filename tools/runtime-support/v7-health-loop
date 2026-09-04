@@ -1214,6 +1214,14 @@ class RoleHealthLoop:
             spec.loader.exec_module(module)
             if not callable(getattr(module, "main", None)):
                 raise RuntimeError("MATRIX_MAIN_UNAVAILABLE")
+            prewarm = getattr(
+                module, "prewarm_persistent_recovery_runtime", None,
+            )
+            if callable(prewarm):
+                # Code/parser preparation belongs to service startup, before
+                # any failure T0. It reads no Matrix, policy, registry or
+                # Authority state and creates no owner or durable cache.
+                prewarm()
             self.persistent_matrix_module = module
             self.persistent_matrix_ready = True
         except Exception as exc:  # exact external governed path remains live
@@ -1510,6 +1518,27 @@ class RoleHealthLoop:
                     {
                         "stage": str(row.get("stage") or ""),
                         "duration_ms": row.get("duration_ms"),
+                        **(
+                            {
+                                "writer_stage_timings_ms": {
+                                    str(name): value
+                                    for name, value in (
+                                        (row.get("details") or {}).get(
+                                            "writer_stage_timings_ms", {}
+                                        )
+                                    ).items()
+                                    if isinstance(value, (int, float))
+                                },
+                            }
+                            if isinstance(row.get("details"), dict)
+                            and isinstance(
+                                (row.get("details") or {}).get(
+                                    "writer_stage_timings_ms"
+                                ),
+                                dict,
+                            )
+                            else {}
+                        ),
                     }
                     for row in selected_rows[:32]
                 ]

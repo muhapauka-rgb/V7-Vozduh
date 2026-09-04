@@ -267,6 +267,7 @@ def routing_runtime_executable() -> Path:
 
 _IN_PROCESS_AUTOSWITCH_MODULE: Any = None
 _IN_PROCESS_GOVERNED_MODULE: Any = None
+_IN_PROCESS_GOVERNED_PARSER: Any = None
 
 
 def in_process_autoswitch_module(planner: str) -> Any:
@@ -365,6 +366,52 @@ def in_process_governed_module(executor: str, planner: str) -> Any:
     module._IN_PROCESS_PLANNER_MODULE = in_process_autoswitch_module(planner)
     _IN_PROCESS_GOVERNED_MODULE = module
     return module
+
+
+def in_process_governed_runtime(executor: str, planner: str) -> tuple[Any, Any]:
+    """Return the existing governed module and its invocation-local parser.
+
+    Parser construction imports and registers the complete governed CLI
+    contract. Doing that after a failed customer's Matrix T0 cost several
+    seconds while changing no current fact or safety decision. The existing
+    persistent health/Matrix process may prepare this code-only surface at
+    service start; every transaction still receives a freshly parsed
+    Namespace and re-reads all canonical state through the same owners.
+    """
+    global _IN_PROCESS_GOVERNED_PARSER
+    module = in_process_governed_module(executor, planner)
+    if _IN_PROCESS_GOVERNED_PARSER is None:
+        _IN_PROCESS_GOVERNED_PARSER = module.build_parser()
+    return module, _IN_PROCESS_GOVERNED_PARSER
+
+
+def prewarm_persistent_recovery_runtime(
+    executor: Optional[str] = None,
+    planner: Optional[str] = None,
+) -> dict[str, Any]:
+    """Prepare code only before any incident; never read or retain truth."""
+    started_ns = time.monotonic_ns()
+    try:
+        in_process_governed_runtime(
+            executor or default_governed_executor_path(),
+            planner or default_passive_consumer_path(),
+        )
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "EXTERNAL_GOVERNED_COMPATIBILITY_PATH_RETAINED",
+            "error": f"{type(exc).__name__}:{exc}",
+            "runtime_mutation_performed": False,
+        }
+    return {
+        "ok": True,
+        "status": "EXISTING_GOVERNED_RUNTIME_PREWARMED",
+        "elapsed_ms": round(
+            (time.monotonic_ns() - started_ns) / 1_000_000.0, 3,
+        ),
+        "state_read": False,
+        "runtime_mutation_performed": False,
+    }
 
 
 def now_iso() -> str:
@@ -2533,33 +2580,93 @@ def run_bounded_delegated_service_failure_action(
     )
     started_at = now_iso()
     governed_dispatch_ns = time.monotonic_ns()
-    try:
-        proc = subprocess.run(
-            command,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            check=False,
-            timeout=max(30, min(int(timeout_sec or 180), 600)),
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        governed_child_completed_ns = time.monotonic_ns()
-        governed_result_parsed_ns = governed_child_completed_ns
-        post_child_reconciliation_completed_ns = governed_child_completed_ns
-        return with_pretransaction_timing({
-            "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
-            "status": "FAILED",
-            "ok": False,
-            "started_at": started_at,
-            "completed_at": now_iso(),
-            "command": command,
-            "error": f"{type(exc).__name__}:{exc}",
-            "action_attempted": True,
-        }, governed_dispatch_ns=governed_dispatch_ns)
+    parsed: dict[str, Any] = {}
+    in_process_governed = False
+    in_process_error = ""
+    proc: subprocess.CompletedProcess[str]
+    if (
+        ordinary_execution
+        and runtime_hot_path_only
+        and os.environ.get("V7_SERVICE_PERSISTENT_MATRIX_OWNER") == "1"
+    ):
+        try:
+            module, parser = in_process_governed_runtime(
+                executor, default_passive_consumer_path(),
+            )
+            child_args = parser.parse_args(command[1:])
+            child_args._ct_m0f_in_process_planner_module = (
+                _IN_PROCESS_AUTOSWITCH_MODULE
+            )
+            child_state_dir = Path(child_args.state_dir)
+            child_event_dir = Path(child_args.event_dir)
+            child_snapshot_root = (
+                Path(child_args.snapshot_root)
+                if child_args.snapshot_root
+                else child_state_dir / "intelligence"
+            )
+            child_audit_dir = (
+                Path(child_args.audit_dir)
+                if child_args.audit_dir
+                else module.default_audit_dir(child_state_dir)
+            )
+            child_lease_file = (
+                Path(child_args.execution_lease_file)
+                if child_args.execution_lease_file
+                else child_state_dir / "operator-execution-lease.json"
+            )
+            raw_result = module.execute_governed_transaction(
+                child_args,
+                state_dir=child_state_dir,
+                event_dir=child_event_dir,
+                snapshot_root=child_snapshot_root,
+                audit_dir=child_audit_dir,
+                lease_file=child_lease_file,
+            )
+            parsed = (
+                module.compact_transaction_result(raw_result)
+                if child_args.compact_transaction_receipt
+                else raw_result
+            )
+            child_rc = (
+                0
+                if raw_result.get("final_verdict")
+                in {"GOVERNED_TRANSACTION_COMPLETED", "L3_PRODUCTION_PROVEN"}
+                else 2
+            )
+            proc = subprocess.CompletedProcess(command, child_rc, stdout="")
+            in_process_governed = True
+        except Exception as exc:
+            # Invocation availability is not Authority. Preserve the exact
+            # historical subprocess as the fail-closed compatibility path.
+            in_process_error = f"{type(exc).__name__}:{exc}"
+    if not in_process_governed:
+        try:
+            proc = subprocess.run(
+                command,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=max(30, min(int(timeout_sec or 180), 600)),
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            governed_child_completed_ns = time.monotonic_ns()
+            governed_result_parsed_ns = governed_child_completed_ns
+            post_child_reconciliation_completed_ns = governed_child_completed_ns
+            return with_pretransaction_timing({
+                "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+                "status": "FAILED",
+                "ok": False,
+                "started_at": started_at,
+                "completed_at": now_iso(),
+                "command": command,
+                "error": f"{type(exc).__name__}:{exc}",
+                "action_attempted": True,
+            }, governed_dispatch_ns=governed_dispatch_ns)
     governed_child_completed_ns = time.monotonic_ns()
     output = proc.stdout or ""
     try:
-        parsed = json.loads(output)
+        parsed = parsed or json.loads(output)
     except json.JSONDecodeError:
         # A governed child is required to emit one JSON receipt.  If an
         # inherited library writes a short diagnostic before that receipt,
@@ -2631,6 +2738,15 @@ def run_bounded_delegated_service_failure_action(
         "automation_obligation_id": obligation_id,
         "controlled_certification_campaign": campaign_binding,
         "controlled_certification_stage_consumption": {},
+        "governed_runtime_invocation": {
+            "mode": (
+                "EXISTING_OWNER_IN_PROCESS"
+                if in_process_governed
+                else "EXTERNAL_COMPATIBILITY_SUBPROCESS"
+            ),
+            "fallback_reason": in_process_error,
+            "new_runtime_process_created": not in_process_governed,
+        },
         "snapshot_refresh": snapshot_refresh,
         "post_child_lease_reconciliation": post_child_lease_reconciliation,
         "output_tail": output[-2000:] if not (completed or stop_safe) else "",

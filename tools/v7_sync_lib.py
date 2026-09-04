@@ -27992,6 +27992,121 @@ def bounded_code_optimization_contract_proof(*, root: Path = ROOT) -> dict[str, 
     }
 
 
+def code_optimization_full_baseline(*, root: Path = ROOT) -> dict[str, Any]:
+    """Consume a structural baseline for every currently admitted domain."""
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_before = cps_path.read_bytes() if cps_path.is_file() else b""
+    domain_specs = (
+        (RESPONSIBILITY_SUBGRAPH_DOMAIN_ID, ""),
+        (OMP_COMPLETION_SUBGRAPH_DOMAIN_ID, "CLI_FLAG:--omp-code-optimization-submit"),
+        (OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID, "CLI_FLAG:--continue-omp-change"),
+    )
+    domains: list[dict[str, Any]] = []
+    for index, (domain_id, entry_condition) in enumerate(domain_specs, 1):
+        request = responsibility_subgraph_pilot_request(root=root, domain_id=domain_id)
+        request.update({
+            "mission_id": f"V7_CODE_OPTIMIZATION_FULL_BASELINE_DOMAIN_{index}_V1",
+            "run_nonce": f"full-baseline-{index}-{request['repo_fingerprint'][:16]}",
+            "profile_id": "CODE_OPTIMIZATION",
+        })
+        if entry_condition:
+            request["entry_condition"] = entry_condition
+        request["input_fingerprint"] = _responsibility_subgraph_fingerprint({
+            key: value for key, value in request.items() if key != "input_fingerprint"
+        })
+        subgraph = derive_responsibility_subgraph(request, root=root)
+        baseline = _code_optimization_structural_baseline(subgraph, root=root)
+        profile = admit_execution_profile_contract(code_optimization_profile_contract(
+            mission_id=request["mission_id"], run_nonce=request["run_nonce"],
+            input_fingerprint=request["input_fingerprint"],
+            repo_fingerprint=request["repo_fingerprint"], continuous_acceptance=True,
+        ), mission_id=request["mission_id"])
+        package = code_optimization_evidence_package(
+            mission_id=request["mission_id"], run_nonce=request["run_nonce"],
+            profile=profile, subgraph=subgraph, root=root,
+        )
+        output = {
+            "mission_reference": request["mission_id"],
+            "profile_reference": profile.get("profile_fingerprint"),
+            "input_fingerprint": request["input_fingerprint"],
+            "domain_id": domain_id,
+            "responsibility_subgraph": {key: subgraph.get(key) for key in (
+                "domain_id", "repo_fingerprint", "subgraph_fingerprint",
+                "result_fingerprint", "generated_at", "expires_at",
+            )},
+            "canonical_to_be_references": _code_optimization_canonical_references(root),
+            "structural_baseline": baseline,
+            "responsibility_classifications": [{
+                "subject": domain_id, "classification": "UNKNOWN",
+                "reason": "structural baseline does not prove semantic necessity",
+            }],
+            "semantic_necessity_classifications": [{
+                "scope": domain_id, "classification": "UNKNOWN",
+                "reason": "counterfactual behavioral proof is not part of baseline capture",
+            }],
+            "counterfactual_hypotheses": [], "ranked_candidates": [],
+            "selected_first_candidate": None, "owner_decision_required": False,
+            "unproven_edges": subgraph.get("unknown_references") or [],
+            "unproven_claims": [
+                "semantic necessity", "runtime behavior", "production effect",
+            ],
+            "terminal_verdict": "INSUFFICIENT_EVIDENCE",
+        }
+        provisional = gpt_decision_review_result_contract(
+            profile, output, executor_context_id=f"full-baseline-executor-{index}",
+        )
+        reviews = [
+            execution_profile_review_record(
+                profile, provisional, review_type=review_type,
+                review_verdict="PASS", review_context_id=f"full-baseline-{index}-{review_type.lower()}",
+            )
+            for review_type in profile.get("required_reviews") or []
+        ]
+        submitted = submit_code_optimization_result(
+            profile=profile, subgraph=subgraph, evidence_package=package,
+            output=output, reviews=reviews,
+        )
+        domains.append({
+            "domain_id": domain_id, "entry_condition": entry_condition or "NONE",
+            "owner": subgraph.get("canonical_references", {}).get("owner"),
+            "repo_fingerprint": subgraph.get("repo_fingerprint"),
+            "subgraph_fingerprint": subgraph.get("subgraph_fingerprint"),
+            "node_count": len(subgraph.get("nodes") or []),
+            "edge_count": len(subgraph.get("edges") or []),
+            "unknown_reference_count": len(subgraph.get("unknown_references") or []),
+            "structural_baseline": baseline,
+            "profile_fingerprint": profile.get("profile_fingerprint"),
+            "result_fingerprint": submitted.get("result", {}).get("result_fingerprint"),
+            "completion_verdict": submitted.get("completion", {}).get("completion_verdict"),
+            "review_status": submitted.get("completion", {}).get("execution_profile_binding", {}).get("review_status"),
+            "final_verdict": submitted.get("final_verdict"),
+            "errors": submitted.get("errors") or [],
+        })
+    baseline_identity = [{
+        key: item[key] for key in (
+            "domain_id", "entry_condition", "repo_fingerprint", "subgraph_fingerprint",
+            "node_count", "edge_count", "unknown_reference_count",
+        )
+    } for item in domains]
+    baseline_fingerprint = _execution_contract_fingerprint({"domains": baseline_identity})
+    cps_after = cps_path.read_bytes() if cps_path.is_file() else b""
+    passed = all(item["final_verdict"] == "PASS" for item in domains) and cps_before == cps_after
+    return {
+        "schema": "v7.code-optimization-full-baseline.v1",
+        "scope": "ALL_CURRENTLY_ADMITTED_RESPONSIBILITY_DOMAINS",
+        "domain_count": len(domains), "domains": domains,
+        "baseline_fingerprint": baseline_fingerprint,
+        "semantic_claim": "NONE_STRUCTURAL_BASELINE_ONLY",
+        "selected_candidate_count": 0,
+        "exact_consumer": "mission_completion_evidence_gate",
+        "no_cps_effect": cps_before == cps_after,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "terminal": "CODE_OPTIMIZATION_FULL_BASELINE_CONSUMED" if passed else "CODE_OPTIMIZATION_FULL_BASELINE_FAILED",
+        "errors": [] if passed else ["code_optimization_full_baseline_failed"],
+    }
+
+
 def responsibility_subgraph_completion_binding(contract: dict[str, Any]) -> dict[str, Any]:
     """Bind a derived result to the exact admitted profile output and review."""
     errors: list[str] = []

@@ -217,6 +217,23 @@ def code_optimization_material_change_admission(changed_dependencies):
         package["expires_at"] = "2000-01-01T00:00:00+00:00"
         self.assertIn("code_optimization_evidence_fingerprint_mismatch", self.lib.validate_code_optimization_evidence_package(package, profile=profile, subgraph=subgraph))
 
+    def test_full_baseline_consumes_every_currently_admitted_domain(self):
+        baseline = self.lib.code_optimization_full_baseline(root=ROOT)
+        self.assertEqual(baseline["final_verdict"], "PASS")
+        self.assertEqual(baseline["terminal"], "CODE_OPTIMIZATION_FULL_BASELINE_CONSUMED")
+        self.assertEqual(baseline["domain_count"], 3)
+        self.assertTrue(baseline["no_cps_effect"])
+        self.assertEqual(baseline["semantic_claim"], "NONE_STRUCTURAL_BASELINE_ONLY")
+        self.assertEqual({item["domain_id"] for item in baseline["domains"]}, {
+            self.lib.RESPONSIBILITY_SUBGRAPH_DOMAIN_ID,
+            self.lib.OMP_COMPLETION_SUBGRAPH_DOMAIN_ID,
+            self.lib.OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID,
+        })
+        self.assertTrue(all(
+            item["completion_verdict"] == "COMPLETE_WITH_LEGAL_TERMINAL"
+            for item in baseline["domains"]
+        ))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11634,6 +11634,7 @@ def execution_profile_completion_binding(contract: dict[str, Any]) -> dict[str, 
         review_type = str(review.get("review_type") or "")
         reviews_by_type.setdefault(review_type, []).append(review)
     review_status: dict[str, str] = {}
+    native_reviewer_context_ids: set[str] = set()
     for review_type in required_reviews:
         matches = reviews_by_type.get(review_type, [])
         if len(matches) != 1:
@@ -11658,6 +11659,17 @@ def execution_profile_completion_binding(contract: dict[str, Any]) -> dict[str, 
             review.get("review_context_id") == result.get("executor_context_id")
         ):
             errors.append(f"execution_profile_review_context_not_separate:{review_type}")
+        if mission_intent_fingerprint and admitted.get("profile_type") == "CODE_OPTIMIZATION":
+            proof = review.get("native_context_proof")
+            if not isinstance(proof, dict):
+                errors.append(f"execution_profile_native_review_proof_missing:{review_type}")
+            else:
+                native_id = str(proof.get("native_agent_id") or "")
+                native_reviewer_context_ids.add(native_id)
+                if native_id != review.get("review_context_id"):
+                    errors.append(f"execution_profile_native_review_identity_mismatch:{review_type}")
+                if proof.get("fork_turns") != "none" or proof.get("platform_dispatch") not in {"spawn_agent", "codex_cli_exec"}:
+                    errors.append(f"execution_profile_native_review_dispatch_invalid:{review_type}")
         verdict = str(review.get("review_verdict") or "")
         if verdict not in EXECUTION_PROFILE_REVIEW_VERDICTS:
             errors.append(f"execution_profile_review_verdict_invalid:{review_type}")
@@ -11672,6 +11684,31 @@ def execution_profile_completion_binding(contract: dict[str, Any]) -> dict[str, 
             errors.append(f"execution_profile_review_output_fingerprint_mismatch:{review_type}")
         review_status[review_type] = verdict or "INVALID"
 
+    native_context_separation_proven = False
+    if mission_intent_fingerprint and admitted.get("profile_type") == "CODE_OPTIMIZATION":
+        manifest = result.get("native_context_manifest")
+        roles = manifest.get("roles") if isinstance(manifest, dict) else []
+        author_ids = {
+            str(item.get("native_agent_id") or "")
+            for item in roles if isinstance(item, dict)
+        }
+        role_names = {
+            str(item.get("role") or "")
+            for item in roles if isinstance(item, dict)
+        }
+        native_context_separation_proven = all((
+            isinstance(manifest, dict),
+            manifest.get("schema") == "v7.codex-native-context-manifest.v1" if isinstance(manifest, dict) else False,
+            role_names == CODE_OPTIMIZATION_NATIVE_AUTHOR_ROLES,
+            len(author_ids) == len(CODE_OPTIMIZATION_NATIVE_AUTHOR_ROLES),
+            "" not in author_ids,
+            len(native_reviewer_context_ids) == 1,
+            "" not in native_reviewer_context_ids,
+            not (author_ids & native_reviewer_context_ids),
+        ))
+        if not native_context_separation_proven:
+            errors.append("execution_profile_native_agent_context_separation_unproven")
+
     if admitted.get("terminal_consumer") != "MISSION_COMPLETION_EVIDENCE_GATE":
         errors.append("execution_profile_completion_consumer_invalid")
     unique = sorted(set(errors))
@@ -11685,6 +11722,7 @@ def execution_profile_completion_binding(contract: dict[str, Any]) -> dict[str, 
         "identity_binding": "PASS" if not unique else "FAIL",
         "schema_independence_proven": not unique,
         "model_level_independence_proven": False,
+        "native_agent_context_separation_proven": native_context_separation_proven,
         "duplicate_disposition": "IDEMPOTENT_EXACT_DUPLICATE" if duplicate else "FIRST_EXACT_RESULT" if not existing_results else "REJECTED_AMBIGUOUS_RESULT",
         "cps_effect": "NONE",
         "runtime_impact": "NONE",
@@ -11766,7 +11804,7 @@ def code_optimization_profile_contract(
 
 def gpt_decision_review_result_contract(
     admitted_profile: dict[str, Any], output: dict[str, Any], *,
-    executor_context_id: str,
+    executor_context_id: str, native_context_manifest: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Produce an immutable external-executor result for gate validation."""
     result = {
@@ -11782,7 +11820,8 @@ def gpt_decision_review_result_contract(
             "mission_intent_fingerprint": admitted_profile.get("mission_intent_fingerprint"),
         } if admitted_profile.get("mission_intent_fingerprint") else {}),
         "executor_context_id": executor_context_id,
-        "execution_engine_provenance": "EXTERNAL_EXECUTOR_UNVERIFIED",
+        "execution_engine_provenance": "ORCHESTRATOR_OBSERVED_NOT_CRYPTOGRAPHIC" if native_context_manifest else "EXTERNAL_EXECUTOR_UNVERIFIED",
+        **({"native_context_manifest": native_context_manifest} if native_context_manifest else {}),
         "prompt_profile_fingerprint": admitted_profile.get("profile_fingerprint"),
         "tool_action_log_fingerprint": "NONE_READ_ONLY_PROOF",
         "tool_allowlist_enforcement": "DECLARED_NOT_ENFORCED_EXTERNAL_EXECUTOR_BOUNDARY",
@@ -11810,6 +11849,7 @@ def gpt_decision_review_result_contract(
 def execution_profile_review_record(
     admitted_profile: dict[str, Any], result: dict[str, Any], *,
     review_type: str, review_verdict: str, review_context_id: str,
+    native_context_proof: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Produce one schema-independent review bound to the exact output."""
     review = {
@@ -11826,7 +11866,8 @@ def execution_profile_review_record(
         "review_verdict": review_verdict,
         "review_context_id": review_context_id,
         "submitted_output_modified": False,
-        "independence_proof_level": "SCHEMA_CONTEXT_SEPARATION_ONLY",
+        "independence_proof_level": "ORCHESTRATOR_EXECUTION_OBSERVED" if native_context_proof else "SCHEMA_CONTEXT_SEPARATION_ONLY",
+        **({"native_context_proof": native_context_proof} if native_context_proof else {}),
     }
     review["review_output_fingerprint"] = _execution_contract_fingerprint(review)
     return review
@@ -26979,9 +27020,161 @@ OMP_CODE_OPTIMIZATION_BRIDGE_SEEDS = (
 )
 
 
-def _responsibility_subgraph_domain_configs() -> tuple[dict[str, Any], ...]:
-    """Enumerate the current bounded domains from their existing owner config."""
-    return (
+SYSTEM_MAP_EXECUTABLE_REFERENCE_PATTERN = re.compile(
+    r"`(?P<path>(?:tools|admin|admin_core|systemd|runtime|backend|frontend)/[^`\s:]+)"
+    r"(?:::(?P<symbol>[A-Za-z_][A-Za-z0-9_]*))?(?:\s+(?P<argument>--[A-Za-z0-9-]+))?`"
+)
+_SYSTEM_MAP_DOMAIN_CONFIG_CACHE: dict[tuple[str, str], tuple[dict[str, Any], ...]] = {}
+
+
+def _code_optimization_slug(value: str) -> str:
+    normalized = re.sub(r"[^A-Z0-9]+", "_", value.upper()).strip("_")
+    return normalized[:72] or "UNNAMED_RESPONSIBILITY"
+
+
+def _system_map_owner_backed_domain_configs(*, root: Path) -> tuple[dict[str, Any], ...]:
+    """Derive executable responsibility surfaces from the canonical owner map.
+
+    SYSTEM_MAP remains the owner/topology source.  This projection is rebuilt on
+    every invocation and is never persisted as a second registry.  A surface is
+    admitted only when the canonical map names a current file and an owner can be
+    resolved from that exact table row (or, for the main module table, the module
+    identity itself).
+    """
+    system_map = root / "docs/reference/SYSTEM_MAP.md"
+    if not system_map.is_file():
+        return ()
+    source_bytes = system_map.read_bytes()
+    source_text = source_bytes.decode("utf-8")
+    referenced_paths = sorted({
+        match.group("path")
+        for match in SYSTEM_MAP_EXECUTABLE_REFERENCE_PATTERN.finditer(source_text)
+        if (root / match.group("path")).is_file()
+    })
+    source_identity = [{
+        "path": relative,
+        "sha256": hashlib.sha256((root / relative).read_bytes()).hexdigest(),
+    } for relative in referenced_paths]
+    cache_key = (str(root.resolve()), _responsibility_subgraph_fingerprint({
+        "system_map_sha256": hashlib.sha256(source_bytes).hexdigest(),
+        "source_identity": source_identity,
+    }))
+    if cache_key in _SYSTEM_MAP_DOMAIN_CONFIG_CACHE:
+        return _SYSTEM_MAP_DOMAIN_CONFIG_CACHE[cache_key]
+    lines = source_text.splitlines()
+    headers: list[str] = []
+    row_records: list[dict[str, Any]] = []
+    for line_number, line in enumerate(lines, 1):
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if cells and all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells):
+            continue
+        lowered = [re.sub(r"[`*_]", "", cell).strip().lower() for cell in cells]
+        if any(value in {"owner", "existing owner", "existing owners", "canonical owner", "current owner", "module", "capability", "workstream", "plane / stage family"} for value in lowered):
+            headers = lowered
+            continue
+        if not headers or len(cells) != len(headers):
+            continue
+        row_text = " | ".join(cells)
+        references = [
+            match.groupdict()
+            for match in SYSTEM_MAP_EXECUTABLE_REFERENCE_PATTERN.finditer(row_text)
+            if (root / match.group("path")).is_file()
+        ]
+        surfaces = sorted({str(item["path"]) for item in references})
+        if not surfaces:
+            continue
+        responsibility = re.sub(r"[`*_]", "", cells[0]).strip()
+        owner = ""
+        for owner_header in ("canonical owner", "current owner", "existing owner", "existing owners", "owner"):
+            if owner_header in headers:
+                owner = re.sub(r"[`*_]", "", cells[headers.index(owner_header)]).strip()
+                if owner:
+                    break
+        if not owner:
+            owner = responsibility
+        if not responsibility or not owner:
+            continue
+        row_records.append({
+            "responsibility": responsibility,
+            "owner": owner,
+            "line": line_number,
+            "paths": surfaces,
+            "references": references,
+            "owner_column_proven": any("owner" in value for value in headers),
+        })
+    bindings_by_surface: dict[str, list[dict[str, Any]]] = {}
+    for record in row_records:
+        for surface in record["paths"]:
+            bindings_by_surface.setdefault(surface, []).append(record)
+    configs: list[dict[str, Any]] = []
+    for surface, bindings in sorted(bindings_by_surface.items()):
+        explicit = sorted({
+            str(item["symbol"])
+            for record in bindings for item in record["references"]
+            if item["path"] == surface and item.get("symbol")
+        })
+        if not explicit and not surface.startswith("systemd/"):
+            try:
+                source = (root / surface).read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                source = ""
+            definitions = sorted(set(re.findall(
+                r"(?m)^(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(",
+                source,
+            )))
+            roots = ["main"] if "main" in definitions else [
+                name for name in definitions if not name.startswith("_")
+            ]
+            explicit = (roots or definitions)[:12]
+        seeds_tuple = tuple(f"{surface}:{symbol}" for symbol in explicit) or (surface,)
+        semantic_bindings = sorted({
+            (record["responsibility"], record["owner"])
+            for record in bindings
+        })
+        identity = _responsibility_subgraph_fingerprint({
+            "surface": surface,
+            "responsibility_bindings": semantic_bindings,
+            "seeds": seeds_tuple,
+        })[:12].upper()
+        configs.append({
+            "domain_id": f"SYSTEM_MAP_SURFACE_{_code_optimization_slug(surface)}_{identity}",
+            "paths": (surface,),
+            "seeds": seeds_tuple,
+            "canonical": {
+                "responsibility": f"SYSTEM_MAP_EXECUTABLE_SURFACE:{surface}",
+                "owner": surface,
+                "plane": "ENGINEERING_EVIDENCE_ONLY",
+            },
+            "entry_condition": "",
+            "discovery_reason": "SYSTEM_MAP_CURRENT_OWNER_SURFACE",
+            "owner_evidence": [
+                {
+                    "reference": f"docs/reference/SYSTEM_MAP.md:{record['line']}",
+                    "responsibility": record["responsibility"],
+                    "mapped_owner": record["owner"],
+                    "resolution": "EXPLICIT_OWNER_COLUMN" if record["owner_column_proven"] else "CANONICAL_ROW_RESPONSIBILITY",
+                }
+                for record in sorted(bindings, key=lambda item: item["line"])
+            ],
+            "owner_resolution": "COMPLETE_SYSTEM_MAP_BINDING_SET",
+            # These are hard output ceilings, not target sizes. Large existing
+            # owner modules can produce many explicitly retained unresolved
+            # calls even from twelve bounded entry seeds.
+            "max_edges": 12000,
+            "max_unknown_references": 24000,
+        })
+    result = tuple(configs)
+    for stale_key in [key for key in _SYSTEM_MAP_DOMAIN_CONFIG_CACHE if key[0] == cache_key[0] and key != cache_key]:
+        _SYSTEM_MAP_DOMAIN_CONFIG_CACHE.pop(stale_key, None)
+    _SYSTEM_MAP_DOMAIN_CONFIG_CACHE[cache_key] = result
+    return result
+
+
+def _responsibility_subgraph_domain_configs(*, root: Path = ROOT) -> tuple[dict[str, Any], ...]:
+    """Enumerate fresh domains from existing owners and canonical SYSTEM_MAP."""
+    base = (
         {
             "domain_id": RESPONSIBILITY_SUBGRAPH_DOMAIN_ID,
             "paths": RESPONSIBILITY_SUBGRAPH_PILOT_PATHS,
@@ -27016,10 +27209,34 @@ def _responsibility_subgraph_domain_configs() -> tuple[dict[str, Any], ...]:
             "discovery_reason": "EXISTING_OMP_MATERIAL_CHANGE_OWNER_CONFIG",
         },
     )
+    admitted_paths = {
+        str(path) for config in base for path in config["paths"]
+    }
+    dynamic: list[dict[str, Any]] = []
+    for config in _system_map_owner_backed_domain_configs(root=root):
+        remaining_paths = tuple(
+            path for path in config["paths"] if str(path) not in admitted_paths
+        )
+        if not remaining_paths:
+            continue
+        remaining_seeds = tuple(
+            seed for seed in config["seeds"]
+            if any(seed == path or seed.startswith(f"{path}:") for path in remaining_paths)
+        )
+        projected = dict(config)
+        projected["paths"] = remaining_paths
+        projected["seeds"] = remaining_seeds
+        projected["domain_id"] = (
+            f"{config['domain_id']}_" + _responsibility_subgraph_fingerprint({
+                "paths": remaining_paths, "seeds": remaining_seeds,
+            })[:8].upper()
+        )
+        dynamic.append(projected)
+    return base + tuple(dynamic)
 
 
-def _responsibility_subgraph_domain_config(domain_id: str) -> tuple[tuple[str, ...], tuple[str, ...], dict[str, str]] | None:
-    for config in _responsibility_subgraph_domain_configs():
+def _responsibility_subgraph_domain_config(domain_id: str, *, root: Path = ROOT) -> tuple[tuple[str, ...], tuple[str, ...], dict[str, str]] | None:
+    for config in _responsibility_subgraph_domain_configs(root=root):
         if config["domain_id"] == domain_id:
             return (config["paths"], config["seeds"], config["canonical"])
     return None
@@ -27046,13 +27263,20 @@ def _responsibility_subgraph_source_fingerprint(root: Path, paths: Iterable[str]
     return _responsibility_subgraph_fingerprint(records)
 
 
-def responsibility_subgraph_pilot_request(*, root: Path = ROOT, domain_id: str = RESPONSIBILITY_SUBGRAPH_DOMAIN_ID) -> dict[str, Any]:
+def responsibility_subgraph_pilot_request(
+    *, root: Path = ROOT, domain_id: str = RESPONSIBILITY_SUBGRAPH_DOMAIN_ID,
+    ttl_seconds: int = 3600,
+) -> dict[str, Any]:
     """Return the one bounded, source-only recovery responsibility request."""
-    config = _responsibility_subgraph_domain_config(domain_id)
+    config = _responsibility_subgraph_domain_config(domain_id, root=root)
     if config is None:
         raise ValueError("responsibility_subgraph_domain_unauthorized")
     paths, seeds, canonical = config
     repo_fingerprint = _responsibility_subgraph_source_fingerprint(root, paths)
+    config_record = next(
+        item for item in _responsibility_subgraph_domain_configs(root=root)
+        if item["domain_id"] == domain_id
+    )
     request = {
         "schema": "v7.responsibility-subgraph-request.v1",
         "mission_id": "V7_EXISTING_DISCOVERY_OWNER_DOMAIN_RESPONSIBILITY_SUBGRAPH_PRODUCER_V1",
@@ -27065,9 +27289,9 @@ def responsibility_subgraph_pilot_request(*, root: Path = ROOT, domain_id: str =
         "seed_entrypoints": list(seeds), "path_allowlist": list(paths),
         "max_depth": 2,
         "max_files": len(paths),
-        "max_edges": 800 if domain_id in {OMP_COMPLETION_SUBGRAPH_DOMAIN_ID, OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID} else 160,
-        "max_unknown_references": 4000 if domain_id in {OMP_COMPLETION_SUBGRAPH_DOMAIN_ID, OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID} else 500,
-        "ttl_seconds": 900,
+        "max_edges": int(config_record.get("max_edges") or (800 if domain_id in {OMP_COMPLETION_SUBGRAPH_DOMAIN_ID, OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID} else 160)),
+        "max_unknown_references": int(config_record.get("max_unknown_references") or (4000 if domain_id in {OMP_COMPLETION_SUBGRAPH_DOMAIN_ID, OMP_CODE_OPTIMIZATION_BRIDGE_DOMAIN_ID} else 500)),
+        "ttl_seconds": ttl_seconds,
         "generator_version": RESPONSIBILITY_SUBGRAPH_GENERATOR_VERSION,
     }
     request["input_fingerprint"] = _responsibility_subgraph_fingerprint({
@@ -27085,7 +27309,7 @@ def _responsibility_subgraph_validate_request(
     normalized = dict(request)
     if normalized.get("schema") != "v7.responsibility-subgraph-request.v1":
         errors.append("responsibility_subgraph_schema_invalid")
-    config = _responsibility_subgraph_domain_config(str(normalized.get("domain_id") or ""))
+    config = _responsibility_subgraph_domain_config(str(normalized.get("domain_id") or ""), root=root)
     if config is None:
         errors.append("responsibility_subgraph_domain_unauthorized")
         paths_allowed, seeds_allowed, canonical_expected = (), (), {}
@@ -27122,7 +27346,7 @@ def _responsibility_subgraph_validate_request(
         seeds = []
     if any(str(seed) not in seeds_allowed for seed in seeds):
         errors.append("responsibility_subgraph_seed_unauthorized")
-    for field, lower, upper in (("max_depth", 1, 4), ("max_files", 1, len(paths_allowed)), ("max_edges", 1, 800), ("max_unknown_references", 1, 4000), ("ttl_seconds", 1, 3600)):
+    for field, lower, upper in (("max_depth", 1, 4), ("max_files", 1, len(paths_allowed)), ("max_edges", 1, 12000), ("max_unknown_references", 1, 24000), ("ttl_seconds", 1, 21600)):
         value = normalized.get(field)
         if not isinstance(value, int) or isinstance(value, bool) or not lower <= value <= upper:
             errors.append(f"responsibility_subgraph_{field}_invalid")
@@ -27165,7 +27389,7 @@ def _responsibility_subgraph_function_nodes(
     parsed: dict[str, ast.AST] = {}
     for relative in paths:
         path = root / relative
-        if path.suffix == ".service":
+        if path.suffix in {".service", ".timer"}:
             node_id = f"SYSTEMD_UNIT:{relative}"
             nodes.append({"node_id": node_id, "node_type": "SYSTEMD_UNIT", "path": relative, "line": 1, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED"})
             for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -27174,9 +27398,33 @@ def _responsibility_subgraph_function_nodes(
                     edges.append({"edge_type": "INVOKED_BY_SYSTEMD", "source": node_id, "target": target, "path": relative, "line": line_number, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED"})
             continue
         try:
-            tree = ast.parse(path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError, SyntaxError) as exc:
-            unknown.append({"kind": "SOURCE_PARSE_UNKNOWN", "path": relative, "detail": str(exc)})
+            source = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            unknown.append({"kind": "SOURCE_READ_UNKNOWN", "path": relative, "detail": str(exc)})
+            continue
+        try:
+            tree = ast.parse(source)
+        except SyntaxError as exc:
+            first_line = source.splitlines()[0] if source.splitlines() else ""
+            if "sh" not in first_line:
+                unknown.append({"kind": "SOURCE_PARSE_UNKNOWN", "path": relative, "detail": str(exc)})
+                continue
+            file_id = f"FILE:{relative}"
+            nodes.append({"node_id": file_id, "node_type": "FILE", "path": relative, "line": 1, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED", "source_language": "SHELL"})
+            shell_functions = {
+                match.group(1): source[:match.start()].count("\n") + 1
+                for match in re.finditer(r"(?m)^\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\)\s*\{", source)
+            }
+            for name, line_number in sorted(shell_functions.items()):
+                node_id = f"FUNCTION:{relative}:{name}"
+                record = {"node_id": node_id, "node_type": "FUNCTION", "path": relative, "name": name, "line": line_number, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED", "source_language": "SHELL"}
+                definitions.setdefault(name, []).append(record)
+                nodes.append(record)
+            for line_number, line in enumerate(source.splitlines(), 1):
+                for target in re.findall(r"(?:^|[\s'\"])((?:tools|admin|admin_core|runtime|backend|frontend)/[A-Za-z0-9_./-]+)", line):
+                    edges.append({"edge_type": "CALLS", "source": file_id, "target": target, "path": relative, "line": line_number, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED"})
+                if re.search(r"(?:^|\s)(?:source|\.)\s+", line):
+                    unknown.append({"kind": "DYNAMIC_SHELL_SOURCE_OR_CALL", "path": relative, "line": line_number})
             continue
         parsed[relative] = tree
         nodes.append({"node_id": f"FILE:{relative}", "node_type": "FILE", "path": relative, "line": 1, "current_status": "CURRENT_SOURCE_PROVEN", "semantic_necessity_status": "UNCLASSIFIED"})
@@ -27243,6 +27491,8 @@ def derive_responsibility_subgraph(request: dict[str, Any], *, root: Path = ROOT
         root, normalized["path_allowlist"], normalized["seed_entrypoints"],
         max_depth=normalized["max_depth"], entry_condition=str(normalized.get("entry_condition") or ""),
     )
+    if not nodes:
+        return {"schema": RESPONSIBILITY_SUBGRAPH_SCHEMA, "truth_class": "DERIVED_EVIDENCE", "final_verdict": "STOP_SAFE", "errors": ["responsibility_subgraph_no_current_source_nodes"], "unknown_references": unknown, "cps_impact": "NONE", "runtime_impact": "NONE", "authority_impact": "NONE"}
     if len(edges) > normalized["max_edges"] or len(unknown) > normalized["max_unknown_references"]:
         return {"schema": RESPONSIBILITY_SUBGRAPH_SCHEMA, "truth_class": "DERIVED_EVIDENCE", "final_verdict": "STOP_SAFE", "errors": ["responsibility_subgraph_output_bound_exceeded"], "cps_impact": "NONE", "runtime_impact": "NONE", "authority_impact": "NONE"}
     # Canonical refs intentionally stay outside AS-IS nodes: they label the
@@ -27573,7 +27823,7 @@ def code_optimization_evidence_package(
         "responsibility_subgraph_fingerprint": subgraph.get("subgraph_fingerprint"),
         "responsibility_subgraph_result_fingerprint": subgraph.get("result_fingerprint"),
         "canonical_references": refs, "generated_at": generated.isoformat(),
-        "expires_at": (generated + timedelta(minutes=15)).isoformat(), "evidence_items": items,
+        "expires_at": str(subgraph.get("expires_at") or ""), "evidence_items": items,
         "disposable": True, "durable_store_created": False,
     }
     package["evidence_fingerprint"] = _execution_contract_fingerprint(package)
@@ -27614,6 +27864,7 @@ def submit_code_optimization_result(
     mission_terminal_evidence: Optional[dict[str, Any]] = None,
     next_executable_action: str = "",
     executor_context_id: str = "external-codex-bounded-code-optimization",
+    native_context_manifest: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Validate a Codex-authored bounded result; deterministic code never authors semantic claims."""
     errors = validate_code_optimization_evidence_package(evidence_package, profile=profile, subgraph=subgraph)
@@ -27644,7 +27895,10 @@ def submit_code_optimization_result(
     if output.get("terminal_verdict") == "PASS_CANDIDATE_READY" and (selected is None or len(ranked) < 1): errors.append("code_optimization_selected_candidate_missing")
     if output.get("terminal_verdict") == "NO_SAFE_COUNTERFACTUAL_CANDIDATE" and not output.get("considered_mechanisms"):
         errors.append("code_optimization_honest_zero_mechanisms_missing")
-    result = gpt_decision_review_result_contract(profile, output, executor_context_id=executor_context_id)
+    result = gpt_decision_review_result_contract(
+        profile, output, executor_context_id=executor_context_id,
+        native_context_manifest=native_context_manifest,
+    )
     completion_contract = {
         "MISSION_TYPE": "ACCEPTANCE", "COMPLETION_CONTRACT": "ACCEPTANCE_COMPLETION", "INDEPENDENT_ACCEPTANCE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
         "EXECUTION_PROFILE_CONTRACT": profile, "EXECUTION_PROFILE_RESULT": result, "EXECUTION_PROFILE_REVIEWS": reviews, "RESPONSIBILITY_SUBGRAPH_RESULT": subgraph,
@@ -28032,7 +28286,7 @@ def code_optimization_full_baseline(*, root: Path = ROOT) -> dict[str, Any]:
     cps_before = cps_path.read_bytes() if cps_path.is_file() else b""
     domain_specs = tuple(
         (str(config["domain_id"]), str(config.get("entry_condition") or ""))
-        for config in _responsibility_subgraph_domain_configs()
+        for config in _responsibility_subgraph_domain_configs(root=root)
     )
     domains: list[dict[str, Any]] = []
     for index, (domain_id, entry_condition) in enumerate(domain_specs, 1):
@@ -28091,7 +28345,7 @@ def code_optimization_discover_domains(*, root: Path = ROOT) -> dict[str, Any]:
     """Discover bounded domains from existing owner config and canonical topology."""
     admitted: list[dict[str, Any]] = []
     admitted_paths: set[str] = set()
-    for config in _responsibility_subgraph_domain_configs():
+    for config in _responsibility_subgraph_domain_configs(root=root):
         paths = tuple(str(item) for item in config["paths"])
         admitted_paths.update(paths)
         admitted.append({
@@ -28109,13 +28363,16 @@ def code_optimization_discover_domains(*, root: Path = ROOT) -> dict[str, Any]:
             "mutation_boundary": "READ_ONLY_BASELINE_AND_SEMANTIC_AUDIT",
             "freshness": "REDERIVED_PER_INVOCATION",
             "discovery_reason": config["discovery_reason"],
+            "owner_evidence": config.get("owner_evidence") or "EXISTING_OWNER_CONFIGURATION",
+            "owner_resolution": config.get("owner_resolution") or "EXISTING_OWNER_CONFIGURATION",
+            "caller_consumer_acquisition": "FRESH_SOURCE_SUBGRAPH_ATTEMPT_REQUIRED_AND_PACKET_BOUND",
         })
     system_map = root / "docs/reference/SYSTEM_MAP.md"
     canonical_surfaces: set[str] = set()
     if system_map.is_file():
         source = system_map.read_text(encoding="utf-8")
-        for raw in re.findall(r"`((?:tools|admin_core|systemd|runtime|backend|frontend)/[^`\s]+)`", source):
-            relative = raw.rstrip(".,;:)")
+        for match in SYSTEM_MAP_EXECUTABLE_REFERENCE_PATTERN.finditer(source):
+            relative = match.group("path")
             if (root / relative).is_file():
                 canonical_surfaces.add(relative)
     blocked = [{
@@ -28123,8 +28380,8 @@ def code_optimization_discover_domains(*, root: Path = ROOT) -> dict[str, Any]:
         "classification": "LOCAL_UNKNOWN_NOT_ADMITTED_DOMAIN",
         "missing_fact": "bounded responsibility owner/domain/entrypoint contract",
         "existing_evidence_source": "SYSTEM_MAP",
-        "minimal_action": "existing owner may admit a bounded domain when semantic work is required",
-        "reentry_condition": "current owner/domain configuration names this surface",
+        "minimal_action": "resolve the exact SYSTEM_MAP owner binding and derive a non-empty source subgraph",
+        "reentry_condition": "fresh owner/caller/consumer acquisition succeeds for this exact surface",
     } for path in sorted(canonical_surfaces - admitted_paths)]
     excluded = [{
         "class": "NON_EXECUTABLE_OR_NON_PRODUCTION_SURFACES",
@@ -28173,6 +28430,9 @@ CODE_OPTIMIZATION_SEMANTIC_CLASSES = {
     "COMPATIBILITY_CURRENT", "ACTIVE_BUT_REDUNDANT", "SUPERSEDED",
     "HISTORICAL_ONLY", "INCOMPLETE_REQUIRED", "INCOMPLETE_ORPHANED", "UNKNOWN",
 }
+# Evidence, semantic classification and counterfactuals are one analyst
+# judgment.  The reviewer is the independent second role.
+CODE_OPTIMIZATION_NATIVE_AUTHOR_ROLES = {"ANALYST"}
 
 
 def code_optimization_executor_packet(
@@ -28227,15 +28487,34 @@ def code_optimization_executor_packet(
     return packet
 
 
-def validate_code_optimization_executor_packet(packet: dict[str, Any], *, now: datetime | None = None) -> list[str]:
+def validate_code_optimization_executor_packet(
+    packet: dict[str, Any], *, now: datetime | None = None, root: Path = ROOT,
+) -> list[str]:
     required = {
         "schema", "mission_id", "mission_intent_fingerprint", "profile_fingerprint", "run_nonce",
         "repo_fingerprint", "domain_id", "owner", "source_paths", "nodes", "edges",
         "evidence_package", "expires_at", "packet_fingerprint",
     }
-    errors = [f"executor_packet_missing:{field}" for field in required if packet.get(field) in (None, "", [])]
+    errors = [
+        f"executor_packet_missing:{field}"
+        for field in required
+        if field not in packet or packet.get(field) in (None, "")
+    ]
+    for field in ("source_paths", "nodes"):
+        if packet.get(field) == []:
+            errors.append(f"executor_packet_missing:{field}")
+    if not isinstance(packet.get("edges"), list):
+        errors.append("executor_packet_edges_invalid")
     if packet.get("schema") != "v7.code-optimization-executor-packet.v1":
         errors.append("executor_packet_schema_invalid")
+    source_paths = packet.get("source_paths") or []
+    source_fingerprints = packet.get("source_fingerprints")
+    if not isinstance(source_fingerprints, dict) or set(source_fingerprints) != set(source_paths):
+        errors.append("executor_packet_source_fingerprint_set_invalid")
+    else:
+        for path in source_paths:
+            if source_fingerprints.get(path) != _responsibility_subgraph_source_fingerprint(root, [path]):
+                errors.append(f"executor_packet_source_stale:{path}")
     fingerprint = _execution_contract_fingerprint({key: value for key, value in packet.items() if key != "packet_fingerprint"})
     if packet.get("packet_fingerprint") != fingerprint:
         errors.append("executor_packet_fingerprint_mismatch")
@@ -28254,6 +28533,66 @@ def validate_code_optimization_executor_result(packet: dict[str, Any], result: d
         errors.append("executor_result_packet_identity_mismatch")
     if not str(result.get("executor_context_id") or ""):
         errors.append("executor_result_context_missing")
+    manifest = result.get("native_context_manifest")
+    author_context_ids: set[str] = set()
+    if not isinstance(manifest, dict) or manifest.get("schema") != "v7.codex-native-context-manifest.v1":
+        errors.append("executor_result_native_context_manifest_missing")
+    else:
+        roles = manifest.get("roles")
+        if not isinstance(roles, list):
+            roles = []
+            errors.append("executor_result_native_role_contexts_invalid")
+        role_names = {str(item.get("role") or "") for item in roles if isinstance(item, dict)}
+        if role_names != CODE_OPTIMIZATION_NATIVE_AUTHOR_ROLES or len(roles) != len(CODE_OPTIMIZATION_NATIVE_AUTHOR_ROLES):
+            errors.append("executor_result_native_role_set_invalid")
+        for item in roles:
+            if not isinstance(item, dict):
+                errors.append("executor_result_native_role_context_invalid")
+                continue
+            context_id = str(item.get("native_agent_id") or "")
+            if not context_id or not str(item.get("canonical_task_path") or ""):
+                errors.append("executor_result_native_role_identity_missing")
+            if item.get("fork_turns") != "none" or item.get("platform_dispatch") not in {"spawn_agent", "codex_cli_exec"}:
+                errors.append("executor_result_native_role_dispatch_invalid")
+            if packet.get("packet_fingerprint") not in (item.get("input_artifact_fingerprints") or []):
+                errors.append("executor_result_native_role_packet_binding_missing")
+            author_context_ids.add(context_id)
+        if "" in author_context_ids or len(author_context_ids) != len(CODE_OPTIMIZATION_NATIVE_AUTHOR_ROLES):
+            errors.append("executor_result_native_role_contexts_not_unique")
+        semantic_contexts = [
+            str(item.get("native_agent_id") or "") for item in roles
+            if isinstance(item, dict) and item.get("role") == "ANALYST"
+        ]
+        if semantic_contexts != [str(result.get("executor_context_id") or "")]:
+            errors.append("executor_result_semantic_context_identity_mismatch")
+    reviews = result.get("reviews")
+    if not isinstance(reviews, list):
+        reviews = []
+        errors.append("executor_result_native_reviews_missing")
+    reviewer_context_ids: set[str] = set()
+    for review in reviews:
+        if not isinstance(review, dict):
+            errors.append("executor_result_native_review_invalid")
+            continue
+        proof = review.get("native_context_proof")
+        if not isinstance(proof, dict):
+            errors.append("executor_result_native_review_proof_missing")
+            continue
+        context_id = str(proof.get("native_agent_id") or "")
+        if review.get("review_context_id") != context_id:
+            errors.append("executor_result_native_review_identity_mismatch")
+        if proof.get("fork_turns") != "none" or proof.get("platform_dispatch") not in {"spawn_agent", "codex_cli_exec"}:
+            errors.append("executor_result_native_review_dispatch_invalid")
+        if packet.get("packet_fingerprint") not in (proof.get("input_artifact_fingerprints") or []):
+            errors.append("executor_result_native_review_packet_binding_missing")
+        reviewer_context_ids.add(context_id)
+    required_reviews = set(packet.get("required_reviews") or [])
+    if {str(item.get("review_type") or "") for item in reviews if isinstance(item, dict)} != required_reviews:
+        errors.append("executor_result_native_review_set_invalid")
+    if "" in reviewer_context_ids or len(reviewer_context_ids) != 1:
+        errors.append("executor_result_native_review_contexts_not_unique")
+    if author_context_ids & reviewer_context_ids:
+        errors.append("executor_result_native_author_reviewer_context_collision")
     output = result.get("output") if isinstance(result.get("output"), dict) else {}
     symbol_evidence = output.get("symbol_evidence")
     if not isinstance(symbol_evidence, list) or not symbol_evidence:
@@ -28358,7 +28697,7 @@ def code_optimization_operational_campaign(
     normalized_mode = str(mode or "").upper()
     identity_mode = "FULL_BASELINE" if normalized_mode == "CONTINUE" else normalized_mode
     discovery = code_optimization_discover_domains(root=root)
-    configs = {str(item["domain_id"]): item for item in _responsibility_subgraph_domain_configs()}
+    configs = {str(item["domain_id"]): item for item in _responsibility_subgraph_domain_configs(root=root)}
     selected_ids = list(discovery["admitted_domain_ids"])
     if normalized_mode == "DOMAIN":
         selected_ids = [domain_id] if domain_id in configs else []
@@ -28450,7 +28789,9 @@ def code_optimization_operational_campaign(
         }
     for index, current_id in enumerate([] if prepared_packets is not None else selected_ids, 1):
         config = configs[current_id]
-        request = responsibility_subgraph_pilot_request(root=root, domain_id=current_id)
+        request = responsibility_subgraph_pilot_request(
+            root=root, domain_id=current_id, ttl_seconds=6 * 60 * 60,
+        )
         request.update({
             "mission_id": intent["mission_id"],
             "run_nonce": f"operational-{index}-{request['repo_fingerprint'][:16]}",
@@ -28524,6 +28865,7 @@ def code_optimization_operational_campaign(
                 remaining_authorized_work=[], requested_mission_terminal="FULL_COMPLETION",
                 next_executable_action="consume next semantic packet or consolidated terminal",
                 executor_context_id=str(supplied.get("executor_context_id") or ""),
+                native_context_manifest=supplied.get("native_context_manifest") if isinstance(supplied.get("native_context_manifest"), dict) else None,
             )
         domain_submissions.append({
             "domain_id": packet["domain_id"], "packet_fingerprint": packet["packet_fingerprint"],

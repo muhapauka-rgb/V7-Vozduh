@@ -100,7 +100,7 @@ The agent may introduce deliberate safe test defects only in disposable or isola
 
 ### Answer 16 — invocation model
 
-The agent runs after every qualifying material system change, operates continuous resource-bounded background Polygon campaigns, and exposes one compact command for a full campaign. The same command must be able to design/execute the complete admitted campaign initially and later perform incremental continuation when the system changes.
+The agent runs after every qualifying material system change, operates continuous resource-bounded background Polygon campaigns, and exposes one compact command for a full campaign. The same command must be able to design/execute the complete admitted campaign initially and later perform incremental continuation when the system changes. A qualifying material change is one admission trigger, not a prerequisite: each explicit `FULL_CAMPAIGN` creates one new frozen-current-CPS Polygon experiment through existing OMP even when the source tree is unchanged. Bounded background re-entry is one existing-OMP cadence slot under a resource limit, single-flight lease and duplicate suppression; this Program adds neither a scheduler nor a self-waking loop. Absence of a source diff cannot itself terminate a manual full campaign.
 
 ### Answer 17 — ideal automation
 

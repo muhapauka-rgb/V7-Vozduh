@@ -154,6 +154,86 @@ class AutonomousRecoveryEquivalenceCertificationTest(unittest.TestCase):
         finally:
             self.lib.routing_digital_twin_substrate_probe = original_probe
 
+    def test_manual_full_creates_distinct_frozen_snapshots_without_source_diff(self):
+        original_probe = self.lib.routing_digital_twin_substrate_probe
+        self.lib.routing_digital_twin_substrate_probe = lambda: {"highest_available_fidelity_candidate": "L4"}
+        calls = []
+
+        def runner(**kwargs):
+            calls.append(kwargs)
+            return {"final_verdict": "PASS", "internal_iteration_count": kwargs["iteration_budget"], "errors": []}
+
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                temp = Path(directory)
+                generation = self.lib._autonomous_recovery_current_cps_generation(ROOT)
+                common = {
+                    "changed_path": "AUTONOMOUS_RECOVERY_MANUAL_FULL",
+                    "before_fingerprint": "NO_SOURCE_DIFF_REQUIRED",
+                    "after_fingerprint": "NO_SOURCE_DIFF_REQUIRED",
+                    "cps_generation": generation, "root": ROOT, "iteration_budget": 2,
+                    "background_runner": runner, "evidence_path": temp / "existing.jsonl",
+                    "lease_path": temp / "existing.lease", "trigger_kind": "MANUAL_FULL",
+                }
+                first = self.lib.autonomous_recovery_qualifying_material_change_continuation(
+                    **common, experiment_nonce="manual-a",
+                )
+                second = self.lib.autonomous_recovery_qualifying_material_change_continuation(
+                    **common, experiment_nonce="manual-b",
+                )
+                self.assertEqual(first["final_verdict"], "PASS", first["errors"])
+                self.assertEqual(second["final_verdict"], "PASS", second["errors"])
+                self.assertEqual(first["trigger_kind"], "MANUAL_FULL")
+                self.assertNotEqual(first["frozen_snapshot_identity"], second["frozen_snapshot_identity"])
+                self.assertEqual(len(calls), 2)
+                missing_nonce = self.lib.autonomous_recovery_qualifying_material_change_continuation(
+                    **common, experiment_nonce="",
+                )
+                self.assertEqual(missing_nonce["disposition"], "STOP_SAFE_MANUAL_SNAPSHOT_IDENTITY")
+        finally:
+            self.lib.routing_digital_twin_substrate_probe = original_probe
+
+    def test_bounded_cadence_dedupes_one_existing_omp_slot_without_busy_loop(self):
+        original_probe = self.lib.routing_digital_twin_substrate_probe
+        self.lib.routing_digital_twin_substrate_probe = lambda: {"highest_available_fidelity_candidate": "L4"}
+        calls = []
+
+        def runner(**kwargs):
+            calls.append(kwargs)
+            return {"final_verdict": "PASS", "internal_iteration_count": 1, "errors": []}
+
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                temp = Path(directory)
+                now = datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)
+                common = {
+                    "changed_path": "AUTONOMOUS_RECOVERY_BOUNDED_CADENCE",
+                    "before_fingerprint": "NO_SOURCE_DIFF_REQUIRED",
+                    "after_fingerprint": "NO_SOURCE_DIFF_REQUIRED", "root": ROOT,
+                    "cps_generation": self.lib._autonomous_recovery_current_cps_generation(ROOT),
+                    "background_runner": runner, "evidence_path": temp / "existing.jsonl",
+                    "lease_path": temp / "existing.lease", "trigger_kind": "BOUNDED_CADENCE",
+                    "cadence_seconds": 900,
+                }
+                first = self.lib.autonomous_recovery_qualifying_material_change_continuation(**common, now=now)
+                duplicate = self.lib.autonomous_recovery_qualifying_material_change_continuation(**common, now=now)
+                next_slot = self.lib.autonomous_recovery_qualifying_material_change_continuation(
+                    **common, now=now + timedelta(seconds=900),
+                )
+                self.assertEqual(first["final_verdict"], "PASS", first["errors"])
+                self.assertEqual(duplicate["disposition"], "DUPLICATE_SUPPRESSED")
+                self.assertFalse(duplicate["trigger_invoked"])
+                self.assertEqual(next_slot["final_verdict"], "PASS", next_slot["errors"])
+                self.assertEqual(next_slot["cadence_slot"], first["cadence_slot"] + 1)
+                self.assertEqual(len(calls), 2)
+                invalid_common = {**common, "cadence_seconds": 59}
+                invalid = self.lib.autonomous_recovery_qualifying_material_change_continuation(
+                    **invalid_common, now=now,
+                )
+                self.assertEqual(invalid["disposition"], "STOP_SAFE_CADENCE_BUDGET")
+        finally:
+            self.lib.routing_digital_twin_substrate_probe = original_probe
+
     def test_material_change_budget_substrate_and_active_lease_stop_safe(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -256,7 +336,8 @@ class AutonomousRecoveryEquivalenceCertificationTest(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 temp = Path(directory)
                 kwargs = {
-                    "root": ROOT, "changed_dependencies": ["tools/v7_sync_lib.py"], "iteration_budget": 2,
+                    "root": ROOT,
+                    "changed_dependencies": ["AUTONOMOUS_RECOVERY_MATERIAL_CHANGE:tools/v7_sync_lib.py:old:new"], "iteration_budget": 2,
                     "scenario_budget": 1, "repair_budget": 1, "persist_cps": False,
                     "autonomous_recovery_continuation_runner": soak_runner,
                     "autonomous_recovery_lease_path": temp / "material.lease",
@@ -272,10 +353,23 @@ class AutonomousRecoveryEquivalenceCertificationTest(unittest.TestCase):
                 self.assertEqual(receipt["iterations_executed"], 2)
                 self.assertEqual(len(calls), 1)
 
+                manual = self.lib.continue_omp_engineering_control_loop(
+                    root=ROOT, changed_dependencies=["AUTONOMOUS_RECOVERY_MANUAL_FULL:manual-proof"],
+                    iteration_budget=2, scenario_budget=1, repair_budget=1, persist_cps=False,
+                    autonomous_recovery_continuation_runner=soak_runner,
+                    autonomous_recovery_lease_path=temp / "manual.lease",
+                    autonomous_recovery_evidence_path=temp / "manual.jsonl",
+                )
+                manual_receipt = manual["autonomous_recovery_material_change_continuation"]
+                self.assertEqual(manual["final_verdict"], "PASS", manual.get("errors"))
+                self.assertEqual(manual_receipt["trigger_kind"], "MANUAL_FULL")
+                self.assertTrue(manual_receipt["trigger_invoked"])
+                self.assertEqual(len(calls), 2)
+
                 duplicate = self.lib.continue_omp_engineering_control_loop(**kwargs)
                 duplicate_receipt = duplicate["autonomous_recovery_material_change_continuation"]
                 self.assertEqual(duplicate_receipt["disposition"], "DUPLICATE_SUPPRESSED")
-                self.assertEqual(len(calls), 1)
+                self.assertEqual(len(calls), 2)
 
                 nonqualifying = self.lib.continue_omp_engineering_control_loop(
                     root=ROOT, changed_dependencies=["docs/reference/nonqualifying.md"],
@@ -285,7 +379,7 @@ class AutonomousRecoveryEquivalenceCertificationTest(unittest.TestCase):
                     autonomous_recovery_evidence_path=temp / "other.jsonl",
                 )
                 self.assertNotIn("autonomous_recovery_material_change_continuation", nonqualifying)
-                self.assertEqual(len(calls), 1)
+                self.assertEqual(len(calls), 2)
         finally:
             self.lib.routing_digital_twin_substrate_probe = original_probe
 

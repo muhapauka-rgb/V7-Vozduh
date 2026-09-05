@@ -15829,7 +15829,10 @@ def _autonomous_recovery_prior_material_receipt(
     except OSError as exc:
         return {"found": False, "errors": [f"external_reentry_evidence_unreadable:{exc}"]}
     for line in lines:
-        if "v7.autonomous-recovery-material-change-continuation.v2" not in line:
+        if not any(schema in line for schema in (
+            "v7.autonomous-recovery-material-change-continuation.v2",
+            "v7.autonomous-recovery-material-change-continuation.v3",
+        )):
             continue
         try:
             row = json.loads(line)
@@ -15851,18 +15854,44 @@ def autonomous_recovery_qualifying_material_change_continuation(
     cps_generation: str, root: Path = ROOT, iteration_budget: int = 2,
     lease_path: Optional[Path] = None, evidence_path: Optional[Path] = None,
     background_runner: Optional[Callable[..., dict[str, Any]]] = None,
+    trigger_kind: str = "MATERIAL_CHANGE", experiment_nonce: str = "",
+    cadence_seconds: int = 900, now: Optional[datetime] = None,
 ) -> dict[str, Any]:
-    """Consume a real Continue-OMP-selected Polygon continuation exactly once.
+    """Consume one existing-OMP-selected bounded Polygon experiment exactly once.
 
     This helper never calls Continue OMP itself.  The caller must already be the
     existing OMP control loop and supply its selected bounded Polygon runner;
     this avoids a second selector, recursive re-entry, or a shadow scheduler.
+    A source material change is one trigger, never the only admission route:
+    manual FULL creates a new frozen snapshot and bounded cadence is deduped by
+    a time slot, not by an endless loop.
     """
+    schema = "v7.autonomous-recovery-material-change-continuation.v3"
+    trigger_kind = str(trigger_kind or "MATERIAL_CHANGE")
+    if trigger_kind not in {"MATERIAL_CHANGE", "MANUAL_FULL", "BOUNDED_CADENCE"}:
+        return {"schema": schema, "disposition": "STOP_SAFE_TRIGGER_KIND", "final_verdict": "STOP_SAFE",
+                "errors": ["autonomous_recovery_trigger_kind_invalid"], "runtime_impact": "NONE",
+                "production_impact": "NONE", "authority_impact": "NONE"}
+    if trigger_kind == "MANUAL_FULL" and not str(experiment_nonce).strip():
+        return {"schema": schema, "disposition": "STOP_SAFE_MANUAL_SNAPSHOT_IDENTITY", "final_verdict": "STOP_SAFE",
+                "errors": ["manual_full_snapshot_nonce_missing"], "runtime_impact": "NONE",
+                "production_impact": "NONE", "authority_impact": "NONE"}
+    if trigger_kind == "BOUNDED_CADENCE" and not 60 <= int(cadence_seconds) <= 86_400:
+        return {"schema": schema, "disposition": "STOP_SAFE_CADENCE_BUDGET", "final_verdict": "STOP_SAFE",
+                "errors": ["bounded_cadence_seconds_invalid"], "runtime_impact": "NONE",
+                "production_impact": "NONE", "authority_impact": "NONE"}
+    current_now = now or datetime.now(timezone.utc)
+    cadence_slot = int(current_now.timestamp()) // int(cadence_seconds) if trigger_kind == "BOUNDED_CADENCE" else None
     identity_payload = {"path": changed_path, "before": before_fingerprint,
-                        "after": after_fingerprint, "cps_generation": cps_generation}
+                        "after": after_fingerprint, "cps_generation": cps_generation,
+                        "trigger_kind": trigger_kind,
+                        "experiment_nonce": str(experiment_nonce) if trigger_kind == "MANUAL_FULL" else "",
+                        "cadence_slot": cadence_slot}
     identity = _execution_contract_fingerprint(identity_payload)
-    if not changed_path or before_fingerprint == after_fingerprint:
-        return {"schema": "v7.autonomous-recovery-material-change-continuation.v2", "disposition": "NOOP_UNCHANGED", "trigger_invoked": False, "final_verdict": "PASS", "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE", "errors": []}
+    if not changed_path or (trigger_kind == "MATERIAL_CHANGE" and before_fingerprint == after_fingerprint):
+        return {"schema": schema, "disposition": "NOOP_UNCHANGED", "trigger_kind": trigger_kind,
+                "trigger_invoked": False, "final_verdict": "PASS", "runtime_impact": "NONE",
+                "production_impact": "NONE", "authority_impact": "NONE", "errors": []}
     if not cps_generation or cps_generation != _autonomous_recovery_current_cps_generation(root):
         return {"schema": "v7.autonomous-recovery-material-change-continuation.v2", "disposition": "STOP_SAFE_STALE_GENERATION", "trigger_fingerprint": identity, "final_verdict": "STOP_SAFE", "errors": ["cps_generation_stale_or_missing"], "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE"}
     if not 1 <= int(iteration_budget) <= OMP_CONTINUATION_MAX_ITERATIONS:
@@ -15900,11 +15929,10 @@ def autonomous_recovery_qualifying_material_change_continuation(
                 "safe_independent_work_continued": False,
                 "final_verdict": "PASS", "runtime_impact": "NONE",
                 "production_impact": "NONE", "authority_impact": "NONE", "errors": []}
-    now = datetime.now(timezone.utc)
     resolved_lease = lease_path or _external_reentry_lease_path(root)
     lease = _external_reentry_acquire_lease(
         lease_path=resolved_lease, lease_id=f"arlease_{identity[:24]}", event_id=identity,
-        cps_generation=cps_generation, now=now, owner="EXISTING_OMP_MATERIAL_CHANGE_FLOW",
+        cps_generation=cps_generation, now=current_now, owner="EXISTING_OMP_MATERIAL_CHANGE_FLOW",
     )
     if not lease.get("acquired"):
         return {"schema": "v7.autonomous-recovery-material-change-continuation.v2",
@@ -15940,11 +15968,14 @@ def autonomous_recovery_qualifying_material_change_continuation(
         except OSError:
             released = False
     receipt = {
-        "schema": "v7.autonomous-recovery-material-change-continuation.v2",
+        "schema": schema,
         "disposition": "BOUNDED_BACKGROUND_CONTINUATION_CONSUMED" if passed and released else "STOP_SAFE_BACKGROUND",
-        "trigger_invoked": True, "trigger_fingerprint": identity,
+        "trigger_kind": trigger_kind, "trigger_invoked": True, "trigger_fingerprint": identity,
         "trigger_identity": identity_payload, "changed_path": changed_path,
         "before_fingerprint": before_fingerprint, "after_fingerprint": after_fingerprint,
+        "frozen_snapshot_identity": identity,
+        "cadence_seconds": int(cadence_seconds) if trigger_kind == "BOUNDED_CADENCE" else None,
+        "cadence_slot": cadence_slot,
         "omp_caller": "continue_omp_engineering_control_loop",
         "background_owner": "run_permanent_polygon_bounded_soak",
         "background": background, "iteration_budget": int(iteration_budget),
@@ -15971,6 +16002,8 @@ AUTONOMOUS_RECOVERY_QUALIFYING_MATERIAL_PATHS = frozenset({
     "tools/v7-users-autoswitch",
     "tools/v7_sync_lib.py",
 })
+AUTONOMOUS_RECOVERY_MANUAL_FULL_MARKER = "AUTONOMOUS_RECOVERY_MANUAL_FULL:"
+AUTONOMOUS_RECOVERY_BOUNDED_CADENCE_MARKER = "AUTONOMOUS_RECOVERY_BOUNDED_CADENCE:"
 
 
 def _autonomous_recovery_material_change_identity(
@@ -15979,6 +16012,26 @@ def _autonomous_recovery_material_change_identity(
     """Bind an explicit AR marker or a tracked path to exact before/after bytes."""
     marker = "AUTONOMOUS_RECOVERY_MATERIAL_CHANGE:"
     raw = str(changed_dependency)
+    if raw.startswith(AUTONOMOUS_RECOVERY_MANUAL_FULL_MARKER):
+        nonce = raw[len(AUTONOMOUS_RECOVERY_MANUAL_FULL_MARKER):].strip()
+        if not nonce or len(nonce) > 128:
+            return {"qualifying": True, "final_verdict": "STOP_SAFE", "errors": ["invalid_autonomous_recovery_manual_full_marker"]}
+        return {"qualifying": True, "path": "AUTONOMOUS_RECOVERY_MANUAL_FULL",
+                "before_fingerprint": "NO_SOURCE_DIFF_REQUIRED", "after_fingerprint": "NO_SOURCE_DIFF_REQUIRED",
+                "baseline_kind": "EXPLICIT_MANUAL_FROZEN_SNAPSHOT", "trigger_kind": "MANUAL_FULL",
+                "experiment_nonce": nonce, "final_verdict": "PASS", "errors": []}
+    if raw.startswith(AUTONOMOUS_RECOVERY_BOUNDED_CADENCE_MARKER):
+        seconds = raw[len(AUTONOMOUS_RECOVERY_BOUNDED_CADENCE_MARKER):].strip() or "900"
+        try:
+            cadence_seconds = int(seconds)
+        except ValueError:
+            cadence_seconds = 0
+        if not 60 <= cadence_seconds <= 86_400:
+            return {"qualifying": True, "final_verdict": "STOP_SAFE", "errors": ["invalid_autonomous_recovery_bounded_cadence_marker"]}
+        return {"qualifying": True, "path": "AUTONOMOUS_RECOVERY_BOUNDED_CADENCE",
+                "before_fingerprint": "NO_SOURCE_DIFF_REQUIRED", "after_fingerprint": "NO_SOURCE_DIFF_REQUIRED",
+                "baseline_kind": "EXISTING_OMP_BOUNDED_CADENCE", "trigger_kind": "BOUNDED_CADENCE",
+                "cadence_seconds": cadence_seconds, "final_verdict": "PASS", "errors": []}
     if raw.startswith(marker):
         fields = raw[len(marker):].split(":", 2)
         if len(fields) != 3 or not all(fields):
@@ -15986,7 +16039,7 @@ def _autonomous_recovery_material_change_identity(
         path, before, after = fields
         return {"qualifying": True, "path": path.removeprefix("./"), "before_fingerprint": before,
                 "after_fingerprint": after, "baseline_kind": "CALLER_BOUND_MARKER",
-                "final_verdict": "PASS", "errors": []}
+                "trigger_kind": "MATERIAL_CHANGE", "final_verdict": "PASS", "errors": []}
     path = raw.removeprefix("./")
     if path not in AUTONOMOUS_RECOVERY_QUALIFYING_MATERIAL_PATHS:
         return {"qualifying": False, "path": path, "errors": []}
@@ -16005,7 +16058,7 @@ def _autonomous_recovery_material_change_identity(
     return {"qualifying": True, "path": path, "before_fingerprint": before,
             "after_fingerprint": after,
             "baseline_kind": "GIT_HEAD_BLOB" if baseline.returncode == 0 else "GIT_HEAD_ABSENT",
-            "final_verdict": "PASS", "errors": []}
+            "trigger_kind": "MATERIAL_CHANGE", "final_verdict": "PASS", "errors": []}
 
 
 def certify_autonomous_recovery_equivalence_stages(execution: dict[str, Any]) -> dict[str, Any]:
@@ -27180,12 +27233,15 @@ def continue_omp_engineering_control_loop(
                     iteration_budget=bounded_iterations, lease_path=autonomous_recovery_lease_path,
                     evidence_path=autonomous_recovery_evidence_path,
                     background_runner=_bounded_polygon_runner,
+                    trigger_kind=material_identity.get("trigger_kind", "MATERIAL_CHANGE"),
+                    experiment_nonce=material_identity.get("experiment_nonce", ""),
+                    cadence_seconds=material_identity.get("cadence_seconds", 900),
                 )
                 if material_continuation.get("final_verdict") != "PASS":
                     return {
                         "schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE",
                         "program_terminal": "AUTONOMOUS_RECOVERY_MATERIAL_CHANGE_STOP_SAFE",
-                        "trigger": "Continue OMP material-change flow",
+                        "trigger": "Continue OMP Autonomous Recovery experiment flow",
                         "real_caller": "continue_omp_engineering_control_loop",
                         "real_consumer": "autonomous_recovery_qualifying_material_change_continuation",
                         "autonomous_recovery_material_change_continuation": material_continuation,
@@ -27196,11 +27252,17 @@ def continue_omp_engineering_control_loop(
                 return {
                     "schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "PASS",
                     "program_terminal": "AUTONOMOUS_RECOVERY_BOUNDED_BACKGROUND_CONTINUATION_CONSUMED",
-                    "trigger": "Continue OMP qualifying Autonomous Recovery material change",
+                    "trigger": (
+                        "Continue OMP explicit Autonomous Recovery frozen-snapshot experiment"
+                        if material_identity.get("trigger_kind") == "MANUAL_FULL"
+                        else "Continue OMP bounded Autonomous Recovery cadence experiment"
+                        if material_identity.get("trigger_kind") == "BOUNDED_CADENCE"
+                        else "Continue OMP qualifying Autonomous Recovery material change"
+                    ),
                     "real_caller": "continue_omp_engineering_control_loop",
                     "real_consumer": "autonomous_recovery_qualifying_material_change_continuation -> run_permanent_polygon_bounded_soak",
                     "autonomous_recovery_material_change_continuation": material_continuation,
-                    "transitions": [{"transaction_terminal": "AUTONOMOUS_RECOVERY_MATERIAL_CHANGE_CONTINUED",
+                    "transitions": [{"transaction_terminal": "AUTONOMOUS_RECOVERY_EXPERIMENT_CONTINUED",
                                      "changed_dependency": material_identity["path"], "no_user_prompt": True}],
                     "internal_iteration_count": 1,
                     "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE", "errors": [],

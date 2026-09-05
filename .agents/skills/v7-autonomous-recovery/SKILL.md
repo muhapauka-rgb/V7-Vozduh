@@ -15,6 +15,14 @@ same Mission until Program Section 8 is behaviorally accepted or an exact
 legal boundary is consumed. Packet-ready, a test, report, commit, repair or one
 experiment is never a terminal.
 
+`FULL_CAMPAIGN` is always one explicit manual admission to the existing OMP
+flow: it must create one new frozen-snapshot Polygon experiment from current
+CPS even when no source diff exists. A missing material diff may suppress only
+the `MATERIAL_CHANGE` trigger; it is never a legal terminal for `FULL_CAMPAIGN`.
+The same OMP flow may also be entered by a bounded cadence slot, with one
+single-flight lease and duplicate suppression per slot. It must not self-wake,
+spin, or add a scheduler; an existing OMP caller supplies that bounded re-entry.
+
 Before a first full campaign after native-transport changes, invoke
 `tools/v7-truth-check --json AUTONOMOUS_RECOVERY NATIVE_SMOKE`. It is one fresh
 read-only Analyst transport acceptance, not a Polygon campaign: require an

@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -175,7 +176,8 @@ def main() -> int:
         executor_id,executor,attempt = native_context("executor",executor_packet,EXECUTOR_TIMEOUT_SECONDS); attempts.append(attempt)
         repair = lib.execute_autonomous_recovery_docker_repair_replay_cycle(root=ROOT)
         if repair.get("final_verdict") != "PASS": raise RuntimeError("autonomous_recovery_docker_repair_replay_failed:"+",".join(repair.get("errors") or []))
-        material_change_omp = lib.continue_omp_engineering_control_loop(root=ROOT,changed_dependencies=["tools/v7_sync_lib.py"],iteration_budget=2,scenario_budget=1,repair_budget=1,persist_cps=False); material_change = material_change_omp.get("autonomous_recovery_material_change_continuation") or {}
+        manual_snapshot_marker = "AUTONOMOUS_RECOVERY_MANUAL_FULL:" + uuid.uuid4().hex
+        material_change_omp = lib.continue_omp_engineering_control_loop(root=ROOT,changed_dependencies=[manual_snapshot_marker],iteration_budget=2,scenario_budget=1,repair_budget=1,persist_cps=False); material_change = material_change_omp.get("autonomous_recovery_material_change_continuation") or {}
         if material_change_omp.get("final_verdict") != "PASS" or material_change.get("final_verdict") != "PASS": raise RuntimeError("autonomous_recovery_material_change_continuation_failed:"+",".join(material_change.get("errors") or []))
         distinct_seed = lib.certify_distinct_member_equivalence_seeded_repair_cycle(repair["repair"])
         if distinct_seed.get("final_verdict") != "PASS": raise RuntimeError("autonomous_recovery_distinct_member_seed_failed:"+",".join(distinct_seed.get("errors") or []))

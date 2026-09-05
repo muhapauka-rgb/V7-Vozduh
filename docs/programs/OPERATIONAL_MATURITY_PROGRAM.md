@@ -12288,6 +12288,18 @@ bounded execution-profile and Permanent Polygon repair-return contracts; it is
 not a second coordinator, Program-state owner, Matrix, Planner, Authority,
 queue, registry, scheduler, Runtime or truth source.
 
+The existing OMP admission has exactly three bounded triggers: a qualifying
+material change, one explicit manual full-command frozen snapshot, or one
+external existing-OMP cadence slot. A source diff is therefore a trigger, not
+a mandatory precondition. Every manual full command binds fresh CPS generation
+and a unique frozen-snapshot identity, then consumes one bounded Permanent
+Polygon experiment even if the compared source bytes are unchanged. Cadence is
+resource-limited, single-flight and deduplicated within its time slot; this law
+does not add a timer, daemon, self-wake, queue or scheduler. `NO_NEW_MATERIAL_CHANGE`
+may suppress only the material-change trigger and is never a lawful terminal
+for an explicit full command; only a real safety, Authority or missing-proof
+boundary can stop that command before its full result.
+
 The initial deterministic invocation freezes CPS/OMP/SYSTEM_MAP/Program
 identity, the complete Program Section 8 Definition of Done, effect boundaries
 and the same-Mission continuation policy. It binds the profile to the exact

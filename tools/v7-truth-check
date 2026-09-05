@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime
+import hashlib
 import json
 import os
 import re
 import shlex
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -35,6 +37,8 @@ DEFAULT_MANIFEST = Path("docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json"
 RUNTIME_SNAPSHOT_SCHEMA = "v7-runtime-truth-snapshot/v1"
 FSSE_SCENARIO_ROOT_ENV = "V7_FSSE_SCENARIO_ROOT"
 SERVICE_FAILURE_STATE_DIR_ENV = "V7_SERVICE_FAILURE_STATE_DIR"
+AUTONOMOUS_NATIVE_FULL_TIMEOUT_SECONDS = 1710
+AUTONOMOUS_NATIVE_SMOKE_TIMEOUT_SECONDS = 240
 
 
 def fsse_scenario_root() -> Path:
@@ -1213,7 +1217,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Read-only V7 source-of-truth convergence gate.")
     parser.add_argument(
         "compact_intent", nargs="*",
-        help="Compact OMP intent: CODE_OPTIMIZATION FULL_BASELINE|CHANGED|DOMAIN|CONTINUE|STATUS.",
+        help="Compact OMP intent: CODE_OPTIMIZATION ... or AUTONOMOUS_RECOVERY FULL_CAMPAIGN.",
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--local", action="store_true", help="Run local workspace checks only.")
@@ -1308,15 +1312,70 @@ def selected_mode(args: argparse.Namespace) -> str:
     return "local"
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def _native_bundle_excerpt(value: str) -> str:
+    value = value[-1000:]
+    value = re.sub(r"(?i)(bearer\s+)[^\s]+", r"\1[REDACTED]", value)
+    return re.sub(r"(?i)(token|api[_-]?key|password)\s*[=:]\s*[^\s,]+", r"\1=[REDACTED]", value)
+
+
+def _autonomous_native_bundle(command: str, timeout_seconds: int, *, runner: Callable[..., Any] = subprocess.run) -> dict[str, Any]:
+    """Preserve the outer native-bundle attempt even when it cannot self-report."""
+    started = time.monotonic()
+    bundle_command = [str(ROOT_DIR / "tools" / "v7-autonomous-recovery-bundle"), command, "--json"]
+    envelope: dict[str, Any] = {
+        "schema": "v7.autonomous-recovery.native-bundle-attempt-envelope.v1",
+        "command": command,
+        "timeout_seconds": timeout_seconds,
+        "command_policy_identity": hashlib.sha256("\0".join(bundle_command).encode("utf-8")).hexdigest(),
+    }
+    try:
+        run = runner(bundle_command, cwd=ROOT_DIR, text=True, capture_output=True, timeout=timeout_seconds)
+        stdout, stderr = run.stdout or "", run.stderr or ""
+        envelope.update({"exit_code": run.returncode, "timed_out": False})
+    except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else str(exc.stdout or "")
+        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else str(exc.stderr or "")
+        envelope.update({"exit_code": None, "timed_out": True})
+    envelope.update({
+        "elapsed_ms": round((time.monotonic() - started) * 1000),
+        "stdout_fingerprint": hashlib.sha256(stdout.encode("utf-8")).hexdigest(),
+        "stderr_fingerprint": hashlib.sha256(stderr.encode("utf-8")).hexdigest(),
+        "stdout_excerpt": _native_bundle_excerpt(stdout),
+        "stderr_excerpt": _native_bundle_excerpt(stderr),
+    })
+    try:
+        result = json.loads(stdout)
+    except json.JSONDecodeError:
+        terminal = "STOP_SAFE_AUTONOMOUS_RECOVERY_NATIVE_BUNDLE_TIMEOUT" if envelope["timed_out"] else "STOP_SAFE_AUTONOMOUS_RECOVERY_NATIVE_BUNDLE_OUTPUT"
+        return {"final_verdict": "STOP_SAFE", "terminal": terminal, "errors": ["native_bundle_output_unavailable"], "native_bundle_attempt": envelope}
+    if not isinstance(result, dict):
+        return {"final_verdict": "STOP_SAFE", "terminal": "STOP_SAFE_AUTONOMOUS_RECOVERY_NATIVE_BUNDLE_OUTPUT", "errors": ["native_bundle_object_required"], "native_bundle_attempt": envelope}
+    result["native_bundle_attempt"] = envelope
+    if envelope["timed_out"]:
+        result.update({"final_verdict": "STOP_SAFE", "terminal": "STOP_SAFE_AUTONOMOUS_RECOVERY_NATIVE_BUNDLE_TIMEOUT"})
+    elif envelope["exit_code"] and result.get("final_verdict") != "STOP_SAFE":
+        result.update({"final_verdict": "STOP_SAFE", "terminal": "STOP_SAFE_AUTONOMOUS_RECOVERY_NATIVE_BUNDLE_EXIT", "errors": [f"native_bundle_exit:{envelope['exit_code']}"]})
+    return result
+
+
+def main(argv: Optional[list[str]] = None, *, native_bundle_runner: Optional[Callable[..., Any]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
     if args.compact_intent:
         raw = list(args.compact_intent)
         normalized = [item.upper() for item in raw]
-        if normalized[0] != "CODE_OPTIMIZATION" or len(normalized) < 2:
+        if normalized == ["AUTONOMOUS_RECOVERY", "FULL_CAMPAIGN"]:
+            # Three bounded roles (120 + 90 + 120), Docker/owner phase (1200)
+            # and an explicit 120-second margin.  The outer caller must never
+            # cut off a child while losing its observable terminal envelope.
+            result = _autonomous_native_bundle("FULL_CAMPAIGN", AUTONOMOUS_NATIVE_FULL_TIMEOUT_SECONDS, runner=native_bundle_runner or subprocess.run)
+        elif normalized == ["AUTONOMOUS_RECOVERY", "NATIVE_SMOKE"]:
+            # A real fresh native Analyst transport acceptance, intentionally
+            # short of Docker, Polygon, CPS, Runtime, Production and Authority.
+            result = _autonomous_native_bundle("NATIVE_SMOKE", AUTONOMOUS_NATIVE_SMOKE_TIMEOUT_SECONDS, runner=native_bundle_runner or subprocess.run)
+        elif normalized[0] != "CODE_OPTIMIZATION" or len(normalized) < 2:
             result = {
-                "final_verdict": "STOP_SAFE", "terminal": "CODE_OPTIMIZATION_INTENT_INVALID",
-                "errors": ["expected: CODE_OPTIMIZATION FULL_BASELINE|CHANGED|DOMAIN|CONTINUE|STATUS"],
+                "final_verdict": "STOP_SAFE", "terminal": "COMPACT_INTENT_INVALID",
+                "errors": ["expected: CODE_OPTIMIZATION ... or AUTONOMOUS_RECOVERY FULL_CAMPAIGN|NATIVE_SMOKE"],
             }
         elif normalized[1] == "STATUS" and len(normalized) == 2:
             result = sync_lib.code_optimization_operational_status(root=ROOT_DIR)
@@ -1340,7 +1399,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if args.json:
             print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
         else:
-            print(f"code_optimization={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"compact_intent={result.get('final_verdict', 'STOP_SAFE')}")
             print(f"terminal={result.get('terminal', result.get('campaign_state', 'STOP_SAFE'))}")
             print(f"campaign_fingerprint={result.get('campaign_fingerprint', result.get('discovery_fingerprint', 'NONE'))}")
             print(f"domains_completed={len(result.get('domains_completed', result.get('admitted_domains', [])))}")

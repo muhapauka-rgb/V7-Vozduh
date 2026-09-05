@@ -148,6 +148,16 @@ class PermanentPolygonAutonomousProgramTest(unittest.TestCase):
         self.assertTrue(result["checks"]["repair_mission_formed"])
         self.assertRegex(result["repair_mission_id"], r"^V7_OMP_BDP_[0-9A-F]{24}_V1$")
         self.assertEqual(result["return_obligation_id"], "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1")
+        validated = self.lib.validate_permanent_polygon_repair_return_receipts(result)
+        self.assertEqual(validated["final_verdict"], "PASS", validated.get("errors"))
+        self.assertTrue(validated["checks"]["origin_obligation_matches_replay"])
+
+    def test_repair_return_receipt_tampering_is_stop_safe(self):
+        result = self.lib.certify_permanent_polygon_repair_return_cycle(root=ROOT)
+        result["repair_receipt"]["omp_repair_mission_id"] = "V7_OMP_BDP_TAMPERED_V1"
+        validated = self.lib.validate_permanent_polygon_repair_return_receipts(result)
+        self.assertEqual(validated["final_verdict"], "STOP_SAFE")
+        self.assertIn("permanent_polygon_repair_receipt_fingerprint_mismatch:repair", validated["errors"])
 
     def test_bounded_soak_proves_dedup_sources_and_resource_bound(self):
         result = self.lib.run_permanent_polygon_bounded_soak(root=ROOT, iteration_budget=10)

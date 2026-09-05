@@ -12279,3 +12279,58 @@ Reintroduced hardcoded semantic classification or automatic review PASS is an
 anti-regrowth failure. No packet, queue, daemon, owner, frontier or durable
 registry is added; disposable packet re-entry remains a bounded handoff under
 existing OMP and `mission_completion_evidence_gate`.
+
+## Autonomous Recovery Engineering Profile Consumption Law
+
+`AUTONOMOUS_RECOVERY FULL_CAMPAIGN` is the compact entry to the supporting
+`V7_AUTONOMOUS_RECOVERY_ENGINEERING_AGENT_PROGRAM`. It extends the existing
+bounded execution-profile and Permanent Polygon repair-return contracts; it is
+not a second coordinator, Program-state owner, Matrix, Planner, Authority,
+queue, registry, scheduler, Runtime or truth source.
+
+The initial deterministic invocation freezes CPS/OMP/SYSTEM_MAP/Program
+identity, the complete Program Section 8 Definition of Done, effect boundaries
+and the same-Mission continuation policy. It binds the profile to the exact
+live CPS `CURRENT_EXECUTION_MISSION_ID`; the supporting Program must never
+create a competing Mission or replace the active product frontier. It then
+emits an immutable native Analyst packet. `PACKET_READY`, `REPAIR_READY`, one
+experiment, tests, a report, commit or deploy are intermediate states only.
+
+The native sequence is exactly:
+
+```text
+ANALYST semantic proposal
+-> Codex repository evidence check and bounded critical adaptation
+-> immutable proposal
+-> distinct INDEPENDENT_REVIEWER
+-> at most one targeted Analyst re-entry
+-> existing-owner OMP repair
+-> automatic return to the exact origin experiment
+-> same-obligation replay
+-> dependent regression and next same-Mission obligation
+```
+
+The artifact consumer requires three observed, pairwise-distinct native
+contexts: `ANALYST`, `CODEX_CRITICAL_EXECUTOR` and
+`INDEPENDENT_REVIEWER`. This is orchestration-observed separation, not a claim
+of cryptographic provenance or model-level independence. Codex may change the proposed technical method only through the existing
+`LOCAL_EXECUTION_ADAPTATION` contract. It cannot narrow the objective or
+Definition of Done, broaden effects, change owner/Authority boundaries or turn
+unfinished authorized work into a terminal. Python may package, fingerprint,
+validate and reject role artifacts; it cannot author semantic conclusions or
+Reviewer PASS. The user is never the packet, review, checkpoint or continuation
+transport.
+
+Source changes, Polygon faults, deployment, recovery mutation and verification
+remain separately admitted actions of their existing owners. The profile's
+first semantic turn is read-only and cannot itself alter CPS, Runtime,
+Production, routing, users or Authority. A repair without origin identity and
+automatic replay is `AUTOMATION_BREAK`, not Mission completion.
+
+For a repair-ready artifact, declarations are insufficient. The existing
+Permanent Polygon consumer must provide immutable, mutually checked receipts
+for the origin experiment and obligation, seeded-fault cleanup, BDP Candidate
+identity, admitted OMP repair Mission/decision, repair-owner result, exact
+same-obligation replay and dependent regression. A stale, altered, duplicate,
+wrong-origin or incomplete receipt is `STOP_SAFE`; it cannot be converted into
+a Reviewer PASS or a CPS update by the execution profile.

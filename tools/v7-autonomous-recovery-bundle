@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+"""Bounded native-role adapter for the existing Autonomous Recovery OMP flow."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+import time
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+ANALYST_TIMEOUT_SECONDS, EXECUTOR_TIMEOUT_SECONDS, REVIEWER_TIMEOUT_SECONDS = 120, 90, 120
+SMOKE_TIMEOUT_SECONDS, DOCKER_PHASE_TIMEOUT_SECONDS, OUTER_TIMEOUT_MARGIN_SECONDS = 120, 1200, 120
+FULL_CAMPAIGN_TIMEOUT_SECONDS = ANALYST_TIMEOUT_SECONDS + EXECUTOR_TIMEOUT_SECONDS + REVIEWER_TIMEOUT_SECONDS + DOCKER_PHASE_TIMEOUT_SECONDS + OUTER_TIMEOUT_MARGIN_SECONDS
+SMOKE_OUTER_TIMEOUT_SECONDS = SMOKE_TIMEOUT_SECONDS + OUTER_TIMEOUT_MARGIN_SECONDS
+EXCERPT_LIMIT = 1000
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+class NativeContextFailure(RuntimeError):
+    def __init__(self, terminal: str, envelope: dict[str, Any], detail: str):
+        super().__init__(detail); self.terminal, self.envelope = terminal, envelope
+
+def load_lib():
+    spec = importlib.util.spec_from_file_location("v7_autonomous_recovery_lib", ROOT / "tools/v7_sync_lib.py")
+    module = importlib.util.module_from_spec(spec); assert spec.loader is not None
+    spec.loader.exec_module(module); return module
+
+def digest(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+def safe_excerpt(value: str) -> str:
+    value = value[-EXCERPT_LIMIT:]
+    value = re.sub(r"(?i)(bearer\\s+)[^\\s]+", r"\\1[REDACTED]", value)
+    return re.sub(r"(?i)(token|api[_-]?key|password)\\s*[=:]\\s*[^\\s,]+", r"\\1=[REDACTED]", value)
+
+def text_value(value: Any) -> str:
+    return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else str(value or "")
+
+def runtime_policy() -> dict[str, Any]:
+    configured = os.environ.get("CODEX_HOME", "").strip()
+    location = Path(configured).expanduser() if configured else Path.home() / ".codex"
+    return {"identity": "configured_codex_home_transport_state_v1", "location": str(location), "project_authority": "READ_ONLY", "v7_owner_status": "NON_CANONICAL_TRANSPORT_STATE", "secret_copy": False}
+
+def schema_for(role: str, packet_fingerprint: str) -> tuple[dict[str, Any], list[str]]:
+    analyst = {"current_cps_frontier":{"type":"string"},"selected_obligation":{"type":"string"},"physical_onset_contract":{"type":"string"},"affected_scope_contract":{"type":"string"},"polygon_campaign_plan":{"type":"string"},"causal_hypotheses":{"type":"array","items":{"type":"string"}},"recommended_existing_owner_change":{"type":"string"},"codex_critical_assessment":{"type":"string"},"adaptation_required":{"type":"boolean"},"remaining_outcomes":{"type":"array","items":{"type":"string"}},"owner_decision_required":{"type":"boolean"},"unproven_claims":{"type":"array","items":{"type":"string"}},"seeded_defect_diagnosis":{"type":"string"},"terminal_verdict":{"type":"string","enum":["PASS_EXPERIMENT_REPLAY_READY","CONTINUE_SAME_MISSION"]}}
+    executor = {"discovered_fact":{"type":"string"},"original_proposed_method":{"type":"string"},"adapted_method":{"type":"string"},"continuation_action":{"type":"string"},"evidence_references":{"type":"array","items":{"type":"string"}}}
+    sections = {key:{"type":"string","enum":["PASS","FAIL_WITH_EXACT_INVARIANT"]} for key in ("ARCHITECTURE_REVIEW","SAFETY_REGRESSION_REVIEW","EVIDENCE_REVIEW","MISSION_INTEGRITY_REVIEW")}
+    reviewer = {"verdict":{"type":"string","enum":["PASS","FAIL_WITH_EXACT_INVARIANT"]},"sections":{"type":"object","properties":sections,"required":list(sections),"additionalProperties":False},"rejected_candidate_ids":{"type":"array","items":{"type":"string"}},"rejection_reasons":{"type":"array","items":{"type":"string"}},"evidence_fingerprint":{"type":"string"},"scope_verdict":{"type":"string","enum":["ISOLATED_POLYGON_ENGINEERING_ONLY","FAIL_WITH_EXACT_INVARIANT"]}}
+    smoke = {"verdict":{"type":"string","const":"SMOKE_PASS"},"scope":{"type":"string","const":"READ_ONLY"},"mutations":{"type":"string","const":"NONE"},"packet_fingerprint":{"type":"string","const":packet_fingerprint}}
+    fields = {"analyst":analyst,"executor":executor,"reviewer":reviewer,"smoke_analyst":smoke}[role]
+    return {"type":"object","properties":fields,"required":list(fields),"additionalProperties":False}, list(fields)
+
+def prompt_for(role: str, packet: dict[str, Any]) -> str:
+    packet_json = json.dumps(packet, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    instruction = "Do not inspect files, call tools, or mutate anything. "
+    if role == "analyst": instruction += "Recommend an existing-owner next step only. "
+    elif role == "executor": instruction += "Critically assess the proposal and preserve owner boundaries. "
+    elif role == "reviewer": instruction += "Falsify missing owner/caller/consumer evidence, but judge only the stated isolated Polygon engineering scope; never require or infer Runtime, Production or user-effect evidence. Echo the supplied evidence fingerprint and scope verdict. "
+    return f"You are V7 Autonomous Recovery {role.upper()} in a bounded read-only native context. {instruction}Return exactly one JSON object matching the supplied schema. Immutable packet: {packet_json}"
+
+def observed_events(stdout: str, output_path: Path) -> tuple[str, str]:
+    context_id = ""; event_message = ""
+    for line in stdout.splitlines():
+        try: event = json.loads(line)
+        except json.JSONDecodeError: continue
+        if event.get("type") == "thread.started": context_id = str(event.get("thread_id") or "")
+        item = event.get("item") if isinstance(event.get("item"), dict) else {}
+        if event.get("type") == "item.completed" and item.get("type") == "agent_message": event_message = str(item.get("text") or "")
+    saved = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+    return context_id, "__OUTPUT_MISMATCH__" if event_message and saved and event_message.strip() != saved.strip() else event_message or saved
+
+def classify_failure(envelope: dict[str, Any]) -> str:
+    diagnostic = (str(envelope.get("stderr_excerpt") or "") + "\n" + str(envelope.get("stdout_excerpt") or "")).lower()
+    if envelope.get("timed_out"): return "STOP_SAFE_NATIVE_DISPATCH_TIMEOUT"
+    if any(token in diagnostic for token in ("readonly database","operation not permitted","permission denied","not logged in")): return "STOP_SAFE_NATIVE_RUNTIME_ACCESS"
+    if envelope.get("exit_code") not in (None, 0): return "STOP_SAFE_NATIVE_DISPATCH_EXIT"
+    if not envelope.get("thread_started"): return "STOP_SAFE_NATIVE_THREAD_START_MISSING"
+    if not envelope.get("final_agent_message_observed"): return "STOP_SAFE_NATIVE_FINAL_MESSAGE_MISSING"
+    return "STOP_SAFE_NATIVE_OUTPUT_INVALID"
+
+def validate_native_result(role: str, result: Any, packet_fingerprint: str, required: list[str]) -> str:
+    """Mirror the strict response contract after transport parsing.
+
+    The CLI validates the schema remotely; this local check keeps a controlled
+    parser path fail-closed if a malformed or substituted event reaches us.
+    """
+    if not isinstance(result, dict) or set(result) != set(required):
+        return "STOP_SAFE_NATIVE_OUTPUT_SCHEMA"
+    if role == "smoke_analyst":
+        if result.get("packet_fingerprint") != packet_fingerprint:
+            return "STOP_SAFE_NATIVE_PACKET_FINGERPRINT_MISMATCH"
+        if result.get("verdict") != "SMOKE_PASS" or result.get("scope") != "READ_ONLY" or result.get("mutations") != "NONE":
+            return "STOP_SAFE_NATIVE_OUTPUT_SCHEMA"
+        return ""
+    if role == "analyst":
+        strings = {"current_cps_frontier", "selected_obligation", "physical_onset_contract", "affected_scope_contract", "polygon_campaign_plan", "recommended_existing_owner_change", "codex_critical_assessment", "seeded_defect_diagnosis", "terminal_verdict"}
+        arrays = {"causal_hypotheses", "remaining_outcomes", "unproven_claims"}
+        if any(not isinstance(result[key], str) for key in strings) or any(not isinstance(result[key], list) or not all(isinstance(item, str) for item in result[key]) for key in arrays):
+            return "STOP_SAFE_NATIVE_OUTPUT_SCHEMA"
+        if not isinstance(result["adaptation_required"], bool) or not isinstance(result["owner_decision_required"], bool) or result["terminal_verdict"] not in {"PASS_EXPERIMENT_REPLAY_READY", "CONTINUE_SAME_MISSION"}:
+            return "STOP_SAFE_NATIVE_OUTPUT_SCHEMA"
+        return ""
+    if role == "executor":
+        if any(not isinstance(result[key], str) for key in ("discovered_fact", "original_proposed_method", "adapted_method", "continuation_action")):
+            return "STOP_SAFE_NATIVE_OUTPUT_SCHEMA"
+        return "" if isinstance(result["evidence_references"], list) and all(isinstance(item, str) for item in result["evidence_references"]) else "STOP_SAFE_NATIVE_OUTPUT_SCHEMA"
+    sections = result.get("sections")
+    expected_sections = {"ARCHITECTURE_REVIEW", "SAFETY_REGRESSION_REVIEW", "EVIDENCE_REVIEW", "MISSION_INTEGRITY_REVIEW"}
+    if result.get("verdict") not in {"PASS", "FAIL_WITH_EXACT_INVARIANT"} or not isinstance(sections, dict) or set(sections) != expected_sections or any(value not in {"PASS", "FAIL_WITH_EXACT_INVARIANT"} for value in sections.values()):
+        return "STOP_SAFE_NATIVE_OUTPUT_SCHEMA"
+    return "" if all(isinstance(result[key], list) and all(isinstance(item, str) for item in result[key]) for key in ("rejected_candidate_ids", "rejection_reasons")) and isinstance(result.get("evidence_fingerprint"), str) and result.get("scope_verdict") in {"ISOLATED_POLYGON_ENGINEERING_ONLY", "FAIL_WITH_EXACT_INVARIANT"} else "STOP_SAFE_NATIVE_OUTPUT_SCHEMA"
+
+
+def native_context(role: str, packet: dict[str, Any], timeout_seconds: int, *, runner: Any = subprocess.run) -> tuple[str, dict[str, Any], dict[str, Any]]:
+    packet_json = json.dumps(packet, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    packet_fingerprint = str(packet.get("packet_fingerprint") or digest(packet_json))
+    expected_response_packet_fingerprint = packet_fingerprint
+    schema, required = schema_for(role, expected_response_packet_fingerprint); started = time.monotonic()
+    with tempfile.TemporaryDirectory(prefix="v7-native-context-") as temporary:
+        temp = Path(temporary); schema_path, output_path = temp / "output-schema.json", temp / "last-message.json"
+        schema_path.write_text(json.dumps(schema, separators=(",", ":")), encoding="utf-8")
+        command = ["codex","exec","--json","--ephemeral","-s","read-only","--output-schema",str(schema_path),"--output-last-message",str(output_path),"-C",str(ROOT),prompt_for(role, packet)]
+        envelope: dict[str, Any] = {"schema":"v7.native-context-attempt-envelope.v1","role":role,"command_policy_identity":digest(json.dumps(command[:-1]+["<IMMUTABLE_PACKET_PROMPT>"],separators=(",",":"))),"runtime_policy":runtime_policy(),"packet_fingerprint":packet_fingerprint,"timeout_seconds":timeout_seconds,"project_authority":"READ_ONLY","thread_started":False,"thread_id":"","final_agent_message_observed":False}
+        try:
+            run = runner(command, cwd=ROOT, capture_output=True, text=True, timeout=timeout_seconds)
+            stdout, stderr = run.stdout or "", run.stderr or ""; envelope.update({"exit_code":run.returncode,"signal":None,"timed_out":False})
+        except subprocess.TimeoutExpired as exc:
+            stdout, stderr = text_value(exc.stdout), text_value(exc.stderr); envelope.update({"exit_code":None,"signal":None,"timed_out":True})
+        envelope.update({"elapsed_ms":round((time.monotonic()-started)*1000),"stdout_fingerprint":digest(stdout),"stderr_fingerprint":digest(stderr),"stdout_excerpt":safe_excerpt(stdout),"stderr_excerpt":safe_excerpt(stderr)})
+        context_id, message = observed_events(stdout, output_path)
+        envelope.update({"thread_started":bool(context_id),"thread_id":context_id,"final_agent_message_observed":bool(message)})
+        if message and message != "__OUTPUT_MISMATCH__": envelope.update({"final_agent_message_fingerprint":digest(message),"final_agent_message_excerpt":safe_excerpt(message)})
+        if envelope["timed_out"] or envelope["exit_code"] not in (0,None) or not context_id or not message:
+            terminal = classify_failure(envelope); raise NativeContextFailure(terminal,envelope,f"native_{role}_dispatch_failed:{terminal}")
+        if message == "__OUTPUT_MISMATCH__": raise NativeContextFailure("STOP_SAFE_NATIVE_OUTPUT_MISMATCH",envelope,f"native_{role}_output_mismatch")
+        try: result = json.loads(message)
+        except json.JSONDecodeError as exc: raise NativeContextFailure("STOP_SAFE_NATIVE_OUTPUT_INVALID",envelope,f"native_{role}_json_invalid:{exc}") from exc
+        validation_terminal = validate_native_result(role, result, packet_fingerprint, required)
+        if validation_terminal: raise NativeContextFailure(validation_terminal,envelope,f"native_{role}_schema_required:{validation_terminal}")
+        envelope["final_verdict"] = "PASS"; envelope["attempt_fingerprint"] = digest(json.dumps({key:value for key,value in envelope.items() if "excerpt" not in key},sort_keys=True))
+        return context_id, result, envelope
+
+def full_campaign_exit_code(result: dict[str, Any]) -> int: return 0 if result.get("final_verdict") == "PASS" else 2
+
+def smoke_packet(lib: Any) -> dict[str, Any]:
+    profile = lib.autonomous_recovery_full_campaign_packet(root=ROOT)
+    packet = {"schema":"v7.autonomous-recovery.native-smoke-input.v1","mission_id":profile.get("active_omp_mission_id"),"command":"AUTONOMOUS_RECOVERY NATIVE_SMOKE","profile_fingerprint":profile.get("execution_profile",{}).get("profile_fingerprint"),"owner_facts":{"project_authority":"READ_ONLY","runtime_impact":"NONE","production_impact":"NONE","authority_impact":"NONE"}}
+    packet["packet_fingerprint"] = digest(json.dumps(packet,ensure_ascii=False,separators=(",",":"),sort_keys=True)); return packet
+
+def run_native_smoke(lib: Any, *, runner: Any = subprocess.run) -> dict[str, Any]:
+    try: context_id,result,envelope = native_context("smoke_analyst",smoke_packet(lib),SMOKE_TIMEOUT_SECONDS,runner=runner)
+    except NativeContextFailure as exc: return {"final_verdict":"STOP_SAFE","terminal":exc.terminal,"errors":[str(exc)],"native_attempts":[exc.envelope]}
+    if result.get("verdict") != "SMOKE_PASS" or result.get("scope") != "READ_ONLY" or result.get("mutations") != "NONE": return {"final_verdict":"STOP_SAFE","terminal":"STOP_SAFE_NATIVE_SMOKE_CONTRACT","errors":["native_smoke_response_invalid"],"native_attempts":[envelope]}
+    return {"final_verdict":"PASS","terminal":"PASS_NATIVE_SMOKE","native_context":context_id,"native_attempts":[envelope],"provenance_level":"ORCHESTRATOR_OBSERVED_NOT_CRYPTOGRAPHIC","runtime_impact":"NONE","production_impact":"NONE","authority_impact":"NONE"}
+
+def main() -> int:
+    parser = argparse.ArgumentParser(); parser.add_argument("command",choices=["FULL_CAMPAIGN","NATIVE_SMOKE"]); parser.add_argument("--json",action="store_true"); args = parser.parse_args(); lib = load_lib()
+    if args.command == "NATIVE_SMOKE":
+        result = run_native_smoke(lib); print(json.dumps(result,ensure_ascii=False,indent=2,sort_keys=True)); return full_campaign_exit_code(result)
+    packet = lib.autonomous_recovery_full_campaign_packet(root=ROOT)
+    if packet.get("final_verdict") != "CONTINUE_SAME_MISSION": print(json.dumps(packet,ensure_ascii=False,indent=2)); return 2
+    profile, mission_id, attempts = packet["execution_profile"], str(packet["active_omp_mission_id"]), []
+    try:
+        analyst_packet = {"mission_id":mission_id,"profile_fingerprint":profile["profile_fingerprint"],"input_fingerprint":profile["input_fingerprint"],"role":"ANALYST","authority":"READ_ONLY"}
+        analyst_id,analyst,attempt = native_context("analyst",analyst_packet,ANALYST_TIMEOUT_SECONDS); attempts.append(attempt)
+        executor_packet = {"mission_id":mission_id,"profile_fingerprint":profile["profile_fingerprint"],"role":"CODEX_CRITICAL_EXECUTOR","analyst_fingerprint":digest(json.dumps(analyst,ensure_ascii=False,sort_keys=True)),"analyst":analyst,"authority":"READ_ONLY"}
+        executor_id,executor,attempt = native_context("executor",executor_packet,EXECUTOR_TIMEOUT_SECONDS); attempts.append(attempt)
+        repair = lib.execute_autonomous_recovery_docker_repair_replay_cycle(root=ROOT)
+        if repair.get("final_verdict") != "PASS": raise RuntimeError("autonomous_recovery_docker_repair_replay_failed:"+",".join(repair.get("errors") or []))
+        material_change_omp = lib.continue_omp_engineering_control_loop(root=ROOT,changed_dependencies=["tools/v7_sync_lib.py"],iteration_budget=2,scenario_budget=1,repair_budget=1,persist_cps=False); material_change = material_change_omp.get("autonomous_recovery_material_change_continuation") or {}
+        if material_change_omp.get("final_verdict") != "PASS" or material_change.get("final_verdict") != "PASS": raise RuntimeError("autonomous_recovery_material_change_continuation_failed:"+",".join(material_change.get("errors") or []))
+        distinct_seed = lib.certify_distinct_member_equivalence_seeded_repair_cycle(repair["repair"])
+        if distinct_seed.get("final_verdict") != "PASS": raise RuntimeError("autonomous_recovery_distinct_member_seed_failed:"+",".join(distinct_seed.get("errors") or []))
+        output = {"mission_reference":profile["mission_id"],"profile_reference":profile["profile_fingerprint"],"input_fingerprint":profile["input_fingerprint"],**{key:analyst.get(key) for key in ("current_cps_frontier","selected_obligation","physical_onset_contract","affected_scope_contract","polygon_campaign_plan","causal_hypotheses","recommended_existing_owner_change","codex_critical_assessment","adaptation_required","remaining_outcomes","owner_decision_required","unproven_claims","seeded_defect_diagnosis")},"repair_return_packet":repair,"fault_catalog_certification":repair.get("repair_fault_catalog"),"material_change_continuation":material_change,"material_change_omp_consumption":material_change_omp,"distinct_member_seeded_repair":distinct_seed,"terminal_verdict":str(analyst.get("terminal_verdict") or "CONTINUE_SAME_MISSION")}
+        if output["terminal_verdict"] not in {"PASS_REPAIR_READY","PASS_EXPERIMENT_REPLAY_READY"}: output["terminal_verdict"]="CONTINUE_SAME_MISSION"
+        output["engineering_evidence_contract"] = lib.autonomous_recovery_engineering_evidence_contract(packet, output, root=ROOT)
+        reviewer_packet = {"mission_id":mission_id,"role":"INDEPENDENT_REVIEWER","analyst_fingerprint":digest(json.dumps(analyst,ensure_ascii=False,sort_keys=True)),"executor_fingerprint":digest(json.dumps(executor,ensure_ascii=False,sort_keys=True)),"output_terminal":output["terminal_verdict"],"engineering_evidence":output["engineering_evidence_contract"],"authority":"READ_ONLY"}
+        reviewer_id,reviewer,attempt = native_context("reviewer",reviewer_packet,REVIEWER_TIMEOUT_SECONDS); attempts.append(attempt)
+        if reviewer.get("evidence_fingerprint") != output["engineering_evidence_contract"].get("evidence_fingerprint") or reviewer.get("scope_verdict") != "ISOLATED_POLYGON_ENGINEERING_ONLY": raise RuntimeError("autonomous_recovery_reviewer_evidence_binding_failed")
+    except NativeContextFailure as exc:
+        attempts.append(exc.envelope); result={"final_verdict":"STOP_SAFE","terminal":exc.terminal,"errors":[str(exc)],"native_attempts":attempts}; print(json.dumps(result,ensure_ascii=False,indent=2)); return 2
+    except RuntimeError as exc:
+        result={"final_verdict":"STOP_SAFE","terminal":"STOP_SAFE_EXISTING_OWNER_PHASE","errors":[str(exc)],"native_attempts":attempts}; print(json.dumps(result,ensure_ascii=False,indent=2)); return 2
+    manifest={"schema":"v7.codex-native-context-manifest.v1","roles":[{"role":"ANALYST","native_agent_id":analyst_id,"canonical_task_path":analyst_id,"fork_turns":"none","platform_dispatch":"codex_cli_exec","input_artifact_fingerprints":[packet["packet_fingerprint"]]},{"role":"CODEX_CRITICAL_EXECUTOR","native_agent_id":executor_id,"canonical_task_path":executor_id,"fork_turns":"none","platform_dispatch":"codex_cli_exec","input_artifact_fingerprints":[packet["packet_fingerprint"]]}]}
+    provisional=lib.gpt_decision_review_result_contract(profile,output,executor_context_id=executor_id,native_context_manifest=manifest); verdict=str(reviewer.get("verdict") or "FAIL_WITH_EXACT_INVARIANT")
+    reviews=[lib.execution_profile_review_record(profile,provisional,review_type=review_type,review_verdict="PASS" if verdict=="PASS" and (reviewer.get("sections") or {}).get(review_type)=="PASS" else "FAIL_WITH_EXACT_INVARIANT",review_context_id=reviewer_id,native_context_proof={"role":"INDEPENDENT_REVIEWER","native_agent_id":reviewer_id,"canonical_task_path":reviewer_id,"fork_turns":"none","platform_dispatch":"codex_cli_exec"},engineering_evidence=output["engineering_evidence_contract"]) for review_type in profile["required_reviews"]]
+    adaptation=lib.autonomous_recovery_codex_adaptation(packet["mission_intent"],codex_executor_context_id=executor_id,discovered_fact=str(executor.get("discovered_fact") or "native executor did not provide a fact"),original_proposed_method=str(executor.get("original_proposed_method") or "none"),adapted_method=str(executor.get("adapted_method") or "none"),continuation_action=str(executor.get("continuation_action") or "EXISTING_OMP_OWNER_SELECTS_NEXT_LAWFUL_RECOVERY_OBLIGATION"),evidence_references=list(executor.get("evidence_references") or []))
+    result=lib.submit_autonomous_recovery_result(packet=packet,output=output,reviews=reviews,native_context_manifest=manifest,codex_adaptation=adaptation,root=ROOT)
+    result.update({"native_contexts":{"analyst":analyst_id,"executor":executor_id,"reviewer":reviewer_id},"native_attempts":attempts,"provenance_level":"ORCHESTRATOR_OBSERVED_NOT_CRYPTOGRAPHIC"})
+    campaign_evidence=lib.persist_autonomous_recovery_campaign_evidence(packet=packet,output=output,result=result,native_attempts=attempts,reviews=reviews,root=ROOT)
+    result["campaign_evidence"]=campaign_evidence
+    if campaign_evidence.get("final_verdict") != "PASS":
+        result["final_verdict"]="STOP_SAFE"; result["terminal"]="STOP_SAFE_AUTONOMOUS_RECOVERY_EVIDENCE_PERSISTENCE"
+        result["errors"]=sorted(set((result.get("errors") or [])+(campaign_evidence.get("errors") or [])))
+    print(json.dumps(result,ensure_ascii=False,indent=2 if args.json else None,sort_keys=True)); return full_campaign_exit_code(result)
+
+if __name__ == "__main__": sys.exit(main())

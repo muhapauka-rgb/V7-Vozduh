@@ -12300,6 +12300,16 @@ may suppress only the material-change trigger and is never a lawful terminal
 for an explicit full command; only a real safety, Authority or missing-proof
 boundary can stop that command before its full result.
 
+The existing event-driven OMP reentry owner may forward only an exact
+owner-bound Autonomous Recovery material-change marker or one bounded cadence
+marker to the standard Continue OMP entrypoint. It retains the external
+reentry lease, current-CPS compare-and-set and evidence journal. A manual
+frozen snapshot is compact-command-only and cannot be manufactured by a
+recurring wake. Codex controller escalation is an existing task-handoff
+operation, not a V7 Runtime owner: a factual stop is sent to the active
+controller with condition, evidence, owner, safe independent work and minimal
+decision; the dependent branch alone waits.
+
 The initial deterministic invocation freezes CPS/OMP/SYSTEM_MAP/Program
 identity, the complete Program Section 8 Definition of Done, effect boundaries
 and the same-Mission continuation policy. It binds the profile to the exact

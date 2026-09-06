@@ -132,6 +132,45 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertFalse(self.lease.exists())
         self.assertEqual(len(self.evidence.read_text(encoding="utf-8").splitlines()), 1)
 
+    def test_existing_external_reentry_forwards_bounded_ar_cadence_to_standard_omp(self):
+        marker = "AUTONOMOUS_RECOVERY_BOUNDED_CADENCE:900"
+        observed = []
+        original = self.lib._external_reentry_run_standard_entrypoint
+
+        def standard_entrypoint(root, *, changed_dependencies=()):
+            observed.append((root, tuple(changed_dependencies)))
+            return self.fake_runner(root)
+
+        self.lib._external_reentry_run_standard_entrypoint = standard_entrypoint
+        try:
+            result = self.run_reentry(
+                continue_runner=None,
+                continue_omp_changes=[marker],
+            )
+        finally:
+            self.lib._external_reentry_run_standard_entrypoint = original
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertEqual(observed, [(self.root, (marker,))])
+        self.assertEqual(result["requested_continue_omp_changes"], [marker])
+        self.assertEqual(result["trigger_admission"]["final_verdict"], "PASS")
+        self.assertTrue(result["lease_released"])
+        self.assertTrue(result["no_overlap"])
+        self.assertEqual(
+            result["trigger_admission"]["identities"][0]["trigger_kind"],
+            "BOUNDED_CADENCE",
+        )
+        manual = self.run_reentry(
+            continue_omp_changes=["AUTONOMOUS_RECOVERY_MANUAL_FULL:must-not-run"],
+        )
+        self.assertEqual(manual["final_verdict"], "STOP_SAFE")
+        self.assertFalse(manual["standard_entrypoint_invoked"])
+        self.assertIn("manual_full_is_compact_command_only", manual["errors"])
+        unqualified = self.run_reentry(
+            continue_omp_changes=["docs/reference/not-an-ar-owner.md"],
+        )
+        self.assertEqual(unqualified["final_verdict"], "STOP_SAFE")
+        self.assertIn("external_reentry_dependency_not_autonomous_recovery_qualified", unqualified["errors"])
+
     def test_external_input_suppresses_entrypoint(self):
         self.replace_live("EXTERNAL_INPUT_REQUIRED", "TRUE")
         result = self.run_reentry()

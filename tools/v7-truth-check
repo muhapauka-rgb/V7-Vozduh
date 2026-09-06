@@ -2074,6 +2074,7 @@ def main(argv: Optional[list[str]] = None, *, native_bundle_runner: Optional[Cal
             execute_continue_omp=True,
             event_identity_override=args.event_driven_wake_id,
             event_source_kind="IMMEDIATE_THREAD_SIGNAL",
+            continue_omp_changes=args.continue_omp_change,
             root=ROOT_DIR,
         )
         if args.json:

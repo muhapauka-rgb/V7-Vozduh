@@ -15,6 +15,13 @@ same Mission until Program Section 8 is behaviorally accepted or an exact
 legal boundary is consumed. Packet-ready, a test, report, commit, repair or one
 experiment is never a terminal.
 
+If a real `STOP_SAFE`, stale packet, missing proof, conflicting contract or
+external boundary occurs, emit one `CONTROLLER_ESCALATION` directly to the
+active controlling Codex task: exact condition, evidence, affected owner,
+safe independent work and the smallest required decision. Do not ask the user
+to relay it. This is orchestration transport, not a V7 Runtime component; hold
+only the dependent branch and continue independent safe work.
+
 `FULL_CAMPAIGN` is always one explicit manual admission to the existing OMP
 flow: it must create one new frozen-snapshot Polygon experiment from current
 CPS even when no source diff exists. A missing material diff may suppress only

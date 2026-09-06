@@ -10374,11 +10374,17 @@ def _external_reentry_acquire_lease(
     return {"acquired": False, "outcome": "REENTRY_FAILED_SAFE", "errors": ["lease_acquire_retry_exhausted"]}
 
 
-def _external_reentry_run_standard_entrypoint(root: Path) -> dict[str, Any]:
+def _external_reentry_run_standard_entrypoint(
+    root: Path, *, changed_dependencies: Iterable[str] = (),
+) -> dict[str, Any]:
+    """Invoke the existing Continue-OMP entrypoint with an owner-bound trigger."""
+    normalized_changes = tuple(str(item) for item in changed_dependencies)
     command = [
         str(root / "tools/v7-truth-check"), "--continue-omp",
         "--continue-omp-persist-cps", "--json",
     ]
+    for changed_dependency in normalized_changes:
+        command.extend(("--continue-omp-change", changed_dependency))
     try:
         completed = subprocess.run(
             command, cwd=str(root), text=True, capture_output=True,
@@ -10395,6 +10401,7 @@ def _external_reentry_run_standard_entrypoint(root: Path) -> dict[str, Any]:
         }
     payload["subprocess_returncode"] = completed.returncode
     payload["exact_entrypoint"] = EXTERNAL_REENTRY_STANDARD_ENTRYPOINT
+    payload["requested_changed_dependencies"] = list(normalized_changes)
     return payload
 
 
@@ -10472,6 +10479,7 @@ def heartbeat_program_reentry(
     seen_event_ids: Optional[Iterable[str]] = None,
     seen_wakeup_run_ids: Optional[Iterable[str]] = None,
     execute_continue_omp: bool = False,
+    continue_omp_changes: Optional[Iterable[str]] = None,
     continue_runner: Optional[Callable[[Path], dict[str, Any]]] = None,
     lease_path: Optional[Path] = None,
     evidence_path: Optional[Path] = None,
@@ -10514,6 +10522,21 @@ def heartbeat_program_reentry(
         "## Authoritative Unfinished Capability Closure Registry",
     ))
     current_generation = live.get("CURRENT_STATE_GENERATION", "").strip("`")
+    requested_changes = tuple(str(item) for item in (continue_omp_changes or ()))
+    if requested_changes:
+        trigger_admission = autonomous_recovery_external_reentry_admission(
+            requested_changes, root=root,
+        )
+        if trigger_admission.get("final_verdict") != "PASS":
+            return {
+                "schema": "v7-omp-external-reentry/v1", "final_verdict": "STOP_SAFE",
+                "reentry_outcome": "REENTRY_TRIGGER_ADMISSION_STOP_SAFE",
+                "standard_entrypoint_invoked": False, "consumer_invoked": False,
+                "requested_continue_omp_changes": list(requested_changes),
+                "trigger_admission": trigger_admission,
+                "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+                "errors": trigger_admission.get("errors") or ["external_reentry_trigger_admission_failed"],
+            }
     pending_wake_id = _plain_live_value(live, "PENDING_WAKE_ID")
     last_dispatched_wake_id = _plain_live_value(live, "LAST_DISPATCHED_WAKE_ID")
     watchdog_recovery = False
@@ -10782,7 +10805,11 @@ def heartbeat_program_reentry(
                         "standard_entrypoint_invoked": False, "consumer_invoked": False,
                     }
                 else:
-                    runner = continue_runner or _external_reentry_run_standard_entrypoint
+                    runner = continue_runner or (
+                        lambda runner_root: _external_reentry_run_standard_entrypoint(
+                            runner_root, changed_dependencies=requested_changes,
+                        )
+                    )
                     continue_result = runner(root)
                     continue_ok = (
                         continue_result.get("final_verdict") in {"PASS", "BOUNDED_CONTINUATION"}
@@ -10924,6 +10951,8 @@ def heartbeat_program_reentry(
                         "cps_generation_after": completed_generation if post_ok else "POST_WRITE_FAILED",
                         "standard_entrypoint": EXTERNAL_REENTRY_STANDARD_ENTRYPOINT,
                         "standard_entrypoint_invoked": True,
+                        "requested_continue_omp_changes": list(requested_changes),
+                        "trigger_admission": trigger_admission if requested_changes else None,
                         "real_caller": "continue_omp_engineering_control_loop",
                         "real_consumer": continue_result.get("real_consumer", "OMP_PROGRAM_EXECUTION_RECONCILIATION"),
                         "consumer_invoked": consumer_invoked, "internal_iteration_count": transition_count,
@@ -16059,6 +16088,39 @@ def _autonomous_recovery_material_change_identity(
             "after_fingerprint": after,
             "baseline_kind": "GIT_HEAD_BLOB" if baseline.returncode == 0 else "GIT_HEAD_ABSENT",
             "trigger_kind": "MATERIAL_CHANGE", "final_verdict": "PASS", "errors": []}
+
+
+def autonomous_recovery_external_reentry_admission(
+    changed_dependencies: Iterable[str], *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Admit only owner-bound AR material/cadence triggers through existing OMP.
+
+    Manual full snapshots stay exclusive to the compact full-command bundle so a
+    recurring platform wake cannot manufacture an operator-equivalent command.
+    This is an adapter for the pre-existing external reentry owner, not another
+    dispatcher, queue, timer, or scheduler.
+    """
+    dependencies = tuple(str(item) for item in changed_dependencies)
+    if not dependencies:
+        return {"final_verdict": "PASS", "changed_dependencies": [], "identities": [], "errors": []}
+    identities = [_autonomous_recovery_material_change_identity(item, root=root) for item in dependencies]
+    errors: list[str] = []
+    for identity in identities:
+        if not identity.get("qualifying"):
+            errors.append("external_reentry_dependency_not_autonomous_recovery_qualified")
+        elif identity.get("final_verdict") != "PASS":
+            errors.extend(identity.get("errors") or ["external_reentry_trigger_identity_invalid"])
+        elif identity.get("trigger_kind") == "MANUAL_FULL":
+            errors.append("manual_full_is_compact_command_only")
+        elif identity.get("trigger_kind") not in {"MATERIAL_CHANGE", "BOUNDED_CADENCE"}:
+            errors.append("external_reentry_trigger_kind_not_allowed")
+    return {
+        "schema": "v7.autonomous-recovery-external-reentry-admission.v1",
+        "final_verdict": "PASS" if not errors else "STOP_SAFE",
+        "changed_dependencies": list(dependencies), "identities": identities,
+        "errors": sorted(set(errors)), "runtime_impact": "NONE",
+        "production_impact": "NONE", "authority_impact": "NONE",
+    }
 
 
 def certify_autonomous_recovery_equivalence_stages(execution: dict[str, Any]) -> dict[str, Any]:

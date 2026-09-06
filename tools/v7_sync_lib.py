@@ -11926,7 +11926,7 @@ AUTONOMOUS_RECOVERY_ENGINEERING_E2E_OUTCOMES = (
     "NATIVE_ANALYST_CRITICAL_EXECUTOR_AND_INDEPENDENT_REVIEW_CONSUMED",
     "NONTRIVIAL_SEEDED_DEFECT_REPAIRED_BY_EXISTING_OWNER",
     "ORIGIN_EXPERIMENT_AUTOMATIC_REPLAY_PASSED",
-    "POLYGON_E2E_ONE_CLIENT_BASELINE_WITHIN_SEVEN_SECONDS",
+    "POLYGON_E2E_FIVE_USER_BASELINE_WITHIN_SEVEN_SECONDS",
     "SCALE_AND_CAPACITY_LAW_OWNER_CONSUMED",
     "NO_UNEXPLAINED_MANUAL_RELAY",
     "OWNER_CONSUMED_PROJECTION_OR_LAWFUL_TERMINAL_WITH_SUCCESSOR",
@@ -12093,7 +12093,7 @@ def autonomous_recovery_engineering_evidence_contract(packet: dict[str, Any], ou
 def autonomous_recovery_polygon_e2e_baseline_binding(
     output: dict[str, Any],
 ) -> dict[str, Any]:
-    """Validate the one-client Polygon E2E ledger before any scale campaign.
+    """Validate the five-user controlled Polygon E2E ledger before scale.
 
     The former isolated Docker receipt starts its stopwatch immediately before
     a local ``tc`` command and then runs a bespoke HTTP loop.  It therefore
@@ -12130,7 +12130,10 @@ def autonomous_recovery_polygon_e2e_baseline_binding(
     values = [timestamps.get(name) for name in ordered]
     checks = {
         "polygon_e2e_label": baseline.get("evidence_label") == "POLYGON_E2E",
-        "one_client_baseline": baseline.get("frozen_affected_scope_count") == 1,
+        # The existing controlled-certification contract owns a five-user pool.
+        # A one-user substitute would be a new action class and cannot certify
+        # the governed current-state-to-executor path.
+        "five_user_certification_baseline": baseline.get("frozen_affected_scope_count") == 5,
         "production_not_claimed": baseline.get("production_label") in {"UNKNOWN", "NOT_PRODUCTION"},
         "actual_health_owner": baseline.get("health_owner") == "tools/runtime-support/v7-health-loop",
         "actual_matrix_owner": baseline.get("matrix_owner") == "tools/v7-service-matrix-refresh-all",
@@ -12150,29 +12153,40 @@ def autonomous_recovery_polygon_e2e_baseline_binding(
         else 0
     )
     checks["within_seven_seconds"] = elapsed_ns <= 7_000_000_000 and elapsed_ns > 0
-    passed = all(checks.values())
+    structural_checks = {
+        name: value for name, value in checks.items()
+        if name != "within_seven_seconds"
+    }
+    structurally_proven = all(structural_checks.values())
+    passed = structurally_proven and checks["within_seven_seconds"]
+    over_seven = structurally_proven and not checks["within_seven_seconds"]
     return {
         "schema": "v7.autonomous-recovery-polygon-e2e-baseline-binding.v1",
         "terminal": (
             "VERIFIED_E2E_WITHIN_7S" if passed
+            else "VERIFIED_E2E_OVER_7S" if over_seven
             else "STOP_SAFE_POLYGON_E2E_BASELINE_REQUIRED"
         ),
         "final_verdict": "PASS" if passed else "STOP_SAFE",
-        "evidence_label": "POLYGON_E2E" if passed else "UNKNOWN",
+        "evidence_label": "POLYGON_E2E" if structurally_proven else "UNKNOWN",
         "production_label": "UNKNOWN",
         "frozen_affected_scope_count": baseline.get("frozen_affected_scope_count"),
         "fault_to_last_affected_s11_ms": (
             round(elapsed_ns / 1_000_000.0, 3) if elapsed_ns else None
         ),
         "checks": checks,
-        "missing_owner_connection": "" if passed else missing_connection,
+        "missing_owner_connection": "" if structurally_proven else missing_connection,
         "next_executable_action": (
-            "ADMIT_1K_ONLY_AFTER_THIS_ONE_CLIENT_LEDGER_PASSES"
+            "ADMIT_1K_ONLY_AFTER_THIS_FIVE_USER_LEDGER_PASSES"
             if passed else
+            "RETAIN_OVER_7S_LEDGER_AND_DO_NOT_ADMIT_SCALE"
+            if over_seven else
             "EXTEND_EXISTING_V7_HEALTH_CONTROLLED_POLYGON_PATH_WITH_"
             "EXISTING_MATRIX_AND_GOVERNED_EXECUTOR_STATE_BINDING"
         ),
-        "errors": [] if passed else [name for name, value in checks.items() if not value],
+        "errors": [] if passed else [
+            name for name, value in checks.items() if not value
+        ],
     }
 
 
@@ -12235,8 +12249,8 @@ def autonomous_recovery_e2e_completion_binding(
         "ORIGIN_EXPERIMENT_AUTOMATIC_REPLAY_PASSED": seed.get("replay", {}).get("final_verdict") == "PASS" and repair_cycle.get("checks", {}).get("cleanup_and_replay_proven") is True,
         # Isolated Docker/assembler receipts remain useful engineering evidence,
         # but are explicitly not the full product chain.  Only the immutable
-        # one-client ledger above can admit a later scale run.
-        "POLYGON_E2E_ONE_CLIENT_BASELINE_WITHIN_SEVEN_SECONDS": e2e_baseline.get("final_verdict") == "PASS",
+        # five-user certification ledger above can admit a later scale run.
+        "POLYGON_E2E_FIVE_USER_BASELINE_WITHIN_SEVEN_SECONDS": e2e_baseline.get("final_verdict") == "PASS",
         "SCALE_AND_CAPACITY_LAW_OWNER_CONSUMED": equivalence.get("final_verdict") == "PASS" and equivalence.get("engineering_certified_scopes") == [1_000, 10_000],
         "NO_UNEXPLAINED_MANUAL_RELAY": material.get("no_user_relay") is True and material_omp.get("trigger", "").startswith("Continue OMP"),
         "OWNER_CONSUMED_PROJECTION_OR_LAWFUL_TERMINAL_WITH_SUCCESSOR": material_omp.get("real_caller") == "continue_omp_engineering_control_loop" and bool(material_omp.get("transitions")) and material.get("final_verdict") == "PASS",

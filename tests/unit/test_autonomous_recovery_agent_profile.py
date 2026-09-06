@@ -454,8 +454,39 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
         self.assertEqual(e2e["evidence_label"], "UNKNOWN")
         self.assertIn("polygon_e2e_baseline_missing", e2e["errors"])
         self.assertIn(
-            "POLYGON_E2E_ONE_CLIENT_BASELINE_WITHIN_SEVEN_SECONDS",
+            "POLYGON_E2E_FIVE_USER_BASELINE_WITHIN_SEVEN_SECONDS",
             baseline["errors"],
+        )
+
+    def test_five_user_polygon_ledger_records_over_seven_without_scale_admission(self):
+        baseline = self.lib.autonomous_recovery_polygon_e2e_baseline_binding({
+            "polygon_e2e_baseline": {
+                "evidence_label": "POLYGON_E2E",
+                "production_label": "NOT_PRODUCTION",
+                "frozen_affected_scope_count": 5,
+                "health_owner": "tools/runtime-support/v7-health-loop",
+                "matrix_owner": "tools/v7-service-matrix-refresh-all",
+                "governed_executor": "tools/v7-users-autoswitch",
+                "required_service_s11_owner": "existing required-service owner",
+                "synthetic": False,
+                "trigger_origin": "PHYSICAL_CHANNEL_FAILURE",
+                "timestamps": {
+                    "physical_failure_injected_monotonic_ns": 1_000_000_000,
+                    "health_detection_monotonic_ns": 2_000_000_000,
+                    "matrix_current_scope_monotonic_ns": 3_000_000_000,
+                    "governed_mutation_monotonic_ns": 4_000_000_000,
+                    "kernel_route_verified_monotonic_ns": 5_000_000_000,
+                    "last_affected_required_service_s11_monotonic_ns": 8_100_000_000,
+                },
+            },
+        })
+        self.assertEqual(baseline["terminal"], "VERIFIED_E2E_OVER_7S")
+        self.assertEqual(baseline["final_verdict"], "STOP_SAFE")
+        self.assertEqual(baseline["evidence_label"], "POLYGON_E2E")
+        self.assertEqual(baseline["fault_to_last_affected_s11_ms"], 7100.0)
+        self.assertEqual(
+            baseline["next_executable_action"],
+            "RETAIN_OVER_7S_LEDGER_AND_DO_NOT_ADMIT_SCALE",
         )
 
     def test_native_artifact_chain_is_interim_not_section8_completion(self):
@@ -477,7 +508,7 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
             result["polygon_e2e_completion"]["errors"],
         )
         self.assertIn(
-            "POLYGON_E2E_ONE_CLIENT_BASELINE_WITHIN_SEVEN_SECONDS",
+            "POLYGON_E2E_FIVE_USER_BASELINE_WITHIN_SEVEN_SECONDS",
             result["polygon_e2e_completion"]["errors"],
         )
 

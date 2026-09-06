@@ -25,8 +25,9 @@ affected required-service S11.
 
 ## Implemented fail-closed correction
 
-`autonomous_recovery_polygon_e2e_baseline_binding` now requires a one-client
-ledger with monotonic timestamps, all existing owner identities, a physical
+`autonomous_recovery_polygon_e2e_baseline_binding` now requires the existing
+five-user controlled-certification ledger with monotonic timestamps, all
+existing owner identities, a physical
 trigger origin, no synthetic receipt, `POLYGON_E2E` evidence label, and an
 explicit non-Production label.  Absent or incomplete evidence returns:
 
@@ -36,7 +37,11 @@ with the exact missing connection:
 
 `existing_v7_health_detector_to_isolated_matrix_current_state_event_governed_executor_required_service_s11_ledger`.
 
-No 1K or 10K run is admitted before that baseline passes.  A later result can
+No 1K or 10K run is admitted before that baseline passes.  A structurally
+complete ledger over seven seconds is retained as `POLYGON_E2E` evidence with
+the terminal `VERIFIED_E2E_OVER_7S`, but remains `STOP_SAFE` for scale. A one-user
+substitute is not lawful because the existing controlled-certification owner
+contract binds the complete five-user pool. A later result can
 be only `VERIFIED_E2E_WITHIN_7S`, an over-7s causal ledger, or this exact
 STOP_SAFE boundary.
 

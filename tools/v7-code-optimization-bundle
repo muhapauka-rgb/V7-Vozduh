@@ -10,7 +10,9 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +31,13 @@ RUN_MANIFEST_SCHEMA = "v7.code-optimization-disposable-run-manifest.v1"
 RUN_CHECKPOINT_SCHEMA = "v7.code-optimization-disposable-run-checkpoint.v1"
 MODEL_ARTIFACT_SCHEMA = "v7.code-optimization-model-authored-external-artifact.v1"
 ORCHESTRATOR_ATTESTATION_SCHEMA = "v7.code-optimization-orchestrator-attestation.v1"
+STOP_PACKET_SCHEMA = "v7.code-optimization-stop-packet.v1"
+STOP_CLASSIFICATION_SCHEMA = "v7.code-optimization-stop-classification.v1"
+
+LOCAL_STOP_RESOLVABLE_BY_ENGINEERING = "LOCAL_STOP_RESOLVABLE_BY_ENGINEERING"
+DECISION_REVIEW_REQUIRED = "DECISION_REVIEW_REQUIRED"
+OWNER_DECISION_REQUIRED = "OWNER_DECISION_REQUIRED"
+FUNDAMENTAL_STOP = "FUNDAMENTAL_STOP"
 
 
 def _sha(value: bytes) -> str:
@@ -90,6 +99,26 @@ def _git_head() -> str:
     ).stdout.strip()
 
 
+def _product_worktree_inventory() -> list[dict[str, str]]:
+    completed = subprocess.run(
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False,
+    )
+    if completed.returncode:
+        return [{"path": "GIT_INVENTORY_ERROR", "kind": "error", "sha256": _sha(completed.stdout)}]
+    records: list[dict[str, str]] = []
+    for raw in sorted(item for item in completed.stdout.split(b"\0") if item):
+        relative = os.fsdecode(raw)
+        path = ROOT / relative
+        if path.is_symlink():
+            records.append({"path": relative, "kind": "symlink", "sha256": _sha(os.fsencode(os.readlink(path)))})
+        elif path.is_file():
+            records.append({"path": relative, "kind": "file", "sha256": _sha(path.read_bytes())})
+        else:
+            records.append({"path": relative, "kind": "missing", "sha256": "MISSING"})
+    return records
+
+
 def _run_snapshot(packets: list[dict[str, Any]]) -> dict[str, Any]:
     """Capture every identity that may invalidate a prepared semantic packet."""
     paths = sorted({
@@ -100,9 +129,11 @@ def _run_snapshot(packets: list[dict[str, Any]]) -> dict[str, Any]:
         for path in paths
     }
     system_map = ROOT / "docs/reference/SYSTEM_MAP.md"
+    inventory = _product_worktree_inventory()
     return {
         "base_commit": _git_head(),
-        "worktree_fingerprint": _product_worktree_fingerprint(),
+        "worktree_fingerprint": _json_fingerprint(inventory),
+        "worktree_inventory": inventory,
         "system_map_sha256": _sha(system_map.read_bytes()) if system_map.is_file() else "MISSING",
         "source_fingerprints": source,
     }
@@ -110,6 +141,47 @@ def _run_snapshot(packets: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _stop_safe(terminal: str, *errors: str) -> dict[str, Any]:
     return {"final_verdict": "STOP_SAFE", "terminal": terminal, "errors": sorted(set(errors))}
+
+
+def _snapshot_changed_paths(snapshot: dict[str, Any]) -> list[dict[str, str]]:
+    """Return an exact path delta when this generation kept an inventory."""
+    before = {
+        str(item.get("path") or ""): item
+        for item in (snapshot.get("worktree_inventory") or []) if isinstance(item, dict)
+    }
+    after = {item["path"]: item for item in _product_worktree_inventory()}
+    changed: list[dict[str, str]] = []
+    for path in sorted(set(before) | set(after)):
+        old, new = before.get(path), after.get(path)
+        if old == new:
+            continue
+        if old is None:
+            change = "ADDED"
+        elif new is None:
+            change = "DELETED"
+        else:
+            change = "MODIFIED"
+        changed.append({"path": path, "change": change})
+    return changed
+
+
+def _classify_changed_surface(path: str, manifest: dict[str, Any]) -> str:
+    snapshot = manifest.get("snapshot") if isinstance(manifest.get("snapshot"), dict) else {}
+    source_paths = set(map(str, (snapshot.get("source_fingerprints") or {}).keys()))
+    if path in source_paths:
+        return "CURRENT_IMPLEMENTATION_SURFACE"
+    if path == "docs/reference/SYSTEM_MAP.md" or path in {
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md",
+    }:
+        return "CURRENT_OWNER_CONTRACT_SURFACE"
+    if path.startswith("tests/"):
+        return "TEST_SURFACE"
+    if path.startswith("docs/reports/") or path.startswith(".codex-build/"):
+        return "ENGINEERING_EVIDENCE_SURFACE"
+    if path.startswith("docs/"):
+        return "UNKNOWN"
+    return "UNKNOWN"
 
 
 def _load_run_manifest(bundle: Path) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -168,6 +240,284 @@ def _verify_run_manifest(bundle: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     if errors:
         return {}, _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_RUN_SNAPSHOT_DRIFT", *errors)
     return state, {}
+
+
+def build_stop_packet(bundle: Path) -> dict[str, Any]:
+    """Freeze an observed local stop without creating a campaign registry."""
+    persisted = bundle / "stop-packet.json"
+    if persisted.is_file():
+        try:
+            existing = _read_json(persisted)
+        except (OSError, json.JSONDecodeError):
+            return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_PACKET_INVALID", "persisted_stop_packet_invalid")
+        if (
+            isinstance(existing, dict)
+            and existing.get("schema") == STOP_PACKET_SCHEMA
+            and existing.get("stop_packet_fingerprint") == _json_fingerprint({
+                key: value for key, value in existing.items() if key != "stop_packet_fingerprint"
+            })
+        ):
+            return existing
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_PACKET_INVALID", "persisted_stop_packet_fingerprint_invalid")
+    state, load_error = _load_run_manifest(bundle)
+    if load_error:
+        return load_error
+    _, failure = _verify_run_manifest(bundle)
+    if not failure:
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_NO_LOCAL_STOP", "run_snapshot_is_current")
+    manifest, checkpoint = state.get("manifest") or {}, state.get("checkpoint") or {}
+    snapshot = manifest.get("snapshot") if isinstance(manifest.get("snapshot"), dict) else {}
+    stop = {
+        "schema": STOP_PACKET_SCHEMA,
+        "campaign_id": manifest.get("mission_id"),
+        "campaign_fingerprint": manifest.get("mission_intent_fingerprint"),
+        "run_nonce": manifest.get("run_nonce"),
+        "profile_fingerprint": manifest.get("profile_fingerprint"),
+        "domain_id": checkpoint.get("current_domain_id"),
+        "current_domain_index": checkpoint.get("current_domain_index"),
+        "original_stop_reason": failure.get("terminal"),
+        "stop_evidence": failure.get("errors") or [],
+        "stop_observed_at": datetime.now(timezone.utc).isoformat(),
+        "repository_commit": snapshot.get("base_commit"),
+        "worktree_fingerprint": snapshot.get("worktree_fingerprint"),
+        "input_fingerprint": _json_fingerprint({
+            "request": manifest.get("request"), "snapshot": snapshot,
+        }),
+        "checkpoint_state": {
+            "completed_domains": checkpoint.get("completed_domains") or [],
+            "current_domain_id": checkpoint.get("current_domain_id"),
+            "current_domain_index": checkpoint.get("current_domain_index"),
+        },
+        "partial_domains": ([] if checkpoint.get("current_domain_id") is None else [checkpoint.get("current_domain_id")]),
+        "changed_paths": _snapshot_changed_paths(snapshot),
+        "invalidated_artifacts": [
+            "current-packet.json", "agent-packets.json", "prepared-packets.json",
+        ],
+        "effect_boundary": "NO_CPS_RUNTIME_PRODUCTION_OR_AUTHORITY_EFFECT",
+    }
+    stop["stop_packet_fingerprint"] = _json_fingerprint(stop)
+    _write_json(persisted, stop)
+    return stop
+
+
+def classify_stop_packet(bundle: Path) -> dict[str, Any]:
+    """Classify a frozen stop; unknown material surfaces require review, never retry."""
+    stop = build_stop_packet(bundle)
+    if stop.get("schema") != STOP_PACKET_SCHEMA:
+        return stop
+    state, _ = _load_run_manifest(bundle)
+    manifest = state.get("manifest") or {}
+    surfaces = [{
+        **item,
+        "surface_class": _classify_changed_surface(str(item.get("path") or ""), manifest),
+    } for item in stop.get("changed_paths") or []]
+    reason = str(stop.get("original_stop_reason") or "")
+    known_snapshot_drift = reason == "STOP_SAFE_CODE_OPTIMIZATION_RUN_SNAPSHOT_DRIFT"
+    classes = {item["surface_class"] for item in surfaces}
+    if known_snapshot_drift and surfaces and classes <= {
+        "CURRENT_IMPLEMENTATION_SURFACE", "CURRENT_OWNER_CONTRACT_SURFACE",
+        "TEST_SURFACE", "ENGINEERING_EVIDENCE_SURFACE",
+    }:
+        disposition = LOCAL_STOP_RESOLVABLE_BY_ENGINEERING
+        resolution = "REPREPARE_FRESH_FULL_BASELINE_GENERATION"
+        review_required = False
+    elif known_snapshot_drift:
+        disposition = DECISION_REVIEW_REQUIRED
+        resolution = "GPT_DECISION_REVIEW_REQUIRED_BEFORE_REPREPARE"
+        review_required = True
+    else:
+        disposition = FUNDAMENTAL_STOP
+        resolution = "STOP_SAFE_UNCLASSIFIED_ENGINEERING_BOUNDARY"
+        review_required = False
+    result = {
+        "schema": STOP_CLASSIFICATION_SCHEMA,
+        "stop_packet": stop,
+        "stop_packet_fingerprint": stop["stop_packet_fingerprint"],
+        "changed_surfaces": surfaces,
+        "orchestration_disposition": disposition,
+        "resolution_type": resolution,
+        "review_required": review_required,
+        "owner_decision_required": disposition == OWNER_DECISION_REQUIRED,
+        "safe_to_resume": disposition == LOCAL_STOP_RESOLVABLE_BY_ENGINEERING,
+        "reentry_condition": (
+            "fresh quiescent snapshot and a new immutable generation"
+            if disposition == LOCAL_STOP_RESOLVABLE_BY_ENGINEERING else
+            "an exact current GPT decision bound to this stop packet"
+            if disposition == DECISION_REVIEW_REQUIRED else
+            "owner or fundamental-boundary resolution"
+        ),
+        "provenance_scope": "DETERMINISTIC_ARTIFACT_BINDING_NOT_CRYPTOGRAPHIC_AGENT_IDENTITY",
+        "final_verdict": "PASS" if disposition != FUNDAMENTAL_STOP else "STOP_SAFE",
+        "terminal": (
+            "LOCAL_ENGINEERING_STOP_REPREPARE_READY"
+            if disposition == LOCAL_STOP_RESOLVABLE_BY_ENGINEERING else
+            "GPT_DECISION_STOP_ROUTING_REQUIRED"
+            if disposition == DECISION_REVIEW_REQUIRED else
+            "STOP_SAFE_UNCLASSIFIED_ENGINEERING_BOUNDARY"
+        ),
+    }
+    result["classification_fingerprint"] = _json_fingerprint(result)
+    return result
+
+
+def prepare_stop_review(bundle: Path) -> dict[str, Any]:
+    """Issue one read-only existing-profile packet for an ambiguous stop."""
+    classification = classify_stop_packet(bundle)
+    if classification.get("orchestration_disposition") != DECISION_REVIEW_REQUIRED:
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_REVIEW_NOT_REQUIRED", "decision_review_disposition_required")
+    stop = classification["stop_packet"]
+    profile = sync_lib.gpt_decision_review_profile_contract(
+        mission_id=str(stop.get("campaign_id") or ""),
+        run_nonce=f"stop-review-{str(stop.get('stop_packet_fingerprint') or '')[:16]}",
+        input_fingerprint=str(stop.get("stop_packet_fingerprint") or ""),
+        repo_fingerprint=str(stop.get("worktree_fingerprint") or ""),
+    )
+    admitted = sync_lib.admit_execution_profile_contract(profile, mission_id=profile["mission_id"])
+    if admitted.get("final_verdict") != "PASS":
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_REVIEW_PROFILE_INVALID", *(admitted.get("errors") or []))
+    return {
+        "schema": "v7.code-optimization-stop-review-packet.v1",
+        "classification": classification,
+        "profile_contract": admitted,
+        "required_model_output_fields": list(sync_lib.GPT_DECISION_REVIEW_OUTPUT_FIELDS),
+        "required_reentry_disposition": LOCAL_STOP_RESOLVABLE_BY_ENGINEERING,
+        "allowed_reentry_actions": ["REPREPARE_FRESH_FULL_BASELINE_GENERATION"],
+        "provenance_scope": "DETERMINISTIC_ARTIFACT_BINDING_NOT_CRYPTOGRAPHIC_AGENT_IDENTITY",
+        "final_verdict": "CONTINUE_SAME_MISSION",
+        "terminal": "GPT_DECISION_REVIEW_PACKET_PREPARED",
+    }
+
+
+def apply_stop_review(args: argparse.Namespace) -> dict[str, Any]:
+    """Bind a reviewed decision to exactly one frozen stop packet."""
+    try:
+        packet = _read_json(Path(args.review_packet).resolve())
+        supplied = _read_json(Path(args.decision).resolve())
+    except (OSError, json.JSONDecodeError):
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_REVIEW_INPUT_MISSING", "review_packet_or_decision_missing")
+    if not isinstance(packet, dict) or packet.get("schema") != "v7.code-optimization-stop-review-packet.v1":
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_REVIEW_PACKET_INVALID", "review_packet_schema_invalid")
+    if not isinstance(supplied, dict) or not isinstance(supplied.get("output"), dict):
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_REVIEW_DECISION_INVALID", "decision_output_missing")
+    classification = packet.get("classification") if isinstance(packet.get("classification"), dict) else {}
+    profile = packet.get("profile_contract") if isinstance(packet.get("profile_contract"), dict) else {}
+    stop_fingerprint = str(classification.get("stop_packet_fingerprint") or "")
+    if supplied.get("stop_packet_fingerprint") != stop_fingerprint:
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_REVIEW_DECISION_INVALID", "decision_stop_packet_binding_mismatch")
+    executor = str(supplied.get("executor_context_id") or "")
+    reviewer = str(supplied.get("review_context_id") or "")
+    if not executor or not reviewer or executor == reviewer:
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_REVIEW_DECISION_INVALID", "decision_context_separation_required")
+    result = sync_lib.gpt_decision_review_result_contract(
+        profile, supplied["output"], executor_context_id=executor,
+    )
+    review = sync_lib.execution_profile_review_record(
+        profile, result, review_type="ARCHITECTURE_REVIEW", review_verdict="PASS",
+        review_context_id=reviewer,
+    )
+    binding = sync_lib.execution_profile_completion_binding({
+        "EXECUTION_PROFILE_CONTRACT": profile,
+        "EXECUTION_PROFILE_RESULT": result,
+        "EXECUTION_PROFILE_REVIEWS": [review],
+        "CURRENT_MISSION_ID": profile.get("mission_id"),
+        "CURRENT_RUN_NONCE": profile.get("run_nonce"),
+        "CURRENT_INPUT_FINGERPRINT": profile.get("input_fingerprint"),
+        "CURRENT_REPO_FINGERPRINT": profile.get("repo_fingerprint"),
+        "MISSION_CURRENT": True, "MISSION_SUPERSEDED": False,
+        "EXPECTED_RESULT_FINGERPRINT": result.get("result_fingerprint"),
+        "EXISTING_RESULT_FINGERPRINTS": [],
+    })
+    output = supplied["output"]
+    local = all((
+        binding.get("final_verdict") == "PASS",
+        output.get("terminal_verdict") == "PASS_DECISION_READY",
+        output.get("owner_decision_required") is False,
+        supplied.get("reentry_disposition") == LOCAL_STOP_RESOLVABLE_BY_ENGINEERING,
+        output.get("recommended_option") == "REPREPARE_FRESH_FULL_BASELINE_GENERATION",
+    ))
+    owner = output.get("terminal_verdict") == "OWNER_DECISION_REQUIRED" or output.get("owner_decision_required") is True
+    disposition = LOCAL_STOP_RESOLVABLE_BY_ENGINEERING if local else OWNER_DECISION_REQUIRED if owner else FUNDAMENTAL_STOP
+    resolved = {
+        "schema": STOP_CLASSIFICATION_SCHEMA,
+        "stop_packet": classification.get("stop_packet"),
+        "stop_packet_fingerprint": stop_fingerprint,
+        "changed_surfaces": classification.get("changed_surfaces") or [],
+        "orchestration_disposition": disposition,
+        "resolution_type": "REPREPARE_FRESH_FULL_BASELINE_GENERATION" if local else "OWNER_DECISION_REQUIRED" if owner else "STOP_SAFE_DECISION_NOT_ADMISSIBLE",
+        "review_required": False,
+        "owner_decision_required": owner,
+        "safe_to_resume": local,
+        "reentry_condition": "fresh quiescent snapshot and a new immutable generation" if local else "owner or fundamental-boundary resolution",
+        "decision_result": result,
+        "decision_review": review,
+        "decision_binding": binding,
+        "provenance_scope": "DETERMINISTIC_ARTIFACT_BINDING_NOT_CRYPTOGRAPHIC_AGENT_IDENTITY",
+        "final_verdict": "PASS" if local else "STOP_SAFE",
+        "terminal": "GPT_DECISION_LOCAL_REPREPARE_READY" if local else "OWNER_DECISION_REQUIRED" if owner else "STOP_SAFE_DECISION_NOT_ADMISSIBLE",
+    }
+    resolved["classification_fingerprint"] = _json_fingerprint(resolved)
+    _write_json(Path(args.output).resolve(), resolved, immutable=False)
+    return resolved
+
+
+def reprepare_generation(args: argparse.Namespace) -> dict[str, Any]:
+    """Start generation N+1 only after a local or reviewed local disposition."""
+    old_bundle = Path(args.bundle_dir).resolve()
+    consumed = old_bundle / "reentry-consumed.json"
+    classification = _read_json(Path(args.classification).resolve())
+    if not isinstance(classification, dict) or classification.get("schema") != STOP_CLASSIFICATION_SCHEMA:
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_CLASSIFICATION_INVALID", "classification_schema_invalid")
+    if classification.get("orchestration_disposition") != LOCAL_STOP_RESOLVABLE_BY_ENGINEERING:
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_REENTRY_NOT_AUTHORIZED", "local_engineering_disposition_required")
+    state, error = _load_run_manifest(old_bundle)
+    if error:
+        return error
+    manifest, checkpoint = state["manifest"], state["checkpoint"]
+    if classification.get("stop_packet_fingerprint") != (classification.get("stop_packet") or {}).get("stop_packet_fingerprint"):
+        return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_STOP_CLASSIFICATION_INVALID", "stop_packet_binding_mismatch")
+    if consumed.exists():
+        try:
+            prior = _read_json(consumed)
+        except (OSError, json.JSONDecodeError):
+            prior = {}
+        if prior.get("stop_packet_fingerprint") == classification.get("stop_packet_fingerprint"):
+            return _stop_safe("STOP_SAFE_CODE_OPTIMIZATION_REENTRY_ALREADY_CONSUMED", "same_stop_packet_reentry_limit_reached")
+    old_completed = list(checkpoint.get("completed_domains") or [])
+    replay = [{
+        "domain_id": item.get("domain_id"),
+        "disposition": "CHECKPOINT_REPLAY_REQUIRED",
+        "reason": "fresh generation has no reusable immutable result/review artifact binding",
+    } for item in old_completed if isinstance(item, dict)]
+    request = manifest.get("request") if isinstance(manifest.get("request"), dict) else {}
+    fresh = prepare(SimpleNamespace(
+        mode=request.get("mode") or "FULL_BASELINE",
+        domain_id=request.get("domain_id") or "",
+        changed=request.get("changed_dependencies") or [],
+        output_dir=args.output_dir,
+    ))
+    if fresh.get("final_verdict") not in {"CONTINUE_SAME_MISSION", "PASS"}:
+        return fresh
+    _write_json(consumed, {
+        "schema": "v7.code-optimization-reentry-consumption.v1",
+        "stop_packet_fingerprint": classification.get("stop_packet_fingerprint"),
+        "classification_fingerprint": classification.get("classification_fingerprint"),
+        "fresh_generation_bundle_dir": fresh.get("bundle_dir"),
+        "consumed_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {
+        "schema": "v7.code-optimization-generation-reentry.v1",
+        "logical_mission_id": manifest.get("mission_id"),
+        "superseded_generation_manifest_sha256": _sha((old_bundle / "run-manifest.json").read_bytes()),
+        "fresh_generation_bundle_dir": fresh.get("bundle_dir"),
+        "fresh_generation_campaign_fingerprint": fresh.get("campaign_fingerprint"),
+        "checkpoint_reuse": replay,
+        "partial_domain_disposition": "REPLAY_REQUIRED_NOT_RECONSTRUCTED",
+        "artifact_binding_verifiable": True,
+        "provenance_scope": "DETERMINISTIC_ARTIFACT_BINDING_NOT_CRYPTOGRAPHIC_AGENT_IDENTITY",
+        "final_verdict": fresh.get("final_verdict"),
+        "terminal": "FRESH_GENERATION_PREPARED_FOR_SAME_LOGICAL_MISSION",
+        "next_action": fresh.get("next_action"),
+    }
 
 
 def _write_checkpoint(bundle: Path, checkpoint: dict[str, Any]) -> None:
@@ -773,24 +1123,7 @@ def _benchmark_observe(fixture: Path) -> tuple[int, dict[str, Any], str]:
 
 
 def _product_worktree_fingerprint() -> str:
-    completed = subprocess.run(
-        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
-        cwd=ROOT,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False,
-    )
-    if completed.returncode:
-        return _sha(b"GIT_INVENTORY_ERROR\0" + completed.stdout)
-    records: list[dict[str, str]] = []
-    for raw in sorted(item for item in completed.stdout.split(b"\0") if item):
-        relative = os.fsdecode(raw)
-        path = ROOT / relative
-        if path.is_symlink():
-            records.append({"path": relative, "kind": "symlink", "sha256": _sha(os.fsencode(os.readlink(path)))})
-        elif path.is_file():
-            records.append({"path": relative, "kind": "file", "sha256": _sha(path.read_bytes())})
-        else:
-            records.append({"path": relative, "kind": "missing", "sha256": "MISSING"})
-    return _sha(json.dumps(records, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    return _json_fingerprint(_product_worktree_inventory())
 
 
 def benchmark_prepare(args: argparse.Namespace) -> dict[str, Any]:
@@ -1144,6 +1477,18 @@ def final_accept(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
+def _persist_stop_classification(args: argparse.Namespace) -> dict[str, Any]:
+    result = classify_stop_packet(Path(args.bundle_dir).resolve())
+    _write_json(Path(args.output).resolve(), result, immutable=False)
+    return result
+
+
+def _persist_stop_review(args: argparse.Namespace) -> dict[str, Any]:
+    result = prepare_stop_review(Path(args.bundle_dir).resolve())
+    _write_json(Path(args.output).resolve(), result, immutable=False)
+    return result
+
+
 def parser() -> argparse.ArgumentParser:
     value = argparse.ArgumentParser()
     sub = value.add_subparsers(dest="command", required=True)
@@ -1182,6 +1527,18 @@ def parser() -> argparse.ArgumentParser:
     ingest.add_argument("--bundle-dir", required=True); ingest.add_argument("--analyst", required=True)
     ingest.add_argument("--reviewer", required=True); ingest.add_argument("--attestation", required=True)
     ingest.add_argument("--output", required=True); ingest.set_defaults(handler=ingest_domain)
+    stop = sub.add_parser("classify-stop")
+    stop.add_argument("--bundle-dir", required=True); stop.add_argument("--output", required=True)
+    stop.set_defaults(handler=lambda args: _persist_stop_classification(args))
+    review = sub.add_parser("prepare-stop-review")
+    review.add_argument("--bundle-dir", required=True); review.add_argument("--output", required=True)
+    review.set_defaults(handler=lambda args: _persist_stop_review(args))
+    apply_review = sub.add_parser("apply-stop-review")
+    apply_review.add_argument("--review-packet", required=True); apply_review.add_argument("--decision", required=True)
+    apply_review.add_argument("--output", required=True); apply_review.set_defaults(handler=apply_stop_review)
+    reentry = sub.add_parser("reprepare-generation")
+    reentry.add_argument("--bundle-dir", required=True); reentry.add_argument("--classification", required=True)
+    reentry.add_argument("--output-dir", required=True); reentry.set_defaults(handler=reprepare_generation)
     return value
 
 

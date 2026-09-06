@@ -322,6 +322,66 @@ class CodeOptimizationAgentRuntimeAcceptanceTest(unittest.TestCase):
         self.assertEqual(failure["terminal"], "STOP_SAFE_CODE_OPTIMIZATION_RUN_SNAPSHOT_DRIFT")
         self.assertIn("run_manifest_commit_drift", failure["errors"])
 
+    def test_snapshot_drift_is_frozen_and_locally_classified_by_surface(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = {
+                "schema": self.bundle.RUN_MANIFEST_SCHEMA,
+                "mission_id": "V7_CODE_OPTIMIZATION_AGENT_MASTER_MISSION_V1",
+                "mission_intent_fingerprint": "m" * 64, "profile_fingerprint": "p" * 64,
+                "run_nonce": "code-opt-run-0001",
+                "request": {"mode": "FULL_BASELINE", "domain_id": "", "changed_dependencies": []},
+                "snapshot": {
+                    "base_commit": "head", "worktree_fingerprint": "before",
+                    "worktree_inventory": [], "system_map_sha256": "MISSING",
+                    "source_fingerprints": {},
+                }, "ordered_domain_ids": [], "packets_by_domain": {},
+            }
+            self.write_run(root, manifest, {
+                "schema": self.bundle.RUN_CHECKPOINT_SCHEMA, "current_domain_index": 0,
+                "current_domain_id": None, "completed_domains": [], "review_attempt": 0,
+            })
+            inventory = [{"path": "docs/reports/engineering/new.md", "kind": "file", "sha256": "n" * 64}]
+            with mock.patch.object(self.bundle, "ROOT", root), mock.patch.object(
+                self.bundle, "_git_head", return_value="head"
+            ), mock.patch.object(self.bundle, "_product_worktree_fingerprint", return_value="after"), mock.patch.object(
+                self.bundle, "_product_worktree_inventory", return_value=inventory
+            ):
+                first = self.bundle.classify_stop_packet(root)
+                second = self.bundle.classify_stop_packet(root)
+        self.assertEqual(first["orchestration_disposition"], self.bundle.LOCAL_STOP_RESOLVABLE_BY_ENGINEERING)
+        self.assertEqual(first["stop_packet_fingerprint"], second["stop_packet_fingerprint"])
+        self.assertEqual(first["changed_surfaces"][0]["surface_class"], "ENGINEERING_EVIDENCE_SURFACE")
+
+    def test_reprepare_generation_allows_one_exact_stop_packet_consumption(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = {
+                "schema": self.bundle.RUN_MANIFEST_SCHEMA, "mission_id": "M",
+                "request": {"mode": "FULL_BASELINE", "domain_id": "", "changed_dependencies": []},
+                "snapshot": {}, "ordered_domain_ids": [], "packets_by_domain": {},
+            }
+            self.write_run(root, manifest, {
+                "schema": self.bundle.RUN_CHECKPOINT_SCHEMA, "current_domain_index": 0,
+                "current_domain_id": None, "completed_domains": [], "review_attempt": 0,
+            })
+            stop = {"stop_packet_fingerprint": "s" * 64}
+            classification = {
+                "schema": self.bundle.STOP_CLASSIFICATION_SCHEMA, "stop_packet": stop,
+                "stop_packet_fingerprint": stop["stop_packet_fingerprint"],
+                "classification_fingerprint": "c" * 64,
+                "orchestration_disposition": self.bundle.LOCAL_STOP_RESOLVABLE_BY_ENGINEERING,
+            }
+            classification_path = root / "classification.json"
+            classification_path.write_text(json.dumps(classification), encoding="utf-8")
+            args = SimpleNamespace(bundle_dir=str(root), classification=str(classification_path), output_dir=str(root / "generation-2"))
+            fresh = {"final_verdict": "CONTINUE_SAME_MISSION", "bundle_dir": str(root / "generation-2"), "campaign_fingerprint": "f" * 64, "next_action": "DISPATCH"}
+            with mock.patch.object(self.bundle, "prepare", return_value=fresh):
+                first = self.bundle.reprepare_generation(args)
+                second = self.bundle.reprepare_generation(args)
+        self.assertEqual(first["terminal"], "FRESH_GENERATION_PREPARED_FOR_SAME_LOGICAL_MISSION")
+        self.assertEqual(second["terminal"], "STOP_SAFE_CODE_OPTIMIZATION_REENTRY_ALREADY_CONSUMED")
+
     def test_checkpoint_advances_exactly_one_domain(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

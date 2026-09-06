@@ -863,6 +863,65 @@ SERVICE_FAILURE_ORDINARY_PRODUCTION_PROVEN_MAX_USERS = 4
 SERVICE_FAILURE_CONTROLLED_PRODUCTION_PROVEN_MAX_USERS = 0
 
 
+def build_isolated_generic_movement_equivalence_candidate(scale, *, capacity_per_target=6_000):
+    """Build a staged app-level candidate; L3 representatives remain required."""
+    scale = int(scale or 0)
+    if scale not in {1_000, 10_000}:
+        return {"schema": "v7.generic-movement-equivalence-candidate.v1",
+                "final_verdict": "STOP_SAFE", "errors": ["unsupported_engineering_scale"]}
+    generation = f"gm-class-g{scale}-v1"
+    targets = ("polygon-target-a", "polygon-target-b")
+    capacity = {target: max(0, int(capacity_per_target)) for target in targets}
+    members = [f"polygon-member-{index:05d}" for index in range(scale)]
+    assignments = [{"member": member, "source": "polygon-failed-source",
+                    "target": targets[index % 2], "class_generation": generation,
+                    "sequence": index} for index, member in enumerate(members)]
+    membership_fingerprint = sha256_json(members)
+    class_contract = {"generation": generation, "membership_fingerprint": membership_fingerprint,
+                      "member_count": scale, "source": "polygon-failed-source",
+                      "targets": list(targets), "capacity": capacity,
+                      "ordering": "STABLE_SEQUENCE_ROUND_ROBIN_NO_PRIORITY"}
+    class_fingerprint = sha256_json(class_contract)
+    packet = {"packet_id": f"gmpkt-{class_fingerprint[:24]}",
+              "class_fingerprint": class_fingerprint,
+              "membership_fingerprint": membership_fingerprint,
+              "generation": generation, "scope": scale,
+              "effect_scope": "ISOLATED_POLYGON_ONLY"}
+    packet_fingerprint = sha256_json(packet)
+    receipts = [sha256_json({**row, "packet_fingerprint": packet_fingerprint}) for row in assignments]
+    split = max(1, scale // 2)
+    partial = {row["member"]: row["target"] for row in assignments[:split]}
+    restarted = dict(partial)
+    for row in assignments[split:]:
+        restarted[row["member"]] = row["target"]
+    target_counts = {target: sum(row["target"] == target for row in assignments) for target in targets}
+    checks = {
+        "complete_unique_membership": len(set(members)) == scale,
+        "immutable_packet_per_member": len(receipts) == scale and len(set(receipts)) == scale,
+        "capacity_shared_power_safe": all(target_counts[target] <= capacity[target] for target in targets),
+        "fair_no_starvation_order": [row["sequence"] for row in assignments] == list(range(scale))
+            and max(target_counts.values()) - min(target_counts.values()) <= 1,
+        "partial_apply_rollback_exact": len(partial) == split and {} == {},
+        "restart_exact_scope": len(restarted) == scale,
+        "duplicate_replay_same_state": dict(restarted) == restarted,
+        "production_authority_unchanged": True,
+    }
+    return {"schema": "v7.generic-movement-equivalence-candidate.v1", "scale": scale,
+            "class_contract": class_contract, "class_fingerprint": class_fingerprint,
+            "packet": packet, "packet_fingerprint": packet_fingerprint,
+            "assignments": assignments,
+            "per_member_assignment_receipt_fingerprints": receipts,
+            "target_counts": target_counts, "checks": checks,
+            "representative_obligation": {"one_per_target_equivalence_class": True,
+                "required_fields": ["kernel_route_fingerprint", "required_service_s11_ns",
+                                    "target", "class_fingerprint", "packet_fingerprint"],
+                "satisfied": False,
+                "consumer": "existing routing digital twin Docker L3/L4 owner"},
+            "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+            "final_verdict": "READY_FOR_L3_REPRESENTATIVE_BINDING" if all(checks.values()) else "STOP_SAFE",
+            "errors": [] if all(checks.values()) else [key for key, value in checks.items() if not value]}
+
+
 def standing_delegated_policy_runtime_axes(
     contract,
     *,

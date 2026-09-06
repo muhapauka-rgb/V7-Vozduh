@@ -314,6 +314,33 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(owner_args.source_egress, "vless")
         owner.consume_service_failure_automation_only.assert_called_once_with(owner_args)
 
+    def test_in_process_autoswitch_args_include_planner_runtime_defaults(self):
+        """The in-process owner must not fall back for missing parser defaults."""
+        owner = SimpleNamespace(
+            DEFAULT_ORG_POLICY_FILE=Path("/org-policy"),
+            DEFAULT_SAFETY_FILE=Path("/safety"),
+            DEFAULT_QUALITY_SUMMARY_FILE=Path("/quality"),
+            DEFAULT_INTELLIGENCE_SNAPSHOT_ROOT=Path("/snapshots"),
+            DEFAULT_RECONNECT_STATE_FILE=Path("/reconnect"),
+            DEFAULT_TELEGRAM_SENTINEL_FILE=Path("/telegram"),
+            DEFAULT_VLESS_ACTIVITY_FILE=Path("/vless"),
+            DEFAULT_RESTORE_BARRIER_FILE=Path("/restore"),
+            DEFAULT_LOAD_SUMMARY_FILE=Path("/load"),
+            DEFAULT_EXECUTION_CONTROL_FILE=Path("/execution-control"),
+        )
+        args = self.refresh.in_process_autoswitch_args(
+            owner,
+            state_dir=Path("/state"),
+            event_dir=Path("/events"),
+            policy_file=Path("/policy"),
+            audit_store=Path("/audit"),
+        )
+        self.assertEqual(args.route_class, "")
+        self.assertEqual(args.load_summary_file, "/load")
+        self.assertEqual(args.execution_control_file, "/execution-control")
+        self.assertTrue(args.rollback_on_verify_fail)
+        self.assertFalse(args.allow_hard_full)
+
     def test_health_service_enables_existing_persistent_matrix_owner(self):
         unit = (ROOT / "systemd" / "v7-health.service").read_text(
             encoding="utf-8"

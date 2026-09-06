@@ -2814,8 +2814,16 @@ def runtime_authority_contract_status(
             bool(str(subject.get("user_ip") or ""))
             or (
                 str(contract.get("action_class") or "").upper()
-                == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
-                and 2 <= len({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()}) <= 4
+                in {
+                    operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                    operator_execution.POLYGON_ONLY_ACTION_CLASS,
+                }
+                and (
+                    2 <= len({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()}) <= 4
+                    if str(contract.get("action_class") or "").upper()
+                    == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                    else len({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()}) == 5
+                )
             )
         )
         and decision.get("decision") == operator_execution.ENGINEERING_AUTHORITY_APPROVAL
@@ -2842,13 +2850,17 @@ def runtime_authority_contract_status(
         "EMERGENCY_FAILOVER",
         operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
         operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+        operator_execution.POLYGON_ONLY_ACTION_CLASS,
     }
     expiry_ok = parse_ts(expires_at) > now
     class_ok = AUTHORITY_CLASS_RANK[allowed_class] >= AUTHORITY_CLASS_RANK[certified_class]
     cohort_subject_ips = {str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()}
     expected_exact_budget = (
         len(cohort_subject_ips)
-        if action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+        if action_class in {
+            operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            operator_execution.POLYGON_ONLY_ACTION_CLASS,
+        }
         else 1
     )
     budget_ok = (max_users > 0) if not strict_provenance_contract else (max_users == expected_exact_budget and max_concurrent_transactions == 1)
@@ -3290,6 +3302,130 @@ def n10_small_cohort_source_generation(
         "source_bundle_hash": source_bundle_hash,
         "snapshot_bundle_hash": snapshot_bundle_hash,
         "selected_move_hash": selected_move_hash,
+    }
+
+
+def polygon_only_live_invariants(
+    args: argparse.Namespace, user_ips: list[str], source_egress: str,
+    target_egress: str,
+) -> dict[str, Any]:
+    """Recompute the one Polygon contract's protected live surfaces.
+
+    This is deliberately a consumer-side revalidation, rather than evidence
+    emitted by the Authority request producer.  It uses the same established
+    registry and per-user assignment files that the controlled-certification
+    campaign already uses.  Any membership, ordinary assignment, or ordinary
+    route drift therefore stops before one-use Authority consumption.
+    """
+    state_dir = Path(args.state_dir)
+    expected_users = sorted({str(item).strip() for item in user_ips if str(item).strip()})
+    rows = parse_registry(state_dir / "users.registry")
+    by_ip = {str(row.get("ip") or ""): row for row in rows if str(row.get("ip") or "")}
+    certification_subjects_verified = (
+        len(expected_users) == 5
+        and str(source_egress or "") == operator_execution.POLYGON_ONLY_SOURCE_EGRESS
+        and str(target_egress or "") == operator_execution.POLYGON_ONLY_TARGET_EGRESS
+        and all(
+            bool_value((by_ip.get(user) or {}).get("certification_user"))
+            and str((by_ip.get(user) or {}).get("enabled") or "1").lower() in {"1", "true", "yes"}
+            and str((by_ip.get(user) or {}).get("current") or "") == str(source_egress or "")
+            for user in expected_users
+        )
+    )
+    ordinary_rows = sorted(
+        [
+            row for row in rows
+            if str(row.get("enabled") or "1").lower() in {"1", "true", "yes"}
+            and not bool_value(row.get("certification_user"))
+        ],
+        key=lambda row: str(row.get("ip") or ""),
+    )
+    ordinary_assignments = [
+        {"ip": str(row.get("ip") or ""), "current": str(row.get("current") or ""), "group": str(row.get("group") or "")}
+        for row in ordinary_rows
+    ]
+    # Reuse the existing route-truth verifier.  Assignment files are only a
+    # desired-state signal; their hash cannot prove kernel route reality.
+    try:
+        route_truth = subprocess.run(
+            ["v7-user-route-check"], text=True, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, check=False, timeout=20,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        route_truth = subprocess.CompletedProcess(["v7-user-route-check"], 2, stdout="")
+    route_truth_available = polygon_only_route_truth_probe_valid(
+        route_truth.returncode, route_truth.stdout or "",
+    )
+    return {
+        "certification_subjects_verified": certification_subjects_verified,
+        "ordinary_user_count": len(ordinary_rows),
+        "ordinary_assignment_fingerprint": sha256_json(ordinary_assignments),
+        "ordinary_route_fingerprint": polygon_only_route_truth_fingerprint(route_truth.stdout or "") if route_truth_available else "",
+        "ordinary_route_truth_available": route_truth_available,
+        "source_fault_injection_required": True,
+        "target_fault_injection_allowed": False,
+        "target_restart_allowed": False,
+        "target_quarantine_allowed": False,
+        "target_config_mutation_allowed": False,
+        "target_profile_mutation_allowed": False,
+        "ordinary_assignment_mutation_allowed": False,
+        "ordinary_route_mutation_allowed": False,
+    }
+
+
+def polygon_only_route_truth_fingerprint(output: str) -> str:
+    """Canonicalize the existing route-truth receipt, excluding presentation time."""
+    stable = []
+    for raw in str(output or "").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("====="):
+            continue
+        # The verifier's standalone ISO timestamp is presentation-only.  All
+        # retained lines are its actual routing facts and pass/fail result.
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}T[^\s]+", line):
+            continue
+        stable.append(line)
+    return sha256_json({"existing_route_truth_lines": stable})
+
+
+def polygon_only_route_truth_probe_valid(returncode: int, output: str) -> bool:
+    """Only the existing verifier's explicit OK terminal is admissible."""
+    return (
+        int(returncode) == 0
+        and "V7_USER_ROUTE_CHECK=OK" in str(output or "").splitlines()
+    )
+
+
+def polygon_only_source_generation(args: argparse.Namespace, user_ips: list[str]) -> dict[str, str]:
+    """Freeze static, fault-tolerant owner facts for the bounded Polygon run.
+
+    The deliberate source fault is detected by the existing Matrix/Planner
+    after issuance, so source health is deliberately not an invalidator here.
+    Membership, route/assignment state, source and target configuration are.
+    """
+    state_dir = Path(args.state_dir)
+    policy = read_json(Path(args.policy_file), {})
+    if isinstance(policy, dict):
+        policy = copy.deepcopy(policy)
+        budget = policy.get("authority_budget")
+        if isinstance(budget, dict):
+            budget = dict(budget); budget.pop("current_action_class_contract", None); policy["authority_budget"] = budget
+    users = parse_registry(state_dir / "users.registry")
+    egress = parse_registry(state_dir / "egress.registry")
+    material = {
+        "certification_members": sha256_json(sorted([row for row in users if str(row.get("ip") or "") in set(user_ips)], key=lambda row: str(row.get("ip") or ""))),
+        "source": sha256_json(next((row for row in egress if str(row.get("id") or "") == operator_execution.POLYGON_ONLY_SOURCE_EGRESS), {})),
+        "target": sha256_json(next((row for row in egress if str(row.get("id") or "") == operator_execution.POLYGON_ONLY_TARGET_EGRESS), {})),
+        "ordinary": polygon_only_live_invariants(args, user_ips, operator_execution.POLYGON_ONLY_SOURCE_EGRESS, operator_execution.POLYGON_ONLY_TARGET_EGRESS),
+        "service_preferences": sha256_file(state_dir / "service-preferences.json"),
+        "policy": sha256_json(policy), "org_policy": sha256_file(Path(args.org_policy_file)),
+    }
+    planner_generation_id = sha256_json({"action_class": operator_execution.POLYGON_ONLY_ACTION_CLASS, "material": material})
+    return {
+        "planner_generation_id": planner_generation_id,
+        "source_bundle_hash": sha256_json({"planner_generation_id": planner_generation_id, "material": material}),
+        "snapshot_bundle_hash": sha256_json({"ordinary": material["ordinary"], "service_preferences": material["service_preferences"]}),
+        "selected_move_hash": sha256_json({"user_ips": sorted(user_ips), "source_egress": operator_execution.POLYGON_ONLY_SOURCE_EGRESS, "target_egress": operator_execution.POLYGON_ONLY_TARGET_EGRESS}),
     }
 
 
@@ -8245,6 +8381,7 @@ class AutoswitchPlanner:
             if request_id and action_class in {
                 operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
                 operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                operator_execution.POLYGON_ONLY_ACTION_CLASS,
             }:
                 request_classes[request_id] = action_class
         return {
@@ -15150,6 +15287,7 @@ class AutoswitchPlanner:
         ).upper() in {
             operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
             operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            operator_execution.POLYGON_ONLY_ACTION_CLASS,
         }
         ignored_unrelated_product_contract = bool(
             ordinary_service_failure_context and n10_product_contract
@@ -15177,7 +15315,10 @@ class AutoswitchPlanner:
             action_contract_valid
             and (effective_action_contract.get("provenance") or {}).get("strict_provenance_contract")
             and str(effective_action_contract.get("action_class") or "").upper()
-            == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+            in {
+                operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                operator_execution.POLYGON_ONLY_ACTION_CLASS,
+            }
         ):
             # The existing Authority owner issued this exact small product
             # scope.  It is a hard ceiling, not a general widening of the
@@ -15196,7 +15337,10 @@ class AutoswitchPlanner:
                     str(move.get("user_ip") or "") in {
                         str(item).strip() for item in (action_contract_subject.get("user_ips") or []) if str(item).strip()
                     }
-                if str(effective_action_contract.get("action_class") or "").upper() == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                if str(effective_action_contract.get("action_class") or "").upper() in {
+                    operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                    operator_execution.POLYGON_ONLY_ACTION_CLASS,
+                }
                     else str(move.get("user_ip") or "") == str(action_contract_subject.get("user_ip") or "")
                 )
                 and str(move.get("current_egress") or "") == str(action_contract_scope.get("source_egress") or "")
@@ -16143,11 +16287,24 @@ class AutoswitchPlanner:
             and not source_egress
             and str(active_product_scope.get("target_selection") or "") == operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION
         )
+        polygon_only_context = (
+            not ordinary_service_failure_request
+            and bool(active_product_contract.get("valid"))
+            and active_product_class == operator_execution.POLYGON_ONLY_ACTION_CLASS
+            and not target_egress
+            and not source_egress
+            and str(active_product_scope.get("source_egress") or "")
+            == operator_execution.POLYGON_ONLY_SOURCE_EGRESS
+            and str(active_product_scope.get("target_egress") or "")
+            == operator_execution.POLYGON_ONLY_TARGET_EGRESS
+        )
         n10_small_cohort_users = sorted({
             str(item).strip() for item in (active_product_subject.get("user_ips") or []) if str(item).strip()
         })
-        if n10_small_cohort_context:
+        if n10_small_cohort_context or polygon_only_context:
             source_egress = str(active_product_scope.get("source_egress") or "")
+        if polygon_only_context:
+            target_egress = str(active_product_scope.get("target_egress") or "")
         requested_max_selected_moves = to_int(
             getattr(self.args, "max_selected_moves", 0), 0
         )
@@ -16247,7 +16404,7 @@ class AutoswitchPlanner:
             ]
         if self.args.user:
             active = [user for user in active if user.ip == self.args.user]
-        if n10_small_cohort_context:
+        if n10_small_cohort_context or polygon_only_context:
             active = [user for user in active if user.ip in set(n10_small_cohort_users)]
         if source_egress and requested_max_selected_moves > 0:
             active = active[:requested_max_selected_moves]
@@ -16344,14 +16501,24 @@ class AutoswitchPlanner:
             in {
                 operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
                 operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                operator_execution.POLYGON_ONLY_ACTION_CLASS,
             }
-            and not str((current_action_contract.get("scope") or {}).get("target_egress") or "")
-            and str((current_action_contract.get("scope") or {}).get("target_selection") or "")
-            == operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION
+            and (
+                (
+                    not str((current_action_contract.get("scope") or {}).get("target_egress") or "")
+                    and str((current_action_contract.get("scope") or {}).get("target_selection") or "")
+                    == operator_execution.N10_FRESH_PLANNER_TARGET_SELECTION
+                )
+                or str(current_action_contract.get("action_class") or "").upper()
+                == operator_execution.POLYGON_ONLY_ACTION_CLASS
+            )
             and (
                 (
                     str(current_action_contract.get("action_class") or "").upper()
-                    == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                    in {
+                        operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                        operator_execution.POLYGON_ONLY_ACTION_CLASS,
+                    }
                     and set(n10_small_cohort_users) == {
                         str(user.ip) for user in active
                     }
@@ -16394,7 +16561,10 @@ class AutoswitchPlanner:
             allowed_product_users = (
                 set(n10_small_cohort_users)
                 if str(current_action_contract.get("action_class") or "").upper()
-                == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                in {
+                    operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                    operator_execution.POLYGON_ONLY_ACTION_CLASS,
+                }
                 else {str(contract_subject.get("user_ip") or "")}
             )
             selection_source = [
@@ -20312,6 +20482,7 @@ class AutoswitchPlanner:
         if action_class not in {
             operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
             operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            operator_execution.POLYGON_ONLY_ACTION_CLASS,
         }:
             return {"ok": True, "status": "NOT_N10_PRODUCT_CONTRACT"}
         selected = operator_execution.selected_moves_from_plan(plan)
@@ -20322,7 +20493,10 @@ class AutoswitchPlanner:
         subject = contract.get("subject") if isinstance(contract.get("subject"), dict) else {}
         expected_users = (
             sorted({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()})
-            if action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+            if action_class in {
+                operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                operator_execution.POLYGON_ONLY_ACTION_CLASS,
+            }
             else [str(subject.get("user_ip") or "")]
         )
         if (
@@ -20494,6 +20668,7 @@ class AutoswitchPlanner:
             in {
                 operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
                 operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                operator_execution.POLYGON_ONLY_ACTION_CLASS,
             }
         )
         if n10_product_contract:
@@ -20830,14 +21005,19 @@ class AutoswitchPlanner:
         if strict_contract:
             selected_for_contract = list(plan.get("selected_moves") or [])
             contract_action_class = str(action_contract.get("action_class") or "").upper()
+            cohort_contract_action = contract_action_class in {
+                operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                operator_execution.POLYGON_ONLY_ACTION_CLASS,
+            }
             expected_contract_users = (
                 sorted({str(item).strip() for item in ((action_contract.get("subject") or {}).get("user_ips") or []) if str(item).strip()})
-                if contract_action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                if cohort_contract_action
                 else [str((action_contract.get("subject") or {}).get("user_ip") or "")]
             )
             is_n10_product_action = contract_action_class in {
                 operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
                 operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+                operator_execution.POLYGON_ONLY_ACTION_CLASS,
             }
             if (
                 (is_n10_product_action and sorted(str(row.get("user_ip") or "") for row in selected_for_contract) != expected_contract_users)
@@ -20863,7 +21043,20 @@ class AutoswitchPlanner:
                 )
                 if contract_action_class
                 == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                else polygon_only_source_generation(
+                    self.args, expected_contract_users,
+                )
+                if contract_action_class == operator_execution.POLYGON_ONLY_ACTION_CLASS
                 else action_class_contract_source_generation(plan, move)
+            )
+            polygon_only_invariants = (
+                polygon_only_live_invariants(
+                    self.args, expected_contract_users,
+                    str(move.get("current_egress") or ""),
+                    str(move.get("recommended_egress") or ""),
+                )
+                if contract_action_class == operator_execution.POLYGON_ONLY_ACTION_CLASS
+                else None
             )
             try:
                 consumption_result = operator_execution.consume_current_action_class_contract_to_policy(
@@ -20872,7 +21065,7 @@ class AutoswitchPlanner:
                     contract_hash=str(action_contract.get("contract_hash") or ""),
                     subject=(
                         {"user_ips": expected_contract_users}
-                        if contract_action_class == operator_execution.N10_SMALL_COHORT_ACTION_CLASS
+                        if cohort_contract_action
                         else {"user_ip": str(move.get("user_ip") or "")}
                     ),
                     scope={
@@ -20880,6 +21073,7 @@ class AutoswitchPlanner:
                         "target_egress": str(move.get("recommended_egress") or ""),
                     },
                     source_generation=contract_source_generation,
+                    polygon_only_invariants=polygon_only_invariants,
                     operation_id=operation_id,
                     audit_store=getattr(self.args, "action_class_audit_store", ""),
                     actor_id="tools/v7-users-autoswitch",
@@ -23293,6 +23487,7 @@ class AutoswitchPlanner:
         if action_class in {
             operator_execution.N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
             operator_execution.N10_SMALL_COHORT_ACTION_CLASS,
+            operator_execution.POLYGON_ONLY_ACTION_CLASS,
         }:
             return {
                 "active": False,
@@ -25471,6 +25666,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "Build and register one exact 2--4 member N10 Authority request "
             "from a fresh prepared Matrix/Planner class. It never accepts a "
             "manual user/source/target, writes policy, or changes routing."
+        ),
+    )
+    parser.add_argument(
+        "--polygon-only-authority-request-only",
+        action="store_true",
+        help=(
+            "Build and register the one exact five-certification-user Polygon "
+            "Authority request from current existing-owner truth. It never "
+            "accepts manual scope or mutates policy, routing, or users."
         ),
     )
     parser.add_argument(
@@ -32090,6 +32294,51 @@ def n10_small_cohort_authority_request_only(args: argparse.Namespace) -> dict[st
     return {"schema_version": "v7.n10-small-cohort-authority-request.v1", "status": "N10_SMALL_COHORT_AUTHORITY_REQUEST_READY" if not blockers else "STOP_SAFE_PRECONDITION", "ok": not blockers, "blockers": sorted(set(blockers)), "request": request, "registration": registration, "prepared_class": {"class_id": selected.get("class_id", ""), "members": members, "source": source, "target_is_unbound": True}, "next_required_consumer": "existing operator-execution Authority owner", "reentry": "prepared cohort -> fresh existing Planner -> Candidate -> Packet -> Lease -> Barrier -> existing v7-user-switch", "forbidden_effects": {"policy_write": False, "authority_granted": False, "runtime_apply": False, "routing_mutation": False, "user_movement": 0}}
 
 
+def polygon_only_authority_request_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Produce one exact Polygon-only request; no runtime effect occurs here."""
+    source = operator_execution.POLYGON_ONLY_SOURCE_EGRESS
+    target = operator_execution.POLYGON_ONLY_TARGET_EGRESS
+    rows = parse_registry(Path(args.state_dir) / "users.registry")
+    members = sorted(
+        str(row.get("ip") or "") for row in rows
+        if str(row.get("ip") or "")
+        and bool_value(row.get("certification_user"))
+        and str(row.get("enabled") or "1").lower() in {"1", "true", "yes"}
+        and str(row.get("current") or "") == source
+    )
+    blockers = []
+    if len(members) != 5:
+        blockers.append("polygon_only_exactly_five_current_certification_subjects_required")
+    invariants = polygon_only_live_invariants(args, members, source, target)
+    if invariants.get("certification_subjects_verified") is not True:
+        blockers.append("polygon_only_current_certification_subject_proof_required")
+    generation = polygon_only_source_generation(args, members) if not blockers else {}
+    template = {
+        "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        "action_class": operator_execution.POLYGON_ONLY_ACTION_CLASS,
+        "max_authority_class": "CANARY", "authority_ceiling": "CANARY",
+        "policy_generation_hash": sha256_file(Path(args.policy_file)),
+        "subject": {"user_ips": members, "certification_subject_fingerprint": sha256_json({"members": members})},
+        "scope": {"source_egress": source, "target_egress": target},
+        "max_users": 5, "max_concurrent_transactions": 1, "max_ttl_seconds": 900,
+        "incident_generation": {"incident_id": "POLYGON_ONLY_CONTROLLED_SOURCE_FAULT", "incident_generation": str(generation.get("planner_generation_id") or "")},
+        "source_generation": generation,
+        "verification_contract": {"owner": "tools/v7-users-autoswitch", "required": True, "immediate_and_temporal_observation": True, "success_criteria": "five_members_route_kernel_and_required_service_s11"},
+        "rollback_containment_contract": {"owner": "tools/v7-users-autoswitch", "required": True, "triggered_by_verifier": True, "direct_terminal_manufacture_forbidden": True},
+        "cooldown": {"required": True, "seconds": 180}, "anti_flap": {"required": True, "same_source_target_repeat_forbidden": True},
+        "stop_conditions": sorted(operator_execution.CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS | {"polygon_only_member_or_ordinary_drift", "target_mutation_forbidden", "first_member_failure_stops_remaining_forwards"}),
+        "polygon_only": invariants,
+    }
+    request = operator_execution.build_current_action_class_contract_authority_request(template, issue_preflight={"ready": not blockers, "blockers": sorted(set(blockers))})
+    registration = {"status": "NOT_REGISTERED"}
+    if not blockers:
+        try:
+            registration = operator_execution.register_current_action_class_contract_request(request, audit_store=args.action_class_audit_store, producer_id="tools/v7-users-autoswitch:polygon-only")
+        except operator_execution.PacketError as exc:
+            blockers.append(str(exc))
+    return {"schema_version": "v7.polygon-only-authority-request.v1", "ok": not blockers, "status": "POLYGON_ONLY_AUTHORITY_REQUEST_READY" if not blockers else "STOP_SAFE_PRECONDITION", "blockers": sorted(set(blockers)), "request": request, "registration": registration, "next_required_consumer": "existing operator-execution Authority owner", "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": 0}}
+
+
 def routing_core_certification_authority_request_only(args: argparse.Namespace) -> dict[str, Any]:
     """Build the exact RESET-M6 one-use request from existing truth owners."""
     user_ip = str(getattr(args, "user", "") or "")
@@ -33584,6 +33833,10 @@ def main() -> int:
         return 0 if result.get("ok") else 2
     if args.n10_small_cohort_authority_request_only:
         result = n10_small_cohort_authority_request_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("ok") else 2
+    if args.polygon_only_authority_request_only:
+        result = polygon_only_authority_request_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("ok") else 2
     if args.action_class_contract_reconciliation_only:

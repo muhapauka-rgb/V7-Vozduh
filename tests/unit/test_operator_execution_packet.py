@@ -2119,6 +2119,62 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         )
         self.assertEqual(consumed["consumption"]["state"], "CONSUMED")
 
+    def test_polygon_only_contract_is_exact_and_fails_closed_on_drift(self):
+        now = datetime(2026, 9, 7, tzinfo=timezone.utc)
+        members = [f"10.7.1.{number}" for number in range(10, 15)]
+        invariants = {
+            "certification_subjects_verified": True, "ordinary_user_count": 46,
+            "ordinary_assignment_fingerprint": "a" * 64,
+            "ordinary_route_fingerprint": "b" * 64,
+            "ordinary_route_truth_available": True,
+            "source_fault_injection_required": True,
+            "target_fault_injection_allowed": False, "target_restart_allowed": False,
+            "target_quarantine_allowed": False, "target_config_mutation_allowed": False,
+            "target_profile_mutation_allowed": False, "ordinary_assignment_mutation_allowed": False,
+            "ordinary_route_mutation_allowed": False,
+        }
+        template = action_contract_template()
+        template.update({
+            "action_class": operator_execution.POLYGON_ONLY_ACTION_CLASS,
+            "max_authority_class": "CANARY", "authority_ceiling": "CANARY",
+            "subject": {"user_ips": members, "certification_subject_fingerprint": sha256_json({"members": members})},
+            "scope": {"source_egress": operator_execution.POLYGON_ONLY_SOURCE_EGRESS, "target_egress": operator_execution.POLYGON_ONLY_TARGET_EGRESS},
+            "max_users": 5, "max_concurrent_transactions": 1, "polygon_only": invariants,
+        })
+        request = build_current_action_class_contract_authority_request(template, issue_preflight={"ready": True, "blockers": []}, now=now)
+        self.assertTrue(validate_current_action_class_contract_authority_request(request, decision="APPROVE_ONCE_AS_SCOPED", now=now)["ok"])
+        for mutation, error in (
+            (lambda data: data["subject"].update({"user_ips": members[:4]}), "current_action_class_contract_cohort_subject_invalid"),
+            (lambda data: data["polygon_only"].update({"certification_subjects_verified": False}), "certification_subject_proof_invalid"),
+            (lambda data: data["polygon_only"].update({"ordinary_route_truth_available": False}), "ordinary_fingerprint_invalid"),
+            (lambda data: data["scope"].update({"target_egress": "wrong"}), "exact_source_target_required"),
+            (lambda data: data["polygon_only"].update({"target_fault_injection_allowed": True}), "target_or_ordinary_mutation_fence_invalid"),
+        ):
+            malformed = copy.deepcopy(template)
+            mutation(malformed)
+            result = validate_current_action_class_contract_authority_request(
+                build_current_action_class_contract_authority_request(malformed, issue_preflight={"ready": True, "blockers": []}, now=now), decision="APPROVE_ONCE_AS_SCOPED", now=now,
+            )
+            self.assertIn(error if error.startswith("current_") else f"polygon_only_{error}", result["errors"])
+        issued = issue_current_action_class_contract(
+            {"authority_budget": {}}, request, decision="APPROVE_ONCE_AS_SCOPED",
+            expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+            authority_actor_id="test-authority", authority_decision_id="polygon-decision", now=now,
+        )
+        contract = issued["contract"]
+        changed = copy.deepcopy(invariants); changed["ordinary_route_fingerprint"] = "d" * 64
+        with self.assertRaisesRegex(PacketError, "polygon_only_ordinary_or_certification_invariants_changed"):
+            consume_current_action_class_contract(issued["policy"], contract_id=contract["contract_id"], contract_hash=contract["contract_hash"], subject={"user_ips": members}, scope=contract["scope"], source_generation=contract["source_generation"], polygon_only_invariants=changed, operation_id="drift", now=now)
+        self.assertEqual(
+            issued["policy"]["authority_budget"]["current_action_class_contract"]["one_use_consumption"]["state"],
+            "ISSUED",
+        )
+        consumed = consume_current_action_class_contract(issued["policy"], contract_id=contract["contract_id"], contract_hash=contract["contract_hash"], subject={"user_ips": members}, scope=contract["scope"], source_generation=contract["source_generation"], polygon_only_invariants=invariants, operation_id="ok", now=now)
+        with self.assertRaisesRegex(PacketError, "not_available_for_one_use_consumption"):
+            consume_current_action_class_contract(consumed["policy"], contract_id=contract["contract_id"], contract_hash=contract["contract_hash"], subject={"user_ips": members}, scope=contract["scope"], source_generation=contract["source_generation"], polygon_only_invariants=invariants, operation_id="reuse", now=now)
+        with self.assertRaisesRegex(PacketError, "consumption_expired"):
+            consume_current_action_class_contract(issued["policy"], contract_id=contract["contract_id"], contract_hash=contract["contract_hash"], subject={"user_ips": members}, scope=contract["scope"], source_generation=contract["source_generation"], polygon_only_invariants=invariants, operation_id="expired", now=now + timedelta(seconds=901))
+
     def test_current_action_contract_request_expires_before_authority_issuance(self):
         now = datetime(2026, 7, 26, tzinfo=timezone.utc)
         request = build_current_action_class_contract_authority_request({

@@ -59,6 +59,7 @@ AUTONOMOUS_EXECUTION_ACTION_CLASSES = {
     "USER_SWITCH",
     "N10_ORDINARY_LIKE_SINGLE_DEVICE",
     "N10_SMALL_COHORT",
+    "POLYGON_ONLY",
 }
 LEASE_TERMINAL_STATUSES = {"EXECUTION_FINISHED", "ROLLBACK_FINISHED", "OPERATOR_CANCELLED"}
 SELECTED_MOVE_SEMANTIC_FIELDS = (
@@ -115,6 +116,9 @@ CURRENT_ACTION_CLASS_AUDIT_SCHEMA = "v7.current-action-class-contract-authority-
 CURRENT_ACTION_CLASS_REQUEST_RECORD_TYPE = "current_action_class_contract_request_emitted"
 N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS = "N10_ORDINARY_LIKE_SINGLE_DEVICE"
 N10_SMALL_COHORT_ACTION_CLASS = "N10_SMALL_COHORT"
+POLYGON_ONLY_ACTION_CLASS = "POLYGON_ONLY"
+POLYGON_ONLY_SOURCE_EGRESS = "amneziawg-exec-20260528-10-8-1-14"
+POLYGON_ONLY_TARGET_EGRESS = "wireguard-1779454504-c43409"
 N10_FRESH_PLANNER_TARGET_SELECTION = "FRESH_PLANNER_ONLY_AT_CONSUMPTION"
 DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE = Path("/opt/v7/audit/operator-execution-audit.jsonl")
 STANDING_DELEGATED_POLICY_REQUEST_SCHEMA = "v7.standing-delegated-operational-policy-authority-request.v1"
@@ -417,6 +421,9 @@ def build_autonomous_execution_control_state(
         action_class_text == N10_SMALL_COHORT_ACTION_CLASS
         and 2 <= max_users_value <= 4
     )
+    bounded_polygon_only = (
+        action_class_text == POLYGON_ONLY_ACTION_CLASS and max_users_value == 5
+    )
     # Ordinary failed-source recovery has separately proven bounded production
     # scope through four users.  It is still one exact Packet/Lease-bound
     # operation, never a general batch permission: the action class must be
@@ -428,6 +435,7 @@ def build_autonomous_execution_control_state(
     operation_scope_valid = (
         max_users_value == 1
         or bounded_n10_cohort
+        or bounded_polygon_only
         or bounded_emergency_failover_cohort
     )
     state = {
@@ -505,6 +513,7 @@ def autonomous_execution_control_state(path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL
                 action_class == N10_SMALL_COHORT_ACTION_CLASS
                 and 2 <= max_users <= 4
             )
+            or (action_class == POLYGON_ONLY_ACTION_CLASS and max_users == 5)
             or (
                 action_class == "EMERGENCY_FAILOVER"
                 and 2 <= max_users <= 4
@@ -5694,6 +5703,7 @@ def build_current_action_class_contract_authority_request(template, *, issue_pre
         "subject": {
             "user_ip": str(subject.get("user_ip") or ""),
             "user_ips": sorted({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()}),
+            "certification_subject_fingerprint": str(subject.get("certification_subject_fingerprint") or ""),
         },
         "scope": {
             "source_egress": str(scope.get("source_egress") or ""),
@@ -5719,6 +5729,10 @@ def build_current_action_class_contract_authority_request(template, *, issue_pre
             "retry_under_same_approval": False,
             "consumption_owner": "tools/v7-users-autoswitch",
         },
+        # This field is intentionally passed through only for the single
+        # bounded Polygon experiment.  It is part of the immutable request
+        # and contract hash, never a runtime-default policy knob.
+        "polygon_only": copy.deepcopy(template.get("polygon_only") or {}),
         "issue_preflight": copy.deepcopy(issue_preflight if isinstance(issue_preflight, dict) else {}),
     }
     request_hash = current_action_class_contract_request_hash(request)
@@ -5771,6 +5785,7 @@ def validate_current_action_class_contract_authority_request(
         "EMERGENCY_FAILOVER",
         N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
         N10_SMALL_COHORT_ACTION_CLASS,
+        POLYGON_ONLY_ACTION_CLASS,
     }:
         errors.append("current_action_class_contract_action_class_invalid")
     max_authority_class = str(request.get("max_authority_class") or "").upper()
@@ -5781,10 +5796,18 @@ def validate_current_action_class_contract_authority_request(
         errors.append("current_action_class_contract_authority_exceeds_ceiling")
     if len(str(request.get("policy_generation_hash") or "")) != 64:
         errors.append("current_action_class_contract_policy_generation_missing")
-    cohort_subject = action_class == N10_SMALL_COHORT_ACTION_CLASS
+    cohort_subject = action_class in {
+        N10_SMALL_COHORT_ACTION_CLASS,
+        POLYGON_ONLY_ACTION_CLASS,
+    }
     subject_ips = sorted({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()})
     if cohort_subject:
-        if str(subject.get("user_ip") or "") or not 2 <= len(subject_ips) <= 4:
+        expected_cohort_size = 5 if action_class == POLYGON_ONLY_ACTION_CLASS else None
+        if (
+            str(subject.get("user_ip") or "")
+            or (expected_cohort_size is not None and len(subject_ips) != expected_cohort_size)
+            or (expected_cohort_size is None and not 2 <= len(subject_ips) <= 4)
+        ):
             errors.append("current_action_class_contract_cohort_subject_invalid")
     elif not str(subject.get("user_ip") or ""):
         errors.append("current_action_class_contract_subject_missing")
@@ -5801,6 +5824,28 @@ def validate_current_action_class_contract_authority_request(
     expected_users = len(subject_ips) if cohort_subject else 1
     if as_int(scope.get("max_users"), 0) != expected_users or as_int(scope.get("max_concurrent_transactions"), 0) != 1:
         errors.append("current_action_class_contract_blast_radius_invalid")
+    if action_class == POLYGON_ONLY_ACTION_CLASS:
+        polygon_only = request.get("polygon_only") if isinstance(request.get("polygon_only"), dict) else {}
+        expected_member_fingerprint = sha256_json({"members": subject_ips})
+        if str(scope.get("source_egress") or "") != POLYGON_ONLY_SOURCE_EGRESS or str(scope.get("target_egress") or "") != POLYGON_ONLY_TARGET_EGRESS or str(scope.get("target_selection") or ""):
+            errors.append("polygon_only_exact_source_target_required")
+        if str(subject.get("certification_subject_fingerprint") or "") != expected_member_fingerprint or polygon_only.get("certification_subjects_verified") is not True:
+            errors.append("polygon_only_certification_subject_proof_invalid")
+        if polygon_only.get("ordinary_route_truth_available") is not True or as_int(polygon_only.get("ordinary_user_count"), -1) != 46 or any(
+            len(str(polygon_only.get(key) or "")) != 64
+            for key in ("ordinary_assignment_fingerprint", "ordinary_route_fingerprint")
+        ):
+            errors.append("polygon_only_ordinary_fingerprint_invalid")
+        required_false = (
+            "target_fault_injection_allowed", "target_restart_allowed",
+            "target_quarantine_allowed", "target_config_mutation_allowed",
+            "target_profile_mutation_allowed", "ordinary_assignment_mutation_allowed",
+            "ordinary_route_mutation_allowed",
+        )
+        if polygon_only.get("source_fault_injection_required") is not True or any(
+            polygon_only.get(key) is not False for key in required_false
+        ):
+            errors.append("polygon_only_target_or_ordinary_mutation_fence_invalid")
     source_generation = request.get("source_generation") if isinstance(request.get("source_generation"), dict) else {}
     if not all(str(source_generation.get(key) or "") for key in ("planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash")):
         errors.append("current_action_class_contract_source_generation_missing")
@@ -5891,6 +5936,7 @@ def issue_current_action_class_contract(
             "membership_fingerprint": str(scope.get("membership_fingerprint") or ""),
             "member_slice_fingerprint": str(scope.get("member_slice_fingerprint") or ""),
         },
+        "polygon_only": copy.deepcopy(request.get("polygon_only") or {}),
         "max_users": as_int(scope.get("max_users"), 0),
         "max_concurrent_transactions": 1,
         "incident_generation": copy.deepcopy(request.get("incident_generation") or {}),
@@ -5933,7 +5979,7 @@ def issue_current_action_class_contract(
     return {"policy": policy, "contract": contract, "validation": validation}
 
 
-def consume_current_action_class_contract(policy, *, contract_id, contract_hash, subject, scope, source_generation, operation_id, now=None):
+def consume_current_action_class_contract(policy, *, contract_id, contract_hash, subject, scope, source_generation, operation_id, polygon_only_invariants=None, now=None):
     """Atomically consume a v2 contract before its sole forward mutation.
 
     A failed or interrupted downstream apply still consumes the decision.  That
@@ -5962,7 +6008,8 @@ def consume_current_action_class_contract(policy, *, contract_id, contract_hash,
         raise PacketError("current_action_class_contract_not_available_for_one_use_consumption")
     expected_subject = contract.get("subject") if isinstance(contract.get("subject"), dict) else {}
     expected_scope = contract.get("scope") if isinstance(contract.get("scope"), dict) else {}
-    cohort_subject = str(contract.get("action_class") or "").upper() == N10_SMALL_COHORT_ACTION_CLASS
+    action_class = str(contract.get("action_class") or "").upper()
+    cohort_subject = action_class in {N10_SMALL_COHORT_ACTION_CLASS, POLYGON_ONLY_ACTION_CLASS}
     expected_subject_ips = sorted({str(item).strip() for item in (expected_subject.get("user_ips") or []) if str(item).strip()})
     actual_subject_ips = sorted({str(item).strip() for item in ((subject or {}).get("user_ips") or []) if str(item).strip()})
     subject_matches = (
@@ -5996,6 +6043,11 @@ def consume_current_action_class_contract(policy, *, contract_id, contract_hash,
         scope_matches = actual_scope_pair == expected_scope_pair
     if not scope_matches:
         raise PacketError("current_action_class_contract_consumption_scope_mismatch")
+    if action_class == POLYGON_ONLY_ACTION_CLASS:
+        expected_polygon_only = contract.get("polygon_only") if isinstance(contract.get("polygon_only"), dict) else {}
+        actual_polygon_only = polygon_only_invariants if isinstance(polygon_only_invariants, dict) else {}
+        if actual_polygon_only != expected_polygon_only:
+            raise PacketError("polygon_only_ordinary_or_certification_invariants_changed")
     if dict(source_generation or {}) != dict(contract.get("source_generation") or {}):
         raise PacketError("current_action_class_contract_consumption_generation_mismatch")
     if not str(operation_id or ""):
@@ -6738,6 +6790,7 @@ def validate_current_action_class_packet_authority(packet, errors, *, now=None):
     if action_class not in {
         N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS,
         N10_SMALL_COHORT_ACTION_CLASS,
+        POLYGON_ONLY_ACTION_CLASS,
     }:
         errors.append("current_action_class_packet_authority_action_class_invalid")
         return True
@@ -6764,7 +6817,7 @@ def validate_current_action_class_packet_authority(packet, errors, *, now=None):
     subject = contract.get("subject") if isinstance(contract.get("subject"), dict) else {}
     expected_users = (
         sorted({str(item).strip() for item in (subject.get("user_ips") or []) if str(item).strip()})
-        if action_class == N10_SMALL_COHORT_ACTION_CLASS
+        if action_class in {N10_SMALL_COHORT_ACTION_CLASS, POLYGON_ONLY_ACTION_CLASS}
         else [str(subject.get("user_ip") or "")]
     )
     scope = contract.get("scope") if isinstance(contract.get("scope"), dict) else {}
@@ -6784,6 +6837,25 @@ def validate_current_action_class_packet_authority(packet, errors, *, now=None):
         errors.append("current_action_class_packet_authority_target_mismatch")
     if as_int(contract.get("max_users"), 0) != len(expected_users) or as_int(contract.get("max_concurrent_transactions"), 0) != 1:
         errors.append("current_action_class_packet_authority_scope_invalid")
+    if action_class == POLYGON_ONLY_ACTION_CLASS:
+        polygon = contract.get("polygon_only") if isinstance(contract.get("polygon_only"), dict) else {}
+        if (
+            len(expected_users) != 5
+            or str(scope.get("source_egress") or "") != POLYGON_ONLY_SOURCE_EGRESS
+            or bound_target != POLYGON_ONLY_TARGET_EGRESS
+            or as_int(contract.get("max_users"), 0) != 5
+            or polygon.get("certification_subjects_verified") is not True
+            or polygon.get("ordinary_route_truth_available") is not True
+            or as_int(polygon.get("ordinary_user_count"), -1) != 46
+            or any(len(str(polygon.get(key) or "")) != 64 for key in ("ordinary_assignment_fingerprint", "ordinary_route_fingerprint"))
+            or any(polygon.get(key) is not False for key in (
+                "target_fault_injection_allowed", "target_restart_allowed",
+                "target_quarantine_allowed", "target_config_mutation_allowed",
+                "target_profile_mutation_allowed", "ordinary_assignment_mutation_allowed",
+                "ordinary_route_mutation_allowed",
+            ))
+        ):
+            errors.append("polygon_only_packet_authority_invariants_invalid")
     return True
 
 

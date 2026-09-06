@@ -97,9 +97,10 @@ if [ "$MUTATION_KIND" = "forward" ]; then
     # In both cases this writer still re-reads the exact operation identity,
     # source/snapshot hashes and member bound above.  Every other invocation
     # retains the historical one-user fence.
-    { [ "$ACTION_CLASS" = "N10_SMALL_COHORT" ] \
-      || [ "$ACTION_CLASS" = "EMERGENCY_FAILOVER" ]; } \
-      && [[ "$MAX_USERS" =~ ^[2-4]$ ]] \
+    { { [ "$ACTION_CLASS" = "N10_SMALL_COHORT" ] \
+        || [ "$ACTION_CLASS" = "EMERGENCY_FAILOVER" ]; } \
+        && [[ "$MAX_USERS" =~ ^[2-4]$ ]]; } \
+      || { [ "$ACTION_CLASS" = "POLYGON_ONLY" ] && [ "$MAX_USERS" = "5" ]; } \
       || { echo "STOP_SAFE: max users outside exact action scope"; exit 2; }
   fi
 fi

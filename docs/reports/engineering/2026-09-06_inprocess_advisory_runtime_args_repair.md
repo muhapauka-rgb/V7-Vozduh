@@ -39,7 +39,26 @@ semantics, Authority, route writer, or executor behavior was added or changed.
 
 ## Runtime status
 
-The repair is local and not yet deployed in this report revision. The next
-lawful step is the existing safe-deploy owner, followed by fresh Runtime
-health evidence. A live V7 health caller must originate any recovery; no
-manual replay or target injection is valid evidence.
+The repair was published and deployed by the existing safe-deploy owner at
+commit `254643beec60ed8e3408b9393ea364ccb16233b1` (deploy
+`deploy-z8-14-Updatesystem-254643b-20260906T235853`). Production hashes for
+the changed Matrix handoff and autoswitch files match the deployed commit;
+`v7-health.service` is active.
+
+## Post-deploy live confirmation
+
+At `2026-09-07T00:02:33+03:00`, the live V7 health caller emitted
+`V7_HEALTH_RECOVERY_CONSUMER_RECEIPT` with `action_completed=true`,
+`advisory_diagnostic.status=PASS`, empty `in_process_error`, and no fallback
+invocation. It automatically moved 4 ordinary users from the affected awg3
+scope; required-service S11 was reached at 32,212.972 ms from consumer entry
+and the governed consumer completed in 33,511 ms. No manual operational
+transition was used.
+
+Fresh current state after that operation contains 51 ordinary users on
+`wireguard-1779454504-c43409` (Matrix `OK`) and 24 on `awg3` (Matrix `OK`),
+with zero enabled ordinary users on `vless`, `1`, or
+`openvpn-1779388847-d2ad7c`. VLESS remains unsafe for ordinary placement:
+13 service rows are `FAIL`; awg0 has 4 failed service rows but its assigned
+records are certification-only. There is no active recovery operation left
+in the current lease/barrier state.

@@ -40,6 +40,19 @@ No 1K or 10K run is admitted before that baseline passes.  A later result can
 be only `VERIFIED_E2E_WITHIN_7S`, an over-7s causal ledger, or this exact
 STOP_SAFE boundary.
 
+## Existing-owner bridge extension
+
+The finite controlled mode of `v7-health-loop` now accepts isolated state,
+event, policy and owner-root bindings and forwards those values into its same
+persistent `v7-service-matrix-refresh-all` consumer.  Its controlled HARD role
+uses the existing `v7-egress-diagnose` and `v7-service-matrix-test` entrypoints
+against that isolated state.  Production argv remains unchanged.
+
+This closes the code-level state/event binding gap.  It does not yet certify a
+baseline: a lawful isolated controlled source, current policy/Authority
+contract, governed apply substrate, and real required-service S11 owner must
+be materialized before one physical interface-down experiment can run.
+
 ## Verification
 
 `python3 -m unittest -v tests.unit.test_autonomous_recovery_agent_profile`
@@ -50,3 +63,7 @@ Result: 15 tests passed.
 
 Result: passed.  No Runtime, Production, user, Authority, Docker campaign, or
 deployment action was performed by this correction.
+
+`python3 -m unittest -v tests.unit.test_v7_health_fast_deadline_loop`
+
+Result: 39 tests passed.

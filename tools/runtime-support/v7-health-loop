@@ -1148,6 +1148,10 @@ class RoleHealthLoop:
     hard_takeover_ns: int = 0
     matrix_state_file: Path = DEFAULT_MATRIX_STATE_FILE
     users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE
+    # Finite Polygon-only wiring.  These are argv values for the same Matrix
+    # consumer loaded above; production leaves the tuple empty and therefore
+    # retains its canonical paths and service entrypoints.
+    controlled_matrix_consumer_args: tuple[str, ...] = tuple()
     hard_recovery_latched: bool = False
     persistent_matrix_module: Any = None
     persistent_matrix_ready: bool = False
@@ -1248,6 +1252,7 @@ class RoleHealthLoop:
                 "v7-service-matrix-refresh-all",
                 "--consume-existing-service-failure-events-only",
                 "--runtime-hot-path-only",
+                *self.controlled_matrix_consumer_args,
             ]
             os.environ["V7_HARD_T0_MONOTONIC_NS"] = str(t0_ns)
             os.environ["V7_HARD_PERSISTENT_MATRIX_OWNER"] = "1"
@@ -2314,6 +2319,15 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
             "production always reads the canonical default."
         ),
     )
+    parser.add_argument(
+        "--controlled-event-dir", default="",
+        help="Finite Polygon/test override for the existing Matrix event reader/writer.",
+    )
+    parser.add_argument(
+        "--controlled-owner-root", default="",
+        help="Repository tools directory used only by a finite controlled Polygon run.",
+    )
+    parser.add_argument("--controlled-policy-file", default="")
     args = parser.parse_args(argv)
     if args.fast_interval_ms <= 0:
         parser.error("--fast-interval-ms must be positive")
@@ -2353,6 +2367,10 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
             "--controlled-users-registry-file requires the controlled Matrix "
             "state and a finite role-based Polygon run"
         )
+    if (args.controlled_event_dir or args.controlled_owner_root or args.controlled_policy_file) and (
+        not args.controlled_matrix_state_file or not args.role_based_fast or not args.max_phases
+    ):
+        parser.error("controlled Matrix bindings require finite --role-based-fast with --controlled-matrix-state-file")
     for value in (
         args.hard_interval_ms, args.telegram_interval_ms,
         args.hot_target_interval_ms,
@@ -2386,11 +2404,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             "planner_projection": args.planner_projection_interval_ms,
             "deep": args.deep_interval_ms,
         }
+        controlled_root = Path(args.controlled_owner_root) if args.controlled_owner_root else None
+        controlled_hard = (
+            (
+                str(controlled_root / "v7-egress-diagnose"), "--output", "-", "--hard-signal-only",
+                "--state-dir", str(args.controlled_matrix_state_file),
+                "--definitive-matrix-command", str(controlled_root / "v7-service-matrix-test"),
+                "--consumer-wake-command", str(controlled_root / "v7-service-matrix-refresh-all"),
+            )
+            if controlled_root is not None and args.controlled_matrix_state_file
+            else None
+        )
         roles = tuple(
             ManagedRole(
                 name=name,
                 cadence_ns=intervals[name] * 1_000_000,
-                command=(controlled[name],) if controlled[name] else tuple(command),
+                command=(
+                    controlled_hard if name == "hard" and controlled_hard is not None
+                    else ((controlled[name],) if controlled[name] else tuple(command))
+                ),
                 initial_offset_ns=(
                     0
                     if any(controlled.values())
@@ -2399,6 +2431,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             for name, _default_interval, command in DEFAULT_ROLE_COMMANDS
         )
+        matrix_args: list[str] = []
+        if controlled_root is not None:
+            matrix_args.extend([
+                "--state-dir", str(args.controlled_matrix_state_file),
+                "--event-dir", str(args.controlled_event_dir or (Path(args.controlled_matrix_state_file).parent / "events")),
+                "--checker", str(controlled_root / "v7-service-matrix-test"),
+                "--governed-executor", str(controlled_root / "v7-users-autoswitch"),
+                "--passive-consumer", str(controlled_root / "v7-users-autoswitch"),
+            ])
+        if args.controlled_policy_file:
+            matrix_args.extend(["--policy-file", str(args.controlled_policy_file)])
         return RoleHealthLoop(
             roles=roles,
             max_hard_phases=args.max_phases,
@@ -2416,6 +2459,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.controlled_users_registry_file
                 else DEFAULT_USERS_REGISTRY_FILE
             ),
+            controlled_matrix_consumer_args=tuple(matrix_args),
         ).run()
     if args.controlled_fast_command:
         fast_command = (args.controlled_fast_command,)

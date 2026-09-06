@@ -11919,14 +11919,14 @@ def autonomous_recovery_profile_contract(
     }
 
 
-AUTONOMOUS_RECOVERY_SECTION8_OUTCOMES = (
+AUTONOMOUS_RECOVERY_ENGINEERING_E2E_OUTCOMES = (
     "PERSISTENT_COMPACT_CONTRACT_LOADED",
     "EXACT_LAWFUL_OBLIGATION_SELECTED",
     "MULTI_FAULT_ISOLATED_POLYGON_CAMPAIGN_CONSUMED",
     "NATIVE_ANALYST_CRITICAL_EXECUTOR_AND_INDEPENDENT_REVIEW_CONSUMED",
     "NONTRIVIAL_SEEDED_DEFECT_REPAIRED_BY_EXISTING_OWNER",
     "ORIGIN_EXPERIMENT_AUTOMATIC_REPLAY_PASSED",
-    "PHYSICAL_ONSET_TO_LAST_REQUIRED_S11_WITHIN_SEVEN_SECONDS",
+    "POLYGON_E2E_ONE_CLIENT_BASELINE_WITHIN_SEVEN_SECONDS",
     "SCALE_AND_CAPACITY_LAW_OWNER_CONSUMED",
     "NO_UNEXPLAINED_MANUAL_RELAY",
     "OWNER_CONSUMED_PROJECTION_OR_LAWFUL_TERMINAL_WITH_SUCCESSOR",
@@ -11972,7 +11972,7 @@ def autonomous_recovery_full_campaign_packet(*, root: Path = ROOT) -> dict[str, 
             "Preserve the current OMP recovery Mission while consuming one read-only "
             "Autonomous Recovery Analyst/Codex/Reviewer turn. " + current_safe_action
         ),
-        required_outcomes=AUTONOMOUS_RECOVERY_SECTION8_OUTCOMES,
+        required_outcomes=AUTONOMOUS_RECOVERY_ENGINEERING_E2E_OUTCOMES,
         definition_of_done=[
             "PERSISTENT_COMPACT_CONTRACT", "EXACT_OBLIGATION", "MULTI_FAULT_POLYGON",
             "INDEPENDENT_NATIVE_REVIEW", "NONTRIVIAL_REPAIR", "AUTOMATIC_ORIGIN_REPLAY",
@@ -12046,7 +12046,7 @@ def autonomous_recovery_codex_adaptation(
         definition_of_done_preserved=True,
         effect_boundary_preserved_or_narrowed=True,
         owner_boundary_preserved=True,
-        pending_required_outcomes=AUTONOMOUS_RECOVERY_SECTION8_OUTCOMES,
+        pending_required_outcomes=AUTONOMOUS_RECOVERY_ENGINEERING_E2E_OUTCOMES,
         completed_required_outcomes=[],
         continuation_action=continuation_action,
         evidence_references=evidence_references,
@@ -12068,7 +12068,7 @@ def autonomous_recovery_engineering_evidence_contract(packet: dict[str, Any], ou
     contract = {
         "schema": "v7.autonomous-recovery-engineering-review-evidence.v1",
         "scope": "ISOLATED_POLYGON_ENGINEERING_ONLY",
-        "forbidden_claims": ["RUNTIME_EFFECT", "PRODUCTION_EFFECT", "USER_EFFECT", "SECTION8_CLOSURE"],
+        "forbidden_claims": ["RUNTIME_EFFECT", "PRODUCTION_EFFECT", "USER_EFFECT", "LEGACY_COMPLETION_CLOSURE"],
         "mission": {"id": profile.get("mission_id"), "packet_fingerprint": packet.get("packet_fingerprint"), "cps_generation": _autonomous_recovery_current_cps_generation(root)},
         "owner_chain": {"compact_caller": "tools/v7-truth-check", "bundle": "tools/v7-autonomous-recovery-bundle", "omp_consumer": material_omp.get("real_caller"), "material_trigger": material_omp.get("trigger")},
         "docker_bdp": {"schema": repair.get("schema"), "final_verdict": repair.get("final_verdict"), "origin": (repair.get("origin") or {}).get("final_verdict"), "bdp_admission": (repair.get("bdp_handoff") or {}).get("admission_decision"), "repair": (repair.get("repair") or {}).get("final_verdict"), "replay": (repair.get("replay") or {}).get("final_verdict")},
@@ -12090,7 +12090,93 @@ def autonomous_recovery_engineering_evidence_contract(packet: dict[str, Any], ou
     return contract
 
 
-def autonomous_recovery_section8_completion_binding(
+def autonomous_recovery_polygon_e2e_baseline_binding(
+    output: dict[str, Any],
+) -> dict[str, Any]:
+    """Validate the one-client Polygon E2E ledger before any scale campaign.
+
+    The former isolated Docker receipt starts its stopwatch immediately before
+    a local ``tc`` command and then runs a bespoke HTTP loop.  It therefore
+    proves neither the existing health detector nor the Matrix -> governed
+    executor -> S11 product path.  It must never be promoted to this ledger.
+    """
+    baseline = output.get("polygon_e2e_baseline")
+    missing_connection = (
+        "existing_v7_health_detector_to_isolated_matrix_current_state_event_"
+        "governed_executor_required_service_s11_ledger"
+    )
+    if not isinstance(baseline, dict):
+        return {
+            "schema": "v7.autonomous-recovery-polygon-e2e-baseline-binding.v1",
+            "terminal": "STOP_SAFE_POLYGON_E2E_BASELINE_REQUIRED",
+            "final_verdict": "STOP_SAFE",
+            "evidence_label": "UNKNOWN",
+            "missing_owner_connection": missing_connection,
+            "next_executable_action": (
+                "EXTEND_EXISTING_V7_HEALTH_CONTROLLED_POLYGON_PATH_WITH_"
+                "EXISTING_MATRIX_AND_GOVERNED_EXECUTOR_STATE_BINDING"
+            ),
+            "errors": ["polygon_e2e_baseline_missing"],
+        }
+    timestamps = baseline.get("timestamps") if isinstance(baseline.get("timestamps"), dict) else {}
+    ordered = (
+        "physical_failure_injected_monotonic_ns",
+        "health_detection_monotonic_ns",
+        "matrix_current_scope_monotonic_ns",
+        "governed_mutation_monotonic_ns",
+        "kernel_route_verified_monotonic_ns",
+        "last_affected_required_service_s11_monotonic_ns",
+    )
+    values = [timestamps.get(name) for name in ordered]
+    checks = {
+        "polygon_e2e_label": baseline.get("evidence_label") == "POLYGON_E2E",
+        "one_client_baseline": baseline.get("frozen_affected_scope_count") == 1,
+        "production_not_claimed": baseline.get("production_label") in {"UNKNOWN", "NOT_PRODUCTION"},
+        "actual_health_owner": baseline.get("health_owner") == "tools/runtime-support/v7-health-loop",
+        "actual_matrix_owner": baseline.get("matrix_owner") == "tools/v7-service-matrix-refresh-all",
+        "actual_governed_executor": baseline.get("governed_executor") == "tools/v7-users-autoswitch",
+        "actual_s11_owner": bool(baseline.get("required_service_s11_owner")),
+        "timestamps_complete": all(isinstance(value, int) and value > 0 for value in values),
+        "timestamps_monotonic": all(
+            isinstance(left, int) and isinstance(right, int) and left <= right
+            for left, right in zip(values, values[1:])
+        ),
+        "no_synthetic_receipt": baseline.get("synthetic") is False,
+        "no_prequalified_trigger": baseline.get("trigger_origin") == "PHYSICAL_CHANNEL_FAILURE",
+    }
+    elapsed_ns = (
+        int(values[-1]) - int(values[0])
+        if checks["timestamps_complete"] and checks["timestamps_monotonic"]
+        else 0
+    )
+    checks["within_seven_seconds"] = elapsed_ns <= 7_000_000_000 and elapsed_ns > 0
+    passed = all(checks.values())
+    return {
+        "schema": "v7.autonomous-recovery-polygon-e2e-baseline-binding.v1",
+        "terminal": (
+            "VERIFIED_E2E_WITHIN_7S" if passed
+            else "STOP_SAFE_POLYGON_E2E_BASELINE_REQUIRED"
+        ),
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "evidence_label": "POLYGON_E2E" if passed else "UNKNOWN",
+        "production_label": "UNKNOWN",
+        "frozen_affected_scope_count": baseline.get("frozen_affected_scope_count"),
+        "fault_to_last_affected_s11_ms": (
+            round(elapsed_ns / 1_000_000.0, 3) if elapsed_ns else None
+        ),
+        "checks": checks,
+        "missing_owner_connection": "" if passed else missing_connection,
+        "next_executable_action": (
+            "ADMIT_1K_ONLY_AFTER_THIS_ONE_CLIENT_LEDGER_PASSES"
+            if passed else
+            "EXTEND_EXISTING_V7_HEALTH_CONTROLLED_POLYGON_PATH_WITH_"
+            "EXISTING_MATRIX_AND_GOVERNED_EXECUTOR_STATE_BINDING"
+        ),
+        "errors": [] if passed else [name for name, value in checks.items() if not value],
+    }
+
+
+def autonomous_recovery_e2e_completion_binding(
     *, packet: dict[str, Any], output: dict[str, Any], reviews: list[dict[str, Any]],
     codex_adaptation: dict[str, Any], root: Path = ROOT,
 ) -> dict[str, Any]:
@@ -12111,6 +12197,7 @@ def autonomous_recovery_section8_completion_binding(
     seed = output.get("distinct_member_seeded_repair") if isinstance(output.get("distinct_member_seeded_repair"), dict) else {}
     engineering_evidence = autonomous_recovery_engineering_evidence_contract(packet, output, root=root)
     receipts = repair.get("isolated_recovery_receipts") if isinstance(repair.get("isolated_recovery_receipts"), list) else []
+    e2e_baseline = autonomous_recovery_polygon_e2e_baseline_binding(output)
     current_generation = _autonomous_recovery_current_cps_generation(root)
     physical = []
     for scale in (1_000, 10_000):
@@ -12146,7 +12233,10 @@ def autonomous_recovery_section8_completion_binding(
         "NATIVE_ANALYST_CRITICAL_EXECUTOR_AND_INDEPENDENT_REVIEW_CONSUMED": review_ok,
         "NONTRIVIAL_SEEDED_DEFECT_REPAIRED_BY_EXISTING_OWNER": seed.get("final_verdict") == "PASS" and seed.get("mission_executed") is True and seed.get("seeded", {}).get("final_verdict") == "STOP_SAFE" and seed.get("seed_cleanup", {}).get("seeded_copy_discarded") is True and repair_cycle.get("checks", {}).get("origin_stopped_safe") is True and repair_cycle.get("checks", {}).get("omp_mission_executed") is True,
         "ORIGIN_EXPERIMENT_AUTOMATIC_REPLAY_PASSED": seed.get("replay", {}).get("final_verdict") == "PASS" and repair_cycle.get("checks", {}).get("cleanup_and_replay_proven") is True,
-        "PHYSICAL_ONSET_TO_LAST_REQUIRED_S11_WITHIN_SEVEN_SECONDS": all(row["valid"] for row in physical),
+        # Isolated Docker/assembler receipts remain useful engineering evidence,
+        # but are explicitly not the full product chain.  Only the immutable
+        # one-client ledger above can admit a later scale run.
+        "POLYGON_E2E_ONE_CLIENT_BASELINE_WITHIN_SEVEN_SECONDS": e2e_baseline.get("final_verdict") == "PASS",
         "SCALE_AND_CAPACITY_LAW_OWNER_CONSUMED": equivalence.get("final_verdict") == "PASS" and equivalence.get("engineering_certified_scopes") == [1_000, 10_000],
         "NO_UNEXPLAINED_MANUAL_RELAY": material.get("no_user_relay") is True and material_omp.get("trigger", "").startswith("Continue OMP"),
         "OWNER_CONSUMED_PROJECTION_OR_LAWFUL_TERMINAL_WITH_SUCCESSOR": material_omp.get("real_caller") == "continue_omp_engineering_control_loop" and bool(material_omp.get("transitions")) and material.get("final_verdict") == "PASS",
@@ -12157,7 +12247,8 @@ def autonomous_recovery_section8_completion_binding(
         "fault_catalog": _execution_contract_fingerprint(catalog) if catalog else "",
         "seed": _execution_contract_fingerprint(seed) if seed else "",
         "material": material.get("receipt_fingerprint"),
-        "physical": [row.get("receipt_fingerprint") for row in physical],
+        "legacy_isolated_physical": [row.get("receipt_fingerprint") for row in physical],
+        "polygon_e2e_baseline": _execution_contract_fingerprint(e2e_baseline),
         "reviews": [row.get("review_output_fingerprint") for row in reviews],
         "engineering_evidence": engineering_evidence.get("evidence_fingerprint"),
     }
@@ -12170,14 +12261,15 @@ def autonomous_recovery_section8_completion_binding(
         "MISSION_INTENT_CONTRACT": intent, "MISSION_ADAPTATION_RECORDS": [codex_adaptation],
         "PROVEN_COMPLETED_OUTCOMES": [name for name, passed in outcomes.items() if passed],
         "REMAINING_AUTHORIZED_WORK": [name for name, passed in outcomes.items() if not passed],
-        "REQUESTED_MISSION_TERMINAL": "FULL_COMPLETION",
-        "MISSION_TERMINAL_EVIDENCE": {"section8_evidence": evidence, "current_cps_generation": current_generation},
-        "NEXT_EXECUTABLE_ACTION": "EXISTING_OMP_LAWFUL_TERMINAL_OR_SUCCESSOR_ALREADY_CONSUMED",
+        "REQUESTED_MISSION_TERMINAL": "STOP_SAFE_EXACT_GAP" if e2e_baseline.get("final_verdict") != "PASS" else "FULL_COMPLETION",
+        "MISSION_TERMINAL_EVIDENCE": {"engineering_evidence": evidence, "polygon_e2e_baseline": e2e_baseline, "current_cps_generation": current_generation},
+        "NEXT_EXECUTABLE_ACTION": e2e_baseline.get("next_executable_action"),
     })
     passed = all(outcomes.values()) and completion.get("completion_verdict") == "COMPLETE_WITH_LEGAL_TERMINAL"
     return {
-        "schema": "v7.omp-autonomous-recovery-section8-completion-binding.v1",
-        "outcomes": outcomes, "physical_receipts": physical, "immutable_evidence": evidence,
+        "schema": "v7.omp-autonomous-recovery-e2e-completion-binding.v1",
+        "outcomes": outcomes, "legacy_isolated_receipts": physical,
+        "polygon_e2e_baseline": e2e_baseline, "immutable_evidence": evidence,
         "completion": completion, "aggregate_fingerprint": _execution_contract_fingerprint({"outcomes": outcomes, "evidence": evidence}),
         "final_verdict": "PASS" if passed else "STOP_SAFE",
         "errors": [] if passed else [name for name, value in outcomes.items() if not value] + list(completion.get("errors") or []),
@@ -12282,7 +12374,7 @@ def submit_autonomous_recovery_result(
         "MISSION_INTENT_CONTRACT": intent,
         "MISSION_ADAPTATION_RECORDS": [codex_adaptation],
         "PROVEN_COMPLETED_OUTCOMES": [],
-        "REMAINING_AUTHORIZED_WORK": list(AUTONOMOUS_RECOVERY_SECTION8_OUTCOMES),
+        "REMAINING_AUTHORIZED_WORK": list(AUTONOMOUS_RECOVERY_ENGINEERING_E2E_OUTCOMES),
         "REQUESTED_MISSION_TERMINAL": "",
         "MISSION_TERMINAL_EVIDENCE": {},
         "NEXT_EXECUTABLE_ACTION": "EXISTING_OMP_OWNER_SELECTS_NEXT_LAWFUL_RECOVERY_OBLIGATION",
@@ -12293,24 +12385,36 @@ def submit_autonomous_recovery_result(
         errors.append("autonomous_recovery_mission_integrity_binding_failed")
     if interim_completion.get("completion_verdict") != "CONTINUE_SAME_MISSION":
         errors.append("autonomous_recovery_completion_not_continuation")
-    section8 = autonomous_recovery_section8_completion_binding(
+    e2e_completion = autonomous_recovery_e2e_completion_binding(
         packet=packet, output=output, reviews=reviews,
         codex_adaptation=codex_adaptation, root=root,
     )
-    if section8.get("final_verdict") != "PASS":
-        errors.extend(f"autonomous_recovery_section8_incomplete:{error}"
-                      for error in section8.get("errors") or ["unknown"])
+    if e2e_completion.get("final_verdict") != "PASS":
+        errors.extend(f"autonomous_recovery_polygon_e2e_incomplete:{error}"
+                      for error in e2e_completion.get("errors") or ["unknown"])
+    e2e_missing = (
+        e2e_completion.get("polygon_e2e_baseline", {}).get("final_verdict")
+        != "PASS"
+        if isinstance(e2e_completion.get("polygon_e2e_baseline"), dict)
+        else True
+    )
     return {
         "schema": "v7.autonomous-recovery-submitted-run.v1",
         "packet_fingerprint": packet.get("packet_fingerprint"), "result": result,
         "reviews": reviews, "codex_adaptation": codex_adaptation,
-        "interim_completion": interim_completion, "completion": section8.get("completion"),
-        "section8_completion": section8,
+        "interim_completion": interim_completion, "completion": e2e_completion.get("completion"),
+        "polygon_e2e_completion": e2e_completion,
         "native_context_separation_proven": (
             (interim_completion.get("execution_profile_binding") or {}).get("native_agent_context_separation_proven") is True
         ),
         "final_verdict": "PASS" if not errors else "STOP_SAFE",
-        "terminal": "AUTONOMOUS_RECOVERY_SECTION8_FULL_COMPLETION_CONSUMED" if not errors else "STOP_SAFE_AUTONOMOUS_RECOVERY_ARTIFACT_CONSUMPTION",
+        "terminal": (
+            "STOP_SAFE_POLYGON_E2E_BASELINE_REQUIRED" if e2e_missing
+            else "AUTONOMOUS_RECOVERY_E2E_COMPLETION_CONSUMED"
+        ) if not errors else (
+            "STOP_SAFE_POLYGON_E2E_BASELINE_REQUIRED" if e2e_missing
+            else "STOP_SAFE_AUTONOMOUS_RECOVERY_ARTIFACT_CONSUMPTION"
+        ),
         "errors": sorted(set(errors)), "cps_effect": "NONE", "runtime_impact": "NONE",
         "production_impact": "NONE", "authority_impact": "NONE",
     }
@@ -16414,8 +16518,8 @@ def persist_autonomous_recovery_campaign_evidence(
     not a current-state, OMP, Runtime, Production, or Authority writer, and it
     never stores native prompts, message excerpts, or complete agent output.
     """
-    section8 = result.get("section8_completion") if isinstance(result.get("section8_completion"), dict) else {}
-    evidence = section8.get("immutable_evidence") if isinstance(section8.get("immutable_evidence"), dict) else {}
+    e2e = result.get("polygon_e2e_completion") if isinstance(result.get("polygon_e2e_completion"), dict) else {}
+    evidence = e2e.get("immutable_evidence") if isinstance(e2e.get("immutable_evidence"), dict) else {}
     engineering = output.get("engineering_evidence_contract") if isinstance(output.get("engineering_evidence_contract"), dict) else {}
     compact_attempts = []
     for attempt in native_attempts:
@@ -16452,12 +16556,13 @@ def persist_autonomous_recovery_campaign_evidence(
             "terminal": result.get("terminal"),
             "errors": list(result.get("errors") or [])[:32],
         },
-        "section8": {
-            "final_verdict": section8.get("final_verdict"),
-            "outcomes": section8.get("outcomes") if isinstance(section8.get("outcomes"), dict) else {},
-            "physical_receipts": section8.get("physical_receipts") if isinstance(section8.get("physical_receipts"), list) else [],
+        "polygon_e2e": {
+            "final_verdict": e2e.get("final_verdict"),
+            "outcomes": e2e.get("outcomes") if isinstance(e2e.get("outcomes"), dict) else {},
+            "baseline": e2e.get("polygon_e2e_baseline") if isinstance(e2e.get("polygon_e2e_baseline"), dict) else {},
+            "legacy_isolated_receipts": e2e.get("legacy_isolated_receipts") if isinstance(e2e.get("legacy_isolated_receipts"), list) else [],
             "immutable_evidence": evidence,
-            "aggregate_fingerprint": section8.get("aggregate_fingerprint"),
+            "aggregate_fingerprint": e2e.get("aggregate_fingerprint"),
         },
         "engineering_evidence_contract": engineering,
         "reviews": compact_reviews,

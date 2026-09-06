@@ -251,7 +251,7 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
         self.assertEqual(packet["production_impact"], "NONE")
         self.assertEqual(packet["authority_impact"], "NONE")
         required = packet["mission_intent"]["required_outcomes"]
-        self.assertEqual(set(required), set(self.lib.AUTONOMOUS_RECOVERY_SECTION8_OUTCOMES))
+        self.assertEqual(set(required), set(self.lib.AUTONOMOUS_RECOVERY_ENGINEERING_E2E_OUTCOMES))
         self.assertEqual(
             packet["execution_profile"]["mission_id"],
             packet["active_omp_mission_id"],
@@ -383,7 +383,7 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
         self.assertEqual(contract["final_verdict"], "PASS")
         self.assertEqual(contract["scope"], "ISOLATED_POLYGON_ENGINEERING_ONLY")
         self.assertEqual(contract["forbidden_claims"], [
-            "RUNTIME_EFFECT", "PRODUCTION_EFFECT", "USER_EFFECT", "SECTION8_CLOSURE",
+            "RUNTIME_EFFECT", "PRODUCTION_EFFECT", "USER_EFFECT", "LEGACY_COMPLETION_CLOSURE",
         ])
 
         missing_consumer = copy.deepcopy(output)
@@ -393,7 +393,7 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
 
         wrong_evidence_reviews = copy.deepcopy(reviews)
         wrong_evidence_reviews[0]["engineering_evidence_fingerprint"] = "tampered"
-        bound = self.lib.autonomous_recovery_section8_completion_binding(
+        bound = self.lib.autonomous_recovery_e2e_completion_binding(
             packet=packet, output=output, reviews=wrong_evidence_reviews,
             codex_adaptation=adaptation, root=ROOT,
         )
@@ -402,7 +402,7 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
 
         wrong_scope_reviews = copy.deepcopy(reviews)
         wrong_scope_reviews[0]["engineering_scope"] = "RUNTIME_EFFECT"
-        bound = self.lib.autonomous_recovery_section8_completion_binding(
+        bound = self.lib.autonomous_recovery_e2e_completion_binding(
             packet=packet, output=output, reviews=wrong_scope_reviews,
             codex_adaptation=adaptation, root=ROOT,
         )
@@ -411,13 +411,13 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
 
     def test_campaign_evidence_is_bounded_redacted_and_idempotent(self):
         packet, output, reviews, adaptation = self._section8_fixture()
-        section8 = self.lib.autonomous_recovery_section8_completion_binding(
+        section8 = self.lib.autonomous_recovery_e2e_completion_binding(
             packet=packet, output=output, reviews=reviews, codex_adaptation=adaptation, root=ROOT,
         )
         result = {
             "final_verdict": "STOP_SAFE", "terminal": "STOP_SAFE_AUTONOMOUS_RECOVERY_ARTIFACT_CONSUMPTION",
             "errors": ["previous_reviewer_lacked_current_owner_consumer_evidence"],
-            "section8_completion": section8,
+            "polygon_e2e_completion": section8,
             "provenance_level": "ORCHESTRATOR_OBSERVED_NOT_CRYPTOGRAPHIC",
         }
         attempts = [{
@@ -443,33 +443,20 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
             self.assertEqual(second["final_verdict"], "PASS")
             self.assertEqual(second["artifact_fingerprint"], first["artifact_fingerprint"])
 
-    def test_section8_binding_requires_every_outcome_and_rejects_each_tamper(self):
+    def test_isolated_receipts_cannot_admit_polygon_e2e_baseline(self):
         packet, output, reviews, adaptation = self._section8_fixture()
-        baseline = self.lib.autonomous_recovery_section8_completion_binding(
+        baseline = self.lib.autonomous_recovery_e2e_completion_binding(
             packet=packet, output=output, reviews=reviews, codex_adaptation=adaptation, root=ROOT,
         )
-        self.assertEqual(baseline["final_verdict"], "PASS", baseline["errors"])
-        tamper = {
-            "PERSISTENT_COMPACT_CONTRACT_LOADED": lambda p, o, r: p.update({"command": "wrong"}),
-            "EXACT_LAWFUL_OBLIGATION_SELECTED": lambda p, o, r: p["execution_profile"].update({"mission_id": "wrong"}),
-            "MULTI_FAULT_ISOLATED_POLYGON_CAMPAIGN_CONSUMED": lambda p, o, r: o["repair_return_packet"].update({"final_verdict": "STOP_SAFE"}),
-            "NATIVE_ANALYST_CRITICAL_EXECUTOR_AND_INDEPENDENT_REVIEW_CONSUMED": lambda p, o, r: r[0].update({"review_verdict": "FAIL_WITH_EXACT_INVARIANT"}),
-            "NONTRIVIAL_SEEDED_DEFECT_REPAIRED_BY_EXISTING_OWNER": lambda p, o, r: o["distinct_member_seeded_repair"].update({"final_verdict": "STOP_SAFE"}),
-            "ORIGIN_EXPERIMENT_AUTOMATIC_REPLAY_PASSED": lambda p, o, r: o["distinct_member_seeded_repair"]["replay"].update({"final_verdict": "STOP_SAFE"}),
-            "PHYSICAL_ONSET_TO_LAST_REQUIRED_S11_WITHIN_SEVEN_SECONDS": lambda p, o, r: o["repair_return_packet"]["repair"]["isolated_recovery_receipts"][0].update({"completed_members": 999}),
-            "SCALE_AND_CAPACITY_LAW_OWNER_CONSUMED": lambda p, o, r: o["repair_return_packet"]["repair_fault_catalog"]["equivalence_certification"].update({"engineering_certified_scopes": [1_000]}),
-            "NO_UNEXPLAINED_MANUAL_RELAY": lambda p, o, r: o["material_change_continuation"].update({"no_user_relay": False}),
-            "OWNER_CONSUMED_PROJECTION_OR_LAWFUL_TERMINAL_WITH_SUCCESSOR": lambda p, o, r: o["material_change_omp_consumption"].update({"transitions": []}),
-        }
-        for outcome, alter in tamper.items():
-            candidate_packet, candidate_output, candidate_reviews = copy.deepcopy((packet, output, reviews))
-            alter(candidate_packet, candidate_output, candidate_reviews)
-            checked = self.lib.autonomous_recovery_section8_completion_binding(
-                packet=candidate_packet, output=candidate_output, reviews=candidate_reviews,
-                codex_adaptation=adaptation, root=ROOT,
-            )
-            self.assertEqual(checked["final_verdict"], "STOP_SAFE", outcome)
-            self.assertIn(outcome, checked["errors"])
+        self.assertEqual(baseline["final_verdict"], "STOP_SAFE")
+        e2e = baseline["polygon_e2e_baseline"]
+        self.assertEqual(e2e["terminal"], "STOP_SAFE_POLYGON_E2E_BASELINE_REQUIRED")
+        self.assertEqual(e2e["evidence_label"], "UNKNOWN")
+        self.assertIn("polygon_e2e_baseline_missing", e2e["errors"])
+        self.assertIn(
+            "POLYGON_E2E_ONE_CLIENT_BASELINE_WITHIN_SEVEN_SECONDS",
+            baseline["errors"],
+        )
 
     def test_native_artifact_chain_is_interim_not_section8_completion(self):
         packet, output, reviews, manifest, adaptation = self._native_submission()
@@ -487,11 +474,11 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
         self.assertIn("autonomous_recovery_engineering_evidence_missing_or_invalid", profile_errors)
         self.assertIn(
             "NATIVE_ANALYST_CRITICAL_EXECUTOR_AND_INDEPENDENT_REVIEW_CONSUMED",
-            result["section8_completion"]["errors"],
+            result["polygon_e2e_completion"]["errors"],
         )
         self.assertIn(
-            "PHYSICAL_ONSET_TO_LAST_REQUIRED_S11_WITHIN_SEVEN_SECONDS",
-            result["section8_completion"]["errors"],
+            "POLYGON_E2E_ONE_CLIENT_BASELINE_WITHIN_SEVEN_SECONDS",
+            result["polygon_e2e_completion"]["errors"],
         )
 
     def test_reviewer_schema_requires_bound_evidence_fingerprint_and_engineering_scope(self):

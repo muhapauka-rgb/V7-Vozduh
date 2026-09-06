@@ -46,3 +46,29 @@ the only component allowed to discover and recover the now-ordinary users.
 
 This repair corrects classification only.  It does not claim a recovery or an
 S11 result; those require a subsequent live, owner-originated V7 event.
+
+## Post-deploy Runtime evidence
+
+Commit `661c0f33124b046fe63f3fa169da826b8a61ddf7` was pushed to
+`Updatesystem` and deployed by `tools/v7-safe-deploy` as
+`deploy-z8-14-Updatesystem-661c0f3-20260907T003113`.  Local, GitHub and the
+Runtime manifest aligned; `v7-health.service` was active and the installed
+owner hash matched the deployed source.
+
+After the lifecycle-only correction, the normal V7 health caller, Matrix,
+Authority, Planner, Candidate/Packet/Lease/Barrier and `v7-user-switch` chain
+automatically completed two real recoveries:
+
+| User | Source | V7-selected target | Consumer entry to required-service S11 | Provenance |
+| --- | --- | --- | ---: | --- |
+| `10.7.0.16` (Митяй) | `vless` | `awg3` | 15.662 s | `other_required:vless` health receipt |
+| `10.7.0.17` (Тесть) | `1` | `awg3` | 14.228 s | `other_required:1` health receipt |
+
+Both receipts report `ACTION_COMPLETED`, `runtime_mutation_performed=true` and
+`users_moved=1`.  Codex did not invoke a recovery consumer, select either
+target, or call the route writer.
+
+The correction is therefore consumed.  It does **not** meet the 7-second
+latency target: the receipts attribute roughly 4.8–6.0 seconds to the current
+profile-obligation advisory and 6.9–7.5 seconds to governed Apply plus
+verification.  Those are separate existing-owner latency residuals.

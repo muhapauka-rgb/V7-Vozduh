@@ -1,5 +1,6 @@
 import os
 import hashlib
+import sqlite3
 import subprocess
 import tempfile
 import unittest
@@ -51,7 +52,38 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
         env["V7_STATE_DIR"] = str(state)
         env["V7_NFT_FAKE_STATE"] = str(state / "nft.table")
         env["PATH"] = f"{state.parent / 'bin'}:{ROOT / 'tools' / 'runtime-support'}:{env['PATH']}"
+        identity_db = state / "identity.db"
+        if identity_db.exists():
+            env["V7_IDENTITY_DB"] = str(identity_db)
         return env
+
+    def write_active_identity(self, state: Path, ip: str, *, name: str = "Real person") -> None:
+        identity_db = state / "identity.db"
+        with sqlite3.connect(identity_db) as db:
+            db.executescript(
+                """
+                CREATE TABLE identity_users (
+                    id TEXT PRIMARY KEY,
+                    phone_normalized TEXT NOT NULL,
+                    display_name TEXT,
+                    status TEXT NOT NULL
+                );
+                CREATE TABLE devices (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    assigned_vpn_ip TEXT,
+                    status TEXT NOT NULL
+                );
+                """
+            )
+            db.execute(
+                "INSERT INTO identity_users VALUES (?, ?, ?, ?)",
+                (f"user-{ip}", "79990000000", name, "active"),
+            )
+            db.execute(
+                "INSERT INTO devices VALUES (?, ?, ?, ?)",
+                (f"device-{ip}", f"user-{ip}", ip, "active"),
+            )
 
     def run_guard(self, state: Path, *args: str) -> subprocess.CompletedProcess:
         return subprocess.run(
@@ -246,6 +278,107 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
             self.assertIn("ip=10.7.0.2 current=wg1 table=100 enabled=1 certification_user=1 certification_group=medium-batch", users)
             self.assertIn("ip=10.7.0.3 current=wg1 table=101 enabled=1 certification_user=1 certification_group=medium-batch", users)
             self.assertIn("ip=10.7.0.4 current=vless table=102 enabled=1\n", users)
+
+    def test_orphan_reconcile_returns_active_human_to_ordinary_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            line = "id=vless protocol=vless type=proxy interface=tun0 enabled=1\n"
+            state = self.write_state(
+                Path(tmp),
+                line,
+                "ip=10.7.0.16 current=vless table=1014 enabled=1 "
+                "certification_user=1 certification_group=polygon-l7-canary\n",
+            )
+            self.write_active_identity(state, "10.7.0.16", name="Mitya")
+            fingerprint = hashlib.sha256(line.rstrip("\n").encode()).hexdigest()
+
+            dry = self.run_set_state(
+                state,
+                "vless",
+                "certification-orphan-reconcile",
+                "--certification-users", "10.7.0.16",
+                "--certification-group", "polygon-l7-canary",
+                "--expected-egress-fingerprint", fingerprint,
+            )
+            self.assertEqual(dry.returncode, 0, dry.stdout + dry.stderr)
+            self.assertIn("MODE=dry_run", dry.stdout)
+            self.assertIn("certification_user=1", (state / "users.registry").read_text(encoding="utf-8"))
+
+            applied = self.run_set_state(
+                state,
+                "vless",
+                "certification-orphan-reconcile",
+                "--certification-users", "10.7.0.16",
+                "--certification-group", "polygon-l7-canary",
+                "--expected-egress-fingerprint", fingerprint,
+                "--apply",
+                "--confirm", "RECONCILE_ORPHANED_CERTIFICATION_USERS",
+            )
+            self.assertEqual(applied.returncode, 0, applied.stdout + applied.stderr)
+            self.assertIn("ACTION=orphaned_certification_users_reconciled", applied.stdout)
+            users = (state / "users.registry").read_text(encoding="utf-8")
+            self.assertEqual(users, "ip=10.7.0.16 current=vless table=1014 enabled=1\n")
+            self.assertIn("routes_changed=0", applied.stdout)
+
+    def test_orphan_reconcile_removes_detached_source_marker_only_without_live_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            line = (
+                "id=one protocol=amneziawg type=interface interface=awg1 enabled=1 "
+                "role=GLOBAL_FAST controlled_certification_source=1 "
+                "certification_group=t48-old\n"
+            )
+            state = self.write_state(
+                Path(tmp),
+                line,
+                "ip=10.7.0.17 current=one table=1015 enabled=1 "
+                "certification_user=1 certification_group=polygon-l7-canary\n",
+            )
+            self.write_active_identity(state, "10.7.0.17", name="Father-in-law")
+            fingerprint = hashlib.sha256(line.rstrip("\n").encode()).hexdigest()
+
+            result = self.run_set_state(
+                state,
+                "one",
+                "certification-orphan-reconcile",
+                "--certification-users", "10.7.0.17",
+                "--certification-group", "polygon-l7-canary",
+                "--expected-egress-fingerprint", fingerprint,
+                "--apply",
+                "--confirm", "RECONCILE_ORPHANED_CERTIFICATION_USERS",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("source_marker_clear=1", result.stdout)
+            self.assertNotIn("controlled_certification_source", (state / "egress.registry").read_text(encoding="utf-8"))
+            self.assertNotIn("certification_group", (state / "users.registry").read_text(encoding="utf-8"))
+
+    def test_orphan_reconcile_blocks_group_with_current_controlled_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            line = (
+                "id=vless protocol=vless type=proxy interface=tun0 enabled=1\n"
+                "id=controlled protocol=wireguard type=interface interface=wg1 enabled=1 "
+                "controlled_certification_source=1 certification_group=polygon-l7-canary\n"
+            )
+            state = self.write_state(
+                Path(tmp),
+                line,
+                "ip=10.7.0.16 current=vless table=1014 enabled=1 "
+                "certification_user=1 certification_group=polygon-l7-canary\n",
+            )
+            self.write_active_identity(state, "10.7.0.16")
+            vless_line = line.splitlines()[0]
+            fingerprint = hashlib.sha256(vless_line.encode()).hexdigest()
+
+            result = self.run_set_state(
+                state,
+                "vless",
+                "certification-orphan-reconcile",
+                "--certification-users", "10.7.0.16",
+                "--certification-group", "polygon-l7-canary",
+                "--expected-egress-fingerprint", fingerprint,
+            )
+
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("reason=certification_group_still_has_controlled_source", result.stdout)
 
     def test_certification_scope_then_controlled_maintenance_passes_guard(self):
         with tempfile.TemporaryDirectory() as tmp:

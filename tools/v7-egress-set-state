@@ -4,6 +4,7 @@ set -euo pipefail
 STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
 EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
 USERS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+IDENTITY_DB="${V7_IDENTITY_DB:-/opt/v7/admin/v7-identity.db}"
 FLAGS="$STATE_DIR/egress-flags.state"
 EGRESS_ID="${1:-}"
 STATE="${2:-}"
@@ -19,7 +20,7 @@ RELEASE_TO_BASE=0
 CONFIRM=""
 
 usage() {
-  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance|certification-failure|certification-telegram-failure|certification-telegram-recovery|certification-scope|certification-reserve|certification-release> [--apply] [--controlled-certification] [--certification-users ip1,ip2] [--certification-group name] [--reservation-id id] [--reservation-expires-at ISO8601] [--expected-egress-fingerprint sha256] [--restore-backup path] [--release-to-base] [--confirm token]" >&2
+  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance|certification-failure|certification-telegram-failure|certification-telegram-recovery|certification-scope|certification-orphan-reconcile|certification-reserve|certification-release> [--apply] [--controlled-certification] [--certification-users ip1,ip2] [--certification-group name] [--reservation-id id] [--reservation-expires-at ISO8601] [--expected-egress-fingerprint sha256] [--restore-backup path] [--release-to-base] [--confirm token]" >&2
 }
 
 while [ "$#" -gt 2 ]; do
@@ -222,6 +223,42 @@ try:
     raise SystemExit(0 if value > datetime.now(timezone.utc) else 1)
 except (TypeError, ValueError):
     raise SystemExit(1)
+PY
+}
+
+active_ordinary_identity() {
+  # A certification marker may only be reconciled when the canonical identity
+  # owner proves that the exact address belongs to an active human account and
+  # an active device.  This deliberately does not infer ordinary status from a
+  # display name or from the runtime registry itself.
+  python3 - "$IDENTITY_DB" "$1" <<'PY'
+import sqlite3
+import sys
+
+path, ip = sys.argv[1:]
+try:
+    db = sqlite3.connect(path)
+    rows = db.execute(
+        """
+        SELECT u.status, u.display_name, u.phone_normalized, d.status
+        FROM identity_users AS u
+        JOIN devices AS d ON d.user_id = u.id
+        WHERE d.assigned_vpn_ip = ?
+        """,
+        (ip,),
+    ).fetchall()
+except (sqlite3.Error, OSError):
+    raise SystemExit(1)
+finally:
+    try:
+        db.close()
+    except NameError:
+        pass
+
+if len(rows) != 1:
+    raise SystemExit(1)
+user_status, display_name, phone, device_status = rows[0]
+raise SystemExit(0 if user_status == "active" and device_status == "active" and (display_name or phone) else 1)
 PY
 }
 
@@ -429,11 +466,11 @@ rebuild_killswitch() {
 [ -n "$EGRESS_ID" ] && [ -n "$STATE" ] || { usage; exit 1; }
 safe_id "$EGRESS_ID" || { echo "unsafe egress id: $EGRESS_ID"; exit 1; }
 case "$STATE" in
-  enabled|disabled|maintenance|certification-failure|certification-telegram-failure|certification-telegram-recovery|certification-scope|certification-reserve|certification-release) ;;
+  enabled|disabled|maintenance|certification-failure|certification-telegram-failure|certification-telegram-recovery|certification-scope|certification-orphan-reconcile|certification-reserve|certification-release) ;;
   *) usage; exit 1 ;;
 esac
 safe_group "$CERTIFICATION_GROUP" || { echo "unsafe certification group: $CERTIFICATION_GROUP"; exit 1; }
-if [ "$STATE" = "certification-scope" ]; then
+if [ "$STATE" = "certification-scope" ] || [ "$STATE" = "certification-orphan-reconcile" ]; then
   [ -n "$CERTIFICATION_USERS" ] || { echo "missing --certification-users for certification-scope"; exit 1; }
   safe_ip_list "$CERTIFICATION_USERS" || { echo "unsafe certification users list"; exit 1; }
 fi
@@ -729,6 +766,192 @@ if [ "$STATE" = "certification-release" ]; then
   echo "MODE=apply"
   echo "ACTION=controlled_source_released"
   echo "users_moved=0"
+  echo "routes_changed=0"
+  exit 0
+fi
+
+if [ "$STATE" = "certification-orphan-reconcile" ]; then
+  # A certification user is never silently converted into an ordinary user.
+  # This narrow repair applies only to an orphaned marker: its exact group has
+  # no remaining controlled source, while the canonical identity owner proves
+  # that the exact address is an active ordinary human device.  It is the
+  # inverse lifecycle operation for a stale certification-scope write, not a
+  # route mutation and not a recovery action.
+  [ -r "$USERS_REG" ] || { echo "FAIL: users registry not readable: $USERS_REG"; exit 1; }
+  [ -r "$IDENTITY_DB" ] || { echo "ACTION=blocked"; echo "reason=canonical_identity_db_unavailable"; exit 2; }
+  [ -n "$CERTIFICATION_USERS" ] && safe_ip_list "$CERTIFICATION_USERS" || {
+    echo "ACTION=blocked"
+    echo "reason=orphan_reconcile_requires_exact_users"
+    exit 2
+  }
+  safe_sha256 "$EXPECTED_EGRESS_FINGERPRINT" || {
+    echo "ACTION=blocked"
+    echo "reason=orphan_reconcile_requires_egress_fingerprint"
+    exit 2
+  }
+  [ "$line_hash" = "$EXPECTED_EGRESS_FINGERPRINT" ] || {
+    echo "ACTION=blocked"
+    echo "reason=egress_fingerprint_changed"
+    exit 2
+  }
+
+  active_group_source_count="$(awk -v group="$CERTIFICATION_GROUP" '
+    {
+      controlled=""; current_group=""
+      for (i=1;i<=NF;i++) {
+        if ($i ~ /^controlled_certification_source=/) {
+          controlled=$i
+          sub(/^controlled_certification_source=/, "", controlled)
+        }
+        if ($i ~ /^certification_group=/) current_group=substr($i,21)
+      }
+      if (controlled == "1" && current_group == group) count++
+    }
+    END {print count+0}
+  ' "$EGRESS_REG")"
+  [ "$active_group_source_count" -eq 0 ] || {
+    echo "ACTION=blocked"
+    echo "reason=certification_group_still_has_controlled_source"
+    echo "certification_group=$CERTIFICATION_GROUP"
+    exit 2
+  }
+
+  invalid_scope_users=""
+  identity_unproven_users=""
+  while read -r ip; do
+    [ -n "$ip" ] || continue
+    if ! awk -v ip="$ip" -v e="$EGRESS_ID" -v group="$CERTIFICATION_GROUP" '
+      {
+        row_ip=""; current=""; enabled="1"; certification=""; assigned_group=""
+        for (i=1;i<=NF;i++) {
+          if ($i ~ /^ip=/) row_ip=substr($i,4)
+          if ($i ~ /^current=/) current=substr($i,9)
+          if ($i ~ /^enabled=/) enabled=substr($i,9)
+          if ($i ~ /^certification_user=/) certification=substr($i,20)
+          if ($i ~ /^certification_group=/) assigned_group=substr($i,21)
+        }
+        if (row_ip == ip && current == e && enabled == "1" && certification == "1" && assigned_group == group) found++
+      }
+      END {exit(found == 1 ? 0 : 1)}
+    ' "$USERS_REG"; then
+      invalid_scope_users="${invalid_scope_users}${invalid_scope_users:+,}$ip"
+      continue
+    fi
+    if ! active_ordinary_identity "$ip"; then
+      identity_unproven_users="${identity_unproven_users}${identity_unproven_users:+,}$ip"
+    fi
+  done < <(tr ',' '\n' <<< "$CERTIFICATION_USERS")
+  [ -z "$invalid_scope_users" ] || {
+    echo "ACTION=blocked"
+    echo "reason=orphan_reconcile_scope_not_exact"
+    echo "invalid_users=$invalid_scope_users"
+    exit 2
+  }
+  [ -z "$identity_unproven_users" ] || {
+    echo "ACTION=blocked"
+    echo "reason=ordinary_identity_not_active_or_not_exact"
+    echo "unproven_users=$identity_unproven_users"
+    exit 2
+  }
+
+  source_marker_clear=0
+  source_group_now="$(kv_get "$line" certification_group)"
+  source_controlled_now="$(kv_get "$line" controlled_certification_source)"
+  if [ "$source_controlled_now" = "1" ] && [ -n "$source_group_now" ] && [ "$source_group_now" != "$CERTIFICATION_GROUP" ]; then
+    source_group_members="$(awk -v e="$EGRESS_ID" -v group="$source_group_now" '
+      {
+        current=""; enabled="1"; certification=""; assigned_group=""
+        for (i=1;i<=NF;i++) {
+          if ($i ~ /^current=/) current=substr($i,9)
+          if ($i ~ /^enabled=/) enabled=substr($i,9)
+          if ($i ~ /^certification_user=/) certification=substr($i,20)
+          if ($i ~ /^certification_group=/) assigned_group=substr($i,21)
+        }
+        if (current == e && enabled == "1" && certification == "1" && assigned_group == group) count++
+      }
+      END {print count+0}
+    ' "$USERS_REG")"
+    source_reservation="$(kv_get "$line" controlled_source_reservation_id)"
+    source_expiry="$(kv_get "$line" controlled_source_reservation_expires_at)"
+    source_owner="$(kv_get "$line" reservation_owner)"
+    source_execution="$(kv_get "$line" execution_reserved)"
+    source_canary="$(kv_get "$line" canary_reserved)"
+    if [ "$source_group_members" -eq 0 ] \
+      && [ -z "$source_reservation" ] \
+      && [ -z "$source_expiry" ] \
+      && [ -z "$source_owner" ] \
+      && [ "$source_execution" != "1" ] && [ "$source_execution" != "true" ] \
+      && [ "$source_canary" != "1" ] && [ "$source_canary" != "true" ]; then
+      source_marker_clear=1
+    else
+      echo "ACTION=blocked"
+      echo "reason=current_source_has_different_live_certification_scope"
+      echo "source_group=$source_group_now"
+      echo "source_group_members=$source_group_members"
+      exit 2
+    fi
+  fi
+
+  echo "certification_group=$CERTIFICATION_GROUP"
+  echo "certification_users=$CERTIFICATION_USERS"
+  echo "source_marker_clear=$source_marker_clear"
+  if [ "$APPLY" -ne 1 ]; then
+    echo "MODE=dry_run"
+    echo "ACTION=none"
+    exit 0
+  fi
+  [ "$CONFIRM" = "RECONCILE_ORPHANED_CERTIFICATION_USERS" ] || {
+    echo "ACTION=blocked"
+    echo "reason=exact_orphan_reconcile_confirmation_required"
+    exit 2
+  }
+
+  backup_ts="$(date +%Y%m%d-%H%M%S)"
+  cp -a "$EGRESS_REG" "$EGRESS_REG.backup.v7-egress-orphan-reconcile.$backup_ts"
+  cp -a "$USERS_REG" "$USERS_REG.backup.v7-egress-orphan-reconcile.$backup_ts"
+  tmp_egress="$(mktemp "$STATE_DIR/.egress.registry.orphan-reconcile.XXXXXX")"
+  tmp_users="$(mktemp "$STATE_DIR/.users.registry.orphan-reconcile.XXXXXX")"
+
+  awk -v e="$EGRESS_ID" -v clear="$source_marker_clear" '
+    function keep_field(field) {
+      return field !~ /^controlled_certification_source=/ && field !~ /^certification_group=/
+    }
+    {
+      if ($0 ~ ("^id=" e " ") && clear == "1") {
+        out=""
+        for (i=1;i<=NF;i++) if (keep_field($i)) out=out (out ? " " : "") $i
+        $0=out
+      }
+      print
+    }
+  ' "$EGRESS_REG" > "$tmp_egress"
+  awk -v users_csv="$CERTIFICATION_USERS" -v group="$CERTIFICATION_GROUP" '
+    BEGIN { n=split(users_csv, parts, ","); for (i=1;i<=n;i++) wanted[parts[i]]=1 }
+    {
+      ip=""
+      for (i=1;i<=NF;i++) if ($i ~ /^ip=/) ip=substr($i,4)
+      if (wanted[ip]) {
+        out=""
+        for (i=1;i<=NF;i++) {
+          if ($i ~ /^certification_user=/) continue
+          if ($i ~ /^certification_group=/) continue
+          out=out (out ? " " : "") $i
+        }
+        $0=out
+      }
+      print
+    }
+  ' "$USERS_REG" > "$tmp_users"
+  cat "$tmp_egress" > "$EGRESS_REG"
+  cat "$tmp_users" > "$USERS_REG"
+  rm -f "$tmp_egress" "$tmp_users"
+  if command -v v7-audit-log >/dev/null 2>&1; then
+    v7-audit-log "egress_certification_orphan_reconcile" "egress" "id=$EGRESS_ID group=$CERTIFICATION_GROUP users=$CERTIFICATION_USERS source_marker_clear=$source_marker_clear" object_type=egress object_id="$EGRESS_ID" result=OK >/dev/null 2>&1 || true
+  fi
+  echo "MODE=apply"
+  echo "ACTION=orphaned_certification_users_reconciled"
+  echo "egress_registry_backup=$EGRESS_REG.backup.v7-egress-orphan-reconcile.$backup_ts"
+  echo "users_registry_backup=$USERS_REG.backup.v7-egress-orphan-reconcile.$backup_ts"
   echo "routes_changed=0"
   exit 0
 fi

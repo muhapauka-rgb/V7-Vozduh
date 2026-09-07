@@ -2405,10 +2405,23 @@ def main(argv: Sequence[str] | None = None) -> int:
             "deep": args.deep_interval_ms,
         }
         controlled_root = Path(args.controlled_owner_root) if args.controlled_owner_root else None
+        # The observer reads a file; diagnose/Matrix consume its directory.
+        # Keep the finite Polygon producer and consumer on the same state and
+        # event surfaces instead of silently searching inside a JSON file.
+        controlled_state_dir = (
+            Path(args.controlled_matrix_state_file).parent
+            if args.controlled_matrix_state_file else None
+        )
+        controlled_event_dir = (
+            Path(args.controlled_event_dir)
+            if args.controlled_event_dir else
+            (controlled_state_dir / "events" if controlled_state_dir else None)
+        )
         controlled_hard = (
             (
                 str(controlled_root / "v7-egress-diagnose"), "--output", "-", "--hard-signal-only",
-                "--state-dir", str(args.controlled_matrix_state_file),
+                "--state-dir", str(controlled_state_dir),
+                "--shadow-trigger-event-dir", str(controlled_event_dir),
                 "--definitive-matrix-command", str(controlled_root / "v7-service-matrix-test"),
                 "--consumer-wake-command", str(controlled_root / "v7-service-matrix-refresh-all"),
             )
@@ -2434,8 +2447,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         matrix_args: list[str] = []
         if controlled_root is not None:
             matrix_args.extend([
-                "--state-dir", str(args.controlled_matrix_state_file),
-                "--event-dir", str(args.controlled_event_dir or (Path(args.controlled_matrix_state_file).parent / "events")),
+                "--state-dir", str(controlled_state_dir),
+                "--event-dir", str(controlled_event_dir),
                 "--checker", str(controlled_root / "v7-service-matrix-test"),
                 "--governed-executor", str(controlled_root / "v7-users-autoswitch"),
                 "--passive-consumer", str(controlled_root / "v7-users-autoswitch"),

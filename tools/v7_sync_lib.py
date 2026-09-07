@@ -15539,6 +15539,11 @@ def execute_routing_digital_twin_l3_l4_obligation(
     recovery_input_contract: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Exercise routes, netem and services inside disposable Docker-only state."""
+    if receipt_executor_mode == "REAL_HEALTH_MATRIX_PROBE":
+        # Existing Polygon owner, isolated physical-substrate adapter only.
+        # This partial observation must never satisfy the full-E2E gate.
+        from tools.polygon.runtime_chain import execute
+        return execute(root)
     if receipt_executor_mode not in {"ESM_CURRENT", "CJS_LEGACY_ORIGIN_SEED"}:
         return {"schema": "v7.routing-digital-twin-l3-l4-execution.v1", "final_verdict": "STOP_SAFE", "errors": ["unknown_receipt_executor_mode"]}
     input_contract = recovery_input_contract or {
@@ -32677,6 +32682,13 @@ APPROVED_DEPLOY_FILES = [
         "local_path": "tools/runtime-support/v7-user-switch",
         "remote_path": "/usr/local/bin/v7-user-switch",
         "mode": "0755",
+        "service": None,
+    },
+    {
+        "name": "v7-egress-lib",
+        "local_path": "tools/runtime-support/v7-egress-lib",
+        "remote_path": "/usr/local/lib/v7-egress-lib",
+        "mode": "0644",
         "service": None,
     },
     {

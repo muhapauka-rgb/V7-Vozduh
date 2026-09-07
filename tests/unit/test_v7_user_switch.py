@@ -12,6 +12,21 @@ SCRIPT = ROOT / "tools" / "runtime-support" / "v7-user-switch"
 
 
 class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
+    def test_runtime_library_reads_only_the_bound_fixture_registry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "egress.registry"
+            registry.write_text("id=lab-target interface=pgtarget enabled=1\n")
+            env = os.environ.copy()
+            env["V7_EGRESS_REGISTRY"] = str(registry)
+            result = subprocess.run(
+                ["bash", "-c", '. "$1"; v7_egress_enabled lab-target && '
+                 'test "$(v7_egress_interface lab-target)" = pgtarget && '
+                 '! v7_egress_exists nonexistent && ! v7_safe_id "bad/id"',
+                 "v7-library-test", str(ROOT / "tools/runtime-support/v7-egress-lib")],
+                env=env, text=True, capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def fixture(self, root: Path):
         state = root / "state"
         state.mkdir()

@@ -46,6 +46,31 @@ def phase_rows(output: str) -> list[dict[str, int]]:
 
 
 class V7HealthFastDeadlineLoopTest(unittest.TestCase):
+    def test_controlled_owners_share_state_directory_and_event_surface(self):
+        for event_override in (None, "/polygon/exact-events"):
+            with self.subTest(event_override=event_override), mock.patch.object(
+                HEALTH_LOOP_MODULE, "RoleHealthLoop"
+            ) as loop:
+                loop.return_value.run.return_value = 0
+                argv = [
+                    "--role-based-fast", "--max-phases", "1",
+                    "--controlled-hard-command", "/bin/true",
+                    "--controlled-owner-root", "/polygon/tools",
+                    "--controlled-matrix-state-file", "/polygon/state/service-matrix.json",
+                ]
+                if event_override:
+                    argv.extend(["--controlled-event-dir", event_override])
+                self.assertEqual(HEALTH_LOOP_MODULE.main(argv), 0)
+                kwargs = loop.call_args.kwargs
+                hard = next(row.command for row in kwargs["roles"] if row.name == "hard")
+                consumer = kwargs["controlled_matrix_consumer_args"]
+                events = event_override or "/polygon/state/events"
+                self.assertEqual(hard[hard.index("--state-dir") + 1], "/polygon/state")
+                self.assertEqual(consumer[consumer.index("--state-dir") + 1], "/polygon/state")
+                self.assertEqual(hard[hard.index("--shadow-trigger-event-dir") + 1], events)
+                self.assertEqual(consumer[consumer.index("--event-dir") + 1], events)
+                self.assertEqual(kwargs["matrix_state_file"], Path("/polygon/state/service-matrix.json"))
+
     def write_command(self, root: Path, name: str, body: str) -> Path:
         command = root / name
         command.write_text("#!/bin/sh\n" + textwrap.dedent(body), encoding="utf-8")

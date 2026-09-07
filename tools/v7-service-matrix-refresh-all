@@ -3767,6 +3767,8 @@ def run_ct_m0f_standing_validation_campaign(
             "users_moved": 0,
         }
 
+    polygon_cohort = source_selection.get("isolated_polygon_cohort") or {}
+    requested_scope = len(polygon_cohort.get("members") or []) if polygon_cohort.get("ok") else 1
     for successor_index in range(max(1, int(max_successive_samples))):
         span_started_ns = time.monotonic_ns()
         current_active_reservations = active_reservations()
@@ -3799,7 +3801,7 @@ def run_ct_m0f_standing_validation_campaign(
             "--ct-m0f-standing-validation-target", selected_target,
             "--ct-m0f-standing-sample-binding-fingerprint",
             sample_binding_fingerprint,
-            "--max-users", "1",
+            "--max-users", str(requested_scope),
             "--pretty",
         ]
         if active_service_failure_binding.get("requires_binding"):
@@ -3860,6 +3862,7 @@ def run_ct_m0f_standing_validation_campaign(
         return {
             "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
             "status": "STOP_SAFE_NO_SAMPLE_ADMITTED",
+            "planner_plan_availability": result.get("planner_plan_availability") or {},
             "ok": bool(
                 rc in {0, 2}
                 and not result.get("runtime_mutation_performed")

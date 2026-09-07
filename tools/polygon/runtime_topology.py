@@ -55,7 +55,7 @@ def configure_paths(local, remote, *, backend):
             # Replies return through the same tunnel even for a bound client
             # address. The host namespace and its firewall are not accessible.
             run("iptables", "-t", "nat", "-A", "POSTROUTING", "-o", name,
-                "-s", "198.18.0.0/24", "-j", "SNAT", "--to-source", f"10.201.{number}.1")
+                "-s", "10.7.0.0/16", "-j", "SNAT", "--to-source", f"10.201.{number}.1")
     if not backend:
         run("ip", "route", "add", "default", "dev", "pgsource")
 
@@ -113,7 +113,7 @@ def configure_router(local, remote):
     # Addresses and initial source rules are topology starting conditions;
     # post-fault route changes belong exclusively to the existing writer.
     for number in range(1, 6):
-        address = f"198.18.0.{number}"
+        address = f"10.7.254.{number}"
         run("ip", "addr", "add", address + "/32", "dev", "lo")
         run("ip", "rule", "add", "priority", str(1000 + number), "from", address, "table", str(1000 + number))
         run("ip", "route", "add", "default", "dev", "pgsource", "table", str(1000 + number))

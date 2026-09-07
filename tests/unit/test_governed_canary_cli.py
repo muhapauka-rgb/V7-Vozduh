@@ -6035,11 +6035,15 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 restore_barrier_file=Path("/state/autoswitch-restore-barrier.json"),
                 max_users=10,
                 source="wireguard-1779454504-c43409",
+                policy_file=Path("/isolated/policy.json"),
+                audit_store=Path("/isolated/audit.jsonl"),
             )
         finally:
             module.subprocess.run = original_run
 
         self.assertIn("--source-egress", captured["command"])
+        self.assertEqual(captured["command"][captured["command"].index("--policy-file") + 1], "/isolated/policy.json")
+        self.assertEqual(captured["command"][captured["command"].index("--action-class-audit-store") + 1], "/isolated/audit.jsonl")
         self.assertNotIn("--pretty", captured["command"])
         source_index = captured["command"].index("--source-egress")
         self.assertEqual(captured["command"][source_index + 1], "wireguard-1779454504-c43409")
@@ -6051,6 +6055,20 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(captured["command"][refresh_index + 1], "off")
         self.assertNotIn("--pre-planner-refresh-command", captured["command"])
         self.assertIn("--governed-candidate-only", captured["command"])
+
+    def test_lab_binding_never_synthesizes_selected_moves_from_recommendations(self):
+        module = load_cli_module()
+        row = {"user_ip": "10.7.254.1", "current_egress": "source",
+               "recommended_egress": "target", "action": "switch"}
+        kwargs = dict(expected_users=[row["user_ip"]], source="source", target="target",
+                      allocation_fingerprint="a" * 64, require_existing_selected_moves=True)
+        held = {"decisions": [row], "selected_moves": []}
+        self.assertFalse(module.bind_availability_first_controlled_selection(held, **kwargs)["ok"])
+        self.assertEqual(held["selected_moves"], [])
+        actual = {"decisions": [row], "selected_moves": [row]}
+        self.assertTrue(module.bind_availability_first_controlled_selection(actual, **kwargs)["ok"])
+        wrong = {"selected_moves": [{**row, "recommended_egress": "unapproved"}]}
+        self.assertFalse(module.bind_availability_first_controlled_selection(wrong, **kwargs)["ok"])
 
     def test_ct_m0f_matrix_bound_target_is_reused_by_existing_planner(self):
         module = load_cli_module()
@@ -6982,12 +7000,15 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 max_users=10,
                 emergency_failover_autonomy=True,
                 service_matrix_lock_timeout_sec=5,
+                policy_file="/isolated/policy.json",
             )
         finally:
             module.subprocess.run = original_run
 
         self.assertEqual(captured["timeout"], 600)
         self.assertEqual(result["timeout_seconds"], 600)
+        policy_index = captured["command"].index("--policy-file")
+        self.assertEqual(captured["command"][policy_index + 1], "/isolated/policy.json")
         self.assertIn("--emergency-failover-autonomy", captured["command"])
         self.assertIn("--governed-execution-receipt", captured["command"])
         self.assertNotIn("--pretty", captured["command"])

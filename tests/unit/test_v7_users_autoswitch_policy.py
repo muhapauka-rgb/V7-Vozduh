@@ -27,6 +27,36 @@ def load_tool_module():
 
 
 class V7UsersAutoswitchPolicyTest(unittest.TestCase):
+    def test_learning_closure_accepts_absent_current_action_contract(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        result = planner._l3_materialize_learning_closure({"safety": {"authority_budget_gate": {
+            "current_action_class_contract": None,
+        }}})
+        self.assertEqual(result, {"active": False, "reason": "not_l3"})
+
+    def test_lab_hard_evidence_requires_current_incident_and_kernel_down(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        planner.state_dir, planner.event_dir, planner.egress = Path("/unit"), Path("/unit/events"), {}
+        scope = {"source_egress": "source", "members": ["10.7.254.1"]}
+        matrix = {"items": {"source": {"services": {"__channel_liveness__": {
+            "ok": False, "reason": "interface_down_or_missing", "source_incident_id": "unit-incident",
+        }}}}}
+        with mock.patch.object(planner, "_isolated_polygon_cold_scope", return_value=scope), mock.patch.object(
+            self.tool, "read_json", return_value=matrix,
+        ), mock.patch.object(self.tool, "ct_m0f_certification_only_matrix_failure_binding_projection",
+                             return_value={"ok": True, "source_incident_id": "unit-incident"}) as binding, mock.patch.object(
+            Path, "read_text", return_value="0x0",
+        ) as flags:
+            self.assertTrue(planner._controlled_certification_failure_context("source", user_ip="10.7.254.1")["confirmed"])
+            flags.return_value = "0x1"
+            self.assertFalse(planner._controlled_certification_failure_context("source", user_ip="10.7.254.1")["confirmed"])
+            flags.return_value = "0x0"
+            binding.return_value = {"ok": True, "source_incident_id": "stale"}
+            self.assertFalse(planner._controlled_certification_failure_context("source", user_ip="10.7.254.1")["confirmed"])
+            binding.return_value = {"ok": False}
+            self.assertFalse(planner._controlled_certification_failure_context("source", user_ip="10.7.254.1")["confirmed"])
+            self.assertFalse(planner._controlled_certification_failure_context("source", user_ip="10.7.254.9")["confirmed"])
+
     def test_packet_bound_ordinary_failure_context_survives_transient_flag_loss(self):
         plan = {
             "selected_moves": [{

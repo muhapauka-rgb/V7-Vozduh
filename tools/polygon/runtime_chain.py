@@ -56,7 +56,7 @@ def inside_probe(*, traffic=False, lab_authority=False):
     events.mkdir()
     # Deterministic lab-only starting identities. No production registry copy.
     (state / "users.registry").write_text("".join(
-        f"ip=198.18.0.{i} current=polygon-source enabled=1 certification_user=1 "
+        f"ip=10.7.254.{i} current=polygon-source enabled=1 certification_user=1 "
         f"certification_group=isolated-runtime table={1000+i}\n"
         for i in range(1, 6)
     ))
@@ -88,7 +88,7 @@ def inside_probe(*, traffic=False, lab_authority=False):
             if not results or not all(row.get("ok") is True for row in results.values()):
                 raise RuntimeError("required_service_baseline_failed:" + probe.stdout[-3000:])
         with ThreadPoolExecutor(max_workers=5) as workers:
-            client_baseline = list(workers.map(traffic_probe, [f"198.18.0.{i}" for i in range(1, 6)]))
+            client_baseline = list(workers.map(traffic_probe, [f"10.7.254.{i}" for i in range(1, 6)]))
         if not all(row["ok"] for row in client_baseline):
             raise RuntimeError("client_source_route_baseline_failed:" + json.dumps(client_baseline))
     if lab_authority:
@@ -102,6 +102,25 @@ def inside_probe(*, traffic=False, lab_authority=False):
         probe_owner = existing_owner("polygon_client_probe_owner", "/polygon/tools/v7-client-speed-api")
         capacity = probe_owner.measure_isolated_polygon_capacity(scope)
         (state / "polygon-cold-capacity-observation.json").write_text(json.dumps(capacity))
+        scope["cold_capacity_observation_hash"] = hashlib.sha256(
+            (state / "polygon-cold-capacity-observation.json").read_bytes(),
+        ).hexdigest()
+        # Initial disposable-node control state, produced by its existing
+        # owner before the fault. This enables no host/Production operation;
+        # the fresh lab contract and per-operation gates remain mandatory.
+        control_path = owner.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE
+        control_path.parent.mkdir(parents=True, exist_ok=True)
+        owner.write_json_atomic(control_path, owner.build_autonomous_execution_control_state(
+            True, actor="OWNER_AUTHORIZED_ISOLATED_POLYGON_CAMPAIGN",
+            reason="Initial disposable Polygon node; exact lab standing Authority required",
+        ))
+        command(["env", "V7_STATE_DIR=" + str(state),
+                 "PATH=/polygon/tools/runtime-support:/polygon/tools:/usr/local/bin:/usr/bin:/bin",
+                 "bash", "/polygon/tools/runtime-support/v7-state-json-save"])
+        command([sys.executable, "/polygon/tools/v7-intelligence-snapshot-refresh",
+                 "--state-dir", str(state), "--event-dir", str(events),
+                 "--out-dir", str(state / "intelligence"),
+                 "--audit-dir", "/polygon/audit"], timeout=30)
         policy = Path("/polygon/policy.json")
         policy.write_text("{}\n")
         audit = Path("/polygon/audit/operator-execution-audit.jsonl")
@@ -123,6 +142,30 @@ def inside_probe(*, traffic=False, lab_authority=False):
                      "pre_fault_validation": validation["status"], "max_members": scope["max_cohort_members"],
                      "max_concurrent_transactions": scope["max_concurrent_transactions"], "scope": scope}
         authority["cold_capacity_observation"] = capacity
+        # Existing two-stage lifecycle: reserve the real prefault cohort;
+        # incident, target and Packet/Lease are bound only by the later owners.
+        implementation = owner.ct_m0f_runtime_implementation_fingerprint(
+            governed_cycle=Path("/polygon/tools/v7-governed-canary-dry-run-cycle"),
+            matrix_failure_consumer=Path("/polygon/tools/v7-service-matrix-refresh-all"),
+            autoswitch=Path("/polygon/tools/v7-users-autoswitch"),
+            health_runtime=Path("/polygon/tools/runtime-support/v7-health-loop"),
+            routing_runtime=Path("/polygon/tools/runtime-support/v7-routing-sync"),
+        )
+        source_lines = [line for line in (state / "egress.registry").read_text().splitlines()
+                        if line.startswith("id=" + scope["source_egress"] + " ")]
+        if len(source_lines) != 1:
+            raise RuntimeError("polygon_prefault_source_identity_not_exact")
+        reservation = owner.reserve_ct_m0f_standing_validation_transaction(
+            contract=issued["contract"], implementation_fingerprint=implementation,
+            user=scope["members"][0], source=scope["source_egress"], target="",
+            sample_binding_fingerprint=scope["pre_fault_matrix_hash"],
+            source_reservation_id="polygon_" + owner.sha256_json(scope),
+            source_fingerprint=hashlib.sha256(source_lines[0].encode()).hexdigest(),
+            target_binding_mode="POST_T0_OWNER_SELECTED", audit_store=audit,
+        )
+        if not reservation.get("ok"):
+            raise RuntimeError("polygon_prefault_transaction_reservation_failed:" + json.dumps(reservation))
+        authority["prefault_transaction_reservation"] = reservation
     args = [
         sys.executable, "/polygon/tools/runtime-support/v7-health-loop",
         "--role-based-fast", "--max-phases", "12",
@@ -158,21 +201,28 @@ def inside_probe(*, traffic=False, lab_authority=False):
             if not traffic and json.loads(matrix.read_text()).get("items"):
                 raise RuntimeError("unexpected_pre_fault_matrix_observation")
             fault_ns = time.monotonic_ns()
+            consumer_log_offset = len(output_path.read_text())
             command(["ip", "link", "set", "pgsource", "down"])
             fault_completed_ns = time.monotonic_ns()
             if traffic:
                 with ThreadPoolExecutor(max_workers=5) as workers:
-                    fault_traffic = list(workers.map(traffic_probe, [f"198.18.0.{i}" for i in range(1, 6)]))
+                    fault_traffic = list(workers.map(traffic_probe, [f"10.7.254.{i}" for i in range(1, 6)]))
                 target_during_fault = traffic_probe("pgtarget")
                 if any(row["ok"] for row in fault_traffic) or not target_during_fault["ok"]:
                     raise RuntimeError("source_fault_or_target_path_not_isolated")
-            deadline = time.monotonic() + 10
+            deadline = time.monotonic() + (60 if lab_authority else 10)
             while time.monotonic() < deadline:
                 data = json.loads(matrix.read_text())
                 row = data.get("items", {}).get("polygon-source", {}).get("services", {}).get("__channel_liveness__", {})
-                if row.get("ok") is False and row.get("failure_event_id") and (
-                    not traffic or "V7_HEALTH_RECOVERY_CONSUMER_RECEIPT" in output_path.read_text()
-                ):
+                if lab_authority:
+                    transaction_terminal = any(
+                        item.get("record_type") == owner.CT_M0F_STANDING_VALIDATION_TRANSACTION_TERMINAL_RECORD_TYPE
+                        and item.get("transaction_reservation_id") == reservation["reservation"]["transaction_reservation_id"]
+                        for item in owner.read_audit_records(audit)
+                    )
+                else:
+                    transaction_terminal = not traffic or "V7_HEALTH_RECOVERY_CONSUMER_RECEIPT" in output_path.read_text()[consumer_log_offset:]
+                if row.get("ok") is False and row.get("failure_event_id") and transaction_terminal:
                     break
                 if process.poll() is not None:
                     break
@@ -202,12 +252,12 @@ def inside_probe(*, traffic=False, lab_authority=False):
                 )
         finally:
             # Restoration is teardown, never described as V7 failover/S11.
-            command(["ip", "link", "set", "pgsource", "up"])
             try:
                 process.wait(timeout=20)
             except subprocess.TimeoutExpired:
                 process.terminate()
                 process.wait(timeout=5)
+            command(["ip", "link", "set", "pgsource", "up"])
     log = output_path.read_text()
     event_rows = []
     for path in sorted(events.glob("*.jsonl")):
@@ -231,6 +281,7 @@ def inside_probe(*, traffic=False, lab_authority=False):
         "health_log": log,
         "health_returncode": process.returncode,
         "pre_fault_lab_authority": authority,
+        "execution_audit_records": owner.read_audit_records(audit) if lab_authority else [],
         "post_fault_source_selection_diagnostic": post_fault_selection,
         "baseline_services": baseline_services,
         "client_source_route_baseline": client_baseline,
@@ -268,7 +319,9 @@ def execute(root: Path, *, traffic=False, lab_authority=False):
                 "FROM python:3.11-slim\n"
                 "RUN apt-get update && apt-get install -y --no-install-recommends iproute2 curl jq procps util-linux openssl ca-certificates iptables && rm -rf /var/lib/apt/lists/*\n"
                 "COPY tools /polygon/tools\nCOPY admin_core /polygon/admin_core\n"
+                "COPY tools/runtime-support/v7-egress-lib /usr/local/lib/v7-egress-lib\n"
                 "ENV PYTHONPATH=/polygon PYTHONDONTWRITEBYTECODE=1\n"
+                "ENV PATH=/polygon/tools/runtime-support:/polygon/tools:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin V7_STATE_DIR=/polygon/state\n"
             )
             command([docker, "build", "-q", "-t", image, str(context)], timeout=300)
         if traffic:

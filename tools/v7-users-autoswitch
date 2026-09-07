@@ -11687,6 +11687,36 @@ class AutoswitchPlanner:
         }
 
     def _controlled_certification_failure_context(self, source: str, *, user_ip: str = "") -> dict[str, Any]:
+        scope = self._isolated_polygon_cold_scope()
+        if scope and source == scope["source_egress"] and user_ip in scope["members"]:
+            # Consume the actual HARD owner observation, not old prefault
+            # v7-state severity or a fabricated majority of service failures.
+            # Kernel IFF_UP corroboration prevents stale Matrix DOWN from
+            # authorizing a move after this exact lab source has recovered.
+            matrix = read_json(self.state_dir / "service-matrix.json", {})
+            hard = (((matrix.get("items") or {}).get(source) or {}).get("services") or {}).get("__channel_liveness__") or {}
+            binding = ct_m0f_certification_only_matrix_failure_binding_projection(
+                self.state_dir, source, event_dir=self.event_dir,
+            )
+            try:
+                kernel_down = not (int(Path("/sys/class/net/pgsource/flags").read_text().strip(), 16) & 1)
+            except (OSError, ValueError):
+                kernel_down = False
+            if (binding.get("ok") and kernel_down and hard.get("ok") is False
+                    and hard.get("reason") == "interface_down_or_missing"
+                    and hard.get("source_incident_id") == binding.get("source_incident_id")):
+                return {"schema_version": "v7.controlled-certification-current-channel-failure.v1",
+                        "confirmed": True, "channel": source, "affected_user": user_ip,
+                        "affected_users_on_channel": len(scope["members"]),
+                        "wake_source": "confirmed_current_channel_failure",
+                        "diagnose_reason": "interface_down_or_missing",
+                        "freshness": {"state": "FRESH", "source": "actual Matrix incident plus kernel IFF_UP"},
+                        "first_failed_observation_monotonic_ns": hard.get("first_failed_observation_monotonic_ns", 0),
+                        "confirmed_hard_failure_monotonic_ns": hard.get("confirmed_hard_failure_monotonic_ns", 0),
+                        "monotonic_clock_domain": hard.get("monotonic_clock_domain", ""),
+                        "source_incident_id": binding["source_incident_id"],
+                        "owner": "existing health/Matrix owners", "controlled_certification": True,
+                        "runtime_apply_allowed_now": False}
         egress_rows = getattr(self, "egress", {})
         egress_rows = egress_rows if isinstance(egress_rows, dict) else {}
         egress = egress_rows.get(source)
@@ -15291,6 +15321,23 @@ class AutoswitchPlanner:
         }
 
     def _authority_budget_gate(self, selected: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        cold_scope = self._isolated_polygon_cold_scope()
+        if cold_scope:
+            exact = all(str(move.get("user_ip") or "") in cold_scope["members"]
+                        and str(move.get("current_egress") or "") == cold_scope["source_egress"]
+                        and str(move.get("recommended_egress") or "") in cold_scope["allowed_target_egresses"]
+                        for move in selected)
+            return (selected if exact else []), {
+                "schema_version": "v7.authority-budget-gate.v1",
+                "truth_source": "existing audited isolated Polygon standing Authority",
+                "current_allowed_user_budget": len(cold_scope["members"]) if exact else 0,
+                "authority_class": "ISOLATED_POLYGON_COLD_ONLY",
+                "authority_lifecycle_state": "ACTIVE",
+                "selected_moves_before_gate": len(selected),
+                "selected_moves_after_gate": len(selected) if exact else 0,
+                "scope_fingerprint": sha256_json(cold_scope),
+                "production_authority_expanded": False,
+            }
         policy = dict(self.authority_budget_policy)
         authority_class = normalize_authority_class(policy.get("authority_class"))
         prepared_class = normalize_authority_class(policy.get("prepared_authority_class") or authority_class)
@@ -16913,6 +16960,19 @@ class AutoswitchPlanner:
             else:
                 restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_ok"
         intelligence_snapshot_gate = self._intelligence_snapshot_gate(len(selected))
+        polygon_scope = self._isolated_polygon_cold_scope()
+        polygon_failure = (
+            ct_m0f_certification_only_matrix_failure_binding_projection(
+                self.state_dir, polygon_scope["source_egress"], event_dir=Path(self.args.event_dir),
+            ) if polygon_scope else {}
+        )
+        isolated_polygon_standing_context = bool(
+            polygon_scope and polygon_failure.get("ok")
+            and str(getattr(self.args, "source_egress", "")) == polygon_scope["source_egress"]
+            and sorted(str(move.get("user_ip") or "") for move in selected) == polygon_scope["members"]
+            and all(str(move.get("current_egress") or "") == polygon_scope["source_egress"]
+                    and str(move.get("recommended_egress") or "") in polygon_scope["allowed_target_egresses"] for move in selected)
+        )
         if expired_foreign_clearance_reconciliation:
             # The old lock is neither a current source of truth nor a valid
             # source-bundle lease for this new identity.  The live Planner has
@@ -16942,7 +17002,7 @@ class AutoswitchPlanner:
                     "apply_exemption": False,
                 })
         elif (
-            ordinary_service_failure_context
+            (ordinary_service_failure_context or isolated_polygon_standing_context)
             and selected
             and bool_value(intelligence_snapshot_gate.get("active"))
             and bool_value(intelligence_snapshot_gate.get("stop_required"))
@@ -16960,9 +17020,10 @@ class AutoswitchPlanner:
                 "stop_required": False,
                 "selected_moves_suppressed": False,
                 "selected_moves_after_gate": len(selected),
-                "snapshot_gate_source": "ordinary_service_failure_candidate_only_deferral",
+                "snapshot_gate_source": "isolated_polygon_standing_candidate_only_deferral" if isolated_polygon_standing_context else "ordinary_service_failure_candidate_only_deferral",
                 "snapshot_gate_decision": "defer_advisory_snapshot_to_current_governed_rechecks",
-                "ordinary_service_failure_candidate_only_deferral": True,
+                "ordinary_service_failure_candidate_only_deferral": not isolated_polygon_standing_context,
+                "isolated_polygon_standing_candidate_only_deferral": isolated_polygon_standing_context,
                 "apply_exemption": False,
                 "mandatory_current_owners": [
                     "Matrix",
@@ -17000,7 +17061,18 @@ class AutoswitchPlanner:
         # mismatch in the current transaction.
         if expired_foreign_clearance_details:
             restore_barrier.update(expired_foreign_clearance_details)
-        if n10_ordinary_like_context or ordinary_service_failure_context:
+        if isolated_polygon_standing_context:
+            move_evidence = [self._emergency_failover_move_evidence(move) for move in selected]
+            emergency_failover_gate = {
+                "enabled": True, "ok": bool(move_evidence) and all(row.get("ok") for row in move_evidence),
+                "mode": "BOUNDED_CT_M0F_USER_PATH_CUTOVER_VALIDATION",
+                "decision": "isolated_polygon_standing_contract_requires_fresh_governed_packet_lease_barrier",
+                "move_evidence": move_evidence,
+                "blockers": sorted({reason for row in move_evidence for reason in row.get("blockers", [])}),
+                "ordinary_service_failure_context": False,
+                "isolated_polygon_scope_hash": sha256_json(polygon_scope),
+            }
+        elif n10_ordinary_like_context or ordinary_service_failure_context:
             emergency_failover_gate = {
                 "enabled": False,
                 "ok": True,
@@ -19907,8 +19979,62 @@ class AutoswitchPlanner:
         if preferred and glob_contains(preferred, egress.id):
             candidate.reasons.append("group_preferred")
 
+    def _isolated_polygon_cold_scope(self) -> dict[str, Any]:
+        policy = getattr(self, "policy", {})
+        contract = policy.get(operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY, {})
+        if contract.get("schema_version") != operator_execution.CT_M0F_POLYGON_CONTRACT_SCHEMA:
+            return {}
+        records = operator_execution.read_live_execution_lineage_records(Path(self.args.action_class_audit_store))
+        validation = operator_execution.validate_ct_m0f_standing_validation_policy(contract, audit_records=records)
+        scope = (contract.get("envelope") or {}).get("isolated_polygon_scope", {})
+        if not validation.get("ok") or Path(scope.get("state_dir", "")).resolve() != self.state_dir.resolve():
+            return {}
+        return scope
+
+    def isolated_polygon_cold_recovery_projection(self, source_id: str, binding: dict[str, Any]) -> dict[str, Any]:
+        """Use existing per-user Candidate gates for a signed cold lab cohort."""
+        scope = self._isolated_polygon_cold_scope()
+        if not scope or source_id != scope["source_egress"] or not binding.get("ok"):
+            return {"ok": False, "blockers": ["polygon_current_authority_or_incident_required"]}
+        users = self._load_runtime_registry_users()
+        members = [user for user in users if user.enabled and user.current == source_id]
+        if sorted(user.ip for user in members) != scope["members"]:
+            return {"ok": False, "blockers": ["polygon_exact_unmoved_cohort_required"]}
+        candidates = []
+        for target_id in scope["allowed_target_egresses"]:
+            target = self.egress.get(target_id)
+            if not target:
+                continue
+            services = scope["required_services"]
+            matrix_services = self._matrix_services(target_id)
+            required_ok = all(matrix_services.get(service, {}).get("ok") is True for service in services)
+            choices = [self._candidate(user, target, services, self._route_class_for_services(services), purpose="failover") for user in members]
+            limits = self._load_limits_for_egress(target)
+            available = int(limits.get("hard_limit") or 0) - sum(user.current == target_id for user in users) - 1
+            ready = required_ok and all(choice.eligible for choice in choices) and bool(limits.get("capacity_owner_reconciled")) and available >= len(members)
+            candidates.append({"target_id": target_id, "ok": ready,
+                               "score": sum(choice.score for choice in choices),
+                               "blockers": sorted({reason for choice in choices for reason in choice.blocked}),
+                               "required_services_ok": required_ok, "remaining_policy_capacity": available})
+        ranked = sorted((row for row in candidates if row["ok"]), key=lambda row: (-row["score"], row["target_id"]))
+        return {"ok": bool(ranked), "selected_target_id": ranked[0]["target_id"] if ranked else "",
+                "members": scope["members"], "scope_fingerprint": sha256_json(scope),
+                "capacity_observation_hash": scope["cold_capacity_observation_hash"],
+                "candidates": candidates, "blockers": [] if ranked else ["polygon_cold_candidate_not_admitted"],
+                "evidence_class": "ISOLATED_COLD_EXPERIMENT_ONLY"}
+
     def _gate_quality(self, candidate: Candidate) -> None:
         egress = candidate.egress
+        cold_scope = self._isolated_polygon_cold_scope()
+        if cold_scope and egress.id in cold_scope["allowed_target_egresses"]:
+            # Scope validation checks actual payload samples, concurrency,
+            # throughput, age, immutable producer/namespace and resource bounds.
+            # No long-window metric is filled or production floor changed.
+            candidate.quality_decision = {"admission": "SIGNED_ISOLATED_COLD_EXPERIMENT",
+                                          "observation_hash": cold_scope["cold_capacity_observation_hash"],
+                                          "long_window_coverage": "NOT_OBSERVED"}
+            candidate.reasons.append("isolated_cold_payload_scope_verified")
+            return
         min_avg = to_float(self.quality_policy.get("min_avg_mbps"), 15.0)
         min_floor = to_float(self.quality_policy.get("min_floor_mbps"), 10.0)
         min_stability = to_float(self.quality_policy.get("min_stability"), 0.45)
@@ -23586,9 +23712,9 @@ class AutoswitchPlanner:
     def _l3_materialize_learning_closure(self, plan: dict[str, Any]) -> dict[str, Any]:
         safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
         action_contract = (
-            (safety.get("authority_budget_gate") or {}).get(
+            ((safety.get("authority_budget_gate") or {}).get(
                 "current_action_class_contract"
-            )
+            ) or {})
             if isinstance(safety.get("authority_budget_gate"), dict)
             else {}
         )
@@ -34007,6 +34133,17 @@ def ct_m0f_standing_source_selection_only(
         or shared_target_admitted
         or matrix_failure_shared_target_admitted
     )
+    polygon_projection: dict[str, Any] = {}
+    lab_contract = policy_root.get(operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY, {})
+    if (lab_contract.get("schema_version") == operator_execution.CT_M0F_POLYGON_CONTRACT_SCHEMA
+            and selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"):
+        polygon_planner = AutoswitchPlanner(args)
+        polygon_projection = polygon_planner.isolated_polygon_cold_recovery_projection(
+            selected_source, active_service_failure_binding,
+        )
+        if polygon_projection.get("ok"):
+            selected_target = str(polygon_projection["selected_target_id"])
+            controlled_target_admitted = True
     blockers = []
     if not selected_source:
         blockers.append(
@@ -34042,6 +34179,7 @@ def ct_m0f_standing_source_selection_only(
         ),
         "selection_mode": selection_mode,
         "active_service_failure_binding": active_service_failure_binding,
+        **({"isolated_polygon_cohort": polygon_projection} if polygon_projection else {}),
         # Unrelated failed controlled sources are useful diagnostics, but they
         # are not part of this exact one-user source/target decision. Binding
         # the whole diagnostic list made an otherwise identical preparation
@@ -34089,6 +34227,7 @@ def ct_m0f_standing_source_selection_only(
         "owner": "existing users.registry + egress.registry controlled-certification pool owner",
         "selection_mode": selection_mode,
         "selected_source_id": selected_source,
+        **({"isolated_polygon_cohort": polygon_projection} if polygon_projection else {}),
         "selected_user": selected_user,
         "selected_target_id": selected_target,
         "controlled_source_topology_predecessor": topology_predecessor,
@@ -34104,6 +34243,9 @@ def ct_m0f_standing_source_selection_only(
                 if controlled_target_admitted else False
             ),
             "admission_law": (
+                "SIGNED_ISOLATED_COLD_COHORT"
+                if polygon_projection.get("ok")
+                else
                 "EXACT_CONTROLLED_BASELINE_RECOVERY_TARGET"
                 if isolated_target_admitted
                 else "EXACT_EXISTING_CONTROLLED_EXECUTION_TARGET_ONE_USER"

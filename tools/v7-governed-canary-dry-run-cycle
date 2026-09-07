@@ -25,6 +25,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -953,6 +954,8 @@ def run_l3_production_validation_plan(
     standing_policy_lineage_reuse: dict[str, Any] | None = None,
     prepared_decision_handoff: dict[str, Any] | None = None,
     ordinary_service_failure_only: bool = False,
+    policy_file: Path | None = None,
+    audit_store: Path | None = None,
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
@@ -992,6 +995,10 @@ def run_l3_production_validation_plan(
         ])
     if source:
         command.extend(["--source-egress", source])
+    if policy_file is not None:
+        command.extend(["--policy-file", str(policy_file)])
+    if audit_store is not None:
+        command.extend(["--action-class-audit-store", str(audit_store)])
     if ordinary_service_failure_only:
         command.append("--ordinary-service-failure-context")
     if target:
@@ -1103,6 +1110,7 @@ def run_l3_production_validation_plan(
                 "ok": False,
                 "command": command,
                 "error": f"{type(exc).__name__}:{exc}",
+                "error_frames": [f"{Path(frame.filename).name}:{frame.lineno}:{frame.name}" for frame in traceback.extract_tb(exc.__traceback__)[-5:]],
                 "payload": {},
                 "runtime_mutation_performed": False,
                 "apply_executed": False,
@@ -1202,6 +1210,7 @@ def bind_availability_first_controlled_selection(
     allocation_fingerprint: str,
     performance_benchmark: bool = False,
     consume_ephemeral_plan: bool = False,
+    require_existing_selected_moves: bool = False,
 ) -> dict[str, Any]:
     """Bind controlled certification identities to the existing plan.
 
@@ -1228,6 +1237,17 @@ def bind_availability_first_controlled_selection(
         blockers.append("availability_first_source_target_collision")
     if len(allocation_fingerprint) != 64:
         blockers.append("availability_first_allocation_fingerprint_invalid")
+    if require_existing_selected_moves:
+        actual = plan.get("selected_moves") or []
+        if (len(actual) != len(users)
+                or sorted(str(row.get("user_ip") or "") for row in actual) != users
+                or any(str(row.get("current_egress") or "") != source
+                       or str(row.get("recommended_egress") or "") != target
+                       or str(row.get("action") or "") != "switch" for row in actual)):
+            blockers.append("polygon_exact_existing_planner_moves_required")
+        return {"ok": not blockers, "status": "BOUND" if not blockers else "STOP_SAFE",
+                "blockers": sorted(set(blockers)), "plan": plan,
+                "selection_synthesized": False}
 
     decisions = [
         row for row in (plan.get("decisions") or [])
@@ -3761,6 +3781,7 @@ def run_autoswitch_apply(
     controlled_engineering_cleanup: bool = False,
     ordinary_service_failure_only: bool = False,
     runtime_hot_path_only: bool = False,
+    policy_file: str = "",
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
@@ -3787,6 +3808,8 @@ def run_autoswitch_apply(
         str(max(1, min(int(service_matrix_lock_timeout_sec or 90), 90))),
         "--governed-execution-receipt",
     ]
+    if policy_file:
+        command.extend(["--policy-file", str(policy_file)])
     if user:
         command.extend(["--user", user])
     if source:
@@ -4023,6 +4046,7 @@ def run_autoswitch_apply(
                 "command": command,
                 "returncode": 2,
                 "error": f"{type(exc).__name__}:{exc}",
+                "error_frames": [f"{Path(frame.filename).name}:{frame.lineno}:{frame.name}" for frame in traceback.extract_tb(exc.__traceback__)[-5:]],
                 "payload": (
                     {
                         key: plan.get(key)
@@ -6186,6 +6210,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ct_m0f_validation_requested = True
     ct_m0f_admission_binding: dict[str, Any] = {}
     ct_m0f_standing_binding: dict[str, Any] = {}
+    isolated_polygon_scope: dict[str, Any] = {}
     ct_m0f_implementation_fingerprint = ""
     if ct_m0f_validation_requested:
         ct_m0f_request_id = str(
@@ -6197,7 +6222,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ct_m0f_generation_id = str(
             getattr(args, "ct_m0f_validation_generation_id", "") or ""
         )
-        if requested_max_users != 1:
+        if requested_max_users != 1 and not ct_m0f_standing_requested:
             return transaction_stop("ct_m0f_validation_max_users_must_be_one")
         if ct_m0f_standing_requested:
             policy_root = read_json(Path(args.policy_file), {})
@@ -6247,6 +6272,14 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     "ct_m0f_standing_validation_policy_denied",
                     blockers=ct_m0f_standing_binding.get("errors") or [],
                 )
+            if contract.get("schema_version") == operator_execution.CT_M0F_POLYGON_CONTRACT_SCHEMA:
+                isolated_polygon_scope = contract["envelope"]["isolated_polygon_scope"]
+                if (requested_max_users != len(isolated_polygon_scope["members"])
+                        or str(args.approved_source or "") != isolated_polygon_scope["source_egress"]
+                        or str(getattr(args, "ct_m0f_standing_validation_target", "") or "") not in isolated_polygon_scope["allowed_target_egresses"]):
+                    return transaction_stop("polygon_exact_cohort_source_target_required")
+            elif requested_max_users != 1:
+                return transaction_stop("ct_m0f_validation_max_users_must_be_one")
             requested_contract_id = str(
                 getattr(args, "ct_m0f_standing_validation_contract_id", "") or ""
             )
@@ -6353,6 +6386,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ct_m0f_standing_requested=ct_m0f_standing_requested,
     )
     planner_user = (
+        "" if isolated_polygon_scope else
         str(getattr(args, "ct_m0f_standing_validation_user", "") or "")
         if ct_m0f_standing_requested
         else str((availability_request.get("expected_users") or [""])[0])
@@ -6415,6 +6449,8 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
         max_users=requested_max_users,
+        policy_file=Path(args.policy_file),
+        audit_store=audit_dir / "operator-execution-audit.jsonl",
         source=planner_source,
         target=planner_target,
         # Availability-first is independently admitted by its current standing
@@ -6546,7 +6582,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ct_m0f_standing_selection_binding = (
             bind_availability_first_controlled_selection(
                 plan,
-                expected_users=[
+                expected_users=isolated_polygon_scope.get("members") or [
                     str(
                         getattr(
                             args, "ct_m0f_standing_validation_user", ""
@@ -6570,12 +6606,22 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     or ""
                 ),
                 performance_benchmark=True,
+                require_existing_selected_moves=bool(isolated_polygon_scope),
                 consume_ephemeral_plan=bool(planner_runtime),
             )
         )
         if ct_m0f_standing_selection_binding.get("ok") is not True:
             return transaction_stop(
                 "ct_m0f_standing_controlled_selection_binding_blocked",
+                blockers=ct_m0f_standing_selection_binding.get("blockers") or [],
+                planner_plan_availability={
+                    "ok": bool(l3_plan_run.get("ok")),
+                    "stdout_tail": json.dumps({
+                        "selected_count": len(plan.get("selected_moves") or []),
+                        "decisions": [{key: row.get(key) for key in ("action", "move_type", "reason")} for row in (plan.get("decisions") or [])][:5],
+                        "authority_budget": (plan.get("safety") or {}).get("authority_budget_gate"),
+                    }, default=str)[-1800:],
+                },
                 ct_m0f_standing_selection_binding=(
                     ct_m0f_standing_selection_binding
                 ),
@@ -6846,6 +6892,12 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             source_bundle_hash=str(selected.get("source_bundle_hash") or ""),
             snapshot_bundle_hash=str(selected.get("snapshot_bundle_hash") or ""),
             max_users=selected_scope_max_users,
+            isolated_polygon_authority=({
+                "policy_file": str(args.policy_file),
+                "audit_store": str(audit_dir / "operator-execution-audit.jsonl"),
+                "contract_id": contract.get("contract_id"),
+                "contract_hash": contract.get("contract_hash"),
+            } if isolated_polygon_scope else None),
         )
         try:
             packet = operator_execution.packet_from_plan(
@@ -7121,7 +7173,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                         )
                     )
                 )
-                if str(row.get("user") or "") == user
+                if user in (row.get("cohort_members") or [str(row.get("user") or "")])
                 and str(row.get("source") or "") == source
                 and (
                     str(row.get("target_binding_mode") or "PRE_T0_FIXED")
@@ -7129,7 +7181,14 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     or str(row.get("target") or "") == target
                 )
                 and str(row.get("source_reservation_id") or "")
-                == str(source_row.get("controlled_source_reservation_id") or "")
+                == ("polygon_" + operator_execution.sha256_json(isolated_polygon_scope)
+                    if isolated_polygon_scope else str(source_row.get("controlled_source_reservation_id") or ""))
+                and (not isolated_polygon_scope or (
+                    row.get("cohort_members") == isolated_polygon_scope.get("members")
+                    and row.get("contract_id") == contract.get("contract_id")
+                    and row.get("contract_hash") == contract.get("contract_hash")
+                    and row.get("implementation_fingerprint") == ct_m0f_implementation_fingerprint
+                ))
                 and len(source_lines) == 1
                 and str(row.get("source_fingerprint") or "")
                 == hashlib.sha256(source_lines[0].encode()).hexdigest()
@@ -7357,6 +7416,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     apply_run = run_autoswitch_apply(
         state_dir=state_dir,
         event_dir=event_dir,
+        policy_file=str(args.policy_file),
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
         user=user if constraints["selected_move_count"] == 1 else "",
@@ -7774,6 +7834,8 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     ),
                     "child_stop_reason": child_stop_reason,
                     "child_returncode": child_returncode,
+                    "child_error": str(apply_run.get("error") or "")[:1000],
+                    "child_error_frames": list(apply_run.get("error_frames") or []),
                     "child_timed_out": bool(
                         downstream_proof_diagnostic.get("apply_timed_out")
                     ),
@@ -7783,6 +7845,11 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     # rather than collapsing it into "evidence not emitted".
                     # This is diagnostic only and never credits a sample.
                     "apply_reason": str(apply_result.get("reason") or ""),
+                    "failed_writer_rows": [
+                        {key: value for key, value in row.items() if key in ("user_ip", "rc", "output", "verify_rc", "verification_reason")}
+                        for row in (apply_result.get("results") or [])
+                        if isinstance(row, dict) and row.get("rc") not in (None, 0)
+                    ][:5],
                     "apply_unsafe_blocker": str(
                         apply_result.get("unsafe_blocker") or ""
                     ),

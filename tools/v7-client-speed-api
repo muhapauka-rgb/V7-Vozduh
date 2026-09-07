@@ -107,13 +107,20 @@ def measure_isolated_polygon_capacity(scope):
         rounds = []
         for _ in range(3):
             started = time.monotonic_ns()
+            memory_before = int(Path("/sys/fs/cgroup/memory.current").read_text())
+            oom_before = Path("/sys/fs/cgroup/memory.events").read_text()
             with ThreadPoolExecutor(max_workers=count) as workers:
                 samples = list(workers.map(probe, [channel["interface"]] * count))
-            rounds.append({"started_ns": started, "completed_ns": time.monotonic_ns(), "samples": samples})
+            rounds.append({"started_ns": started, "completed_ns": time.monotonic_ns(), "samples": samples,
+                           "memory_before_bytes": memory_before,
+                           "memory_after_bytes": int(Path("/sys/fs/cgroup/memory.current").read_text()),
+                           "memory_events_before": oom_before,
+                           "memory_events_after": Path("/sys/fs/cgroup/memory.events").read_text()})
         observations[channel["id"]] = {"interface": channel["interface"], "rounds": rounds}
     result = {
         "schema": "v7.isolated-polygon-cold-capacity-observation.v1",
         "owner": "tools/v7-client-speed-api", "observed_at": now_iso(),
+        "completed_monotonic_ns": time.monotonic_ns(),
         "scope": "TARGET_TRANSPORT_OFFERED_LOAD_ONLY_NOT_CLIENT_RECOVERY",
         "network_namespace": os.readlink("/proc/self/ns/net"),
         "cohort_members": scope["members"], "concurrent_streams": count,

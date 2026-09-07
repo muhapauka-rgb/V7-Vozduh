@@ -81,17 +81,26 @@ never restore the source or relabel its provenance to pass a preparation gate.
 provenances. The certification binding uses that same existing allowlist, while
 rejecting synthetic, unrelated, stale and ordinary-user observations.
 
-Current diagnostic boundary (2026-09-07): physical GRE failure now reaches
-`EXECUTE_CONTROLLED_FAILURE_CUTOVER`, but target quality/capacity-policy admission
-and the all-member executor are not yet connected to the lab contract. Real
+Current diagnostic boundary (2026-09-07): physical GRE failure reaches
+`EXECUTE_CONTROLLED_FAILURE_CUTOVER`; cold-lab admission and actual all-five
+Planner selection now reach the existing Packet/Lease flow. Real
 Matrix target reachability is not throughput/history evidence. Do not supply
 fixture-written quality results or count this partial probe as full E2E.
 The existing `v7-client-speed-api.measure_isolated_polygon_capacity` now probes
 three actual waves of cohort-sized parallel, TLS-verified 1 MiB downloads on
 each isolated path before the fault. It reports bytes, timings, hashes checked
 and unobserved 5m/1h coverage, not client recovery or sustained-quality credit.
-Its observations still need binding to explicit cold-lab admission in the
-existing Authority and Planner before they can authorize a target.
+The fresh versioned Authority now binds these actual observations and the
+existing Planner consumes their explicit cold-lab semantics. This is not a
+production long-window quality exemption. Initial state and intelligence
+snapshots come from their existing executable publishers. The existing CT-M0F
+reservation owner protects the exact whole lab cohort before T0, without a
+chosen target; the postfault owners bind the actual target and Packet/Lease.
+The legacy audit user key is only a canonical cohort anchor, not permission to
+shrink execution to one member. Production v1 remains unchanged. The lab binder
+rejects missing actual selected moves; it cannot synthesize moves from advice.
+Route execution, full required-service S11 and scale remain unproved. Preserve
+the actual audit records when a sample closes: closure itself is not recovery.
 
 ## 3. User decisions
 

@@ -394,6 +394,25 @@ def stable_id(prefix, payload):
     return f"{prefix}_{sha256_bytes(canonical_json(payload).encode('utf-8'))[:24]}"
 
 
+def isolated_polygon_execution_control_scope(binding, *, max_users, now=None):
+    """Resolve fresh lab Authority; a copied control flag is not permission."""
+    if not isinstance(binding, dict) or not binding:
+        raise PacketError("polygon_operation_authority_binding_missing")
+    policy = read_json(Path(binding.get("policy_file") or ""))
+    contract = policy.get(CT_M0F_STANDING_VALIDATION_POLICY_KEY) or {}
+    if (contract.get("schema_version") != CT_M0F_POLYGON_CONTRACT_SCHEMA
+            or not contract.get("contract_id")
+            or contract.get("contract_id") != binding.get("contract_id")
+            or contract.get("contract_hash") != binding.get("contract_hash")):
+        raise PacketError("polygon_operation_authority_identity_mismatch")
+    records = read_live_execution_lineage_records(Path(binding.get("audit_store") or ""))
+    validation = validate_ct_m0f_standing_validation_policy(contract, audit_records=records, now=now)
+    scope = (contract.get("envelope") or {}).get("isolated_polygon_scope") or {}
+    if not validation.get("ok") or max_users != len(scope.get("members") or []):
+        raise PacketError("polygon_operation_authority_scope_invalid")
+    return scope
+
+
 def build_autonomous_execution_control_state(
     enabled,
     *,
@@ -406,6 +425,7 @@ def build_autonomous_execution_control_state(
     source_bundle_hash="",
     snapshot_bundle_hash="",
     max_users=0,
+    isolated_polygon_authority=None,
 ):
     now = now or utc_now()
     enabled = bool(enabled)
@@ -435,11 +455,20 @@ def build_autonomous_execution_control_state(
         action_class_text == "EMERGENCY_FAILOVER"
         and 2 <= max_users_value <= 4
     )
+    bounded_isolated_polygon = False
+    if isolated_polygon_authority is not None:
+        isolated_polygon_execution_control_scope(
+            isolated_polygon_authority, max_users=max_users_value, now=now,
+        )
+        if enabled or action_class_text != "EMERGENCY_FAILOVER":
+            raise PacketError("polygon_operation_control_requires_exact_forward_scope")
+        bounded_isolated_polygon = True
     operation_scope_valid = (
         max_users_value == 1
         or bounded_n10_cohort
         or bounded_polygon_only
         or bounded_emergency_failover_cohort
+        or bounded_isolated_polygon
     )
     state = {
         "schema_version": AUTONOMOUS_EXECUTION_CONTROL_SCHEMA,
@@ -469,6 +498,10 @@ def build_autonomous_execution_control_state(
             "snapshot_bundle_hash": str(snapshot_bundle_hash or ""),
             "max_users": max_users_value,
         })
+        if bounded_isolated_polygon:
+            state["isolated_polygon_authority"] = copy.deepcopy(isolated_polygon_authority)
+    if bounded_isolated_polygon and state["scope"] != "operation":
+        raise PacketError("polygon_operation_control_must_not_fall_back_to_global")
     return state
 
 
@@ -493,6 +526,18 @@ def autonomous_execution_control_state(path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL
     if state not in {"OPEN", "CLOSED", "HALF_OPEN"} or state != expected_state:
         blockers.append("execution_control_state_invalid")
     scope = str(data.get("scope") or "")
+    bounded_isolated_polygon = False
+    if "isolated_polygon_authority" in data:
+        try:
+            isolated_polygon_execution_control_scope(
+                data["isolated_polygon_authority"], max_users=as_int(data.get("max_users"), 0), now=now,
+            )
+            bounded_isolated_polygon = (scope == "operation" and state == "CLOSED"
+                                         and data.get("action_class") == "EMERGENCY_FAILOVER")
+            if not bounded_isolated_polygon:
+                blockers.append("polygon_operation_control_scope_invalid")
+        except (PacketError, OSError, ValueError, TypeError):
+            blockers.append("polygon_operation_authority_invalid_or_expired")
     if state == "OPEN" and scope != "global":
         blockers.append("execution_control_scope_unknown")
     if state == "CLOSED" and scope not in {"global", "operation"}:
@@ -521,6 +566,7 @@ def autonomous_execution_control_state(path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL
                 action_class == "EMERGENCY_FAILOVER"
                 and 2 <= max_users <= 4
             )
+            or bounded_isolated_polygon
         ):
             blockers.append("execution_control_max_users_outside_exact_scope")
     generation = str(data.get("generation") or "")
@@ -2044,6 +2090,8 @@ def ct_m0f_standing_validation_envelope(*, isolated_polygon_scope=None):
         errors = validate_scope(isolated_polygon_scope)
         if errors:
             raise PacketError(",".join(errors))
+        if len(str(isolated_polygon_scope.get("cold_capacity_observation_hash") or "")) != 64:
+            raise PacketError("polygon_bound_cold_capacity_observation_required")
         envelope["profile"] = "CT_M0F_ISOLATED_POLYGON_FULL_RECOVERY_V1"
         envelope["evidence_class"] = "ISOLATED_POLYGON_NOT_PRODUCTION"
         envelope["effect_scope"] = "ENVIRONMENT_BOUND_ISOLATED_POLYGON_ONLY"
@@ -2052,6 +2100,15 @@ def ct_m0f_standing_validation_envelope(*, isolated_polygon_scope=None):
         envelope["execution_bounds"]["max_concurrent_transactions"] = isolated_polygon_scope["max_concurrent_transactions"]
         envelope["verification_recovery"]["all_member_required_service_s11"] = "REQUIRED"
         envelope["verification_recovery"]["physical_source_fault_until_terminal"] = "REQUIRED"
+        envelope["cold_start_admission"] = {
+            "scope": "ISOLATED_COLD_EXPERIMENT_ONLY",
+            "offered_payload_bytes_per_stream": 1048576,
+            "prefault_rounds": 3, "minimum_per_stream_mbps": 10,
+            "maximum_wave_duration_ms": 2000,
+            "maximum_observed_memory_fraction": 0.85,
+            "long_window_credit": "NONE_5M_AND_1H_NOT_OBSERVED",
+            "sustained_or_scale_credit": "NONE",
+        }
         # The v1 envelope and its existing approvals remain byte-for-byte
         # unchanged. Only a separately versioned, explicitly approved lab
         # contract may name a wider group; it grants no production expansion.
@@ -2946,6 +3003,23 @@ def reserve_ct_m0f_standing_validation_transaction(
                 "errors": validation.get("errors") or [],
                 "audit_write": False,
             }
+        cohort = {}
+        if contract.get("schema_version") == CT_M0F_POLYGON_CONTRACT_SCHEMA:
+            scope = (contract.get("envelope") or {}).get("isolated_polygon_scope") or {}
+            members = list(scope.get("members") or [])
+            if (
+                not members or required["user"] != members[0]
+                or required["source"] != scope.get("source_egress")
+                or required["target_binding_mode"] != "POST_T0_OWNER_SELECTED"
+                or required["target"]
+                or required["source_reservation_id"] != "polygon_" + sha256_json(scope)
+            ):
+                return {"ok": False, "status": "STOP_SAFE", "audit_write": False,
+                        "errors": ["ct_m0f_polygon_reservation_scope_mismatch"]}
+            # One source transaction protects every member. The legacy user
+            # key is an audit anchor, never a one-user execution selection.
+            cohort = {"cohort_members": members, "isolated_polygon_scope_hash": sha256_json(scope),
+                      "allowed_target_egresses": list(scope["allowed_target_egresses"])}
         active = active_ct_m0f_standing_validation_transactions(
             records, now=now,
         )
@@ -2986,6 +3060,7 @@ def reserve_ct_m0f_standing_validation_transaction(
             "record_type": CT_M0F_STANDING_VALIDATION_TRANSACTION_RESERVATION_RECORD_TYPE,
             "transaction_reservation_id": reservation_id,
             **required,
+            **cohort,
             "status": "RESERVED_PRE_T0",
             "created_at": now.isoformat(),
             "expires_at": (
@@ -3060,7 +3135,7 @@ def ct_m0f_standing_validation_transaction_guard(
         row for row in active_ct_m0f_standing_validation_transactions(
             records, now=now,
         )
-        if str(row.get("user") or "") == str(user or "")
+        if str(user or "") in (row.get("cohort_members") or [str(row.get("user") or "")])
         and str(row.get("source") or "") == str(source or "")
     ]
     if not matching:
@@ -3164,6 +3239,9 @@ def bind_ct_m0f_standing_validation_transaction(
                 "errors": ["ct_m0f_transaction_source_target_collision"],
                 "audit_write": False,
             }
+        if reservation.get("cohort_members") and required["target"] not in reservation.get("allowed_target_egresses", []):
+            return {"ok": False, "status": "STOP_SAFE", "audit_write": False,
+                    "errors": ["ct_m0f_polygon_transaction_target_outside_scope"]}
         if (
             str(reservation.get("target_binding_mode") or "PRE_T0_FIXED")
             == "PRE_T0_FIXED"

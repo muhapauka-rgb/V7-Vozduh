@@ -1,4 +1,5 @@
 import argparse
+import copy
 import contextlib
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -2648,6 +2649,58 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(result["authority_package"]["registered"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 
+    def test_controlled_source_topology_admits_exact_five_from_current_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"; state.mkdir()
+            state.joinpath("users.registry").write_text(
+                "\n".join(
+                    f"ip=10.7.1.{number} enabled=1 current=source certification_user=1 certification_group=t48"
+                    for number in range(1, 6)
+                ) + "\n", encoding="utf-8"
+            )
+            state.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface interface=wg0 enabled=1\n"
+                "id=vless protocol=vless type=interface interface=tun0 enabled=1\n", encoding="utf-8"
+            )
+            drafts = root / "drafts"; drafts.mkdir()
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state), "--egress-drafts-dir", str(drafts),
+            ])
+            args.controlled_source_validation_profile = "polygon-stage1-exact-five"
+            projection = {"campaign": {"request_id": "request", "request_hash": "a" * 64, "source_id": "source"}, "targets": [{
+                "target_id": "vless", "protocol": "vless", "interface": "tun0",
+                "health": {"ok": True}, "quality": {"blockers": []},
+                "capacity": {"ordinary_users": 0, "certification_users": 0, "current_assigned_users": 0, "free_capacity_after_reserve": 60},
+                "verification_supported": True, "rollback_containment_supported": True,
+                "owner_lineage": {"inventory": "egress.registry", "assignments": "users.registry"}, "semantic_fingerprint": "b" * 64,
+            }]}
+            with mock.patch.object(self.autoswitch, "controlled_campaign_target_selection_diagnostic", return_value=projection):
+                result = self.autoswitch.controlled_source_topology_diagnostic(args)
+        manifest = result["production_preflight"]["manifest"]
+        self.assertEqual(manifest["validation_profile"], "POLYGON_STAGE1_EXACT_FIVE")
+        self.assertEqual(manifest["stage1_rebind_projection"]["certification_members"], [f"10.7.1.{number}" for number in range(1, 6)])
+        self.assertEqual(manifest["stage1_rebind_projection"]["source_egress"], "source")
+        self.assertEqual(manifest["stage1_rebind_projection"]["target_egress"], "vless")
+        self.assertEqual(manifest["trial_identity_count"], 5)
+        self.assertTrue(result["production_preflight"]["mutation_performed"] is False)
+
+    def test_exact_five_admission_stops_on_current_cohort_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); state = root / "state"; state.mkdir(); drafts = root / "drafts"; drafts.mkdir()
+            state.joinpath("users.registry").write_text(
+                "\n".join(f"ip=10.7.2.{n} enabled=1 current=source certification_user=1 certification_group=t48" for n in range(1, 5)) + "\n", encoding="utf-8")
+            state.joinpath("egress.registry").write_text("id=source protocol=amneziawg type=interface interface=wg0 enabled=1\nid=vless protocol=vless type=interface interface=tun0 enabled=1\n", encoding="utf-8")
+            args = self.autoswitch.build_arg_parser().parse_args(["--state-dir", str(state), "--egress-drafts-dir", str(drafts)])
+            args.controlled_source_validation_profile = "polygon-stage1-exact-five"
+            projection = {"campaign": {"request_id": "r", "request_hash": "a" * 64, "source_id": "source"}, "targets": [{"target_id": "vless", "protocol": "vless", "interface": "tun0", "health": {"ok": True}, "quality": {"blockers": []}, "capacity": {"ordinary_users": 0, "certification_users": 0, "current_assigned_users": 0, "free_capacity_after_reserve": 60}, "verification_supported": True, "rollback_containment_supported": True, "owner_lineage": {}, "semantic_fingerprint": "b" * 64}]}
+            with mock.patch.object(self.autoswitch, "controlled_campaign_target_selection_diagnostic", return_value=projection):
+                result = self.autoswitch.controlled_source_topology_diagnostic(args)
+        manifest = result["production_preflight"]["manifest"]
+        self.assertEqual(manifest["validation_profile"], "POLYGON_STAGE1_EXACT_FIVE")
+        self.assertIn("stage1_exactly_five_existing_enabled_certification_subjects_required", manifest["stage1_rebind_projection"]["admission_blockers"])
+        self.assertEqual(result["production_preflight"]["status"], "STOP_SAFE")
+
     def test_controlled_source_topology_rejects_empty_source_reserved_to_other_group(self):
         """Empty does not make another active certification reservation reusable."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -3934,6 +3987,304 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(second["status"], "ALREADY_CONSUMED_EXACT")
         self.assertEqual(run.call_count, 1)
         self.assertEqual(run.call_args.args[0][1], "execution-source")
+
+    def test_stage1_binding_requires_exact_owner_derived_five_members(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            state.joinpath("users.registry").write_text(
+                "\n".join(f"ip=10.7.0.{n} enabled=1 certification_user=1 current=awg3" for n in range(1, 6)) + "\n",
+                encoding="utf-8",
+            )
+            args = self.autoswitch.build_arg_parser().parse_args(["--state-dir", str(state)])
+            with (
+                mock.patch.object(self.autoswitch.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout="V7_USER_ROUTE_CHECK=OK\n")),
+                mock.patch.object(self.autoswitch, "polygon_only_source_generation", return_value={"planner_generation_id": "g", "source_bundle_hash": "s", "snapshot_bundle_hash": "p", "selected_move_hash": "m"}),
+            ):
+                binding = self.autoswitch.exact_five_stage1_binding(args, {"stage1_rebind_projection": {"certification_members": [f"10.7.0.{n}" for n in range(1, 6)], "target_egress": "source"}}, "source")
+                self.assertTrue(binding["ok"])
+                bad = self.autoswitch.exact_five_stage1_binding(args, {"stage1_rebind_projection": {"certification_members": ["10.7.0.1"] * 4, "target_egress": "source"}}, "source")
+                self.assertIn("stage1_exactly_five_owner_derived_certification_members_required", bad["blockers"])
+                projection = self.autoswitch.stage1_serial_switch_projection(binding)
+                self.assertEqual(len(projection), 5)
+                self.assertTrue(all(row["rollback_egress"] == "awg3" for row in projection))
+                self.assertTrue(all(row["current_egress"] == "awg3" and row["recommended_egress"] == "source" for row in projection))
+                receipt = {
+                    "receipt_hash": "a" * 64,
+                    "members_fingerprint": binding["membership_fingerprint"],
+                    "members": binding["members"],
+                    "forward_moves": binding["forward_moves"],
+                    "target_egress": "source", "source_egress": "awg3",
+                }
+                self.assertTrue(self.autoswitch.stage1_receipt_bound_plan_input(binding, receipt)["ok"])
+                scope = self.autoswitch.stage1_receipt_bound_planner_scope(binding, receipt)
+                self.assertEqual(scope["max_selected_moves"], 5)
+                self.assertTrue(scope["selected_move_hash"])
+                receipt["target_egress"] = "wrong"
+                self.assertFalse(self.autoswitch.stage1_receipt_bound_plan_input(binding, receipt)["ok"])
+
+    def test_stage1_consumer_rejects_incomplete_owner_binding_before_effect(self):
+        args = self.autoswitch.build_arg_parser().parse_args([])
+        with mock.patch.object(self.autoswitch, "controlled_source_topology_diagnostic", return_value={"status": "x", "production_preflight": {"manifest": {"validation_profile": "POLYGON_STAGE1_EXACT_FIVE"}}}):
+            result = self.autoswitch.consume_approved_controlled_source_topology(args)
+        self.assertEqual(result["status"], "STOP_SAFE_STAGE1_BINDING")
+        self.assertFalse(result["runtime_mutation_performed"])
+
+    def test_omp_caller_profile_binding_is_exact_and_fails_closed(self):
+        qualifying = [{
+            "enabled_certification_users_on_source": 5,
+            "group_aligned_certification_users_on_source": 5,
+            "enabled_non_certification_users_on_source": 0,
+        }]
+        self.assertEqual(
+            self.autoswitch.omp_controlled_source_admission_profile(qualifying),
+            "polygon-stage1-exact-five",
+        )
+        self.assertEqual(
+            self.autoswitch.omp_controlled_source_admission_profile([{**qualifying[0], "enabled_non_certification_users_on_source": 1}]),
+            "ct-m0f-one-user",
+        )
+        valid = {"status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY", "production_preflight": {"manifest": {"validation_profile": "POLYGON_STAGE1_EXACT_FIVE"}}, "stage1_rebind_projection": {"certification_members": [str(i) for i in range(5)], "source_egress": "source", "target_egress": "target", "admission_blockers": []}}
+        self.assertTrue(self.autoswitch.omp_stage1_admission_complete(valid))
+        stale = copy.deepcopy(valid); stale["stage1_rebind_projection"]["admission_blockers"] = ["stale"]
+        self.assertFalse(self.autoswitch.omp_stage1_admission_complete(stale))
+
+    def test_actual_omp_caller_selects_exact_five_profile_without_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); state = root / "state"; state.mkdir(); policy = root / "policy.json"; policy.write_text("{}", encoding="utf-8")
+            state.joinpath("users.registry").write_text("", encoding="utf-8")
+            state.joinpath("egress.registry").write_text("", encoding="utf-8")
+            args = self.autoswitch.build_arg_parser().parse_args(["--state-dir", str(state), "--policy-file", str(policy), "--egress-drafts-dir", str(root / "drafts"), "--action-class-audit-store", str(root / "audit.jsonl")])
+            baseline = {"source_id": "dynamic-source", "enabled_certification_users_on_source": 5, "group_aligned_certification_users_on_source": 5, "enabled_non_certification_users_on_source": 0, "source_isolated_for_controlled_failure": True, "baseline_health": {"ok": True}, "controlled_condition_active": False}
+            valid = {"status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY", "production_preflight": {"manifest": {"validation_profile": "POLYGON_STAGE1_EXACT_FIVE"}}, "stage1_rebind_projection": {"certification_members": [str(i) for i in range(5)], "source_egress": "dynamic-source", "target_egress": "dynamic-target", "admission_blockers": []}}
+            with mock.patch.object(self.autoswitch, "controlled_certification_pool_status", return_value={"active_source_projections": [baseline]}), mock.patch.object(self.autoswitch, "controlled_source_topology_diagnostic", return_value=valid) as diagnostic:
+                result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
+            self.assertEqual(diagnostic.call_args.args[0].controlled_source_validation_profile, "polygon-stage1-exact-five")
+            self.assertFalse(result.get("runtime_mutation", False))
+            retained = result.get("controlled_source_topology_predecessor") or {}
+            self.assertEqual((retained.get("stage1_rebind_projection") or {}).get("source_egress"), "dynamic-source")
+            self.assertEqual((retained.get("stage1_rebind_projection") or {}).get("target_egress"), "dynamic-target")
+            self.assertNotEqual((retained.get("stage1_rebind_projection") or {}).get("source_egress"), self.autoswitch.operator_execution.POLYGON_ONLY_SOURCE_EGRESS)
+            blocked = copy.deepcopy(valid); blocked["stage1_rebind_projection"]["admission_blockers"] = ["stale"]
+            with mock.patch.object(self.autoswitch, "controlled_certification_pool_status", return_value={"active_source_projections": [baseline]}), mock.patch.object(self.autoswitch, "controlled_source_topology_diagnostic", return_value=blocked) as diagnostic:
+                stopped = self.autoswitch.ct_m0f_standing_source_selection_only(args)
+            self.assertEqual(diagnostic.call_count, 1)
+            self.assertEqual((stopped.get("controlled_source_topology_predecessor") or {}).get("status"), "STOP_SAFE_STAGE1_OMP_ADMISSION_EVIDENCE_INCOMPLETE")
+            one = {**baseline, "enabled_certification_users_on_source": 1, "group_aligned_certification_users_on_source": 1}
+            with mock.patch.object(self.autoswitch, "controlled_certification_pool_status", return_value={"active_source_projections": [one]}), mock.patch.object(self.autoswitch, "controlled_source_topology_diagnostic", return_value={"status": "one-user"}) as diagnostic:
+                self.autoswitch.ct_m0f_standing_source_selection_only(args)
+            self.assertEqual(diagnostic.call_args.args[0].controlled_source_validation_profile, "ct-m0f-one-user")
+
+    def test_stage1_producer_receipt_reaches_planner_with_forward_direction_only(self):
+        """One existing topology receipt is the sole Stage-1 Planner input."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            audit = state / "audit.jsonl"
+            members = [f"10.7.0.{number}" for number in range(1, 6)]
+            state.joinpath("users.registry").write_text(
+                "\n".join(
+                    f"ip={ip} enabled=1 certification_user=1 current=awg3"
+                    for ip in members
+                ) + "\n",
+                encoding="utf-8",
+            )
+            state.joinpath("egress.registry").write_text(
+                "id=vless type=interface enabled=1\n",
+                encoding="utf-8",
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state), "--action-class-audit-store", str(audit),
+            ])
+            future = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+            manifest = {
+                "validation_profile": "POLYGON_STAGE1_EXACT_FIVE",
+                "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+                "trial_identity_count": 5,
+                "expected_ordinary_assignment_delta": "NONE",
+                "expected_ordinary_route_delta": "NONE",
+                "selected_source_or_draft": "vless",
+                "manifest_hash": "b" * 64,
+                "reservation_owner": "v7-egress-set-state",
+                "certification_group": "test",
+            }
+            diagnostic = {
+                "status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",
+                "authority_lifecycle": {
+                    "status": "APPROVED", "matching_current_preflight": True,
+                    "expires_at": future, "decision": "APPROVE_REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+                    "decision_id": "decision-1", "request_id": "request-1", "request_hash": "a" * 64,
+                },
+                "authority_package": {
+                    "exact_action": "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+                    "authority_basis": {"expires_at": future},
+                },
+                "production_preflight": {"manifest": manifest},
+                "stage1_rebind_projection": {
+                    "certification_members": members, "target_egress": "vless",
+                },
+            }
+            source_generation = {
+                "planner_generation_id": "generation-1",
+                "source_bundle_hash": "c" * 64,
+                "snapshot_bundle_hash": "d" * 64,
+                "selected_move_hash": "e" * 64,
+            }
+            proc = SimpleNamespace(returncode=0, stdout="ACTION=controlled_source_reserved\nrestore_backup=/tmp/backup\n")
+            def run(command, **kwargs):
+                if command[0] == "v7-user-route-check":
+                    return SimpleNamespace(returncode=0, stdout="V7_USER_ROUTE_CHECK=OK\n")
+                return proc
+            with (
+                mock.patch.object(self.autoswitch, "controlled_source_topology_diagnostic", return_value=diagnostic),
+                mock.patch.object(self.autoswitch, "polygon_only_source_generation", return_value=source_generation),
+                mock.patch.object(self.autoswitch.subprocess, "run", side_effect=run),
+            ):
+                result = self.autoswitch.consume_approved_controlled_source_topology(args)
+            self.assertEqual(result["status"], "CONTROLLED_SOURCE_TOPOLOGY_PROVISIONED")
+            receipt = operator_execution.read_audit_records(audit)[-1]
+            self.assertEqual(receipt["source_egress"], "awg3")
+            self.assertEqual(receipt["target_egress"], "vless")
+            self.assertEqual(receipt["stage1_binding"]["original_assignments"], {ip: "awg3" for ip in members})
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.args = args
+            planner.policy = {"authority_budget": {"current_action_class_contract": {
+                "polygon_only": {"topology_rebind_receipt": {
+                    key: receipt[key] for key in ("receipt_hash", "manifest_hash", "members_fingerprint", "source_egress", "target_egress")
+                }}
+            }}}
+            planner._stage1_receipt = planner._read_stage1_receipt()
+            scope = planner._validated_stage1_receipt_scope()
+            self.assertTrue(scope["ok"])
+            self.assertTrue(all(
+                move["current_egress"] == "awg3" and move["recommended_egress"] == "vless"
+                and move["rollback_egress"] == "awg3"
+                for move in scope["selected_moves"]
+            ))
+            self.assertEqual(scope["source_generation"], source_generation)
+
+            malformed = copy.deepcopy(receipt)
+            malformed["source_egress"] = "vless"
+            wrong_direction = self.autoswitch.stage1_receipt_bound_planner_scope(
+                malformed["stage1_binding"], malformed,
+            )
+            self.assertFalse(wrong_direction["ok"])
+            malformed = copy.deepcopy(receipt)
+            malformed["stage1_binding"]["ordinary_invariants"]["ordinary_route_mutation_allowed"] = True
+            ordinary_impact = self.autoswitch.stage1_receipt_bound_planner_scope(
+                malformed["stage1_binding"], malformed,
+            )
+            self.assertFalse(ordinary_impact["ok"])
+            malformed = copy.deepcopy(receipt)
+            malformed["members_fingerprint"] = "f" * 64
+            membership_mismatch = self.autoswitch.stage1_receipt_bound_planner_scope(
+                malformed["stage1_binding"], malformed,
+            )
+            self.assertFalse(membership_mismatch["ok"])
+
+    def test_stage1_receipt_reader_rejects_missing_audit_receipt(self):
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        planner._stage1_receipt = {"ok": False, "reason": "stage1_receipt_missing_or_multiple"}
+        self.assertFalse(planner._validated_stage1_receipt_scope()["ok"])
+        planner._stage1_receipt = {
+            "ok": True,
+            "receipt": {"expires_at": "2000-01-01T00:00:00+00:00", "stage1_binding": {}},
+        }
+        self.assertEqual(
+            planner._validated_stage1_receipt_scope()["reason"],
+            "stage1_receipt_stale_or_expired",
+        )
+
+    def test_stage1_exact_five_materializes_only_receipt_bound_normal_plan(self):
+        """The existing Packet/Lease/Barrier owner receives no unbound plan."""
+        moves = [
+            {
+                "user_ip": f"10.7.0.{number}",
+                "current_egress": "source",
+                "recommended_egress": "target",
+                "move_type": "autoswitch",
+            }
+            for number in range(1, 6)
+        ]
+        scope = {
+            "ok": True,
+            "receipt_hash": "a" * 64,
+            "selected_moves": [dict(move) for move in moves],
+            "ordinary_invariants": {
+                "ordinary_route_truth_available": True,
+                "ordinary_assignment_mutation_allowed": False,
+                "ordinary_route_mutation_allowed": False,
+            },
+        }
+        scope["selected_move_hash"] = self.autoswitch.sha256_json({
+            "receipt_hash": scope["receipt_hash"], "moves": scope["selected_moves"],
+        })
+        plan = {
+            "selected_moves": [dict(move) for move in moves],
+            "operation": {"planner_generation_id": "generation-1"},
+            "safety": {
+                "generation": {"planner_generation_id": "generation-1"},
+                "atomic_execution_envelope": {
+                    "envelope_id": "aee-test",
+                    "envelope_hash": "b" * 64,
+                    "source_bundle": {"source_hashes": {"users_registry": "users", "egress_registry": "egress"}},
+                    "snapshot_bundle_hash": "c" * 64,
+                },
+            },
+        }
+        selected = operator_execution.selected_moves_from_plan(plan)
+        plan["operation"]["selected_move_hash"] = selected["selected_move_hash"]
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        planner._validated_stage1_receipt_scope = mock.Mock(return_value=scope)
+        planner.policy = {"authority_budget": {"current_action_class_contract": {
+            "action_class": operator_execution.POLYGON_ONLY_ACTION_CLASS,
+            "contract_id": "stage1-contract",
+            "subject": {"user_ips": [move["user_ip"] for move in moves]},
+            "scope": {"source_egress": "source", "target_egress": "target"},
+        }}}
+        with tempfile.TemporaryDirectory() as tmp:
+            planner.args = SimpleNamespace(
+                state_dir=tmp,
+                action_class_audit_store=str(Path(tmp) / "audit.jsonl"),
+                restore_barrier_file=str(Path(tmp) / "barrier.json"),
+            )
+            packet = {"packet_id": "pkt-1", "operation_id": "op-1"}
+            lease = {"lease_id": "lease-1"}
+            with (
+                mock.patch.object(operator_execution, "packet_from_plan", return_value=packet) as packet_from_plan,
+                mock.patch.object(operator_execution, "runtime_recheck", return_value={"allow": True}),
+                mock.patch.object(operator_execution, "create_execution_lease_from_packet", return_value=lease),
+                mock.patch.object(operator_execution, "write_execution_lease", return_value={"ok": True}),
+                mock.patch.object(operator_execution, "execute_packet", return_value={"execution_allowed_now": True}),
+            ):
+                result = self.autoswitch.materialize_current_product_plan(planner, plan)
+            self.assertEqual(result["status"], "N10_PACKET_LEASE_BARRIER_MATERIALIZED")
+            self.assertEqual(packet_from_plan.call_args.args[0]["operation"]["selected_move_hash"], selected["selected_move_hash"])
+            packet_input = operator_execution.selected_moves_from_plan(packet_from_plan.call_args.args[0])
+            self.assertEqual(packet_input["planner_generation_id"], "generation-1")
+            self.assertTrue(packet_input["source_bundle_hash"])
+            self.assertEqual(packet_input["snapshot_bundle_hash"], "c" * 64)
+
+        bad_plan = copy.deepcopy(plan)
+        bad_plan["selected_moves"][0]["recommended_egress"] = "other-target"
+        planner._materialize_n10_packet_lease_barrier = mock.Mock()
+        stopped = planner._materialize_stage1_packet_lease_barrier(bad_plan)
+        self.assertFalse(stopped["ok"])
+        self.assertEqual(stopped["reason"], "stage1_receipt_or_normal_plan_binding_mismatch_before_materialization")
+        planner._materialize_n10_packet_lease_barrier.assert_not_called()
+
+        for name, bad_scope in (
+            ("missing", {"ok": False, "reason": "stage1_receipt_missing_or_multiple"}),
+            ("stale", {"ok": False, "reason": "stage1_receipt_stale_or_expired"}),
+            ("non-five", {**scope, "selected_moves": scope["selected_moves"][:4]}),
+            ("ordinary-impact", {**scope, "ordinary_invariants": {"ordinary_route_truth_available": False}}),
+        ):
+            with self.subTest(name=name):
+                planner._validated_stage1_receipt_scope = mock.Mock(return_value=bad_scope)
+                planner._materialize_n10_packet_lease_barrier.reset_mock()
+                planner._run_switch = mock.Mock()
+                stopped = self.autoswitch.materialize_current_product_plan(planner, plan)
+                self.assertFalse(stopped["ok"])
+                planner._materialize_n10_packet_lease_barrier.assert_not_called()
+                planner._run_switch.assert_not_called()
 
     def test_controlled_source_topology_prepare_reuses_active_semantic_request(self):
         manifest = {

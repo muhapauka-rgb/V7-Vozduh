@@ -2122,8 +2122,10 @@ class OperatorExecutionPacketTest(unittest.TestCase):
     def test_polygon_only_contract_is_exact_and_fails_closed_on_drift(self):
         now = datetime(2026, 9, 7, tzinfo=timezone.utc)
         members = [f"10.7.1.{number}" for number in range(10, 15)]
+        source = operator_execution.POLYGON_ONLY_SOURCE_EGRESS
+        target = "awg3"
         invariants = {
-            "certification_subjects_verified": True, "ordinary_user_count": 46,
+            "certification_subjects_verified": True, "ordinary_user_count": 47,
             "ordinary_assignment_fingerprint": "a" * 64,
             "ordinary_route_fingerprint": "b" * 64,
             "ordinary_route_truth_available": True,
@@ -2132,13 +2134,19 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             "target_quarantine_allowed": False, "target_config_mutation_allowed": False,
             "target_profile_mutation_allowed": False, "ordinary_assignment_mutation_allowed": False,
             "ordinary_route_mutation_allowed": False,
+            "topology_rebind_receipt": {
+                "receipt_hash": "c" * 64, "manifest_hash": "d" * 64,
+                "members_fingerprint": sha256_json({"members": members}),
+                "source_egress": source, "target_egress": target,
+                "ordinary_user_count": 47,
+            },
         }
         template = action_contract_template()
         template.update({
             "action_class": operator_execution.POLYGON_ONLY_ACTION_CLASS,
             "max_authority_class": "CANARY", "authority_ceiling": "CANARY",
             "subject": {"user_ips": members, "certification_subject_fingerprint": sha256_json({"members": members})},
-            "scope": {"source_egress": operator_execution.POLYGON_ONLY_SOURCE_EGRESS, "target_egress": operator_execution.POLYGON_ONLY_TARGET_EGRESS},
+            "scope": {"source_egress": source, "target_egress": target},
             "max_users": 5, "max_concurrent_transactions": 1, "polygon_only": invariants,
         })
         request = build_current_action_class_contract_authority_request(template, issue_preflight={"ready": True, "blockers": []}, now=now)
@@ -2148,6 +2156,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             (lambda data: data["polygon_only"].update({"certification_subjects_verified": False}), "certification_subject_proof_invalid"),
             (lambda data: data["polygon_only"].update({"ordinary_route_truth_available": False}), "ordinary_fingerprint_invalid"),
             (lambda data: data["scope"].update({"target_egress": "wrong"}), "exact_source_target_required"),
+            (lambda data: data["polygon_only"]["topology_rebind_receipt"].update({"ordinary_user_count": 46}), "exact_source_target_required"),
             (lambda data: data["polygon_only"].update({"target_fault_injection_allowed": True}), "target_or_ordinary_mutation_fence_invalid"),
         ):
             malformed = copy.deepcopy(template)

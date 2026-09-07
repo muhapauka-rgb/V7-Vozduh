@@ -118,7 +118,6 @@ N10_ORDINARY_LIKE_SINGLE_DEVICE_ACTION_CLASS = "N10_ORDINARY_LIKE_SINGLE_DEVICE"
 N10_SMALL_COHORT_ACTION_CLASS = "N10_SMALL_COHORT"
 POLYGON_ONLY_ACTION_CLASS = "POLYGON_ONLY"
 POLYGON_ONLY_SOURCE_EGRESS = "amneziawg-exec-20260528-10-8-1-14"
-POLYGON_ONLY_TARGET_EGRESS = "wireguard-1779454504-c43409"
 N10_FRESH_PLANNER_TARGET_SELECTION = "FRESH_PLANNER_ONLY_AT_CONSUMPTION"
 DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE = Path("/opt/v7/audit/operator-execution-audit.jsonl")
 STANDING_DELEGATED_POLICY_REQUEST_SCHEMA = "v7.standing-delegated-operational-policy-authority-request.v1"
@@ -5826,12 +5825,20 @@ def validate_current_action_class_contract_authority_request(
         errors.append("current_action_class_contract_blast_radius_invalid")
     if action_class == POLYGON_ONLY_ACTION_CLASS:
         polygon_only = request.get("polygon_only") if isinstance(request.get("polygon_only"), dict) else {}
+        receipt = polygon_only.get("topology_rebind_receipt") if isinstance(polygon_only.get("topology_rebind_receipt"), dict) else {}
         expected_member_fingerprint = sha256_json({"members": subject_ips})
-        if str(scope.get("source_egress") or "") != POLYGON_ONLY_SOURCE_EGRESS or str(scope.get("target_egress") or "") != POLYGON_ONLY_TARGET_EGRESS or str(scope.get("target_selection") or ""):
+        if (
+            not all(len(str(receipt.get(key) or "")) == 64 for key in ("receipt_hash", "manifest_hash", "members_fingerprint"))
+            or str(receipt.get("source_egress") or "") != str(scope.get("source_egress") or "")
+            or str(receipt.get("target_egress") or "") != str(scope.get("target_egress") or "")
+            or str(receipt.get("members_fingerprint") or "") != expected_member_fingerprint
+            or as_int(receipt.get("ordinary_user_count"), -1) != as_int(polygon_only.get("ordinary_user_count"), -2)
+            or str(scope.get("target_selection") or "")
+        ):
             errors.append("polygon_only_exact_source_target_required")
         if str(subject.get("certification_subject_fingerprint") or "") != expected_member_fingerprint or polygon_only.get("certification_subjects_verified") is not True:
             errors.append("polygon_only_certification_subject_proof_invalid")
-        if polygon_only.get("ordinary_route_truth_available") is not True or as_int(polygon_only.get("ordinary_user_count"), -1) != 46 or any(
+        if polygon_only.get("ordinary_route_truth_available") is not True or as_int(polygon_only.get("ordinary_user_count"), -1) < 0 or any(
             len(str(polygon_only.get(key) or "")) != 64
             for key in ("ordinary_assignment_fingerprint", "ordinary_route_fingerprint")
         ):
@@ -6839,14 +6846,18 @@ def validate_current_action_class_packet_authority(packet, errors, *, now=None):
         errors.append("current_action_class_packet_authority_scope_invalid")
     if action_class == POLYGON_ONLY_ACTION_CLASS:
         polygon = contract.get("polygon_only") if isinstance(contract.get("polygon_only"), dict) else {}
+        receipt = polygon.get("topology_rebind_receipt") if isinstance(polygon.get("topology_rebind_receipt"), dict) else {}
         if (
             len(expected_users) != 5
-            or str(scope.get("source_egress") or "") != POLYGON_ONLY_SOURCE_EGRESS
-            or bound_target != POLYGON_ONLY_TARGET_EGRESS
+            or not all(len(str(receipt.get(key) or "")) == 64 for key in ("receipt_hash", "manifest_hash", "members_fingerprint"))
+            or str(receipt.get("source_egress") or "") != str(scope.get("source_egress") or "")
+            or str(receipt.get("target_egress") or "") != bound_target
+            or str(receipt.get("members_fingerprint") or "") != sha256_json({"members": expected_users})
+            or as_int(receipt.get("ordinary_user_count"), -1) != as_int(polygon.get("ordinary_user_count"), -2)
             or as_int(contract.get("max_users"), 0) != 5
             or polygon.get("certification_subjects_verified") is not True
             or polygon.get("ordinary_route_truth_available") is not True
-            or as_int(polygon.get("ordinary_user_count"), -1) != 46
+            or as_int(polygon.get("ordinary_user_count"), -1) < 0
             or any(len(str(polygon.get(key) or "")) != 64 for key in ("ordinary_assignment_fingerprint", "ordinary_route_fingerprint"))
             or any(polygon.get(key) is not False for key in (
                 "target_fault_injection_allowed", "target_restart_allowed",

@@ -3323,8 +3323,8 @@ def polygon_only_live_invariants(
     by_ip = {str(row.get("ip") or ""): row for row in rows if str(row.get("ip") or "")}
     certification_subjects_verified = (
         len(expected_users) == 5
-        and str(source_egress or "") == operator_execution.POLYGON_ONLY_SOURCE_EGRESS
-        and str(target_egress or "") == operator_execution.POLYGON_ONLY_TARGET_EGRESS
+        and bool(str(source_egress or ""))
+        and bool(str(target_egress or ""))
         and all(
             bool_value((by_ip.get(user) or {}).get("certification_user"))
             and str((by_ip.get(user) or {}).get("enabled") or "1").lower() in {"1", "true", "yes"}
@@ -3396,7 +3396,7 @@ def polygon_only_route_truth_probe_valid(returncode: int, output: str) -> bool:
     )
 
 
-def polygon_only_source_generation(args: argparse.Namespace, user_ips: list[str]) -> dict[str, str]:
+def polygon_only_source_generation(args: argparse.Namespace, user_ips: list[str], source_egress: str, target_egress: str) -> dict[str, str]:
     """Freeze static, fault-tolerant owner facts for the bounded Polygon run.
 
     The deliberate source fault is detected by the existing Matrix/Planner
@@ -3414,9 +3414,9 @@ def polygon_only_source_generation(args: argparse.Namespace, user_ips: list[str]
     egress = parse_registry(state_dir / "egress.registry")
     material = {
         "certification_members": sha256_json(sorted([row for row in users if str(row.get("ip") or "") in set(user_ips)], key=lambda row: str(row.get("ip") or ""))),
-        "source": sha256_json(next((row for row in egress if str(row.get("id") or "") == operator_execution.POLYGON_ONLY_SOURCE_EGRESS), {})),
-        "target": sha256_json(next((row for row in egress if str(row.get("id") or "") == operator_execution.POLYGON_ONLY_TARGET_EGRESS), {})),
-        "ordinary": polygon_only_live_invariants(args, user_ips, operator_execution.POLYGON_ONLY_SOURCE_EGRESS, operator_execution.POLYGON_ONLY_TARGET_EGRESS),
+        "source": sha256_json(next((row for row in egress if str(row.get("id") or "") == source_egress), {})),
+        "target": sha256_json(next((row for row in egress if str(row.get("id") or "") == target_egress), {})),
+        "ordinary": polygon_only_live_invariants(args, user_ips, source_egress, target_egress),
         "service_preferences": sha256_file(state_dir / "service-preferences.json"),
         "policy": sha256_json(policy), "org_policy": sha256_file(Path(args.org_policy_file)),
     }
@@ -3425,7 +3425,7 @@ def polygon_only_source_generation(args: argparse.Namespace, user_ips: list[str]
         "planner_generation_id": planner_generation_id,
         "source_bundle_hash": sha256_json({"planner_generation_id": planner_generation_id, "material": material}),
         "snapshot_bundle_hash": sha256_json({"ordinary": material["ordinary"], "service_preferences": material["service_preferences"]}),
-        "selected_move_hash": sha256_json({"user_ips": sorted(user_ips), "source_egress": operator_execution.POLYGON_ONLY_SOURCE_EGRESS, "target_egress": operator_execution.POLYGON_ONLY_TARGET_EGRESS}),
+        "selected_move_hash": sha256_json({"user_ips": sorted(user_ips), "source_egress": source_egress, "target_egress": target_egress}),
     }
 
 
@@ -5096,6 +5096,7 @@ class AutoswitchPlanner:
         self._prepared_decision_diagnostic: dict[str, Any] = {}
         constructor_started_ns = time.monotonic_ns()
         self.args = args
+        self._stage1_receipt: dict[str, Any] = {"ok": False, "reason": "stage1_receipt_not_loaded"}
         self._performance_spans: list[dict[str, Any]] = []
         self.controlled_campaign_target_admission = (
             controlled_campaign_execution_target_admission(args)
@@ -5143,6 +5144,7 @@ class AutoswitchPlanner:
         )
         self.state = read_json(self.state_dir / "v7-state.json", {})
         self.policy = read_json(Path(args.policy_file), {})
+        self._stage1_receipt = self._read_stage1_receipt()
         self.org_policy = read_json(Path(args.org_policy_file), {})
         standing_reuse = getattr(
             args, "_standing_policy_lineage_reuse", {},
@@ -8354,6 +8356,28 @@ class AutoswitchPlanner:
             binding["source_scope_resolution"] = "IMMUTABLE_EVENT_OWNER_BACKFILL"
             return binding
         return binding
+
+    def _read_stage1_receipt(self) -> dict[str, Any]:
+        """Read one complete Stage-1 receipt from the existing audit owner."""
+        store = Path(getattr(self.args, "action_class_audit_store", operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE))
+        rows = [row for row in operator_execution.read_audit_records(store) if row.get("record_type") == operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE]
+        contract = (((getattr(self, "policy", {}) or {}).get("authority_budget") or {}).get("current_action_class_contract") or {})
+        polygon = contract.get("polygon_only") if isinstance(contract.get("polygon_only"), dict) else {}
+        bound = polygon.get("topology_rebind_receipt") if isinstance(polygon.get("topology_rebind_receipt"), dict) else {}
+        now = datetime.now(timezone.utc).timestamp()
+        complete = [row for row in rows if isinstance(row.get("stage1_binding"), dict) and parse_ts(row.get("expires_at")) > now and str(row.get("receipt_hash") or "") == str(bound.get("receipt_hash") or "") and str(row.get("manifest_hash") or "") == str(bound.get("manifest_hash") or "") and str(row.get("members_fingerprint") or "") == str(bound.get("members_fingerprint") or "") and str(row.get("source_egress") or "") == str(bound.get("source_egress") or "") and str(row.get("target_egress") or "") == str(bound.get("target_egress") or "")]
+        if len(complete) != 1:
+            return {"ok": False, "reason": "stage1_current_receipt_missing_or_ambiguous"}
+        return {"ok": True, "receipt": complete[0]}
+
+    def _validated_stage1_receipt_scope(self) -> dict[str, Any]:
+        loaded = self._stage1_receipt
+        receipt = loaded.get("receipt") if isinstance(loaded.get("receipt"), dict) else {}
+        binding = receipt.get("stage1_binding") if isinstance(receipt.get("stage1_binding"), dict) else {}
+        if parse_ts(receipt.get("expires_at")) <= datetime.now(timezone.utc).timestamp():
+            return {"ok": False, "reason": "stage1_receipt_stale_or_expired"}
+        scope = stage1_receipt_bound_planner_scope(binding, receipt)
+        return scope if loaded.get("ok") and scope.get("ok") else {"ok": False, "reason": str(scope.get("reason") or loaded.get("reason") or "stage1_receipt_invalid")}
 
     def _n10_product_operation_ids_from_authority_audit(self) -> set[str]:
         """Return only operations proven by the existing Authority audit as N10.
@@ -16279,6 +16303,15 @@ class AutoswitchPlanner:
         ordinary_service_failure_request = bool_value(
             getattr(self.args, "ordinary_service_failure_context", False)
         )
+        stage1_scope: dict[str, Any] = {}
+        if active_product_class == operator_execution.POLYGON_ONLY_ACTION_CLASS:
+            stage1_scope = self._validated_stage1_receipt_scope()
+            if not stage1_scope.get("ok"):
+                return {"enabled": False, "mode": "observe", "selected_moves": [],
+                        "operation": {}, "summary": {"selected_moves": 0},
+                        "safety": {"stage1_receipt": stage1_scope}, "stop_safe": True}
+            source_egress = str(stage1_scope.get("source_egress") or "")
+            target_egress = str(stage1_scope.get("target_egress") or "")
         n10_small_cohort_context = (
             not ordinary_service_failure_request
             and bool(active_product_contract.get("valid"))
@@ -16291,20 +16324,26 @@ class AutoswitchPlanner:
             not ordinary_service_failure_request
             and bool(active_product_contract.get("valid"))
             and active_product_class == operator_execution.POLYGON_ONLY_ACTION_CLASS
-            and not target_egress
-            and not source_egress
+            and bool(stage1_scope.get("ok"))
             and str(active_product_scope.get("source_egress") or "")
-            == operator_execution.POLYGON_ONLY_SOURCE_EGRESS
+            == str(stage1_scope.get("source_egress") or "")
             and str(active_product_scope.get("target_egress") or "")
-            == operator_execution.POLYGON_ONLY_TARGET_EGRESS
+            == str(stage1_scope.get("target_egress") or "")
         )
         n10_small_cohort_users = sorted({
             str(item).strip() for item in (active_product_subject.get("user_ips") or []) if str(item).strip()
         })
+        if stage1_scope:
+            n10_small_cohort_users = sorted(
+                str(move.get("user_ip") or "")
+                for move in (stage1_scope.get("selected_moves") or [])
+                if str(move.get("user_ip") or "")
+            )
         if n10_small_cohort_context or polygon_only_context:
             source_egress = str(active_product_scope.get("source_egress") or "")
         if polygon_only_context:
-            target_egress = str(active_product_scope.get("target_egress") or "")
+            source_egress = str(stage1_scope.get("source_egress") or active_product_scope.get("source_egress") or "")
+            target_egress = str(stage1_scope.get("target_egress") or active_product_scope.get("target_egress") or "")
         requested_max_selected_moves = to_int(
             getattr(self.args, "max_selected_moves", 0), 0
         )
@@ -20461,6 +20500,82 @@ class AutoswitchPlanner:
                 continue
             return target
         return ""
+
+    def _materialize_stage1_packet_lease_barrier(self, plan: dict[str, Any]) -> dict[str, Any]:
+        """Admit an exact-five receipt-bound plan to the existing materializer.
+
+        This is a narrow consumer-side check, not a second planner or Packet
+        owner.  The existing Packet/Lease/Barrier code remains the sole
+        materializer; this method only proves that its input is still the one
+        immutable Stage-1 receipt admitted before planning.
+        """
+        scope = self._validated_stage1_receipt_scope()
+        if not scope.get("ok"):
+            return {
+                "ok": False,
+                "reason": "stage1_receipt_stop_safe_before_materialization",
+                "stage1_receipt": scope,
+            }
+        selected = operator_execution.selected_moves_from_plan(plan)
+        moves = selected.get("moves") if isinstance(selected.get("moves"), list) else []
+        expected_moves = (
+            scope.get("selected_moves")
+            if isinstance(scope.get("selected_moves"), list)
+            else []
+        )
+        fields = ("user_ip", "current_egress", "recommended_egress")
+        actual_identity = [
+            tuple(str(row.get(field) or "") for field in fields)
+            for row in moves if isinstance(row, dict)
+        ]
+        expected_identity = [
+            tuple(str(row.get(field) or "") for field in fields)
+            for row in expected_moves if isinstance(row, dict)
+        ]
+        operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        envelope = safety.get("atomic_execution_envelope") if isinstance(safety.get("atomic_execution_envelope"), dict) else {}
+        normal_binding_ok = (
+            len(actual_identity) == 5
+            and actual_identity == expected_identity
+            and str(selected.get("selected_move_hash") or "")
+            == str(operation.get("selected_move_hash") or "")
+            and str(selected.get("planner_generation_id") or "")
+            and str(selected.get("source_bundle_hash") or "")
+            and str(selected.get("snapshot_bundle_hash") or "")
+            and str(envelope.get("envelope_id") or "")
+            and str(envelope.get("envelope_hash") or "")
+        )
+        receipt_binding_hash = sha256_json({
+            "receipt_hash": str(scope.get("receipt_hash") or ""),
+            "moves": expected_moves,
+        })
+        ordinary = (
+            scope.get("ordinary_invariants")
+            if isinstance(scope.get("ordinary_invariants"), dict)
+            else {}
+        )
+        ordinary_protected = (
+            bool_value(ordinary.get("ordinary_route_truth_available"))
+            and ordinary.get("ordinary_assignment_mutation_allowed") is False
+            and ordinary.get("ordinary_route_mutation_allowed") is False
+        )
+        if (
+            not normal_binding_ok
+            or not str(scope.get("receipt_hash") or "")
+            or receipt_binding_hash != str(scope.get("selected_move_hash") or "")
+            or not ordinary_protected
+        ):
+            return {
+                "ok": False,
+                "reason": "stage1_receipt_or_normal_plan_binding_mismatch_before_materialization",
+                "selected_users": [row[0] for row in actual_identity],
+                "expected_users": [row[0] for row in expected_identity],
+                "normal_binding_present": normal_binding_ok,
+                "routing_mutation": False,
+                "users_moved": 0,
+            }
+        return self._materialize_n10_packet_lease_barrier(plan)
 
     def _materialize_n10_packet_lease_barrier(self, plan: dict[str, Any]) -> dict[str, Any]:
         """Consume the existing Packet/Lease/Barrier owner before N10 apply.
@@ -28332,6 +28447,170 @@ def _controlled_source_key_value_output(text: str) -> dict[str, str]:
     return result
 
 
+def exact_five_stage1_binding(args: argparse.Namespace, diagnostic: dict[str, Any], target_egress: str) -> dict[str, Any]:
+    """Derive, never accept, the bounded Stage-1 cohort from topology truth.
+
+    This is intentionally a preparation boundary: it performs no switch.  A
+    future consumer may act only on this immutable owner projection.
+    """
+    projection = diagnostic.get("stage1_rebind_projection") if isinstance(diagnostic.get("stage1_rebind_projection"), dict) else {}
+    members = sorted({str(item).strip() for item in (projection.get("certification_members") or []) if str(item).strip()})
+    rows = parse_registry(Path(args.state_dir) / "users.registry")
+    by_ip = {str(row.get("ip") or ""): row for row in rows}
+    originals = {
+        ip: str((by_ip.get(ip) or {}).get("current") or "")
+        for ip in members
+    }
+    forward_sources = sorted(set(originals.values()) - {""})
+    blockers = []
+    if len(members) != 5:
+        blockers.append("stage1_exactly_five_owner_derived_certification_members_required")
+    if len(forward_sources) != 1:
+        blockers.append("stage1_exactly_one_current_forward_source_required")
+    forward_source = forward_sources[0] if len(forward_sources) == 1 else ""
+    if not target_egress or target_egress == forward_source:
+        blockers.append("stage1_owner_derived_distinct_forward_target_required")
+    if str(projection.get("target_egress") or "") != target_egress:
+        blockers.append("stage1_projection_target_not_exact_reserved_target")
+    if any(not bool_value((by_ip.get(ip) or {}).get("certification_user")) or not str((by_ip.get(ip) or {}).get("current") or "") for ip in members):
+        blockers.append("stage1_certification_member_or_original_assignment_missing")
+    ordinary = polygon_only_live_invariants(args, members, forward_source, target_egress)
+    if not ordinary.get("ordinary_route_truth_available") or not ordinary.get("certification_subjects_verified"):
+        blockers.append("stage1_ordinary_or_certification_route_truth_required")
+    source_generation = (
+        polygon_only_source_generation(args, members, forward_source, target_egress)
+        if not blockers else {}
+    )
+    if not all(str(source_generation.get(key) or "") for key in (
+        "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
+    )):
+        blockers.append("stage1_source_snapshot_binding_missing")
+    forward_moves = [
+        {
+            "user_ip": ip,
+            "current_egress": forward_source,
+            "recommended_egress": target_egress,
+            "rollback_egress": str(originals.get(ip) or ""),
+        }
+        for ip in members
+    ]
+    selected_move_hash = sha256_json({"moves": forward_moves})
+    return {
+        "ok": not blockers, "blockers": sorted(set(blockers)),
+        "members": members,
+        "source_egress": forward_source,
+        "target_egress": target_egress,
+        "original_assignments": originals,
+        "forward_moves": forward_moves,
+        "ordinary_invariants": ordinary,
+        "membership_fingerprint": sha256_json({"members": members}),
+        "source_generation": source_generation,
+        "operation_binding": {
+            "operation_id": "stage1_" + sha256_json({
+                "members": members,
+                "source": forward_source,
+                "target": target_egress,
+                "selected_move_hash": selected_move_hash,
+            })[:24],
+            "selected_move_hash": selected_move_hash,
+        },
+    }
+
+
+def stage1_serial_switch_projection(binding: dict[str, Any]) -> list[dict[str, str]]:
+    """Turn the immutable Stage-1 binding into serial existing-writer moves."""
+    if not binding.get("ok"):
+        return []
+    source = str(binding.get("source_egress") or "")
+    target = str(binding.get("target_egress") or "")
+    originals = binding.get("original_assignments") if isinstance(binding.get("original_assignments"), dict) else {}
+    return [
+        {"user_ip": ip, "current_egress": source,
+         "recommended_egress": target, "rollback_egress": str(originals.get(ip) or "")}
+        for ip in list(binding.get("members") or [])
+        if source and target and str(originals.get(ip) or "")
+    ]
+
+
+def stage1_receipt_bound_plan_input(binding: dict[str, Any], receipt: dict[str, Any]) -> dict[str, Any]:
+    """Build the sole Planner input only when the immutable receipt agrees."""
+    members = sorted({str(item).strip() for item in (binding.get("members") or []) if str(item).strip()})
+    expected = sha256_json({"members": members})
+    binding_generation = binding.get("source_generation") if isinstance(binding.get("source_generation"), dict) else {}
+    binding_operation = binding.get("operation_binding") if isinstance(binding.get("operation_binding"), dict) else {}
+    expected_moves = stage1_serial_switch_projection(binding)
+    receipt_members = sorted({str(item).strip() for item in (receipt.get("members") or []) if str(item).strip()})
+    if (
+        not binding.get("ok")
+        or len(members) != 5
+        or str(binding.get("membership_fingerprint") or "") != expected
+        or str(receipt.get("members_fingerprint") or "") != expected
+        or receipt_members != members
+        or str(receipt.get("source_egress") or "") != str(binding.get("source_egress") or "")
+        or str(receipt.get("target_egress") or "") != str(binding.get("target_egress") or "")
+        or list(receipt.get("forward_moves") or []) != list(binding.get("forward_moves") or [])
+        or list(binding.get("forward_moves") or []) != expected_moves
+        or not all(str(binding_generation.get(key) or "") for key in (
+            "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
+        ))
+        or not str(binding_operation.get("operation_id") or "")
+        or not str(binding_operation.get("selected_move_hash") or "")
+    ):
+        return {"ok": False, "reason": "stage1_receipt_binding_mismatch", "selected_moves": []}
+    return {"ok": True, "selected_moves": expected_moves, "receipt_hash": str(receipt.get("receipt_hash") or "")}
+
+
+def stage1_receipt_bound_planner_scope(binding: dict[str, Any], receipt: dict[str, Any]) -> dict[str, Any]:
+    """Normal Planner inputs reconstructed from one immutable Stage-1 receipt."""
+    gate = stage1_receipt_bound_plan_input(binding, receipt)
+    if not gate.get("ok"):
+        return gate
+    ordinary = binding.get("ordinary_invariants") if isinstance(binding.get("ordinary_invariants"), dict) else {}
+    ordinary_protected = (
+        bool_value(ordinary.get("ordinary_route_truth_available"))
+        and ordinary.get("ordinary_assignment_mutation_allowed") is False
+        and ordinary.get("ordinary_route_mutation_allowed") is False
+    )
+    if not ordinary_protected:
+        return {"ok": False, "reason": "stage1_ordinary_impact_or_route_truth_invalid", "selected_moves": []}
+    moves = list(gate["selected_moves"])
+    return {**gate, "source_egress": str(receipt.get("source_egress") or ""),
+            "target_egress": str(receipt.get("target_egress") or ""),
+            "max_selected_moves": len(moves),
+            "ordinary_invariants": copy.deepcopy(ordinary),
+            "source_generation": copy.deepcopy(binding.get("source_generation") or {}),
+            "operation_binding": copy.deepcopy(binding.get("operation_binding") or {}),
+            "selected_move_hash": sha256_json({"receipt_hash": gate["receipt_hash"], "moves": moves})}
+
+
+def stage1_receipt_payload(
+    binding: dict[str, Any], *, request_id: str, request_hash: str,
+    manifest_hash: str, reservation_id: str, expires_at: str,
+) -> dict[str, Any]:
+    """Freeze the existing topology consumer's exact five-member handoff."""
+    material = {
+        "authority_request_id": request_id,
+        "authority_request_hash": request_hash,
+        "manifest_hash": manifest_hash,
+        "reservation_id": reservation_id,
+        "expires_at": expires_at,
+        "source_egress": str(binding.get("source_egress") or ""),
+        "target_egress": str(binding.get("target_egress") or ""),
+        "members_fingerprint": str(binding.get("membership_fingerprint") or ""),
+        "members": list(binding.get("members") or []),
+        "forward_moves": copy.deepcopy(binding.get("forward_moves") or []),
+        "ordinary_invariants": copy.deepcopy(binding.get("ordinary_invariants") or {}),
+        "source_generation": copy.deepcopy(binding.get("source_generation") or {}),
+        "operation_binding": copy.deepcopy(binding.get("operation_binding") or {}),
+    }
+    receipt_hash = sha256_json(material)
+    return {
+        **material,
+        "receipt_hash": receipt_hash,
+        "stage1_binding": copy.deepcopy(binding),
+    }
+
+
 def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dict[str, Any]:
     """Consume one approved topology provision through the existing reservation owner.
 
@@ -28401,9 +28680,12 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
         blockers.append("controlled_source_topology_decision_not_provision_approval")
     if str(package.get("exact_action") or "") != expected_action:
         blockers.append("controlled_source_topology_action_changed")
-    if manifest.get("validation_profile") != "CT_M0F_ONE_USER_CONTROLLED_CONDITION":
+    stage1_profile = manifest.get("validation_profile") == "POLYGON_STAGE1_EXACT_FIVE"
+    if manifest.get("validation_profile") not in {
+        "CT_M0F_ONE_USER_CONTROLLED_CONDITION", "POLYGON_STAGE1_EXACT_FIVE",
+    }:
         blockers.append("controlled_source_topology_profile_changed")
-    if int(manifest.get("trial_identity_count") or 0) != 1:
+    if int(manifest.get("trial_identity_count") or 0) != (5 if stage1_profile else 1):
         blockers.append("controlled_source_topology_trial_scope_changed")
     if manifest.get("expected_ordinary_assignment_delta") != "NONE" or manifest.get("expected_ordinary_route_delta") != "NONE":
         blockers.append("controlled_source_topology_ordinary_delta_changed")
@@ -28436,6 +28718,20 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
     if source_users:
         blockers.append("approved_draft_pool_source_not_empty")
     source = source_rows[0] if len(source_rows) == 1 else {}
+    # The five-member path is admitted only from the topology owner's fresh
+    # projection.  Existing one-identity provisioning remains unchanged.
+    stage1_binding = {}
+    if stage1_profile:
+        stage1_binding = exact_five_stage1_binding(args, diagnostic, source_id)
+        blockers.extend(stage1_binding.get("blockers") or [])
+        if blockers:
+            return {
+                "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+                "status": "STOP_SAFE_STAGE1_BINDING",
+                "ok": False, "blockers": sorted(set(blockers)),
+                "stage1_binding": stage1_binding,
+                "runtime_mutation_performed": False, "users_moved": 0,
+            }
     if source:
         if rebind_existing:
             if (
@@ -28469,6 +28765,35 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
         "source_id": source_id,
     })[:24]
     audit_store = Path(args.action_class_audit_store)
+    try:
+        expires_at = min(
+            operator_execution.parse_ts(str(lifecycle.get("expires_at") or "")),
+            operator_execution.parse_ts(str((package.get("authority_basis") or {}).get("expires_at") or "")),
+            datetime.now(timezone.utc) + timedelta(minutes=30),
+        )
+    except operator_execution.PacketError:
+        expires_at = datetime.fromtimestamp(0, timezone.utc)
+    if expires_at <= datetime.now(timezone.utc):
+        return {
+            "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+            "status": "STOP_SAFE_STAGE1_RECEIPT_EXPIRY_UNAVAILABLE",
+            "ok": False,
+            "blockers": ["stage1_receipt_lawful_expiry_unavailable"],
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    expires_at_text = expires_at.isoformat()
+    stage1_receipt = (
+        stage1_receipt_payload(
+            stage1_binding,
+            request_id=request_id,
+            request_hash=request_hash,
+            manifest_hash=str(manifest.get("manifest_hash") or ""),
+            reservation_id=reservation_id,
+            expires_at=expires_at_text,
+        )
+        if stage1_profile else {}
+    )
     with operator_execution.current_action_class_contract_policy_lock(audit_store):
         records = operator_execution.read_live_execution_lineage_records(
             audit_store
@@ -28539,11 +28864,7 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
             "",
         )
         expected_fingerprint = hashlib.sha256(line.encode("utf-8")).hexdigest()
-        expires_at = min(
-            operator_execution.parse_ts(str(lifecycle.get("expires_at") or "")),
-            operator_execution.parse_ts(str((package.get("authority_basis") or {}).get("expires_at") or "")),
-            datetime.now(timezone.utc) + timedelta(minutes=30),
-        ).isoformat()
+        expires_at = expires_at_text
         owner = str(manifest.get("reservation_owner") or "v7-egress-set-state")
         command = [
             owner, source_id, "certification-reserve",
@@ -28600,6 +28921,7 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
             "lease_created": False,
             "controlled_failure_created": False,
             "natural_l8_credit": False,
+            **stage1_receipt,
         })
     return {
         "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
@@ -29003,7 +29325,7 @@ def controlled_source_topology_diagnostic(
         getattr(args, "controlled_source_validation_profile", "campaign")
         or "campaign"
     ).strip().lower()
-    if validation_profile not in {"campaign", "ct-m0f-one-user"}:
+    if validation_profile not in {"campaign", "ct-m0f-one-user", "polygon-stage1-exact-five"}:
         return {
             "schema_version": "v7.controlled-source-topology-capability-map.v1",
             "status": "STOP_SAFE_UNKNOWN_VALIDATION_PROFILE",
@@ -29170,6 +29492,17 @@ def controlled_source_topology_diagnostic(
         for row in campaign_identity_rows
         if str(row.get("ip") or "")
     ))
+    stage1_members = sorted(
+        str(row.get("ip") or "")
+        for row in assignment_rows
+        if bool_value(row.get("certification_user"))
+        and str(row.get("ip") or "")
+    )
+    stage1_current_sources = sorted({
+        str(row.get("current") or "")
+        for row in assignment_rows
+        if str(row.get("ip") or "") in set(stage1_members)
+    } - {""})
     # This is deliberately a compact derived read model, not a second
     # campaign registry.  The assignments owner remains authoritative for
     # every identity.  A stage may proceed only when the complete immutable
@@ -29643,6 +29976,24 @@ def controlled_source_topology_diagnostic(
         required_authority_action = ""
         exact_resource = ""
 
+    stage1_profile = validation_profile == "polygon-stage1-exact-five"
+    stage1_source = stage1_current_sources[0] if len(stage1_current_sources) == 1 else ""
+    stage1_target = selected_source
+    stage1_admission_blockers = []
+    if stage1_profile:
+        if len(stage1_members) != 5:
+            stage1_admission_blockers.append("stage1_exactly_five_existing_enabled_certification_subjects_required")
+        if len(stage1_current_sources) != 1:
+            stage1_admission_blockers.append("stage1_common_current_source_required")
+        if not stage1_target or stage1_target == stage1_source:
+            stage1_admission_blockers.append("stage1_owner_derived_distinct_target_required")
+        if not selected_rebind or int(selected_rebind.get("free_capacity_after_reserve") or 0) < 5:
+            stage1_admission_blockers.append("stage1_target_capacity_or_reservation_insufficient")
+        if not bool(selected_rebind.get("healthy_baseline")) or not bool(selected_rebind.get("stability_pass")):
+            stage1_admission_blockers.append("stage1_target_health_or_quality_insufficient")
+        if reservation_owner.get("status") != "READY":
+            stage1_admission_blockers.append("stage1_reservation_owner_unavailable")
+
     delegated_topology_actions = set(
         topology_scope.get("allowed_actions") or []
     )
@@ -29669,20 +30020,25 @@ def controlled_source_topology_diagnostic(
             if validation_profile == "ct-m0f-one-user"
             else True
         )
+        and (not stage1_profile or not stage1_admission_blockers)
     )
     manifest = {
         "validation_profile": (
             "CT_M0F_ONE_USER_CONTROLLED_CONDITION"
             if validation_profile == "ct-m0f-one-user"
+            else "POLYGON_STAGE1_EXACT_FIVE"
+            if stage1_profile
             else "CAMPAIGN_FULL_PATH"
         ),
         "selected_option": selected_option,
-        "existing_source": trial_identity_source,
+        "existing_source": stage1_source if stage1_profile else trial_identity_source,
         "selected_source_or_draft": exact_resource,
-        "trial_identity": trial_identity,
-        "trial_identity_count": 1 if trial_identity else 0,
-        "identity_set_fingerprint": certification_identity_fingerprint,
+        "trial_identity": stage1_members[0] if stage1_profile and stage1_members else trial_identity,
+        "trial_identity_count": len(stage1_members) if stage1_profile else 1 if trial_identity else 0,
+        "identity_set_fingerprint": sha256_json({"members": stage1_members}) if stage1_profile else certification_identity_fingerprint,
         "expected_assignment_delta": (
+            ",".join(f"{ip}:{stage1_source}->{stage1_target}" for ip in stage1_members)
+            if stage1_profile and stage1_source and stage1_target else
             f"{trial_identity}:{trial_identity_source}->{selected_source}"
             if trial_identity and selected_source else
             f"{trial_identity}:{trial_identity_source}->NEW_DEDICATED_SOURCE"
@@ -29691,6 +30047,11 @@ def controlled_source_topology_diagnostic(
         "expected_ordinary_assignment_delta": "NONE",
         "expected_ordinary_route_delta": "NONE",
         "capacity_reservation": 1,
+        "stage1_rebind_projection": (
+            {"certification_members": stage1_members, "target_egress": stage1_target,
+             "source_egress": stage1_source, "admission_blockers": stage1_admission_blockers}
+            if stage1_profile else {}
+        ),
         "certification_group": campaign_group,
         "reservation_mode": (
             "RENEW_AND_CONTINUE_SAME_CAMPAIGN_CERTIFICATION_SOURCE"
@@ -30835,6 +31196,9 @@ def controlled_source_topology_diagnostic(
             "stale_input_rejection": True,
             "mutation_performed": False,
         },
+        "stage1_rebind_projection": copy.deepcopy(
+            manifest.get("stage1_rebind_projection") or {}
+        ),
         "authority_package": authority_package,
         "authority_lifecycle": {
             "status": str(topology_authority_status.get("status") or "NONE"),
@@ -32297,7 +32661,9 @@ def n10_small_cohort_authority_request_only(args: argparse.Namespace) -> dict[st
 def polygon_only_authority_request_only(args: argparse.Namespace) -> dict[str, Any]:
     """Produce one exact Polygon-only request; no runtime effect occurs here."""
     source = operator_execution.POLYGON_ONLY_SOURCE_EGRESS
-    target = operator_execution.POLYGON_ONLY_TARGET_EGRESS
+    # A Stage-2 Polygon request may never invent a target.  The existing
+    # rebind owner must leave an immutable receipt carrying this binding.
+    target = ""
     rows = parse_registry(Path(args.state_dir) / "users.registry")
     members = sorted(
         str(row.get("ip") or "") for row in rows
@@ -32309,10 +32675,11 @@ def polygon_only_authority_request_only(args: argparse.Namespace) -> dict[str, A
     blockers = []
     if len(members) != 5:
         blockers.append("polygon_only_exactly_five_current_certification_subjects_required")
+    blockers.append("polygon_only_fresh_rebind_receipt_required")
     invariants = polygon_only_live_invariants(args, members, source, target)
     if invariants.get("certification_subjects_verified") is not True:
         blockers.append("polygon_only_current_certification_subject_proof_required")
-    generation = polygon_only_source_generation(args, members) if not blockers else {}
+    generation = polygon_only_source_generation(args, members, source, target) if not blockers else {}
     template = {
         "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
         "action_class": operator_execution.POLYGON_ONLY_ACTION_CLASS,
@@ -32626,6 +32993,30 @@ def routing_core_certification_execute_only(args: argparse.Namespace) -> dict[st
             actor="tools/v7-users-autoswitch:RESET-M6", reason="reset_m6_core_certification_terminal_open",
             force_fail_closed_open=True,
         )
+
+
+def omp_controlled_source_admission_profile(healthy_baselines: list[dict[str, Any]]) -> str:
+    """Choose the existing OMP admission mode from current baseline evidence."""
+    exact_five_sources = [
+        row for row in healthy_baselines
+        if int(row.get("enabled_certification_users_on_source") or 0) == 5
+        and int(row.get("group_aligned_certification_users_on_source") or 0) == 5
+        and int(row.get("enabled_non_certification_users_on_source") or 0) == 0
+    ]
+    return "polygon-stage1-exact-five" if len(exact_five_sources) == 1 else "ct-m0f-one-user"
+
+
+def omp_stage1_admission_complete(result: dict[str, Any]) -> bool:
+    manifest = ((result.get("production_preflight") or {}).get("manifest") or {}) if isinstance(result.get("production_preflight"), dict) else {}
+    projection = result.get("stage1_rebind_projection") if isinstance(result.get("stage1_rebind_projection"), dict) else {}
+    return bool(
+        result.get("status") == "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+        and manifest.get("validation_profile") == "POLYGON_STAGE1_EXACT_FIVE"
+        and len(projection.get("certification_members") or []) == 5
+        and str(projection.get("source_egress") or "")
+        and str(projection.get("target_egress") or "")
+        and not list(projection.get("admission_blockers") or [])
+    )
 
 
 def ct_m0f_standing_source_selection_only(
@@ -33042,10 +33433,21 @@ def ct_m0f_standing_source_selection_only(
         )
     ):
         topology_args = copy.copy(args)
-        topology_args.controlled_source_validation_profile = "ct-m0f-one-user"
+        topology_args.controlled_source_validation_profile = omp_controlled_source_admission_profile(healthy_baselines)
         topology_predecessor = controlled_source_topology_diagnostic(
             topology_args
         )
+        if topology_args.controlled_source_validation_profile == "polygon-stage1-exact-five":
+            if not omp_stage1_admission_complete(topology_predecessor):
+                stage_manifest = ((topology_predecessor.get("production_preflight") or {}).get("manifest") or {}) if isinstance(topology_predecessor.get("production_preflight"), dict) else {}
+                stage_projection = topology_predecessor.get("stage1_rebind_projection") if isinstance(topology_predecessor.get("stage1_rebind_projection"), dict) else {}
+                topology_predecessor = {
+                    "status": "STOP_SAFE_STAGE1_OMP_ADMISSION_EVIDENCE_INCOMPLETE",
+                    "ok": False,
+                    "blockers": ["stage1_fresh_authority_or_owner_evidence_incomplete"],
+                    "production_preflight": {"manifest": stage_manifest},
+                    "stage1_rebind_projection": stage_projection,
+                }
     # CT-M0F may consume a real failure on an isolated certification-only
     # source.  The destination is not itself deliberately failed, so requiring
     # it to be another isolated controlled source incorrectly discards an
@@ -33532,6 +33934,7 @@ def ct_m0f_standing_source_selection_only(
         "selected_source_id": selected_source,
         "selected_user": selected_user,
         "selected_target_id": selected_target,
+        "controlled_source_topology_predecessor": topology_predecessor,
         "active_service_failure_binding": active_service_failure_binding,
         "selected_target_admission": {
             "controlled_contract_admitted": controlled_target_admitted,
@@ -33693,6 +34096,25 @@ def ct_m0f_precomputed_target_diagnostic_from_file(
             "preflight_error": "precomputed_target_diagnostic_invalid",
         }
     return result
+
+
+def materialize_current_product_plan(planner: AutoswitchPlanner, plan: dict[str, Any]) -> dict[str, Any]:
+    """Dispatch the existing apply entry to its lawful Packet consumer."""
+    contract = (
+        ((planner.policy or {}).get("authority_budget") or {}).get(
+            "current_action_class_contract"
+        )
+        if isinstance(((planner.policy or {}).get("authority_budget") or {}).get(
+            "current_action_class_contract"
+        ), dict)
+        else {}
+    )
+    if (
+        str(contract.get("action_class") or "").upper()
+        == operator_execution.POLYGON_ONLY_ACTION_CLASS
+    ):
+        return planner._materialize_stage1_packet_lease_barrier(plan)
+    return planner._materialize_n10_packet_lease_barrier(plan)
 
 
 def main() -> int:
@@ -33930,7 +34352,7 @@ def main() -> int:
     if args.apply and not bool_value(
         getattr(args, "ordinary_service_failure_context", False)
     ):
-        n10_materialization = planner._materialize_n10_packet_lease_barrier(plan)
+        n10_materialization = materialize_current_product_plan(planner, plan)
         if not n10_materialization.get("ok"):
             plan["apply_result"] = {
                 "applied": False,

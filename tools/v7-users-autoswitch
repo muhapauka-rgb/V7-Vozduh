@@ -4781,7 +4781,7 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
             continue
         if not bool(event.get("capture_only")) or (
             str(event.get("event_provenance") or "")
-            != "EXTERNAL_UNATTRIBUTED"
+            not in EXECUTION_RECONCILABLE_SERVICE_FAILURE_PROVENANCES
         ):
             continue
         scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}

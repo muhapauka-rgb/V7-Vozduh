@@ -72,6 +72,14 @@ def start_backend(local, remote):
 
     class Endpoint(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
+            if self.path == "/__v7_polygon_payload":
+                payload = b"V" * (1024 * 1024)
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(payload)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(payload)
+                return
             self.send_response(204)
             self.end_headers()
 

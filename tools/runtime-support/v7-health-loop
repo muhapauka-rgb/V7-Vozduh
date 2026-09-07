@@ -2328,6 +2328,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Repository tools directory used only by a finite controlled Polygon run.",
     )
     parser.add_argument("--controlled-policy-file", default="")
+    parser.add_argument("--controlled-audit-store", default="")
     args = parser.parse_args(argv)
     if args.fast_interval_ms <= 0:
         parser.error("--fast-interval-ms must be positive")
@@ -2367,7 +2368,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
             "--controlled-users-registry-file requires the controlled Matrix "
             "state and a finite role-based Polygon run"
         )
-    if (args.controlled_event_dir or args.controlled_owner_root or args.controlled_policy_file) and (
+    if (args.controlled_event_dir or args.controlled_owner_root or args.controlled_policy_file or args.controlled_audit_store) and (
         not args.controlled_matrix_state_file or not args.role_based_fast or not args.max_phases
     ):
         parser.error("controlled Matrix bindings require finite --role-based-fast with --controlled-matrix-state-file")
@@ -2450,11 +2451,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "--state-dir", str(controlled_state_dir),
                 "--event-dir", str(controlled_event_dir),
                 "--checker", str(controlled_root / "v7-service-matrix-test"),
-                "--governed-executor", str(controlled_root / "v7-users-autoswitch"),
+                "--governed-executor", str(controlled_root / "v7-governed-canary-dry-run-cycle"),
                 "--passive-consumer", str(controlled_root / "v7-users-autoswitch"),
             ])
         if args.controlled_policy_file:
             matrix_args.extend(["--policy-file", str(args.controlled_policy_file)])
+        if args.controlled_audit_store:
+            matrix_args.extend(["--operator-execution-audit-store", str(args.controlled_audit_store)])
         return RoleHealthLoop(
             roles=roles,
             max_hard_phases=args.max_phases,

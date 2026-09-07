@@ -42,9 +42,10 @@ surface of its named owner, not a new owner or autonomous service.
 | Disposable Linux topology and physical fault fixture | `tools/polygon/runtime_chain.py` and `runtime_topology.py`, called by `execute_routing_digital_twin_l3_l4_obligation` | Existing Polygon adapter; no host mounts, external network access or manufactured owner results |
 | Detection and canonical observations | `tools/runtime-support/v7-health-loop`, `tools/v7-egress-diagnose`, `tools/v7-service-matrix-test`, `tools/v7-service-matrix-refresh-all` | Same health/Matrix owners in the isolated environment |
 | Lawful planning, Packet/Lease/Barrier and rollback | `tools/v7-users-autoswitch`, `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py` | Fresh per-client admission; no test-only bypass |
+| Versioned disposable-lab standing Authority binding | `admin_core/operator_execution_isolation.py`, called by `operator_execution.py` | Existing Authority helper: actual namespaces/topology/resources/implementation/registry binding, not an owner or execution grant by itself |
 | Routing and final verification | existing `v7-user-switch`, `v7-routing-sync`, `tools/runtime-support/v7-egress-lib` and governed S11 consumers | Only observed kernel/service outcomes count |
 
-The `REAL_HEALTH_MATRIX_PROBE` and `REAL_TRAFFIC_PATH_PROBE` modes are partial integration diagnostics,
+The `REAL_HEALTH_MATRIX_PROBE`, `REAL_TRAFFIC_PATH_PROBE` and `REAL_LAB_AUTHORITY_PROBE` modes are partial integration diagnostics,
 not a full campaign or an E2E baseline. Its omitted service roles are explicitly
 out of scope; its source restoration is teardown, not automatic failover.
 Legacy Docker netem/HTTP receipts likewise cannot prove a changed assignment,
@@ -67,6 +68,30 @@ only inside the lab and its certificate checks use a lab-only trust anchor.
 Five source-address-bound requests must succeed before the physical source
 failure and fail afterward while the distinct target remains reachable.
 That proves fault/path preconditions, never automatic assignment or S11.
+
+The lab-only standing contract is separately versioned (`v2-polygon`) and needs
+`APPROVE_ISOLATED_POLYGON_CT_M0F_VALIDATION_POLICY`; a v1 approval cannot activate
+it. Its current exact cohort is derived from the disposable registry, bound to
+the isolated kernel environment and implementation, and expires after 120 s.
+Its current concurrency is one transaction, not a claim of parallel execution.
+Production v1 retains its one-user/one-transaction envelope. Post-fault recovery
+must consume the actual Matrix incident through the existing standing campaign;
+never restore the source or relabel its provenance to pass a preparation gate.
+`V7_HEALTH_RUNTIME` and `EXTERNAL_UNATTRIBUTED` are already reconcilable Matrix
+provenances. The certification binding uses that same existing allowlist, while
+rejecting synthetic, unrelated, stale and ordinary-user observations.
+
+Current diagnostic boundary (2026-09-07): physical GRE failure now reaches
+`EXECUTE_CONTROLLED_FAILURE_CUTOVER`, but target quality/capacity-policy admission
+and the all-member executor are not yet connected to the lab contract. Real
+Matrix target reachability is not throughput/history evidence. Do not supply
+fixture-written quality results or count this partial probe as full E2E.
+The existing `v7-client-speed-api.measure_isolated_polygon_capacity` now probes
+three actual waves of cohort-sized parallel, TLS-verified 1 MiB downloads on
+each isolated path before the fault. It reports bytes, timings, hashes checked
+and unobserved 5m/1h coverage, not client recovery or sustained-quality credit.
+Its observations still need binding to explicit cold-lab admission in the
+existing Authority and Planner before they can authorize a target.
 
 ## 3. User decisions
 

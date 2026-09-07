@@ -53,6 +53,77 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
+def measure_isolated_polygon_capacity(scope):
+    """Actual bounded COLD payload evidence, never S11 or long-window quality.
+
+    Existing client probe owner, invoked before the lab standing decision.
+    No production endpoint, route change, synthetic speed sample or history.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    import http.client
+    from admin_core.operator_execution_isolation import validate_scope
+    from admin_core.registry_readers import parse_registry_lines
+
+    errors = validate_scope(scope)
+    count = len(scope.get("members", []))
+    if errors or not 1 <= count <= 32:
+        raise ValueError("polygon_capacity_scope_invalid:" + ",".join(errors))
+    state = Path(scope["state_dir"])
+    channels = parse_registry_lines((state / "egress.registry").read_text().splitlines())
+    # Benchmark address is an endpoint fixture, not a selected recovery target.
+    host = "www.google.com"
+    address = socket.gethostbyname(host)
+    if address != "198.19.0.1":
+        raise ValueError("polygon_capacity_endpoint_not_isolated")
+    payload_size = 1024 * 1024
+    expected_hash = hashlib.sha256(b"V" * payload_size).hexdigest()
+
+    def probe(interface):
+        started = time.monotonic_ns()
+        connection = http.client.HTTPSConnection(host, timeout=2, context=ssl.create_default_context())
+        try:
+            raw = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            connection.sock = raw
+            raw.settimeout(2)
+            raw.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_BINDTODEVICE", 25), interface.encode() + b"\0")
+            raw.connect((address, 443))
+            connection.sock = connection._context.wrap_socket(raw, server_hostname=host)
+            connection.request("GET", "/__v7_polygon_payload", headers={"Cache-Control": "no-store"})
+            response = connection.getresponse()
+            payload = response.read(payload_size + 1)
+            complete = time.monotonic_ns()
+            ok = response.status == 200 and len(payload) == payload_size and hashlib.sha256(payload).hexdigest() == expected_hash
+            return {"ok": ok, "bytes": len(payload), "started_ns": started, "completed_ns": complete,
+                    "mbps": round(len(payload) * 8000 / max(1, complete - started), 6)}
+        except (OSError, http.client.HTTPException) as exc:
+            return {"ok": False, "bytes": 0, "started_ns": started, "completed_ns": time.monotonic_ns(), "error": type(exc).__name__}
+        finally:
+            connection.close()
+
+    observations = {}
+    for channel in channels:
+        if channel.get("id") not in [scope["source_egress"], *scope["allowed_target_egresses"]]:
+            continue
+        rounds = []
+        for _ in range(3):
+            started = time.monotonic_ns()
+            with ThreadPoolExecutor(max_workers=count) as workers:
+                samples = list(workers.map(probe, [channel["interface"]] * count))
+            rounds.append({"started_ns": started, "completed_ns": time.monotonic_ns(), "samples": samples})
+        observations[channel["id"]] = {"interface": channel["interface"], "rounds": rounds}
+    result = {
+        "schema": "v7.isolated-polygon-cold-capacity-observation.v1",
+        "owner": "tools/v7-client-speed-api", "observed_at": now_iso(),
+        "scope": "TARGET_TRANSPORT_OFFERED_LOAD_ONLY_NOT_CLIENT_RECOVERY",
+        "network_namespace": os.readlink("/proc/self/ns/net"),
+        "cohort_members": scope["members"], "concurrent_streams": count,
+        "payload_bytes_per_stream": payload_size, "rounds_per_channel": 3,
+        "long_window_coverage": {"5m": "NOT_OBSERVED", "1h": "NOT_OBSERVED"},
+        "observations": observations, "runtime_mutation_performed": False,
+    }
+    return result
+
+
 def sha256_text(value):
     return hashlib.sha256(str(value or "").encode("utf-8")).hexdigest()
 

@@ -43,6 +43,47 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         cls.matrix = load_module("v7_service_matrix_scope_automation", ROOT / "tools" / "v7-service-matrix-test")
         cls.refresh = load_module("v7_service_matrix_refresh_automation", ROOT / "tools" / "v7-service-matrix-refresh-all")
 
+    def test_certification_binding_accepts_runtime_producer_not_synthetic_or_unrelated(self):
+        # Unit-only observations: no fixture below is campaign/E2E evidence.
+        now = datetime.now(timezone.utc).isoformat()
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "users.registry").write_text(
+                "ip=198.18.0.1 current=source enabled=1 certification_user=1\n",
+            )
+            (state / "egress.registry").write_text(
+                "id=source enabled=1 controlled_certification_source=1\n",
+            )
+            (state / "service-matrix.json").write_text(json.dumps({"items": {"source": {
+                "checked_at": now, "services": {"__channel_liveness__": {
+                    "ok": False, "source_incident_id": "incident-current",
+                }},
+            }}}))
+            event = {
+                "event_type": "SERVICE_FAILURE_OBSERVED", "channel": "source",
+                "capture_only": True, "event_provenance": "V7_HEALTH_RUNTIME",
+                "source_scope": {"scope_classification": "CERTIFICATION_ONLY", "affected_scope_count": 0},
+                "service": "__channel_liveness__", "source_incident_id": "incident-current",
+                "observed_at": now, "event_id": "event-current",
+            }
+            def check(row):
+                return self.autoswitch.ct_m0f_certification_only_matrix_failure_binding_projection(
+                    state, "source", event_dir=state,
+                    evidence_cache={"service_failure_events": [row]},
+                )
+            self.assertTrue(check(event)["ok"])
+            self.assertTrue(check({**event, "event_provenance": "EXTERNAL_UNATTRIBUTED"})["ok"])
+            for changes in (
+                {"event_provenance": "SYNTHETIC_ENGINEERING"},
+                {"source_incident_id": "unrelated"},
+                {"observed_at": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()},
+            ):
+                self.assertFalse(check({**event, **changes})["ok"], changes)
+            (state / "users.registry").write_text(
+                "ip=198.18.0.1 current=source enabled=1 certification_user=0\n",
+            )
+            self.assertFalse(check(event)["ok"])
+
     def copy_canonical_reconciliation_inputs(self, root: Path) -> None:
         """Give an isolated CPS projection the same required owner inputs.
 

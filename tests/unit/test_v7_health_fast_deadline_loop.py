@@ -57,6 +57,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                     "--controlled-hard-command", "/bin/true",
                     "--controlled-owner-root", "/polygon/tools",
                     "--controlled-matrix-state-file", "/polygon/state/service-matrix.json",
+                    "--controlled-audit-store", "/polygon/audit/operator-execution-audit.jsonl",
                 ]
                 if event_override:
                     argv.extend(["--controlled-event-dir", event_override])
@@ -69,6 +70,8 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 self.assertEqual(consumer[consumer.index("--state-dir") + 1], "/polygon/state")
                 self.assertEqual(hard[hard.index("--shadow-trigger-event-dir") + 1], events)
                 self.assertEqual(consumer[consumer.index("--event-dir") + 1], events)
+                self.assertEqual(consumer[consumer.index("--governed-executor") + 1], "/polygon/tools/v7-governed-canary-dry-run-cycle")
+                self.assertEqual(consumer[consumer.index("--operator-execution-audit-store") + 1], "/polygon/audit/operator-execution-audit.jsonl")
                 self.assertEqual(kwargs["matrix_state_file"], Path("/polygon/state/service-matrix.json"))
 
     def write_command(self, root: Path, name: str, body: str) -> Path:

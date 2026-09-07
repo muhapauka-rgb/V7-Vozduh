@@ -166,6 +166,10 @@ CT_M0F_STANDING_VALIDATION_REQUEST_SCHEMA = (
 CT_M0F_STANDING_VALIDATION_CONTRACT_SCHEMA = (
     "v7.ct-m0f-standing-validation-policy.v1"
 )
+CT_M0F_POLYGON_REQUEST_SCHEMA = "v7.ct-m0f-standing-validation-authority-request.v2-polygon"
+CT_M0F_POLYGON_CONTRACT_SCHEMA = "v7.ct-m0f-standing-validation-policy.v2-polygon"
+CT_M0F_POLYGON_APPROVAL = "APPROVE_ISOLATED_POLYGON_CT_M0F_VALIDATION_POLICY"
+CT_M0F_POLYGON_TTL_SECONDS = 120
 CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE = (
     "ct_m0f_standing_validation_policy_request_emitted"
 )
@@ -1955,9 +1959,9 @@ def validate_ct_m0f_controlled_validation_consumption(
     }
 
 
-def ct_m0f_standing_validation_envelope():
+def ct_m0f_standing_validation_envelope(*, isolated_polygon_scope=None):
     """Immutable semantic Authority envelope for the bounded CT-M0F campaign."""
-    return {
+    envelope = {
         "profile": "CT_M0F_BOUNDED_MULTI_GENERATION_USER_PATH_CUTOVER_VALIDATION",
         "classification": "STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY",
         "program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
@@ -2035,6 +2039,36 @@ def ct_m0f_standing_validation_envelope():
             "shared_target_fault_injection",
         ],
     }
+    if isolated_polygon_scope is not None:
+        from admin_core.operator_execution_isolation import validate_scope
+        errors = validate_scope(isolated_polygon_scope)
+        if errors:
+            raise PacketError(",".join(errors))
+        envelope["profile"] = "CT_M0F_ISOLATED_POLYGON_FULL_RECOVERY_V1"
+        envelope["evidence_class"] = "ISOLATED_POLYGON_NOT_PRODUCTION"
+        envelope["effect_scope"] = "ENVIRONMENT_BOUND_ISOLATED_POLYGON_ONLY"
+        envelope["isolated_polygon_scope"] = copy.deepcopy(isolated_polygon_scope)
+        envelope["execution_bounds"]["max_users_per_transaction"] = isolated_polygon_scope["max_cohort_members"]
+        envelope["execution_bounds"]["max_concurrent_transactions"] = isolated_polygon_scope["max_concurrent_transactions"]
+        envelope["verification_recovery"]["all_member_required_service_s11"] = "REQUIRED"
+        envelope["verification_recovery"]["physical_source_fault_until_terminal"] = "REQUIRED"
+        # The v1 envelope and its existing approvals remain byte-for-byte
+        # unchanged. Only a separately versioned, explicitly approved lab
+        # contract may name a wider group; it grants no production expansion.
+    return envelope
+
+
+def _ct_m0f_envelope_errors(envelope, *, polygon):
+    if not isinstance(envelope, dict):
+        return ["ct_m0f_standing_envelope_invalid"]
+    scope = envelope.get("isolated_polygon_scope")
+    if polygon != isinstance(scope, dict):
+        return ["ct_m0f_standing_envelope_version_scope_mismatch"]
+    try:
+        expected = ct_m0f_standing_validation_envelope(isolated_polygon_scope=scope)
+    except PacketError as exc:
+        return [str(exc)]
+    return [] if envelope == expected else ["ct_m0f_standing_envelope_invalid"]
 
 
 def ct_m0f_standing_validation_request_hash(request):
@@ -2093,26 +2127,27 @@ def ct_m0f_runtime_implementation_fingerprint(
 
 
 def build_ct_m0f_standing_validation_authority_request(
-    *, policy_generation_hash, now=None,
+    *, policy_generation_hash, now=None, isolated_polygon_scope=None,
 ):
     now = now or utc_now()
+    polygon = isolated_polygon_scope is not None
     request = {
-        "schema_version": CT_M0F_STANDING_VALIDATION_REQUEST_SCHEMA,
+        "schema_version": CT_M0F_POLYGON_REQUEST_SCHEMA if polygon else CT_M0F_STANDING_VALIDATION_REQUEST_SCHEMA,
         "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
         "created_at": now.isoformat(),
         "expires_at": (
             now + timedelta(seconds=CT_M0F_STANDING_VALIDATION_REQUEST_TTL_SECONDS)
         ).isoformat(),
-        "decision_set": [CT_M0F_STANDING_VALIDATION_APPROVAL, "DECLINE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY"],
+        "decision_set": [CT_M0F_POLYGON_APPROVAL if polygon else CT_M0F_STANDING_VALIDATION_APPROVAL, "DECLINE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY"],
         "issuing_owner_required": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
         "policy_generation_hash": str(policy_generation_hash or ""),
-        "contract_ttl_seconds": CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS,
-        "envelope": ct_m0f_standing_validation_envelope(),
+        "contract_ttl_seconds": CT_M0F_POLYGON_TTL_SECONDS if polygon else CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS,
+        "envelope": ct_m0f_standing_validation_envelope(isolated_polygon_scope=isolated_polygon_scope),
         "future_identity_binding": "SELECTION_LAW_ONLY_NO_USER_TARGET_PACKET_OR_LEASE",
     }
     request_hash = ct_m0f_standing_validation_request_hash(request)
     request["request_hash"] = request_hash
-    request["request_id"] = f"ctm0fsdpauth_r1_{request_hash[:24]}"
+    request["request_id"] = f"ctm0fsdpauth_{'r2' if polygon else 'r1'}_{request_hash[:24]}"
     return request
 
 
@@ -2125,11 +2160,12 @@ def validate_ct_m0f_standing_validation_authority_request(
     errors = []
     request_id = str(request.get("request_id") or "")
     request_hash = str(request.get("request_hash") or "")
-    if request.get("schema_version") != CT_M0F_STANDING_VALIDATION_REQUEST_SCHEMA:
+    polygon = request.get("schema_version") == CT_M0F_POLYGON_REQUEST_SCHEMA
+    if request.get("schema_version") not in {CT_M0F_STANDING_VALIDATION_REQUEST_SCHEMA, CT_M0F_POLYGON_REQUEST_SCHEMA}:
         errors.append("ct_m0f_standing_request_schema_invalid")
     if ct_m0f_standing_validation_request_hash(request) != request_hash:
         errors.append("ct_m0f_standing_request_hash_mismatch")
-    if request_id != f"ctm0fsdpauth_r1_{request_hash[:24]}":
+    if request_id != f"ctm0fsdpauth_{'r2' if polygon else 'r1'}_{request_hash[:24]}":
         errors.append("ct_m0f_standing_request_identity_mismatch")
     if expected_request_id and request_id != str(expected_request_id):
         errors.append("ct_m0f_standing_expected_request_mismatch")
@@ -2139,6 +2175,9 @@ def validate_ct_m0f_standing_validation_authority_request(
         errors.append("ct_m0f_standing_request_not_pending")
     if decision not in set(request.get("decision_set") or []):
         errors.append("ct_m0f_standing_decision_not_exact")
+    expected_approval = CT_M0F_POLYGON_APPROVAL if polygon else CT_M0F_STANDING_VALIDATION_APPROVAL
+    if request.get("decision_set") != [expected_approval, "DECLINE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY"]:
+        errors.append("ct_m0f_standing_decision_set_version_mismatch")
     try:
         if parse_ts(request.get("expires_at")) <= now:
             errors.append("ct_m0f_standing_request_expired")
@@ -2150,10 +2189,9 @@ def validate_ct_m0f_standing_validation_authority_request(
         errors.append("ct_m0f_standing_owner_invalid")
     if len(str(request.get("policy_generation_hash") or "")) != 64:
         errors.append("ct_m0f_standing_policy_generation_missing")
-    if int(request.get("contract_ttl_seconds") or 0) != CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS:
+    if int(request.get("contract_ttl_seconds") or 0) != (CT_M0F_POLYGON_TTL_SECONDS if polygon else CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS):
         errors.append("ct_m0f_standing_contract_ttl_invalid")
-    if request.get("envelope") != ct_m0f_standing_validation_envelope():
-        errors.append("ct_m0f_standing_envelope_invalid")
+    errors.extend(_ct_m0f_envelope_errors(request.get("envelope"), polygon=polygon))
     if request.get("future_identity_binding") != "SELECTION_LAW_ONLY_NO_USER_TARGET_PACKET_OR_LEASE":
         errors.append("ct_m0f_standing_future_identity_binding_invalid")
     return {
@@ -2274,6 +2312,7 @@ def issue_ct_m0f_standing_validation_policy_from_audit(
 ):
     allowed_decisions = {
         CT_M0F_STANDING_VALIDATION_APPROVAL,
+        CT_M0F_POLYGON_APPROVAL,
         "DECLINE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY",
     }
     if decision not in allowed_decisions:
@@ -2336,6 +2375,8 @@ def issue_ct_m0f_standing_validation_policy_from_audit(
         request = ct_m0f_standing_validation_request_from_audit(
             request_id, request_hash, audit_store=audit_store, now=now,
         )
+        if decision not in request["decision_set"]:
+            raise PacketError("ct_m0f_standing_decision_version_scope_mismatch")
         if request.get("policy_generation_hash") != sha256_file(policy_path):
             raise PacketError("ct_m0f_standing_policy_generation_changed")
         decision_id = stable_id("ctm0fsdpdec", {"request_id": request_id, "request_hash": request_hash, "decision": decision, "actor_id": str(actor_id)})
@@ -2361,7 +2402,7 @@ def issue_ct_m0f_standing_validation_policy_from_audit(
                 "actor_provenance": {"actor_id": str(actor_id), "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER, "recorded_at": now.isoformat()},
                 "created_at": now.isoformat(),
             })
-        if decision != CT_M0F_STANDING_VALIDATION_APPROVAL:
+        if decision not in {CT_M0F_STANDING_VALIDATION_APPROVAL, CT_M0F_POLYGON_APPROVAL}:
             return {
                 "status": "STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_DECLINED",
                 "decision_id": decision_id,
@@ -2379,10 +2420,10 @@ def issue_ct_m0f_standing_validation_policy_from_audit(
             or decision_record.get("created_at")
         )
         contract = {
-            "schema_version": CT_M0F_STANDING_VALIDATION_CONTRACT_SCHEMA,
+            "schema_version": CT_M0F_POLYGON_CONTRACT_SCHEMA if decision == CT_M0F_POLYGON_APPROVAL else CT_M0F_STANDING_VALIDATION_CONTRACT_SCHEMA,
             "status": "ACTIVE",
             "issued_at": decided_at.isoformat(),
-            "expires_at": (decided_at + timedelta(seconds=CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS)).isoformat(),
+            "expires_at": (decided_at + timedelta(seconds=int(request["contract_ttl_seconds"]))).isoformat(),
             "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
             "envelope": copy.deepcopy(request["envelope"]),
             "authority_decision": {"decision": decision, "decision_id": decision_id, "request_id": request_id, "request_hash": request_hash, "actor_id": str(actor_id), "decided_at": decided_at.isoformat()},
@@ -2415,7 +2456,8 @@ def validate_ct_m0f_standing_validation_policy(
     contract = contract if isinstance(contract, dict) else {}
     errors = []
     contract_hash = str(contract.get("contract_hash") or "")
-    if contract.get("schema_version") != CT_M0F_STANDING_VALIDATION_CONTRACT_SCHEMA:
+    polygon = contract.get("schema_version") == CT_M0F_POLYGON_CONTRACT_SCHEMA
+    if contract.get("schema_version") not in {CT_M0F_STANDING_VALIDATION_CONTRACT_SCHEMA, CT_M0F_POLYGON_CONTRACT_SCHEMA}:
         errors.append("ct_m0f_standing_contract_schema_invalid")
     if ct_m0f_standing_validation_contract_hash(contract) != contract_hash:
         errors.append("ct_m0f_standing_contract_hash_invalid")
@@ -2430,13 +2472,18 @@ def validate_ct_m0f_standing_validation_policy(
         errors.append("ct_m0f_standing_contract_expiry_invalid")
     if contract.get("issuing_owner") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
         errors.append("ct_m0f_standing_contract_owner_invalid")
-    if contract.get("envelope") != ct_m0f_standing_validation_envelope():
-        errors.append("ct_m0f_standing_contract_envelope_invalid")
+    errors.extend(_ct_m0f_envelope_errors(contract.get("envelope"), polygon=polygon))
+    if polygon:
+        try:
+            if (parse_ts(contract.get("expires_at")) - parse_ts(contract.get("issued_at"))).total_seconds() > CT_M0F_POLYGON_TTL_SECONDS:
+                errors.append("ct_m0f_polygon_contract_ttl_exceeded")
+        except PacketError:
+            errors.append("ct_m0f_polygon_contract_time_invalid")
     lifecycle = contract.get("lifecycle") if isinstance(contract.get("lifecycle"), dict) else {}
     if lifecycle.get("enabled") is not True or any(lifecycle.get(key) is True for key in ("frozen", "revoked", "killed")):
         errors.append("ct_m0f_standing_contract_lifecycle_blocks_execution")
     decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
-    if decision.get("decision") != CT_M0F_STANDING_VALIDATION_APPROVAL or not decision.get("request_id") or not decision.get("request_hash") or not decision.get("actor_id"):
+    if decision.get("decision") != (CT_M0F_POLYGON_APPROVAL if polygon else CT_M0F_STANDING_VALIDATION_APPROVAL) or not decision.get("request_id") or not decision.get("request_hash") or not decision.get("actor_id"):
         errors.append("ct_m0f_standing_contract_authority_provenance_invalid")
     if audit_records is not None:
         matches = [row for row in audit_records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE and row.get("decision_id") == decision.get("decision_id") and row.get("authority_request_id") == decision.get("request_id") and row.get("authority_request_hash") == decision.get("request_hash") and row.get("decision") == decision.get("decision")]

@@ -3,6 +3,8 @@ import html
 import argparse
 import fcntl
 import hashlib
+import hmac
+import http.client
 import ipaddress
 import json
 import os
@@ -47,6 +49,94 @@ EXACT_PROBE_TUNNEL_KEEPALIVE_ADDRESS = os.environ.get(
 EXACT_PROBE_LOCK = Path(
     os.environ.get("V7_EXACT_PROBE_LOCK", "/run/v7-exact-client-probe.lock")
 )
+
+
+def isolated_client_transport_request(operation):
+    """Existing probe owner transport into a prepared disposable WG client."""
+    if not Path("/.dockerenv").is_file():
+        raise RuntimeError("isolated_client_transport_requires_container")
+    descriptor = json.loads(Path("/polygon/client-ingress.json").read_text())
+    secret = Path("/polygon/client-transport-secret").read_bytes()
+    host = descriptor["client_transport_address"]
+    if not ipaddress.ip_address(host).is_private:
+        raise RuntimeError("isolated_client_transport_external_address_forbidden")
+    payload = {"nonce": secrets.token_hex(16), "issued_monotonic_ns": time.monotonic_ns(), "operation": operation}
+    body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    connection = http.client.HTTPConnection(host, 7090, timeout=10)
+    try:
+        connection.request("POST", "/api/isolated-exact-client", body,
+                           {"Content-Type": "application/json", "X-V7-Probe-MAC": hmac.new(secret, body, hashlib.sha256).hexdigest()})
+        response = connection.getresponse()
+        raw = response.read(65536)
+        if response.status != 200 or not hmac.compare_digest(response.getheader("X-V7-Probe-MAC") or "", hmac.new(secret, raw, hashlib.sha256).hexdigest()):
+            raise RuntimeError("isolated_client_transport_response_not_authenticated")
+        result = json.loads(raw)
+        if (result.get("nonce") != payload["nonce"]
+                or result.get("client_network_namespace_inode") != descriptor["client_network_namespace_inode"]):
+            raise RuntimeError("isolated_client_transport_namespace_or_nonce_changed")
+        return result["result"]
+    finally:
+        connection.close()
+
+
+def execute_isolated_client_operation(operation):
+    """Read-only probes in the client's real namespace; no command transport."""
+    if not Path("/.dockerenv").is_file():
+        raise RuntimeError("isolated_client_namespace_required")
+    descriptor = json.loads(Path("/polygon/client-ingress.json").read_text())
+    source = operation.get("source_address")
+    members = [row for row in descriptor["members"] if row["source_address"] == source]
+    if len(members) != 1:
+        raise RuntimeError("isolated_client_exact_member_required")
+    member = members[0]
+    interface = member["client_interface"]
+    public = _run_probe_command(["wg", "show", interface, "public-key"])
+    peers = _run_probe_command(["wg", "show", interface, "latest-handshakes"])
+    addresses = json.loads(_run_probe_command(["ip", "-j", "addr", "show", "dev", interface]).stdout)
+    current_ips = [entry["local"] for row in addresses for entry in row.get("addr_info", []) if entry.get("family") == "inet"]
+    peer_proven = any(line.split()[0] == descriptor["server_public_key"]
+                      and 0 <= time.time() - int(line.split()[1]) <= 120
+                      for line in peers.stdout.splitlines() if len(line.split()) == 2)
+    if public.stdout.strip() != member["public_key"] or current_ips != [source] or not peer_proven:
+        raise RuntimeError("isolated_client_profile_or_handshake_not_current")
+    action = operation.get("action")
+    if action == "path":
+        proc = subprocess.run(["curl", "--silent", "--output", "/dev/null", "--write-out", "%{http_code}",
+                               "--max-time", "2", "--interface", source, "https://www.google.com/generate_204"],
+                              text=True, capture_output=True, timeout=3)
+        result = {"interface": source, "returncode": proc.returncode, "http_code": proc.stdout,
+                  "ok": proc.returncode == 0 and proc.stdout == "204"}
+    elif action == "exact":
+        # This is the same fixed child used by the local prepared namespace
+        # transport. The request cannot provide a program, URL or interface.
+        protocol = operation.get("preferred_probe_protocol")
+        if protocol not in {"HTTPS_EGRESS_IP", "STUN_XOR_MAPPED_ADDRESS"}:
+            raise RuntimeError("isolated_client_probe_protocol_invalid")
+        context = {"target_url": "https://icanhazip.com", "destination_ip": "198.19.0.1",
+                   "destination_port": 3478 if protocol == "STUN_XOR_MAPPED_ADDRESS" else 443,
+                   "preferred_probe_protocol": protocol, "timeout_seconds": 0.65,
+                   "client_interface": interface, "source_address": source}
+        proc = _run_probe_command([sys.executable, "-c", _exact_namespace_http_script()],
+                                  input_text=json.dumps(context), timeout=2)
+        result = json.loads(proc.stdout)
+    elif action == "services":
+        # Existing Matrix probe program runs inside the actual client tunnel,
+        # observation-only. No fabricated canonical Matrix or S11 row.
+        services = operation.get("services") or []
+        if not services or any(not re.fullmatch(r"[a-z_]+", str(service)) for service in services):
+            raise RuntimeError("isolated_required_service_subset_invalid")
+        proc = subprocess.run(["v7-service-matrix-test", "client-" + interface.removeprefix("pgwc"),
+                               "--interface", interface, "--services", ",".join(services),
+                               "--probe-observation-only", "--required-endpoints-only", "--timeout", "5",
+                               "--state-dir", "/polygon/client-state"],
+                              text=True, capture_output=True, timeout=8)
+        result = {"returncode": proc.returncode, "output": proc.stdout, "ok": proc.returncode == 0}
+    else:
+        raise RuntimeError("isolated_client_read_only_probe_action_required")
+    result.update({"client_profile_peer_mapping_proven": True, "client_tunnel_ingress_proven": True,
+                   "client_network_namespace_inode": os.stat("/proc/self/ns/net").st_ino,
+                   "client_namespace_isolated": True})
+    return result
 
 
 def now_iso():
@@ -408,6 +498,39 @@ def parse_iso(value):
     return parsed.astimezone(timezone.utc)
 
 
+def isolated_expected_egress_binding_valid(context):
+    """Private observed egress is meaningful only in the fresh isolated lab."""
+    if not Path("/.dockerenv").is_file() or not Path("/polygon/client-ingress.json").is_file():
+        return False
+    try:
+        from admin_core import operator_execution as owner
+        from admin_core.operator_execution_isolation import parse_registry_lines
+        policy = json.loads(Path("/polygon/policy.json").read_text())
+        contract = policy.get(owner.CT_M0F_STANDING_VALIDATION_POLICY_KEY, {})
+        if contract.get("schema_version") != owner.CT_M0F_POLYGON_CONTRACT_SCHEMA:
+            return False
+        records = owner.read_live_execution_lineage_records(Path("/polygon/audit/operator-execution-audit.jsonl"))
+        if not owner.validate_ct_m0f_standing_validation_policy(contract, audit_records=records).get("ok"):
+            return False
+        scope = contract["envelope"]["isolated_polygon_scope"]
+        user = context.get("user")
+        channels = {row["id"]: row for row in parse_registry_lines(
+            Path("/polygon/state/egress.registry").read_text().splitlines())}
+        target = channels.get(context.get("target"), {})
+        return bool(user in scope["members"] and context.get("source_address") == user
+            and str(context.get("routing_table")) == str(scope["member_tables"].get(user))
+            and context.get("source") == scope["source_egress"]
+            and context.get("target") in scope["allowed_target_egresses"]
+            and context.get("interface") == target.get("interface")
+            and context.get("expected_egress_ip") == target.get("expected_ip")
+            and target.get("expected_ip") in scope["environment"]["interface_ipv4s"].get(target.get("interface"), [])
+            and target.get("expected_ip") == scope["environment"]["egress_snat_mapping"].get(target.get("interface"))
+            and context.get("probe_transport") == "EXISTING_LOCAL_CLIENT_PROFILE_NAMESPACE"
+            and context.get("reuse_prepared_client_session") is True)
+    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError):
+        return False
+
+
 def exact_probe_context_errors(context):
     context = context if isinstance(context, dict) else {}
     errors = []
@@ -488,7 +611,7 @@ def exact_probe_context_errors(context):
         expected_ip_value = ipaddress.ip_address(expected_ip)
     except ValueError:
         expected_ip_value = None
-    if expected_ip_value is None or not expected_ip_value.is_global:
+    if expected_ip_value is None or (not expected_ip_value.is_global and not isolated_expected_egress_binding_valid(context)):
         errors.append("expected_egress_ip_invalid")
     return sorted(set(errors))
 
@@ -755,6 +878,41 @@ finally:
 '''
 
 
+def exact_namespace_probe_attempt(context, result, *, destination_ip, route, peer_mapping,
+                                  client_netns_inode, session_reused, started_ns):
+    """Shared receipt projection for local and disposable-client transports."""
+    response_text = str(result.get("response_text") or "").strip()
+    expected_ip = str(context.get("expected_egress_ip") or "").strip()
+    payload_ok = bool(result.get("ok") and response_text == expected_ip)
+    attempt = {
+        "attempt": 1,
+        "started_monotonic_ns": safe_int(result.get("started_monotonic_ns"), started_ns),
+        "finished_monotonic_ns": safe_int(result.get("finished_monotonic_ns"), time.monotonic_ns()),
+        "duration_ms": round((safe_int(result.get("finished_monotonic_ns"), time.monotonic_ns()) - safe_int(result.get("started_monotonic_ns"), started_ns)) / 1_000_000.0, 3),
+        "destination_ip": destination_ip, "route": route,
+        "fresh_dns_resolution": False, "dns_mode": "DECLARED_NO_DNS",
+        "fresh_socket": result.get("fresh_socket") is True,
+        "source_bind_applied": result.get("source_bind_applied") is True,
+        "source_identity_freebind_applied": False, "interface_bind_applied": True,
+        "so_mark_applied": False,
+        "host_policy_route_proven": bool(route.get("ok") is True
+            and str(route.get("table") or "") == str(context.get("routing_table") or "")
+            and str(route.get("dev") or "") == str(context.get("interface") or "")),
+        "client_tunnel_ingress_proven": bool(peer_mapping and client_netns_inode and result.get("client_interface_bound") is True),
+        "client_profile_peer_mapping_proven": peer_mapping,
+        "client_namespace_isolated": bool(client_netns_inode),
+        "client_network_namespace_inode": client_netns_inode,
+        "prepared_session_reused": session_reused,
+        "probe_protocol": str(result.get("probe_protocol") or "HTTPS_EGRESS_IP"),
+        "status_line": str(result.get("status_line") or ""),
+        "payload_response_verified": payload_ok,
+        "payload_fingerprint": str(result.get("payload_fingerprint") or ""),
+        "response_matches_expected_egress_ip": response_text == expected_ip,
+        "error": str(result.get("error") or ""),
+    }
+    return (attempt if payload_ok else {}), [attempt]
+
+
 def execute_ephemeral_client_namespace_probe(context, destination_ip):
     """Run one request as the existing synthetic WireGuard client.
 
@@ -801,6 +959,28 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
         "fwmark": 0,
         "ingress_interface": EXACT_PROBE_INGRESS_INTERFACE,
     })
+    if context.get("reuse_prepared_client_session") is True and Path("/polygon/client-ingress.json").is_file():
+        # Same real WG/profile namespace semantics; only the bounded execution
+        # transport differs. No setns/SYS_ADMIN or Docker socket in verifier.
+        try:
+            if not Path("/.dockerenv").is_file() or destination_ip != "198.19.0.1":
+                raise RuntimeError("isolated_client_destination_or_container_invalid")
+            public = _run_probe_command(["wg", "pubkey"], input_text=metadata["private_key"] + "\n").stdout.strip()
+            allowed = _run_probe_command(["wg", "show", EXACT_PROBE_INGRESS_INTERFACE, "allowed-ips"]).stdout
+            peer_mapping = any(line.split()[0] == public and f"{source}/32" in line.split()[1:]
+                               for line in allowed.splitlines() if len(line.split()) >= 2)
+            if not peer_mapping:
+                raise RuntimeError("isolated_client_live_ingress_peer_mismatch")
+            started_ns = time.monotonic_ns()
+            result = isolated_client_transport_request({"action": "exact", "source_address": source,
+                         "preferred_probe_protocol": context.get("preferred_probe_protocol") or "HTTPS_EGRESS_IP"})
+            client_inode = int(result.get("client_network_namespace_inode") or 0)
+            if not client_inode or client_inode == os.stat("/proc/self/ns/net").st_ino:
+                raise RuntimeError("isolated_client_namespace_not_distinct")
+            return exact_namespace_probe_attempt(context, result, destination_ip=destination_ip, route=route,
+                        peer_mapping=peer_mapping, client_netns_inode=client_inode, session_reused=True, started_ns=started_ns)
+        except (OSError, ValueError, RuntimeError, KeyError, subprocess.SubprocessError) as exc:
+            return {}, [{"error": str(exc), "fresh_socket": False, "payload_response_verified": False}]
     reuse_session = context.get("reuse_prepared_client_session") is True
     names = (
         exact_probe_session_names(source)
@@ -967,45 +1147,8 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
             result = json.loads(probe_proc.stdout or "{}")
         except json.JSONDecodeError:
             result = {"ok": False, "error": "client_namespace_probe_output_invalid"}
-        response_text = str(result.get("response_text") or "").strip()
-        expected_ip = str(context.get("expected_egress_ip") or "").strip()
-        payload_ok = bool(result.get("ok") and response_text == expected_ip)
-        attempt = {
-            "attempt": 1,
-            "started_monotonic_ns": safe_int(result.get("started_monotonic_ns"), started_ns),
-            "finished_monotonic_ns": safe_int(result.get("finished_monotonic_ns"), time.monotonic_ns()),
-            "duration_ms": round((safe_int(result.get("finished_monotonic_ns"), time.monotonic_ns()) - safe_int(result.get("started_monotonic_ns"), started_ns)) / 1_000_000.0, 3),
-            "destination_ip": destination_ip,
-            "route": route,
-            "fresh_dns_resolution": False,
-            "dns_mode": "DECLARED_NO_DNS",
-            "fresh_socket": result.get("fresh_socket") is True,
-            "source_bind_applied": result.get("source_bind_applied") is True,
-            "source_identity_freebind_applied": False,
-            "interface_bind_applied": True,
-            "so_mark_applied": False,
-            "host_policy_route_proven": bool(
-                route.get("ok") is True
-                and str(route.get("table") or "") == str(context.get("routing_table") or "")
-                and str(route.get("dev") or "") == str(context.get("interface") or "")
-            ),
-            "client_tunnel_ingress_proven": bool(
-                peer_mapping and client_netns_inode and result.get("client_interface_bound") is True
-            ),
-            "client_profile_peer_mapping_proven": peer_mapping,
-            "client_namespace_isolated": bool(client_netns_inode),
-            "client_network_namespace_inode": client_netns_inode,
-            "prepared_session_reused": session_reused,
-            "probe_protocol": str(
-                result.get("probe_protocol") or "HTTPS_EGRESS_IP"
-            ),
-            "status_line": str(result.get("status_line") or ""),
-            "payload_response_verified": payload_ok,
-            "payload_fingerprint": str(result.get("payload_fingerprint") or ""),
-            "response_matches_expected_egress_ip": response_text == expected_ip,
-            "error": str(result.get("error") or ""),
-        }
-        return (attempt if payload_ok else {}), [attempt]
+        return exact_namespace_probe_attempt(context, result, destination_ip=destination_ip, route=route,
+                    peer_mapping=peer_mapping, client_netns_inode=client_netns_inode, session_reused=session_reused, started_ns=started_ns)
     except Exception as exc:
         finished_ns = time.monotonic_ns()
         return {}, [{
@@ -1959,6 +2102,35 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path == "/api/isolated-exact-client":
+            try:
+                if not Path("/.dockerenv").is_file():
+                    raise ValueError("container_required")
+                descriptor = json.loads(Path("/polygon/client-ingress.json").read_text())
+                if self.client_address[0] != descriptor["server_endpoint"]:
+                    raise ValueError("isolated_router_transport_required")
+                length = int(self.headers.get("Content-Length", "0"))
+                if not 0 < length <= 16384:
+                    raise ValueError("bounded_probe_request_required")
+                secret = Path("/polygon/client-transport-secret").read_bytes()
+                body = self.rfile.read(length)
+                if not hmac.compare_digest(self.headers.get("X-V7-Probe-MAC") or "", hmac.new(secret, body, hashlib.sha256).hexdigest()):
+                    raise ValueError("probe_request_authentication_failed")
+                payload = json.loads(body)
+                if not 0 <= time.monotonic_ns() - payload["issued_monotonic_ns"] <= 5_000_000_000:
+                    raise ValueError("probe_request_stale")
+                result = execute_isolated_client_operation(payload["operation"])
+                raw = json.dumps({"nonce": payload["nonce"], "result": result,
+                                  "client_network_namespace_inode": os.stat("/proc/self/ns/net").st_ino}, separators=(",", ":")).encode()
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(raw)))
+                self.send_header("Content-Type", "application/json")
+                self.send_header("X-V7-Probe-MAC", hmac.new(secret, raw, hashlib.sha256).hexdigest())
+                self.end_headers()
+                self.wfile.write(raw)
+            except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError):
+                self.send_json({"error": "isolated_probe_not_admitted"}, status=403)
+            return
         ip = client_ip(self)
         if path != "/api/sample":
             self.send_json({"error": "not_found"}, status=404)

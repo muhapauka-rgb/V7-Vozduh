@@ -1,8 +1,76 @@
 # Isolated Polygon Authority and runtime-event binding
 
 Status: implementation/integration progress, Mission incomplete. No Production
-deployment or user-route execution in this block. No S11, full E2E, seven-second
-or 1,000/10,000-user claim.
+deployment. A later isolated run reached one actual route mutation and failed
+post-apply; that partial effect is not zero movement and not S11. No full E2E,
+seven-second or 1,000/10,000-user claim. Earlier checkpoints below are historical.
+
+## Current WG ingress and partial-effect repair
+
+Latest actual run at 2026-09-07T08:35:17Z: physical fault dispatch
+349064956307066 ns; post-terminal kernel tables1001/1002 and registry had two
+members on target. Actual WG HTTP payload succeeded for those two and failed
+for the three members still on source. Only the first member has an emitted
+exact payload/cutover PASS (4754.921 ms from Matrix observation, not physical
+onset). Full-five S11 is absent. All three containers, two networks and image
+were removed and absence verified; source remained down until transaction
+terminal and pre-teardown snapshot.
+
+Evidence correction: the isolated audit incorrectly credited one valid cold
+sample by consuming the first member's PASS while ignoring incomplete cohort
+outcomes. That historical classification is INVALID FOR THE ADMITTED FIVE-MEMBER
+SAMPLE and cannot be reused for a campaign budget or Mission result. Its original
+output remains in the execution transcript; the disposable audit/budget was
+removed with the node and was not projected into production/CPS. This report
+does not retroactively recertify the run. Next repair binds the immutable cohort
+through existing sample reservation, per-member validation, forward aggregation
+and Matrix projection. Current terminal/users_moved projections are not reliable
+for this partial run; the actual before-teardown state above takes precedence.
+
+The former two-node topology had no actual client ingress `wg0`. The real writer
+changed client 10.7.254.1 to the target/table1001 (`V7_TIMING_ROUTE_WRITE_MS=10.000`)
+then failed `ROUTE_POST_APPLY_OBSERVATION_FAILED` while its existing route check
+required ingress wg0. Other four clients were not attempted. No S11 was obtained;
+post-teardown state cannot be reconstructed as historical evidence. Container
+deletion is containment, not an owner rollback receipt.
+
+The existing writer now revalidates exact member/source/target against the current
+lab Authority, Packet, active Lease, Barrier, reservation and actual Matrix/kernel
+state. Its legacy hash shortcut cannot bypass that guard. Missing-cutover-receipt
+aggregation retains known partial mutation and marks ambiguous effects unknown
+instead of treating a failed exit as zero. The adapter captures registry, kernel
+routes/rules and actual client payloads before teardown; those diagnostic probes
+are explicitly not a recovery-clock or required-service S11 substitute.
+
+Controller admitted three disposable nodes and two internal networks. The actual
+WG client has five ephemeral profiles/peers, no host mounts, ports, Docker socket,
+privileged mode or SYS_ADMIN. The existing client-speed owner transports bounded
+read-only probes into that namespace using exact-member, peer/handshake and
+authenticated nonce/namespace checks; it runs the same payload primitive and
+existing required-service probe. The local production verifier remains available.
+The shared receipt projection avoids two independently maintained implementations.
+
+Fresh versioned scope binds actual WG public membership, namespace, finite
+resources and separate inspected source/target SNAT mappings. Private expected
+egress is accepted only for the current lab contract/audit and exact member,
+source, target, table and declared interface/NAT address. Backend observations
+come from actual socket peers, never from the expected value or a forwarded
+header. This does not establish external/public service fidelity or Production SLO.
+
+Actual new-topology preflight found read-only /proc/sys: router forwarding is now
+set only at disposable Docker namespace creation and merely read by the verifier.
+Subsequent runs established real WG handshakes, both 14-service router baselines
+and all-five client source-path payloads. Admission then exposed Docker's exact
+loopback DNS POSTROUTING jump. The scope accepts only that 127.0.0.11/32 jump in
+addition to the two exact SNAT rules, binding the complete observed rule list.
+Missing/wrong/shared mapping and extra egress rules remain fail-closed.
+
+Focused evidence: 33 affected owner tests passed; one new entrypoint assertion
+initially expected English text in the Russian rule and was corrected. Its
+focused rerun passed, as did separate MAC/nonce/namespace and exact NAT negative
+tests. These are unit fixtures, not E2E or independent review. The full mandatory
+Russian touched-code/no-repeat rule is in the existing program and is consumed
+as actual text in the existing native campaign packet, not just linked by a hash.
 
 ## Changes and evidence
 

@@ -52,6 +52,8 @@ class AutonomousRecoveryAgentProfileTest(unittest.TestCase):
         ])
         self.assertFalse(packet["repair_return_contract"]["user_relay_required"])
         self.assertTrue(packet["repair_return_contract"]["automatic_continuation_required"])
+        self.assertIn("БЕЗ ЦИКЛОВ ПЕРЕПРОВЕРКИ", packet["mission_execution_rules"])
+        self.assertIn("третий одинаковый запуск запрещён", packet["mission_execution_rules"])
 
     def test_compact_bundle_enters_material_change_only_through_continue_omp(self):
         source = (ROOT / "tools/v7-autonomous-recovery-bundle").read_text(encoding="utf-8")

@@ -1863,7 +1863,7 @@ def prepared_target_topology_generation(path: Path) -> str:
     return sha256_json(rows)
 
 
-def declared_target_egress_ip(target: "Egress") -> tuple[str, str]:
+def declared_target_egress_ip(target: "Egress", *, isolated_polygon_scope=None) -> tuple[str, str]:
     """Return the immutable public identity declared by an existing target.
 
     Most egress rows carry ``expected_ip`` directly.  An execution-only
@@ -1883,6 +1883,10 @@ def declared_target_egress_ip(target: "Egress") -> tuple[str, str]:
         or raw.get("expected_ip")
         or ""
     ).strip()
+    if isolated_polygon_scope and target.id in isolated_polygon_scope.get("allowed_target_egresses", []):
+        addresses = (isolated_polygon_scope.get("environment") or {}).get("interface_ipv4s", {})
+        if explicit and explicit in addresses.get(target.interface, []):
+            return explicit, "isolated_polygon_declared_and_kernel_bound_egress_ip"
     if explicit:
         try:
             if ipaddress.ip_address(explicit).is_global:
@@ -25058,6 +25062,9 @@ class AutoswitchPlanner:
         return subprocess.CompletedProcess(argv, route_rc, stdout="\n".join(lines) + "\n")
 
     def _verification_required_services(self, move: dict[str, Any]) -> list[str]:
+        scope = self._isolated_polygon_cold_scope()
+        if scope and move.get("user_ip") in scope["members"]:
+            return list(scope["required_services"])
         if "profile_required_services" in move:
             return normalize_service_ids(move.get("profile_required_services") or [])
         user_ip = str(move.get("user_ip") or "")
@@ -25072,6 +25079,16 @@ class AutoswitchPlanner:
     def _verify_emergency_required_services(self, move: dict[str, Any]) -> subprocess.CompletedProcess[str]:
         target = str(move.get("recommended_egress") or "")
         services = self._verification_required_services(move)
+        scope = self._isolated_polygon_cold_scope()
+        if scope and move.get("user_ip") in scope["members"]:
+            try:
+                result = in_process_client_speed_module().isolated_client_transport_request({
+                    "action": "services", "source_address": move["user_ip"], "services": services,
+                })
+                return subprocess.CompletedProcess(["v7-service-matrix-test", "actual-isolated-client-tunnel"],
+                                                    result["returncode"], stdout=result["output"])
+            except (OSError, ValueError, RuntimeError, KeyError) as exc:
+                return subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout=str(exc))
         if not target:
             return subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout="missing target\n")
         timeout_sec = max(1, min(to_int(self.emergency_failover_policy.get("service_verify_timeout_seconds"), 5), 30))
@@ -25080,7 +25097,6 @@ class AutoswitchPlanner:
         # Reuse the existing service Matrix owner's bounded parallel executor.
         # One exact subset now incurs one Python startup, one lock lifecycle and
         # one durable Matrix write instead of repeating all three per service.
-        command_timeout_sec = timeout_sec + lock_timeout_sec + 5
         command = ["v7-service-matrix-test", target]
         if services:
             command.extend([
@@ -25132,6 +25148,11 @@ class AutoswitchPlanner:
         user's policy-table binding.  The latter remains fail-closed in
         ``_verify_routes_for_apply`` before this method is reached.
         """
+        scope = self._isolated_polygon_cold_scope()
+        if scope and move.get("user_ip") in scope["members"]:
+            # Router-side target reachability cannot stand in for the newly
+            # admitted real-client ingress/service path in this experiment.
+            return self._verify_emergency_required_services(move)
         started_ns = time.monotonic_ns()
         target = str(move.get("recommended_egress") or "")
         services = self._verification_required_services(move)
@@ -25383,7 +25404,7 @@ class AutoswitchPlanner:
         if target is None or not target.interface:
             blockers.append("target_interface_missing")
         expected_ip, expected_ip_source = (
-            declared_target_egress_ip(target) if target is not None else ("", "target_missing")
+            declared_target_egress_ip(target, isolated_polygon_scope=self._isolated_polygon_cold_scope()) if target is not None else ("", "target_missing")
         )
         if not expected_ip:
             blockers.append("target_expected_egress_ip_missing")

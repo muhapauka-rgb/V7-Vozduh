@@ -29,6 +29,23 @@ def command(argv, *, timeout=60):
     return result
 
 
+def copy_owned_container_artifact(docker, source, target, path):
+    # Stream ephemeral client secrets directly between exact owned nodes;
+    # never print them or materialize them in the host checkout.
+    producer = subprocess.Popen([docker, "cp", source + ":" + path, "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        consumer = subprocess.run([docker, "cp", "-", target + ":/polygon/"], stdin=producer.stdout,
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
+        producer.stdout.close()
+        producer.wait(timeout=15)
+    finally:
+        if producer.poll() is None:
+            producer.kill()
+            producer.wait(timeout=5)
+    if producer.returncode or consumer.returncode:
+        raise RuntimeError("owned_client_artifact_copy_failed")
+
+
 def existing_owner(name, path):
     loader = importlib.machinery.SourceFileLoader(name, path)
     spec = importlib.util.spec_from_loader(loader.name, loader)
@@ -38,6 +55,10 @@ def existing_owner(name, path):
 
 
 def traffic_probe(interface):
+    if interface.startswith("10.7.") and Path("/polygon/client-ingress.json").is_file():
+        return existing_owner("polygon_client_transport", "/polygon/tools/v7-client-speed-api").isolated_client_transport_request(
+            {"action": "path", "source_address": interface},
+        )
     checked = subprocess.run([
         "curl", "--interface", interface, "--connect-timeout", "1", "--max-time", "2",
         "-fsS", "-o", "/dev/null", "-w", "%{http_code}", "https://www.google.com/generate_204",
@@ -65,7 +86,7 @@ def inside_probe(*, traffic=False, lab_authority=False):
         "controlled_certification_source=1 certification_group=isolated-runtime "
         "reservation_owner=operator_execution_governance execution_reserved=1 canary_reserved=1 "
         "autoswitch_allowed=0 rebalance_allowed=0 production_assignment_allowed=0\n"
-        + ("id=polygon-target interface=pgtarget enabled=1 type=interface protocol=gre\n" if traffic else "")
+        + ("id=polygon-target interface=pgtarget enabled=1 type=interface protocol=gre expected_ip=10.201.2.1\n" if traffic else "")
     )
     if not traffic:
         command(["ip", "link", "add", "pgsource", "type", "dummy"])
@@ -79,6 +100,7 @@ def inside_probe(*, traffic=False, lab_authority=False):
     target_during_fault = {}
     authority = {}
     post_fault_selection = {}
+    post_fault_route_truth = {}
     if traffic:
         for egress in ("polygon-source", "polygon-target"):
             probe = command([sys.executable, "/polygon/tools/v7-service-matrix-test",
@@ -250,6 +272,20 @@ def inside_probe(*, traffic=False, lab_authority=False):
                 post_fault_selection["source_binding_diagnostic"] = planner.ct_m0f_certification_only_matrix_failure_binding_projection(
                     state, scope["source_egress"], event_dir=events,
                 )
+                # Capture actual residue before any restoration/deletion.
+                # A failed writer return code is not proof of zero effects.
+                with ThreadPoolExecutor(max_workers=len(scope["members"])) as workers:
+                    client_path_payload = list(workers.map(traffic_probe, scope["members"]))
+                post_fault_route_truth = {
+                    "observed_monotonic_ns": time.monotonic_ns(),
+                    "users_registry": (state / "users.registry").read_text(),
+                    "kernel_rules": json.loads(command(["ip", "-j", "rule", "show"]).stdout),
+                    "kernel_routes": json.loads(command(["ip", "-j", "route", "show", "table", "all"]).stdout),
+                    "kernel_links": json.loads(command(["ip", "-j", "link", "show"]).stdout),
+                    "client_path_payload": client_path_payload,
+                    "required_service_s11_credit": False,
+                    "observation_role": "post-terminal diagnostic; not the recovery clock",
+                }
         finally:
             # Restoration is teardown, never described as V7 failover/S11.
             try:
@@ -283,6 +319,7 @@ def inside_probe(*, traffic=False, lab_authority=False):
         "pre_fault_lab_authority": authority,
         "execution_audit_records": owner.read_audit_records(audit) if lab_authority else [],
         "post_fault_source_selection_diagnostic": post_fault_selection,
+        "post_fault_route_truth_before_teardown": post_fault_route_truth,
         "baseline_services": baseline_services,
         "client_source_route_baseline": client_baseline,
         "client_traffic_during_source_fault": fault_traffic,
@@ -304,9 +341,13 @@ def execute(root: Path, *, traffic=False, lab_authority=False):
     label = "v7.polygon.runtime=" + identity
     created = False
     backend_created = False
+    client_created = False
+    client_network_created = False
     network_created = False
     backend = identity + "-backend"
     network = identity + "-net"
+    client = identity + "-client"
+    client_network = identity + "-client-net"
     result = {}
     owner_paths = ("tools/runtime-support/v7-health-loop", "tools/v7-egress-diagnose", "tools/v7-service-matrix-test", "tools/v7-service-matrix-refresh-all", "tools/v7-users-autoswitch")
     hashes = {path: hashlib.sha256((root / path).read_bytes()).hexdigest() for path in owner_paths}
@@ -317,10 +358,10 @@ def execute(root: Path, *, traffic=False, lab_authority=False):
                 shutil.copytree(root / folder, context / folder, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
             (context / "Dockerfile").write_text(
                 "FROM python:3.11-slim\n"
-                "RUN apt-get update && apt-get install -y --no-install-recommends iproute2 curl jq procps util-linux openssl ca-certificates iptables && rm -rf /var/lib/apt/lists/*\n"
+                "RUN apt-get update && apt-get install -y --no-install-recommends iproute2 curl jq procps util-linux openssl ca-certificates iptables wireguard-tools && rm -rf /var/lib/apt/lists/*\n"
                 "COPY tools /polygon/tools\nCOPY admin_core /polygon/admin_core\n"
                 "COPY tools/runtime-support/v7-egress-lib /usr/local/lib/v7-egress-lib\n"
-                "ENV PYTHONPATH=/polygon PYTHONDONTWRITEBYTECODE=1\n"
+                "ENV PYTHONPATH=/polygon PYTHONDONTWRITEBYTECODE=1 V7_CLIENT_ROOT=/polygon/client-profiles\n"
                 "ENV PATH=/polygon/tools/runtime-support:/polygon/tools:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin V7_STATE_DIR=/polygon/state\n"
             )
             command([docker, "build", "-q", "-t", image, str(context)], timeout=300)
@@ -333,8 +374,16 @@ def execute(root: Path, *, traffic=False, lab_authority=False):
                  "--security-opt", "no-new-privileges", "--memory", "512m", "--cpus", "2",
                  "--pids-limit", "128"]
         command([docker, "create", "--name", identity, "--label", label, *container_limits,
+                 *(["--sysctl", "net.ipv4.ip_forward=1"] if lab_authority else []),
                  image, *(["sleep", "120"] if traffic else ["python3", "/polygon/tools/polygon/runtime_chain.py", "--inside"])])
         created = True
+        if lab_authority:
+            command([docker, "network", "create", "--internal", "--label", label, client_network])
+            client_network_created = True
+            command([docker, "network", "connect", client_network, identity])
+            command([docker, "create", "--name", client, "--label", label, "--network", client_network, *container_limits[2:],
+                     image, "sleep", "120"])
+            client_created = True
         inspection = json.loads(command([docker, "inspect", identity]).stdout)[0]
         config = inspection["HostConfig"]
         if inspection.get("Mounts") or config["NetworkMode"] != (network if traffic else "none") or config["Privileged"] or config.get("PortBindings"):
@@ -346,12 +395,14 @@ def execute(root: Path, *, traffic=False, lab_authority=False):
             backend_inspect = json.loads(command([docker, "inspect", backend]).stdout)[0]
             if backend_inspect.get("Mounts") or backend_inspect["HostConfig"]["Privileged"] or backend_inspect["HostConfig"].get("PortBindings"):
                 raise RuntimeError("backend_isolation_verification_failed")
-            command([docker, "start", identity, backend])
-            inspected = json.loads(command([docker, "inspect", identity, backend]).stdout)
-            local, remote = [row["NetworkSettings"]["Networks"][network]["IPAddress"] for row in inspected]
+            command([docker, "start", identity, backend, *([client] if lab_authority else [])])
+            inspected = json.loads(command([docker, "inspect", identity, backend, *([client] if lab_authority else [])]).stdout)
+            local, remote = [row["NetworkSettings"]["Networks"][network]["IPAddress"] for row in inspected[:2]]
             if lab_authority:
                 net = json.loads(command([docker, "network", "inspect", network]).stdout)[0]
-                if any(len(row["NetworkSettings"]["Networks"]) != 1 for row in inspected):
+                client_net = json.loads(command([docker, "network", "inspect", client_network]).stdout)[0]
+                if ([len(row["NetworkSettings"]["Networks"]) for row in inspected] != [2, 1, 1]
+                        or not client_net["Internal"]):
                     raise RuntimeError("polygon_additional_network_forbidden")
                 host_inspection = {
                     "internal_network": net["Internal"], "network_id": net["Id"],
@@ -360,6 +411,8 @@ def execute(root: Path, *, traffic=False, lab_authority=False):
                     "published_port_count": sum(len(row["HostConfig"].get("PortBindings") or {}) for row in inspected),
                     "privileged": any(row["HostConfig"]["Privileged"] for row in inspected),
                     "router_memory": inspected[0]["HostConfig"]["Memory"],
+                    "client_network_id": client_net["Id"], "client_network_internal": client_net["Internal"],
+                    "network_counts": [len(row["NetworkSettings"]["Networks"]) for row in inspected],
                 }
                 with tempfile.TemporaryDirectory(prefix="v7-polygon-inspection-") as tmp:
                     evidence = Path(tmp) / "isolation-inspection.json"
@@ -378,7 +431,36 @@ def execute(root: Path, *, traffic=False, lab_authority=False):
                 cert = str(Path(tmp) / "polygon-lab.crt")
                 command([docker, "cp", backend + ":/polygon/lab.crt", cert])
                 command([docker, "cp", cert, identity + ":/usr/local/share/ca-certificates/polygon-lab.crt"])
-            command([docker, "exec", identity, "python3", "/polygon/tools/polygon/runtime_topology.py", "router", local, remote])
+                if lab_authority:
+                    command([docker, "cp", cert, client + ":/usr/local/share/ca-certificates/polygon-lab.crt"])
+            command([docker, "exec", identity, "python3", "/polygon/tools/polygon/runtime_topology.py", "router-wg" if lab_authority else "router", local, remote])
+            if lab_authority:
+                ingress_address = inspected[0]["NetworkSettings"]["Networks"][client_network]["IPAddress"]
+                client_address = inspected[2]["NetworkSettings"]["Networks"][client_network]["IPAddress"]
+                command([docker, "exec", identity, "python3", "/polygon/tools/polygon/runtime_topology.py", "wg-server", ingress_address])
+                for path in ("/polygon/client-profiles", "/polygon/client-transport-secret", "/polygon/client-ingress.json"):
+                    copy_owned_container_artifact(docker, identity, client, path)
+                command([docker, "exec", client, "python3", "/polygon/tools/polygon/runtime_topology.py", "wg-clients"])
+                client_inode = int(command([docker, "exec", client, "stat", "-Lc", "%i", "/proc/self/ns/net"]).stdout)
+                # Public topology binding only; never read/print key files.
+                descriptor = json.loads(command([docker, "exec", identity, "python3", "-c",
+                                                  "from pathlib import Path; print(Path('/polygon/client-ingress.json').read_text())"]).stdout)
+                descriptor.update({"client_transport_address": client_address, "client_network_namespace_inode": client_inode})
+                with tempfile.TemporaryDirectory(prefix="v7-polygon-client-descriptor-") as tmp:
+                    path = Path(tmp) / "client-ingress.json"
+                    path.write_text(json.dumps(descriptor))
+                    for node in (identity, client):
+                        command([docker, "cp", str(path), node + ":/polygon/client-ingress.json"])
+                command([docker, "exec", "-d", client, "env", "V7_CLIENT_SPEED_HOST=" + client_address,
+                         "python3", "/polygon/tools/v7-client-speed-api"])
+                command([docker, "exec", client, "python3", "-c",
+                         "import socket,time; deadline=time.monotonic()+5\n"
+                         "while True:\n"
+                         " try:\n"
+                         "  s=socket.create_connection(('" + client_address + "',7090),.2); s.close(); break\n"
+                         " except OSError:\n"
+                         "  if time.monotonic()>=deadline: raise\n"
+                         "  time.sleep(.05)\n"])
             started = command([docker, "exec", identity, "python3", "/polygon/tools/polygon/runtime_chain.py",
                                "--inside-authority" if lab_authority else "--inside-traffic"], timeout=90)
         else:
@@ -394,8 +476,12 @@ def execute(root: Path, *, traffic=False, lab_authority=False):
             cleanup_commands.append([docker, "rm", "-f", identity])
         if backend_created:
             cleanup_commands.append([docker, "rm", "-f", backend])
+        if client_created:
+            cleanup_commands.append([docker, "rm", "-f", client])
         if network_created:
             cleanup_commands.append([docker, "network", "rm", network])
+        if client_network_created:
+            cleanup_commands.append([docker, "network", "rm", client_network])
         cleanup_commands.append([docker, "image", "rm", image])
         for cleanup_command in cleanup_commands:
             try:

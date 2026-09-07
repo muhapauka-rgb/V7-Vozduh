@@ -23,6 +23,19 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_missing_cutover_receipt_preserves_partial_and_unknown_effects(self):
+        module = load_cli_module()
+        partial = module.missing_cutover_effect_projection({"returncode": 0}, {"results": [{
+            "user_ip": "10.7.254.1", "rc": 1,
+            "output": "V7_TIMING_ROUTE_WRITE_MS=10.000\nV7_ROUTE_WRITE_FAILURE=ROUTE_POST_APPLY_OBSERVATION_FAILED\n",
+        }]})
+        self.assertTrue(partial["routing_mutation_performed_by_consumer"])
+        self.assertEqual(partial["user_movement_by_consumer"], 1)
+        self.assertFalse(partial["required_service_s11_proven"])
+        unknown = module.missing_cutover_effect_projection({"returncode": 2}, {})
+        self.assertIsNone(unknown["routing_mutation_performed_by_consumer"])
+        self.assertIsNone(unknown["user_movement_by_consumer"])
+
     def test_operation_window_binds_packet_scope_not_policy_ceiling(self):
         module = load_cli_module()
 

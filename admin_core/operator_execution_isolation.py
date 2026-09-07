@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from admin_core.registry_readers import parse_registry_lines
 
 
-SCHEMA = "v7.ct-m0f-isolated-polygon-scope.v1"
+SCHEMA = "v7.ct-m0f-isolated-polygon-scope.v2-wireguard"
 IMPLEMENTATION_PATHS = (
     "admin_core/operator_execution.py", "admin_core/operator_execution_isolation.py",
     "admin_core/operator_execution_pipeline.py", "tools/v7-users-autoswitch",
@@ -41,6 +41,78 @@ def fingerprint(value):
 def implementation_hashes():
     root = Path(__file__).resolve().parents[1]
     return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in IMPLEMENTATION_PATHS}
+
+
+def writer_scope_errors(control, *, user, source, target, now):
+    """Last writer-boundary check using existing Packet/Lease/Barrier owners."""
+    from admin_core import operator_execution as owner
+
+    errors = []
+    try:
+        binding = control["isolated_polygon_authority"]
+        scope = owner.isolated_polygon_execution_control_scope(binding, max_users=control["max_users"], now=now)
+        state = Path(scope["state_dir"])
+        lease = owner.load_execution_lease(state / "operator-execution-lease.json")
+        if not owner.execution_lease_state(lease, now=now).get("active"):
+            errors.append("polygon_writer_lease_not_active")
+        packet = lease.get("packet") or {}
+        if not owner.validate_packet(packet, now=now).get("ok"):
+            errors.append("polygon_writer_packet_invalid")
+        identity = owner.packet_identity(packet)
+        for field in ("operation_id", "selected_move_hash", "source_bundle_hash", "snapshot_bundle_hash"):
+            if not control.get(field) or identity.get(field) != control[field]:
+                errors.append("polygon_writer_packet_" + field + "_mismatch")
+        if identity.get("breaker_generation") != control["generation"]:
+            errors.append("polygon_writer_breaker_generation_mismatch")
+        moves = (packet.get("approved_plan_lock") or {}).get("selected_moves") or []
+        if (sorted(row["user_ip"] for row in moves) != scope["members"]
+                or identity.get("selected_move_count") != len(scope["members"])
+                or not all(row["current_egress"] == scope["source_egress"]
+                           and row["recommended_egress"] in scope["allowed_target_egresses"] for row in moves)):
+            errors.append("polygon_writer_packet_cohort_mismatch")
+        if sum(row["user_ip"] == user and row["current_egress"] == source
+               and row["recommended_egress"] == target for row in moves) != 1:
+            errors.append("polygon_writer_member_tuple_not_in_packet")
+        users = parse_registry_lines((state / "users.registry").read_text().splitlines())
+        matching = [row for row in users if row.get("ip") == user]
+        if len(matching) != 1 or matching[0].get("current") != source:
+            errors.append("polygon_writer_current_source_changed")
+        barrier = owner.read_json(state / "autoswitch-restore-barrier.json")
+        if (barrier.get("packet_id") != identity.get("packet_id")
+                or barrier.get("operation_id") != identity.get("operation_id")
+                or barrier.get("approved_selected_moves_hash") != identity.get("selected_move_hash")
+                or not barrier.get("generation_clearance")
+                or owner.parse_ts(barrier.get("clearance_expires_at")) <= now):
+            errors.append("polygon_writer_current_barrier_mismatch")
+        transaction = owner.ct_m0f_standing_validation_transaction_guard(
+            user=user, source=source, target=target, operation_id=control["operation_id"],
+            audit_store=Path(binding["audit_store"]), now=now,
+        )
+        reserved = transaction.get("reservation") or {}
+        bound = reserved.get("operation_binding") or {}
+        if (not transaction.get("ok") or not reserved
+                or reserved.get("contract_id") != binding["contract_id"]
+                or reserved.get("cohort_members") != scope["members"]
+                or bound.get("packet_id") != identity.get("packet_id")
+                or bound.get("lease_id") != lease.get("lease_id")):
+            errors.append("polygon_writer_transaction_binding_mismatch")
+        matrix = owner.read_json(state / "service-matrix.json")
+        hard = matrix["items"][source]["services"]["__channel_liveness__"]
+        causal = packet.get("service_failure_causal_binding") or {}
+        if (hard.get("ok") is not False or hard.get("reason") != "interface_down_or_missing"
+                or not causal.get("source_incident_id")
+                or hard.get("source_incident_id") != causal["source_incident_id"]
+                or int(Path("/sys/class/net/pgsource/flags").read_text().strip(), 16) & 1
+                or not int(Path("/sys/class/net/pgtarget/flags").read_text().strip(), 16) & 1):
+            errors.append("polygon_writer_current_source_incident_or_target_link_invalid")
+        target_row = matrix["items"][target]
+        age = (now - owner.parse_ts(target_row.get("checked_at"))).total_seconds()
+        if not 0 <= age <= 120 or not all(target_row["services"].get(service, {}).get("ok") is True
+                                         for service in scope["required_services"]):
+            errors.append("polygon_writer_target_required_services_not_fresh")
+    except (owner.PacketError, OSError, KeyError, TypeError, ValueError, AttributeError):
+        errors.append("polygon_writer_required_owner_binding_unavailable")
+    return sorted(set(errors))
 
 
 def external_default_route_present(routes):
@@ -93,6 +165,19 @@ def cold_capacity_observation_errors(observation, scope):
     return sorted(set(errors))
 
 
+def isolated_egress_snat_mapping(nat_rules):
+    """Docker's exact loopback DNS jump cannot match client egress traffic."""
+    snat = {"pgsource": "10.201.1.1", "pgtarget": "10.201.2.1"}
+    egress_rules = [row for row in nat_rules if row != "-A POSTROUTING -d 127.0.0.11/32 -j DOCKER_POSTROUTING"]
+    expected = ["-P POSTROUTING ACCEPT", *[
+        f"-A POSTROUTING -s 10.7.0.0/16 -o {interface} -j SNAT --to-source {address}"
+        for interface, address in snat.items()
+    ]]
+    if egress_rules != expected:
+        raise ValueError("polygon_unbound_postrouting_rule_forbidden:" + json.dumps(nat_rules))
+    return snat
+
+
 def kernel_environment():
     if not Path("/.dockerenv").is_file():
         raise ValueError("polygon_container_required")
@@ -106,16 +191,18 @@ def kernel_environment():
     topology = {}
     for row in links:
         name = row.get("ifname")
-        if name in {"eth0", "pgsource", "pgtarget"}:
+        if name in {"eth0", "eth1", "wg0", "pgsource", "pgtarget"}:
             info = row.get("linkinfo", {})
             topology[name] = {key: row.get(key) for key in ("ifindex", "address")}
             topology[name]["kind"] = info.get("info_kind")
-            if name != "eth0":
+            if name in {"pgsource", "pgtarget"}:
                 topology[name]["tunnel"] = info.get("info_data", {})
     if topology.get("eth0", {}).get("kind") != "veth" or any(
         topology.get(name, {}).get("kind") != "gre" for name in ("pgsource", "pgtarget")
     ):
         raise ValueError("polygon_expected_virtual_paths_required")
+    if topology.get("eth1", {}).get("kind") != "veth" or topology.get("wg0", {}).get("kind") != "wireguard":
+        raise ValueError("polygon_real_wireguard_ingress_required")
     peers = {topology[name]["tunnel"].get("remote") for name in ("pgsource", "pgtarget")}
     if len(peers) != 1 or not ipaddress.ip_address(next(iter(peers))).is_private:
         raise ValueError("polygon_private_backend_required")
@@ -128,12 +215,30 @@ def kernel_environment():
     quota, period = Path("/sys/fs/cgroup/cpu.max").read_text().split()
     if memory == "max" or quota == "max" or min(int(memory), int(quota), int(period)) <= 0:
         raise ValueError("polygon_bounded_resources_required")
+    ingress = json.loads(Path("/polygon/client-ingress.json").read_text())
+    wg_public = subprocess.run(["wg", "show", "wg0", "public-key"], check=True, capture_output=True, text=True, timeout=3).stdout.strip()
+    wg_peers = subprocess.run(["wg", "show", "wg0", "allowed-ips"], check=True, capture_output=True, text=True, timeout=3).stdout.strip()
+    if wg_public != ingress["server_public_key"] or not ingress.get("client_network_namespace_inode"):
+        raise ValueError("polygon_wireguard_ingress_identity_changed")
+    actual_peers = {line.split()[0]: sorted(line.split()[1:]) for line in wg_peers.splitlines()}
+    if actual_peers != {row["public_key"]: [row["source_address"] + "/32"] for row in ingress["members"]}:
+        raise ValueError("polygon_wireguard_peer_membership_changed")
+    addresses = json.loads(subprocess.run(["ip", "-j", "addr", "show"], check=True, capture_output=True, text=True, timeout=3).stdout)
+    nat_rules = subprocess.run(["iptables", "-t", "nat", "-S", "POSTROUTING"], check=True, capture_output=True, text=True, timeout=3).stdout.splitlines()
+    snat = isolated_egress_snat_mapping(nat_rules)
     return {
         "network_namespace": os.readlink("/proc/self/ns/net"),
         "mount_namespace": os.readlink("/proc/self/ns/mnt"),
         "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
         "root_mount_fingerprint": fingerprint(roots[0]),
         "topology": topology,
+        "client_ingress": ingress,
+        "client_transport_key_hash": hashlib.sha256(Path("/polygon/client-transport-secret").read_bytes()).hexdigest(),
+        "egress_snat_mapping": snat,
+        "postrouting_rules": nat_rules,
+        "ipv4_forwarding": Path("/proc/sys/net/ipv4/ip_forward").read_text().strip(),
+        "interface_ipv4s": {row["ifname"]: sorted(info["local"] for info in row.get("addr_info", []) if info.get("family") == "inet")
+                            for row in addresses if row["ifname"] in {"pgsource", "pgtarget", "wg0"}},
         "memory_max": int(memory), "cpu_quota": int(quota), "cpu_period": int(period),
     }
 
@@ -149,12 +254,16 @@ def validate_scope(scope):
         inspection = scope.get("docker_inspection", {})
         if (
             inspection.get("internal_network") is not True
-            or inspection.get("container_count") != 2
+            or inspection.get("container_count") != 3
             or inspection.get("host_mount_count") != 0
             or inspection.get("published_port_count") != 0
             or inspection.get("privileged") is not False
             or not inspection.get("network_id")
-            or len(set(inspection.get("container_ids", []))) != 2
+            or len(set(inspection.get("container_ids", []))) != 3
+            or inspection.get("client_network_internal") is not True
+            or not inspection.get("client_network_id")
+            or inspection.get("client_network_id") == inspection.get("network_id")
+            or inspection.get("network_counts") != [2, 1, 1]
         ):
             errors.append("polygon_host_isolation_preflight_invalid")
         if inspection.get("router_memory") != actual["memory_max"]:

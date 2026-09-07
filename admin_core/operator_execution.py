@@ -618,7 +618,11 @@ def autonomous_execution_control_decision(
     snapshot_bundle_hash="",
     max_users=0,
     now=None,
+    writer_user="",
+    writer_source="",
+    writer_target="",
 ):
+    now = now or utc_now()
     state = autonomous_execution_control_state(path, now=now)
     blockers = list(state.get("blockers") or [])
     action_class = str(action_class or "").upper()
@@ -647,6 +651,13 @@ def autonomous_execution_control_decision(
         blockers.append("execution_control_rollback_uncertified")
     if mutation_kind == "forward" and state.get("state") != "CLOSED":
         blockers.append("execution_control_forward_suspended")
+    if any((writer_user, writer_source, writer_target)):
+        if (mutation_kind != "forward" or not all((writer_user, writer_source, writer_target))
+                or not state.get("isolated_polygon_authority") or state.get("scope") != "operation"):
+            blockers.append("polygon_writer_exact_forward_scope_required")
+        elif not blockers:
+            from admin_core.operator_execution_isolation import writer_scope_errors
+            blockers.extend(writer_scope_errors(state, user=writer_user, source=writer_source, target=writer_target, now=now))
     allowed_forward = not blockers and mutation_kind == "forward" and state.get("state") == "CLOSED"
     allowed_rollback = not blockers and mutation_kind == "rollback" and bool(rollback_certified)
     return {
@@ -10471,6 +10482,9 @@ def main(argv=None):
     parser.add_argument("--execution-control-file", default=str(DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
     parser.add_argument("--expected-breaker-generation", default="")
     parser.add_argument("--mutation-kind", choices=("forward", "rollback"), default="forward")
+    parser.add_argument("--writer-user", default="")
+    parser.add_argument("--writer-source", default="")
+    parser.add_argument("--writer-target", default="")
     parser.add_argument("--action-class", default="USER_SWITCH")
     parser.add_argument("--operation-id", default="")
     parser.add_argument("--selected-move-hash", default="")
@@ -10979,6 +10993,9 @@ def main(argv=None):
                 source_bundle_hash=args.source_bundle_hash,
                 snapshot_bundle_hash=args.snapshot_bundle_hash,
                 max_users=args.max_users,
+                writer_user=args.writer_user,
+                writer_source=args.writer_source,
+                writer_target=args.writer_target,
             )
             print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
             return 0 if result.get("allowed") else 2

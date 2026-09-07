@@ -82,6 +82,13 @@ SNAPSHOT_BUNDLE_HASH="${V7_EXECUTION_SNAPSHOT_BUNDLE_HASH:-}"
 MAX_USERS="${V7_EXECUTION_MAX_USERS:-}"
 CONTROL_FILE="${V7_ADMIN_SAFE_MODE_FILE:-/etc/v7/admin/safe-mode.json}"
 CONTROL_FILE_HASH="${V7_EXECUTION_CONTROL_FILE_HASH:-}"
+# A lab-shaped file only requests the full existing owner validation below;
+# it is not permission. Never reuse the hash shortcut for this scope.
+LAB_OPERATION_CONTROL=0
+if [ -r "$CONTROL_FILE" ] && command -v jq >/dev/null 2>&1 \
+  && jq -e '.isolated_polygon_authority | type == "object"' "$CONTROL_FILE" >/dev/null 2>&1; then
+  LAB_OPERATION_CONTROL=1
+fi
 [ -n "$CONTROL_GENERATION" ] || { echo "STOP_SAFE: execution control generation missing"; exit 2; }
 [ -n "$MUTATION_KIND" ] || { echo "STOP_SAFE: execution mutation kind missing"; exit 2; }
 [ -n "$OPERATION_ID" ] || { echo "STOP_SAFE: execution operation id missing"; exit 2; }
@@ -101,6 +108,7 @@ if [ "$MUTATION_KIND" = "forward" ]; then
         || [ "$ACTION_CLASS" = "EMERGENCY_FAILOVER" ]; } \
         && [[ "$MAX_USERS" =~ ^[2-4]$ ]]; } \
       || { [ "$ACTION_CLASS" = "POLYGON_ONLY" ] && [ "$MAX_USERS" = "5" ]; } \
+      || { [ "$ACTION_CLASS" = "EMERGENCY_FAILOVER" ] && [ "$LAB_OPERATION_CONTROL" = "1" ]; } \
       || { echo "STOP_SAFE: max users outside exact action scope"; exit 2; }
   fi
 fi
@@ -122,6 +130,9 @@ if [ "$MUTATION_KIND" = "forward" ]; then
     --snapshot-bundle-hash "$SNAPSHOT_BUNDLE_HASH"
     --max-users "$MAX_USERS"
   )
+  if [ "$LAB_OPERATION_CONTROL" = "1" ]; then
+    validator+=(--writer-user "$USER_IP" --writer-source "$current" --writer-target "$EGRESS")
+  fi
 fi
 if [ "$MUTATION_KIND" = "rollback" ]; then
   [ "${V7_EXECUTION_ROLLBACK_CERTIFIED:-0}" = "1" ] || { echo "STOP_SAFE: rollback context uncertified"; exit 2; }
@@ -135,6 +146,7 @@ fi
 # CLI and fail closed exactly as before.
 CONTROL_HASH_REUSED=0
 if [ "$MUTATION_KIND" = "forward" ] \
+  && [ "$LAB_OPERATION_CONTROL" != "1" ] \
   && [[ "$CONTROL_FILE_HASH" =~ ^[0-9a-f]{64}$ ]] \
   && [ -r "$CONTROL_FILE" ] \
   && command -v jq >/dev/null 2>&1; then
@@ -167,7 +179,14 @@ if [ "$MUTATION_KIND" = "forward" ] \
   fi
 fi
 if [ "$CONTROL_HASH_REUSED" != "1" ]; then
-  "${validator[@]}" >/dev/null || { echo "STOP_SAFE: autonomous execution control denied"; exit 2; }
+  if [ "$LAB_OPERATION_CONTROL" = "1" ]; then
+    if ! lab_validation_output="$("${validator[@]}")"; then
+      printf 'STOP_SAFE: isolated operation writer validation denied\n%s\n' "$lab_validation_output"
+      exit 2
+    fi
+  else
+    "${validator[@]}" >/dev/null || { echo "STOP_SAFE: autonomous execution control denied"; exit 2; }
+  fi
 fi
 V7_ROUTE_TIMING_BOOTSTRAP_AND_CONTROL_VALIDATED="$(v7_route_timing_now)"
 

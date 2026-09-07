@@ -3736,6 +3736,26 @@ def extend_in_process_planner_lineage(
     return True
 
 
+def missing_cutover_effect_projection(apply_run, apply_result):
+    """Missing S11/receipt does not imply that the invoked writer did nothing."""
+    rows = [row for row in (apply_result.get("results") or []) if isinstance(row, dict)]
+    known = [row for row in rows if row.get("rc") == 0 or re.search(
+        r"^V7_TIMING_ROUTE_WRITE_MS=", str(row.get("output") or ""), re.MULTILINE,
+    ) or str(row.get("route_writer_failure_code") or "") in {
+        "ROUTE_POST_APPLY_OBSERVATION_FAILED", "ROUTE_POST_APPLY_STATE_OBSERVATION_FAILED",
+    }]
+    uncertain = len(known) < len(rows) or apply_run.get("returncode") not in (None, 0)
+    observed = True if known else (None if uncertain else False)
+    return {"routing_mutation_performed_by_consumer": observed,
+            "runtime_mutation_performed_by_consumer": observed,
+            "user_movement_by_consumer": len(known) if known else (None if uncertain else 0),
+            "effect_status": "OBSERVED_PARTIAL_OR_UNVERIFIED" if known else "UNKNOWN" if uncertain else "NO_WRITER_EFFECT_RECORDED",
+            "known_mutated_members": [row.get("user_ip") for row in known],
+            "attempted_members_with_result": [row.get("user_ip") for row in rows],
+            "unobserved_effect_possible": uncertain,
+            "required_service_s11_proven": False}
+
+
 def run_autoswitch_apply(
     *,
     state_dir: Path,
@@ -7873,9 +7893,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                         else {}
                     ),
                 },
-                "runtime_mutation_performed_by_consumer": False,
-                "routing_mutation_performed_by_consumer": False,
-                "user_movement_by_consumer": 0,
+                **missing_cutover_effect_projection(apply_run, apply_result),
             }
         ct_m0f_forward_evidence_record = (
             operator_execution.record_ct_m0f_standing_validation_forward_evidence(

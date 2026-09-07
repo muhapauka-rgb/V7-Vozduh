@@ -18,6 +18,79 @@ LOADER.exec_module(client_speed)
 
 
 class ExactClientProbeOwnerTest(unittest.TestCase):
+    def test_private_expected_ip_requires_fresh_exact_lab_authority(self):
+        from admin_core import operator_execution as owner
+        context = self.context()
+        context.update(expected_egress_ip="10.201.2.1", probe_transport="EXISTING_LOCAL_CLIENT_PROFILE_NAMESPACE",
+                       reuse_prepared_client_session=True)
+        context["context_hash"] = client_speed.exact_probe_context_hash(context)
+        self.assertIn("expected_egress_ip_invalid", client_speed.exact_probe_context_errors(context))
+        scope = {"members": [context["user"]], "member_tables": {context["user"]: "1003"},
+                 "source_egress": "vless", "allowed_target_egresses": ["awg3"],
+                 "environment": {"interface_ipv4s": {"awg-client0": ["10.201.2.1"]},
+                                 "egress_snat_mapping": {"awg-client0": "10.201.2.1"}}}
+        contract = {"schema_version": owner.CT_M0F_POLYGON_CONTRACT_SCHEMA, "envelope": {"isolated_polygon_scope": scope}}
+        policy = {owner.CT_M0F_STANDING_VALIDATION_POLICY_KEY: contract}
+        def read(path, *args, **kwargs):
+            if str(path) == "/polygon/policy.json": return json.dumps(policy)
+            if str(path) == "/polygon/state/egress.registry": return "id=awg3 interface=awg-client0 expected_ip=10.201.2.1\n"
+            raise AssertionError(str(path))
+        with mock.patch.object(Path, "is_file", return_value=True), mock.patch.object(Path, "read_text", read), mock.patch.object(
+            owner, "read_live_execution_lineage_records", return_value=[],
+        ), mock.patch.object(owner, "validate_ct_m0f_standing_validation_policy", return_value={"ok": True}) as validate:
+            self.assertTrue(client_speed.isolated_expected_egress_binding_valid(context))
+            for delta in ({"user": "10.7.0.4"}, {"target": "other"}, {"routing_table": "1004"},
+                          {"expected_egress_ip": "10.201.1.1"}, {"reuse_prepared_client_session": False}):
+                self.assertFalse(client_speed.isolated_expected_egress_binding_valid({**context, **delta}))
+            validate.return_value = {"ok": False}
+            self.assertFalse(client_speed.isolated_expected_egress_binding_valid(context))
+            validate.return_value = {"ok": True}
+            scope["environment"]["egress_snat_mapping"] = {}
+            self.assertFalse(client_speed.isolated_expected_egress_binding_valid(context))
+
+    def test_isolated_probe_rejects_foreign_member_before_commands(self):
+        descriptor = {"members": [{"source_address": "10.7.254.1"}]}
+        with mock.patch.object(Path, "is_file", return_value=True), mock.patch.object(Path, "read_text", return_value=json.dumps(descriptor)), mock.patch.object(client_speed, "_run_probe_command") as command:
+            with self.assertRaisesRegex(RuntimeError, "exact_member_required"):
+                client_speed.execute_isolated_client_operation({"action": "exact", "source_address": "10.7.1.1"})
+            command.assert_not_called()
+
+    def test_shared_namespace_projection_requires_actual_expected_payload(self):
+        context = self.context()
+        result = {"ok": True, "response_text": "8.8.8.8", "started_monotonic_ns": 1_100_000_000,
+                  "finished_monotonic_ns": 1_200_000_000, "fresh_socket": True,
+                  "source_bind_applied": True, "client_interface_bound": True}
+        kwargs = dict(destination_ip="8.8.4.4", route={"ok": True, "table": "1003", "dev": "awg-client0"},
+                      peer_mapping=True, client_netns_inode=5555, session_reused=True, started_ns=1_000_000_000)
+        success, attempts = client_speed.exact_namespace_probe_attempt(context, result, **kwargs)
+        self.assertTrue(success["client_tunnel_ingress_proven"])
+        self.assertTrue(success["host_policy_route_proven"])
+        self.assertEqual(success["duration_ms"], 100)
+        success, attempts = client_speed.exact_namespace_probe_attempt(context, {**result, "response_text": "1.1.1.1"}, **kwargs)
+        self.assertEqual(success, {})
+        self.assertFalse(attempts[0]["payload_response_verified"])
+
+    def test_isolated_transport_rejects_wrong_mac_nonce_or_namespace(self):
+        descriptor = {"client_transport_address": "172.20.0.3", "client_network_namespace_inode": 777}
+        secret = b"unit-only-key"
+        connection = mock.Mock()
+        response = connection.getresponse.return_value
+        response.status = 200
+        def result_for(nonce="nonce", inode=777, mac_ok=True):
+            raw = json.dumps({"nonce": nonce, "client_network_namespace_inode": inode, "result": {"ok": True}}).encode()
+            response.read.return_value = raw
+            response.getheader.return_value = client_speed.hmac.new(secret, raw, client_speed.hashlib.sha256).hexdigest() if mac_ok else "bad"
+        with mock.patch.object(Path, "is_file", return_value=True), mock.patch.object(Path, "read_text", return_value=json.dumps(descriptor)), mock.patch.object(
+            Path, "read_bytes", return_value=secret,
+        ), mock.patch.object(client_speed.http.client, "HTTPConnection", return_value=connection), mock.patch.object(client_speed.secrets, "token_hex", return_value="nonce"):
+            for kwargs in ({"mac_ok": False}, {"nonce": "other"}, {"inode": 778}):
+                result_for(**kwargs)
+                with self.assertRaises(RuntimeError):
+                    client_speed.isolated_client_transport_request({"action": "path", "source_address": "10.7.254.1"})
+            result_for()
+            self.assertEqual(client_speed.isolated_client_transport_request({"action": "path", "source_address": "10.7.254.1"}), {"ok": True})
+            self.assertEqual(connection.close.call_count, 4)
+
     def test_namespace_http_probe_uses_framed_response_completion(self):
         script = client_speed._exact_namespace_http_script()
         compile(script, "<exact-namespace-http>", "exec")

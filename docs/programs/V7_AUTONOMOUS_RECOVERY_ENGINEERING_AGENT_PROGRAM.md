@@ -39,12 +39,12 @@ surface of its named owner, not a new owner or autonomous service.
 | --- | --- | --- |
 | Mission intake, result consumption and CPS projection | `tools/v7-truth-check`, `tools/v7_sync_lib.py` | OMP; no forwarding decisions |
 | Native reasoning-role transport | `tools/v7-autonomous-recovery-bundle` | Immutable context/evidence, not Runtime Authority |
-| Disposable Linux topology and physical fault fixture | `tools/polygon/runtime_chain.py`, called by `execute_routing_digital_twin_l3_l4_obligation` | Existing Polygon adapter; no host mounts/network access or manufactured owner results |
+| Disposable Linux topology and physical fault fixture | `tools/polygon/runtime_chain.py` and `runtime_topology.py`, called by `execute_routing_digital_twin_l3_l4_obligation` | Existing Polygon adapter; no host mounts, external network access or manufactured owner results |
 | Detection and canonical observations | `tools/runtime-support/v7-health-loop`, `tools/v7-egress-diagnose`, `tools/v7-service-matrix-test`, `tools/v7-service-matrix-refresh-all` | Same health/Matrix owners in the isolated environment |
 | Lawful planning, Packet/Lease/Barrier and rollback | `tools/v7-users-autoswitch`, `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py` | Fresh per-client admission; no test-only bypass |
 | Routing and final verification | existing `v7-user-switch`, `v7-routing-sync`, `tools/runtime-support/v7-egress-lib` and governed S11 consumers | Only observed kernel/service outcomes count |
 
-The `REAL_HEALTH_MATRIX_PROBE` adapter is a partial integration diagnostic,
+The `REAL_HEALTH_MATRIX_PROBE` and `REAL_TRAFFIC_PATH_PROBE` modes are partial integration diagnostics,
 not a full campaign or an E2E baseline. Its omitted service roles are explicitly
 out of scope; its source restoration is teardown, not automatic failover.
 Legacy Docker netem/HTTP receipts likewise cannot prove a changed assignment,
@@ -56,6 +56,17 @@ owner (SHA256 `b8ba65f5951169c775cc5d7af111458adde9d5f32660feb34f86e72fa324627b`
 It is tracked by the existing safe-sync manifest, not a second implementation.
 Polygon must override node-specific environment defaults within its isolated
 container; unit-test shell stubs cannot substitute for this dependency in E2E.
+The manifest mapping is provenance/packaging, not approval to overwrite that
+library in Production. A release including it requires explicit composition
+review; isolated-Polygon work does not itself require such a deployment.
+
+The traffic fixture uses two GRE paths to a backend on one Docker-internal
+network. The backend emulates remote HTTPS/TCP endpoints, not V7 outcomes.
+The original Matrix catalog is read without changes; its hostnames are bound
+only inside the lab and its certificate checks use a lab-only trust anchor.
+Five source-address-bound requests must succeed before the physical source
+failure and fail afterward while the distinct target remains reachable.
+That proves fault/path preconditions, never automatic assignment or S11.
 
 ## 3. User decisions
 

@@ -2656,7 +2656,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             state.joinpath("users.registry").write_text(
                 "\n".join(
                     f"ip=10.7.1.{number} enabled=1 current=source certification_user=1 certification_group=t48"
-                    for number in range(1, 6)
+                    for number in range(1, 7)
                 ) + "\n", encoding="utf-8"
             )
             state.joinpath("egress.registry").write_text(
@@ -2683,6 +2683,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(manifest["stage1_rebind_projection"]["source_egress"], "source")
         self.assertEqual(manifest["stage1_rebind_projection"]["target_egress"], "vless")
         self.assertEqual(manifest["trial_identity_count"], 5)
+        self.assertEqual(manifest["capacity_reservation"], 5)
         self.assertTrue(result["production_preflight"]["mutation_performed"] is False)
 
     def test_exact_five_admission_stops_on_current_cohort_mismatch(self):
@@ -3992,7 +3993,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)
             state.joinpath("users.registry").write_text(
-                "\n".join(f"ip=10.7.0.{n} enabled=1 certification_user=1 current=awg3" for n in range(1, 6)) + "\n",
+                "\n".join(f"ip=10.7.0.{n} enabled=1 certification_user=1 certification_group=t48 current=awg3" for n in range(1, 6)) + "\n",
                 encoding="utf-8",
             )
             args = self.autoswitch.build_arg_parser().parse_args(["--state-dir", str(state)])
@@ -4000,7 +4001,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 mock.patch.object(self.autoswitch.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout="V7_USER_ROUTE_CHECK=OK\n")),
                 mock.patch.object(self.autoswitch, "polygon_only_source_generation", return_value={"planner_generation_id": "g", "source_bundle_hash": "s", "snapshot_bundle_hash": "p", "selected_move_hash": "m"}),
             ):
-                binding = self.autoswitch.exact_five_stage1_binding(args, {"stage1_rebind_projection": {"certification_members": [f"10.7.0.{n}" for n in range(1, 6)], "target_egress": "source"}}, "source")
+                binding = self.autoswitch.exact_five_stage1_binding(args, {"stage1_rebind_projection": {"certification_members": [f"10.7.0.{n}" for n in range(1, 6)], "source_egress": "awg3", "target_egress": "source", "certification_group": "t48", "original_assignments": {f"10.7.0.{n}": "awg3" for n in range(1, 6)}}}, "source")
                 self.assertTrue(binding["ok"])
                 bad = self.autoswitch.exact_five_stage1_binding(args, {"stage1_rebind_projection": {"certification_members": ["10.7.0.1"] * 4, "target_egress": "source"}}, "source")
                 self.assertIn("stage1_exactly_five_owner_derived_certification_members_required", bad["blockers"])
@@ -4008,6 +4009,20 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 self.assertEqual(len(projection), 5)
                 self.assertTrue(all(row["rollback_egress"] == "awg3" for row in projection))
                 self.assertTrue(all(row["current_egress"] == "awg3" and row["recommended_egress"] == "source" for row in projection))
+                stale = self.autoswitch.exact_five_stage1_binding(
+                    args,
+                    {"stage1_rebind_projection": {
+                        "certification_members": [f"10.7.0.{n}" for n in range(1, 6)],
+                        "source_egress": "other-source", "target_egress": "source",
+                        "certification_group": "t48",
+                        "original_assignments": {f"10.7.0.{n}": "awg3" for n in range(1, 6)},
+                    }},
+                    "source",
+                )
+                self.assertIn(
+                    "stage1_projection_source_not_exact_current_source",
+                    stale["blockers"],
+                )
                 receipt = {
                     "receipt_hash": "a" * 64,
                     "members_fingerprint": binding["membership_fingerprint"],
@@ -4021,6 +4036,45 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 self.assertTrue(scope["selected_move_hash"])
                 receipt["target_egress"] = "wrong"
                 self.assertFalse(self.autoswitch.stage1_receipt_bound_plan_input(binding, receipt)["ok"])
+
+    def test_stage1_preparation_cohort_is_fresh_bounded_and_ordinary_safe(self):
+        rows = [
+            {
+                "ip": f"10.7.9.{number}", "enabled": "1",
+                "certification_user": "1", "certification_group": "t48",
+                "current": "awg3",
+            }
+            for number in range(1, 7)
+        ] + [{
+            "ip": "10.7.10.1", "enabled": "1",
+            "certification_user": "1", "certification_group": "other",
+            "current": "awg0",
+        }]
+        cohort = self.autoswitch.owner_derived_exact_five_preparation_cohort(
+            rows, campaign_group="t48",
+        )
+        self.assertTrue(cohort["ok"])
+        self.assertEqual(
+            cohort["certification_members"],
+            [f"10.7.9.{number}" for number in range(1, 6)],
+        )
+        self.assertEqual(cohort["source_egress"], "awg3")
+        self.assertEqual(
+            cohort["original_assignments"],
+            {f"10.7.9.{number}": "awg3" for number in range(1, 6)},
+        )
+        ordinary = self.autoswitch.owner_derived_exact_five_preparation_cohort(
+            rows + [{
+                "ip": "10.7.9.250", "enabled": "1",
+                "certification_user": "0", "current": "awg3",
+            }],
+            campaign_group="t48",
+        )
+        self.assertFalse(ordinary["ok"])
+        self.assertIn(
+            "stage1_selected_source_has_enabled_ordinary_users",
+            ordinary["blockers"],
+        )
 
     def test_stage1_consumer_rejects_incomplete_owner_binding_before_effect(self):
         args = self.autoswitch.build_arg_parser().parse_args([])
@@ -4040,10 +4094,17 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "polygon-stage1-exact-five",
         )
         self.assertEqual(
+            self.autoswitch.omp_controlled_source_admission_profile([
+                {**qualifying[0], "enabled_certification_users_on_source": 6,
+                 "group_aligned_certification_users_on_source": 6}
+            ]),
+            "polygon-stage1-exact-five",
+        )
+        self.assertEqual(
             self.autoswitch.omp_controlled_source_admission_profile([{**qualifying[0], "enabled_non_certification_users_on_source": 1}]),
             "ct-m0f-one-user",
         )
-        valid = {"status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY", "production_preflight": {"manifest": {"validation_profile": "POLYGON_STAGE1_EXACT_FIVE"}}, "stage1_rebind_projection": {"certification_members": [str(i) for i in range(5)], "source_egress": "source", "target_egress": "target", "admission_blockers": []}}
+        valid = {"status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY", "production_preflight": {"manifest": {"validation_profile": "POLYGON_STAGE1_EXACT_FIVE"}}, "stage1_rebind_projection": {"certification_members": [str(i) for i in range(5)], "source_egress": "source", "target_egress": "target", "certification_group": "t48", "original_assignments": {str(i): "source" for i in range(5)}, "admission_blockers": []}}
         self.assertTrue(self.autoswitch.omp_stage1_admission_complete(valid))
         stale = copy.deepcopy(valid); stale["stage1_rebind_projection"]["admission_blockers"] = ["stale"]
         self.assertFalse(self.autoswitch.omp_stage1_admission_complete(stale))
@@ -4055,7 +4116,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             state.joinpath("egress.registry").write_text("", encoding="utf-8")
             args = self.autoswitch.build_arg_parser().parse_args(["--state-dir", str(state), "--policy-file", str(policy), "--egress-drafts-dir", str(root / "drafts"), "--action-class-audit-store", str(root / "audit.jsonl")])
             baseline = {"source_id": "dynamic-source", "enabled_certification_users_on_source": 5, "group_aligned_certification_users_on_source": 5, "enabled_non_certification_users_on_source": 0, "source_isolated_for_controlled_failure": True, "baseline_health": {"ok": True}, "controlled_condition_active": False}
-            valid = {"status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY", "production_preflight": {"manifest": {"validation_profile": "POLYGON_STAGE1_EXACT_FIVE"}}, "stage1_rebind_projection": {"certification_members": [str(i) for i in range(5)], "source_egress": "dynamic-source", "target_egress": "dynamic-target", "admission_blockers": []}}
+            valid = {"status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY", "production_preflight": {"manifest": {"validation_profile": "POLYGON_STAGE1_EXACT_FIVE"}}, "stage1_rebind_projection": {"certification_members": [str(i) for i in range(5)], "source_egress": "dynamic-source", "target_egress": "dynamic-target", "certification_group": "t48", "original_assignments": {str(i): "dynamic-source" for i in range(5)}, "admission_blockers": []}}
             with mock.patch.object(self.autoswitch, "controlled_certification_pool_status", return_value={"active_source_projections": [baseline]}), mock.patch.object(self.autoswitch, "controlled_source_topology_diagnostic", return_value=valid) as diagnostic:
                 result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
             self.assertEqual(diagnostic.call_args.args[0].controlled_source_validation_profile, "polygon-stage1-exact-five")
@@ -4074,6 +4135,32 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 self.autoswitch.ct_m0f_standing_source_selection_only(args)
             self.assertEqual(diagnostic.call_args.args[0].controlled_source_validation_profile, "ct-m0f-one-user")
 
+    def test_authority_entrypoint_reuses_current_omp_preparation_profile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(root),
+                "--action-class-audit-store", str(root / "audit.jsonl"),
+            ])
+            baseline = {
+                "source_id": "awg3", "source_isolated_for_controlled_failure": True,
+                "enabled_certification_users_on_source": 6,
+                "group_aligned_certification_users_on_source": 6,
+                "enabled_non_certification_users_on_source": 0,
+                "baseline_health": {"ok": True},
+                "controlled_condition_active": False,
+            }
+            with (
+                mock.patch.object(self.autoswitch, "controlled_certification_pool_status", return_value={"active_source_projections": [baseline]}),
+                mock.patch.object(self.autoswitch, "controlled_source_topology_diagnostic", return_value={"status": "STOP_SAFE"}) as diagnostic,
+            ):
+                result = self.autoswitch.controlled_source_topology_authority_request_only(args)
+        self.assertFalse(result["ok"])
+        self.assertEqual(
+            diagnostic.call_args.args[0].controlled_source_validation_profile,
+            "polygon-stage1-exact-five",
+        )
+
     def test_stage1_producer_receipt_reaches_planner_with_forward_direction_only(self):
         """One existing topology receipt is the sole Stage-1 Planner input."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -4082,9 +4169,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             members = [f"10.7.0.{number}" for number in range(1, 6)]
             state.joinpath("users.registry").write_text(
                 "\n".join(
-                    f"ip={ip} enabled=1 certification_user=1 current=awg3"
+                    f"ip={ip} enabled=1 certification_user=1 certification_group=test current=awg3"
                     for ip in members
-                ) + "\n",
+                ) + "\n"
+                + "ip=10.7.0.6 enabled=1 certification_user=1 certification_group=test current=awg3\n",
                 encoding="utf-8",
             )
             state.joinpath("egress.registry").write_text(
@@ -4119,7 +4207,9 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 },
                 "production_preflight": {"manifest": manifest},
                 "stage1_rebind_projection": {
-                    "certification_members": members, "target_egress": "vless",
+                    "certification_members": members, "source_egress": "awg3",
+                    "target_egress": "vless", "certification_group": "test",
+                    "original_assignments": {ip: "awg3" for ip in members},
                 },
             }
             source_generation = {
@@ -4134,12 +4224,23 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     return SimpleNamespace(returncode=0, stdout="V7_USER_ROUTE_CHECK=OK\n")
                 return proc
             with (
-                mock.patch.object(self.autoswitch, "controlled_source_topology_diagnostic", return_value=diagnostic),
+                mock.patch.object(self.autoswitch, "controlled_certification_pool_status", return_value={"active_source_projections": [{
+                    "source_id": "awg3", "source_isolated_for_controlled_failure": True,
+                    "enabled_certification_users_on_source": 5,
+                    "group_aligned_certification_users_on_source": 5,
+                    "enabled_non_certification_users_on_source": 0,
+                    "baseline_health": {"ok": True}, "controlled_condition_active": False,
+                }]}),
+                mock.patch.object(self.autoswitch, "controlled_source_topology_diagnostic", return_value=diagnostic) as diagnostic_call,
                 mock.patch.object(self.autoswitch, "polygon_only_source_generation", return_value=source_generation),
                 mock.patch.object(self.autoswitch.subprocess, "run", side_effect=run),
             ):
                 result = self.autoswitch.consume_approved_controlled_source_topology(args)
             self.assertEqual(result["status"], "CONTROLLED_SOURCE_TOPOLOGY_PROVISIONED")
+            self.assertEqual(
+                diagnostic_call.call_args.args[0].controlled_source_validation_profile,
+                "polygon-stage1-exact-five",
+            )
             receipt = operator_execution.read_audit_records(audit)[-1]
             self.assertEqual(receipt["source_egress"], "awg3")
             self.assertEqual(receipt["target_egress"], "vless")
@@ -4159,6 +4260,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 and move["rollback_egress"] == "awg3"
                 for move in scope["selected_moves"]
             ))
+            self.assertNotIn(
+                "10.7.0.6",
+                {move["user_ip"] for move in scope["selected_moves"]},
+            )
             self.assertEqual(scope["source_generation"], source_generation)
 
             malformed = copy.deepcopy(receipt)

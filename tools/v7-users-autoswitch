@@ -28447,6 +28447,81 @@ def _controlled_source_key_value_output(text: str) -> dict[str, str]:
     return result
 
 
+def owner_derived_exact_five_preparation_cohort(
+    assignment_rows: list[dict[str, Any]], *, campaign_group: str = "",
+) -> dict[str, Any]:
+    """Select the bounded preparation cohort from the current registry owner.
+
+    This deliberately accepts neither a user list nor a source override.  The
+    only selectable unit is an enabled, same-group, same-current-source slice
+    of the existing assignments registry.  A stable lexical ordering makes
+    the resulting five identities reproducible, while all remaining members
+    stay outside the immutable packet subject set.
+    """
+    eligible: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    duplicate_ips: set[str] = set()
+    seen_ips: set[str] = set()
+    required_group = str(campaign_group or "").strip()
+    for row in assignment_rows:
+        if not bool_value(row.get("enabled", "1")) or not bool_value(
+            row.get("certification_user")
+        ):
+            continue
+        ip = str(row.get("ip") or "").strip()
+        current = str(row.get("current") or "").strip()
+        group = str(row.get("certification_group") or "").strip()
+        if not ip or not current or current == "UNASSIGNED" or not group:
+            continue
+        if required_group and group != required_group:
+            continue
+        if ip in seen_ips:
+            duplicate_ips.add(ip)
+            continue
+        seen_ips.add(ip)
+        eligible.setdefault((group, current), []).append(row)
+
+    candidates = [
+        (group, current, sorted(rows, key=lambda row: str(row.get("ip") or "")))
+        for (group, current), rows in eligible.items()
+        if len(rows) >= 5
+    ]
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    blockers: list[str] = []
+    if duplicate_ips:
+        blockers.append("stage1_duplicate_enabled_certification_identity_in_owner_registry")
+    if not candidates:
+        blockers.append("stage1_same_group_common_source_with_at_least_five_enabled_certification_subjects_required")
+    selected_group, selected_source, selected_rows = (
+        candidates[0] if candidates else ("", "", [])
+    )
+    members = [str(row.get("ip") or "").strip() for row in selected_rows[:5]]
+    if len(members) != 5:
+        blockers.append("stage1_exactly_five_owner_derived_certification_members_required")
+    ordinary_on_source = sorted(
+        str(row.get("ip") or "").strip()
+        for row in assignment_rows
+        if str(row.get("current") or "").strip() == selected_source
+        and not bool_value(row.get("certification_user"))
+        and bool_value(row.get("enabled", "1"))
+        and str(row.get("ip") or "").strip()
+    )
+    if ordinary_on_source:
+        blockers.append("stage1_selected_source_has_enabled_ordinary_users")
+    return {
+        "ok": not blockers,
+        "certification_group": selected_group,
+        "source_egress": selected_source,
+        "certification_members": members,
+        "original_assignments": {
+            ip: selected_source for ip in members
+        },
+        "ordinary_users_on_source": ordinary_on_source,
+        "candidate_count": len(candidates),
+        "selection": "OWNER_REGISTRY_GROUP_SOURCE_LEXICAL_FIRST_FIVE",
+        "blockers": sorted(set(blockers)),
+    }
+
+
 def exact_five_stage1_binding(args: argparse.Namespace, diagnostic: dict[str, Any], target_egress: str) -> dict[str, Any]:
     """Derive, never accept, the bounded Stage-1 cohort from topology truth.
 
@@ -28456,18 +28531,43 @@ def exact_five_stage1_binding(args: argparse.Namespace, diagnostic: dict[str, An
     projection = diagnostic.get("stage1_rebind_projection") if isinstance(diagnostic.get("stage1_rebind_projection"), dict) else {}
     members = sorted({str(item).strip() for item in (projection.get("certification_members") or []) if str(item).strip()})
     rows = parse_registry(Path(args.state_dir) / "users.registry")
-    by_ip = {str(row.get("ip") or ""): row for row in rows}
+    rows_by_ip: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        ip = str(row.get("ip") or "").strip()
+        if ip:
+            rows_by_ip.setdefault(ip, []).append(row)
+    by_ip = {
+        ip: candidate_rows[0]
+        for ip, candidate_rows in rows_by_ip.items()
+        if len(candidate_rows) == 1
+    }
     originals = {
         ip: str((by_ip.get(ip) or {}).get("current") or "")
         for ip in members
     }
     forward_sources = sorted(set(originals.values()) - {""})
+    live_groups = sorted({
+        str((by_ip.get(ip) or {}).get("certification_group") or "").strip()
+        for ip in members
+    } - {""})
     blockers = []
     if len(members) != 5:
         blockers.append("stage1_exactly_five_owner_derived_certification_members_required")
+    if any(len(rows_by_ip.get(ip) or []) != 1 for ip in members):
+        blockers.append("stage1_projection_member_not_unique_in_current_owner_registry")
     if len(forward_sources) != 1:
         blockers.append("stage1_exactly_one_current_forward_source_required")
     forward_source = forward_sources[0] if len(forward_sources) == 1 else ""
+    if str(projection.get("source_egress") or "") != forward_source:
+        blockers.append("stage1_projection_source_not_exact_current_source")
+    projection_originals = projection.get("original_assignments")
+    if not isinstance(projection_originals, dict) or {
+        ip: str(projection_originals.get(ip) or "") for ip in members
+    } != originals:
+        blockers.append("stage1_projection_original_assignments_not_exact_current_preimage")
+    projection_group = str(projection.get("certification_group") or "").strip()
+    if len(live_groups) != 1 or not projection_group or live_groups[0] != projection_group:
+        blockers.append("stage1_projection_certification_group_not_exact_current_owner_group")
     if not target_egress or target_egress == forward_source:
         blockers.append("stage1_owner_derived_distinct_forward_target_required")
     if str(projection.get("target_egress") or "") != target_egress:
@@ -28638,7 +28738,9 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
             "users_moved": 0,
         }
     diagnostic_args = copy.copy(args)
-    diagnostic_args.controlled_source_validation_profile = "ct-m0f-one-user"
+    diagnostic_args.controlled_source_validation_profile = (
+        omp_current_source_admission_profile(args)
+    )
     diagnostic = controlled_source_topology_diagnostic(diagnostic_args)
     lifecycle = diagnostic.get("authority_lifecycle") if isinstance(diagnostic.get("authority_lifecycle"), dict) else {}
     package = diagnostic.get("authority_package") if isinstance(diagnostic.get("authority_package"), dict) else {}
@@ -29492,17 +29594,18 @@ def controlled_source_topology_diagnostic(
         for row in campaign_identity_rows
         if str(row.get("ip") or "")
     ))
-    stage1_members = sorted(
-        str(row.get("ip") or "")
-        for row in assignment_rows
-        if bool_value(row.get("certification_user"))
-        and str(row.get("ip") or "")
+    # Stage-1 is a bounded preparation operation, not a claim that the
+    # complete certification programme currently contains five identities.
+    # Derive its subject afresh from one existing group/source partition so a
+    # larger programme cannot leak into its five-member Packet.
+    stage1_cohort = owner_derived_exact_five_preparation_cohort(
+        assignment_rows, campaign_group=campaign_group,
     )
-    stage1_current_sources = sorted({
-        str(row.get("current") or "")
-        for row in assignment_rows
-        if str(row.get("ip") or "") in set(stage1_members)
-    } - {""})
+    stage1_members = list(stage1_cohort.get("certification_members") or [])
+    stage1_current_sources = (
+        [str(stage1_cohort.get("source_egress") or "")]
+        if str(stage1_cohort.get("source_egress") or "") else []
+    )
     # This is deliberately a compact derived read model, not a second
     # campaign registry.  The assignments owner remains authoritative for
     # every identity.  A stage may proceed only when the complete immutable
@@ -29979,7 +30082,7 @@ def controlled_source_topology_diagnostic(
     stage1_profile = validation_profile == "polygon-stage1-exact-five"
     stage1_source = stage1_current_sources[0] if len(stage1_current_sources) == 1 else ""
     stage1_target = selected_source
-    stage1_admission_blockers = []
+    stage1_admission_blockers = list(stage1_cohort.get("blockers") or [])
     if stage1_profile:
         if len(stage1_members) != 5:
             stage1_admission_blockers.append("stage1_exactly_five_existing_enabled_certification_subjects_required")
@@ -30013,7 +30116,7 @@ def controlled_source_topology_diagnostic(
 
     preflight_ready = bool(
         selected_option
-        and trial_identity
+        and (stage1_members[0] if stage1_profile and stage1_members else trial_identity)
         and reservation_owner.get("status") == "READY"
         and (
             bool(ct_m0f_basis)
@@ -30046,13 +30149,20 @@ def controlled_source_topology_diagnostic(
         ),
         "expected_ordinary_assignment_delta": "NONE",
         "expected_ordinary_route_delta": "NONE",
-        "capacity_reservation": 1,
+        "capacity_reservation": 5 if stage1_profile else 1,
         "stage1_rebind_projection": (
             {"certification_members": stage1_members, "target_egress": stage1_target,
-             "source_egress": stage1_source, "admission_blockers": stage1_admission_blockers}
+             "source_egress": stage1_source,
+             "original_assignments": dict(stage1_cohort.get("original_assignments") or {}),
+             "certification_group": str(stage1_cohort.get("certification_group") or ""),
+             "selection": str(stage1_cohort.get("selection") or ""),
+             "admission_blockers": sorted(set(stage1_admission_blockers))}
             if stage1_profile else {}
         ),
-        "certification_group": campaign_group,
+        "certification_group": (
+            str(stage1_cohort.get("certification_group") or "")
+            if stage1_profile else campaign_group
+        ),
         "reservation_mode": (
             "RENEW_AND_CONTINUE_SAME_CAMPAIGN_CERTIFICATION_SOURCE"
             if selected_option
@@ -31399,7 +31509,16 @@ def controlled_source_topology_authority_request_only(
                 for name in sorted(set(forbidden))
             ],
         }
-    diagnostic = controlled_source_topology_diagnostic(args)
+    diagnostic_args = copy.copy(args)
+    # ``campaign`` is the public broad-safe default.  The exact bounded
+    # profile is internal OMP-derived only; callers cannot inject it through
+    # CLI input.  An explicitly requested CT-M0F one-user diagnostic remains
+    # unchanged for its existing path.
+    if str(getattr(args, "controlled_source_validation_profile", "campaign") or "campaign") == "campaign":
+        diagnostic_args.controlled_source_validation_profile = (
+            omp_current_source_admission_profile(args)
+        )
+    diagnostic = controlled_source_topology_diagnostic(diagnostic_args)
     package = (
         diagnostic.get("authority_package")
         if isinstance(diagnostic.get("authority_package"), dict)
@@ -32999,22 +33118,60 @@ def omp_controlled_source_admission_profile(healthy_baselines: list[dict[str, An
     """Choose the existing OMP admission mode from current baseline evidence."""
     exact_five_sources = [
         row for row in healthy_baselines
-        if int(row.get("enabled_certification_users_on_source") or 0) == 5
-        and int(row.get("group_aligned_certification_users_on_source") or 0) == 5
+        if int(row.get("enabled_certification_users_on_source") or 0) >= 5
+        and int(row.get("group_aligned_certification_users_on_source") or 0) >= 5
+        and int(row.get("enabled_certification_users_on_source") or 0)
+        == int(row.get("group_aligned_certification_users_on_source") or 0)
         and int(row.get("enabled_non_certification_users_on_source") or 0) == 0
     ]
     return "polygon-stage1-exact-five" if len(exact_five_sources) == 1 else "ct-m0f-one-user"
 
 
+def omp_current_source_admission_profile(args: argparse.Namespace) -> str:
+    """Re-derive OMP's internal topology profile from current owner truth.
+
+    This is intentionally a scalar reuse of the controlled-pool read model:
+    it neither stores a cohort nor accepts an operator-selected profile.  Both
+    the Authority request and the Matrix-woken consumer call this before their
+    existing diagnostic, so a changed source/group cannot reuse an old
+    Stage-1 approval under the one-user path.
+    """
+    pool = controlled_certification_pool_status(Path(args.state_dir))
+    healthy_baselines = [
+        row for row in (pool.get("active_source_projections") or [])
+        if isinstance(row, dict)
+        and str(row.get("source_id") or "")
+        and bool(row.get("source_isolated_for_controlled_failure"))
+        and int(row.get("enabled_certification_users_on_source") or 0) > 0
+        and int(row.get("group_aligned_certification_users_on_source") or 0) > 0
+        and int(row.get("enabled_non_certification_users_on_source") or 0) == 0
+        and bool((row.get("baseline_health") or {}).get("ok"))
+        and not bool(row.get("controlled_condition_active"))
+    ]
+    return omp_controlled_source_admission_profile(healthy_baselines)
+
+
 def omp_stage1_admission_complete(result: dict[str, Any]) -> bool:
     manifest = ((result.get("production_preflight") or {}).get("manifest") or {}) if isinstance(result.get("production_preflight"), dict) else {}
     projection = result.get("stage1_rebind_projection") if isinstance(result.get("stage1_rebind_projection"), dict) else {}
+    members = sorted({
+        str(item).strip()
+        for item in (projection.get("certification_members") or [])
+        if str(item).strip()
+    })
+    source = str(projection.get("source_egress") or "")
+    originals = projection.get("original_assignments")
+    exact_preimage = isinstance(originals, dict) and {
+        ip: str(originals.get(ip) or "") for ip in members
+    } == {ip: source for ip in members}
     return bool(
         result.get("status") == "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
         and manifest.get("validation_profile") == "POLYGON_STAGE1_EXACT_FIVE"
-        and len(projection.get("certification_members") or []) == 5
-        and str(projection.get("source_egress") or "")
+        and len(members) == 5
+        and source
         and str(projection.get("target_egress") or "")
+        and str(projection.get("certification_group") or "")
+        and exact_preimage
         and not list(projection.get("admission_blockers") or [])
     )
 
